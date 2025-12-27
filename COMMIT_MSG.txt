@@ -1,0 +1,136 @@
+feat: Implement 3-Tier Document Model with Unified Rendering Engine
+
+BREAKING CHANGE: Major architectural documentation overhaul establishing
+the 3-Tier Document Model (ADR-0015) with comprehensive ADRs, SPECs, and
+Tier-0 Pydantic contracts across all tools.
+
+## Summary
+
+This commit establishes the complete architectural foundation for the
+Engineering Tools platform by implementing:
+
+1. **3-Tier Document Model** (ADR-0015)
+   - Tier 0: Pydantic contracts (source of truth)
+   - Tier 1: ADRs (WHY - architectural decisions)
+   - Tier 2: SPECs (WHAT - implementation details)
+   - Tier 3: GUIDES (HOW - deferred to PROD release)
+
+2. **Unified Rendering Engine** (ADR-0028)
+   - Centralized visualization/charting for DAT, SOV, PPTX
+   - Renderer-agnostic RenderSpec contracts
+   - Multi-target output (web, PNG, SVG, PDF, PPTX)
+   - Eliminates code duplication across tools
+
+3. **Cross-Cutting Guardrails** (ADR-0017)
+   - Path safety, concurrency, audit trails
+   - Message catalogs, contract versioning
+
+## New ADRs (28 total)
+
+### Core ADRs (13)
+- ADR-0001: Guided Workflow FSM Orchestration
+- ADR-0004: Deterministic Content-Addressed IDs
+- ADR-0005: Swagger-Driven E2E Validation
+- ADR-0008: Audit Trail Timestamps
+- ADR-0009: Type Safety & Contract Discipline
+- ADR-0010: Docs-as-Code Engineering Tenets
+- ADR-0012: Cross-Platform Concurrency (rewrote from Windows-first)
+- ADR-0015: 3-Tier Document Model
+- ADR-0016: Hybrid Semver Contract Versioning
+- ADR-0017: Cross-Cutting Guardrails
+- ADR-0025: DataSet Lineage Tracking
+- ADR-0026: Pipeline Error Handling
+- ADR-0028: **Unified Rendering Engine** (NEW)
+
+### Tool-Specific ADRs
+- **DAT (7)**: Stage graph, profiles, table availability, cancellation
+- **PPTX (4)**: Template processing, workflow, domain config, renderers
+- **SOV (3)**: Analysis pipeline, dataset integration, visualizations
+- **DevTools (1)**: Page architecture
+- **Shared (1)**: Artifact preservation
+
+## New Tier-0 Contracts (15 modules)
+
+### Core Contracts
+- `shared/contracts/adr_schema.py` - ADR validation schema
+- `shared/contracts/core/audit.py` - Audit trails & timestamps
+- `shared/contracts/core/concurrency.py` - Cross-platform concurrency
+- `shared/contracts/core/path_safety.py` - Path validation & safety
+- `shared/contracts/core/rendering.py` - **Unified rendering contracts** (NEW)
+
+### Tool Contracts
+- **DAT**: stage.py, profile.py, table_status.py
+- **PPTX**: template.py, shape.py (updated to use rendering contracts)
+- **SOV**: anova.py, visualization.py (updated to use rendering contracts)
+- **Messages**: catalog.py
+
+## New SPEC Documents (17 total)
+
+### Core SPECs (10)
+- SPEC-0001: Stage Orchestration FSM
+- SPEC-0011: Concurrency Determinism
+- SPEC-0012: Audit Trail Enforcement
+- SPEC-0013: Artifact Lifecycle Preservation
+- SPEC-0016: Path Safety Normalization
+- SPEC-0028: DataSet Lineage
+- SPEC-0029: Pipeline Execution
+- SPEC-0031: **Unified Rendering Contracts** (NEW)
+- SPEC-0032: **Rendering Engine Architecture** (NEW)
+- SPEC-0033: **Output Target Adapters** (NEW)
+
+### Tool SPECs
+- **DAT (3)**: Stage graph, profile extraction, table availability
+- **PPTX (3)**: Template schema, shape discovery, renderer interface
+- **SOV (2)**: ANOVA computation, visualization contracts
+
+## Documentation Updates
+
+- **docs/AI_CODING_GUIDE.md** - Comprehensive guide with all ADRs, ACs, compliance scorecard
+- **docs/SPEC_INDEX.md** - Complete SPEC registry with contract mappings
+- **docs/TODO_GUIDES.md** - Tier-3 GUIDES deferred to PROD release
+- **.adrs/ADR_INDEX.md** - Updated with ADR-0028 and orthogonality matrix
+- **.adrs/TODO_CODE_VALIDATION.md** - Code validation checklist
+
+## DevTools Integration
+
+- New DevTools page in homepage frontend
+- ADR form editor for creating/editing ADRs
+- DevTools service in gateway for ADR management
+- Navigation integration in homepage
+
+## Key Architectural Decisions
+
+1. **Unified Rendering** (ADR-0028)
+   - SOV and PPTX visualization contracts now extend shared RenderSpec
+   - Enables SOV → PPTX chart flow without translation
+   - Single styling source (RenderStyle) for consistency
+
+2. **Cross-Platform Concurrency** (ADR-0012)
+   - Spawn-safe process pools for Windows/macOS/Linux
+   - Shell command abstraction with OS detection
+   - No raw multiprocessing/threading allowed
+
+3. **Contract Discipline** (ADR-0009)
+   - Pydantic models as Tier-0 source of truth
+   - JSON Schema auto-generation
+   - CI enforcement of contract compliance
+
+## Migration Notes
+
+- PPTX renderers will become thin adapters over unified engine
+- SOV visualization contracts inherit from shared ChartSpec
+- Existing code requires refactoring to use new contracts
+
+## Files Changed
+
+- 28 ADR files (created/reorganized into subdirectories)
+- 15 Pydantic contract modules (new)
+- 17 SPEC documents (new)
+- 5 documentation files (new/updated)
+- 4 frontend components (DevTools integration)
+- 2 gateway services (DevTools backend)
+
+---
+
+This establishes the complete architectural foundation. Next phase:
+implement the unified rendering engine and migrate existing renderers.
