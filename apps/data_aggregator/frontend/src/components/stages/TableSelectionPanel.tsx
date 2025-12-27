@@ -30,10 +30,24 @@ export function TableSelectionPanel({ runId }: TableSelectionPanelProps) {
 
   const lockMutation = useMutation({
     mutationFn: async () => {
+      // Group selected tables by file path for backend schema compatibility
+      const selectedTablesByFile: Record<string, string[]> = {}
+      
+      // Find selected tables and group them by file
+      Array.from(selectedTables).forEach(tableName => {
+        const tableInfo = tables?.find(t => t.name === tableName)
+        if (tableInfo) {
+          if (!selectedTablesByFile[tableInfo.file]) {
+            selectedTablesByFile[tableInfo.file] = []
+          }
+          selectedTablesByFile[tableInfo.file].push(tableName)
+        }
+      })
+      
       const response = await debugFetch(`/api/dat/runs/${runId}/stages/table_selection/lock`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ selected_tables: Array.from(selectedTables) }),
+        body: JSON.stringify({ selected_tables: selectedTablesByFile }),
       })
       if (!response.ok) throw new Error('Failed to lock stage')
       return response.json()

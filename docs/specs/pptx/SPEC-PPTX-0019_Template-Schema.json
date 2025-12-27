@@ -1,0 +1,50 @@
+{
+  "schema_type": "spec",
+  "id": "SPEC-PPTX-0019_Template-Schema",
+  "title": "PPTX Template Schema and Processing Specification",
+  "version": "0.1.0",
+  "status": "draft",
+  "date": "2025-12-27",
+  "author": "Mycahya Eggleston",
+  "implements_adr": [
+    "ADR-0018_PPTX-Template-Processing-Model"
+  ],
+  "tier_0_contracts": [
+    {
+      "module": "shared.contracts.pptx.template",
+      "classes": ["PPTXTemplate", "SlideTemplate", "SlideLayout", "RenderConfig", "RenderResult"]
+    }
+  ],
+  "purpose": "Define how PPTX templates are structured, validated, and processed. Templates use named shapes to identify placeholders that can be bound to data.",
+  "scope": "subsystem:PPTX",
+  "requirements": [
+    {
+      "id": "REQ-PPTX-001",
+      "description": "Templates MUST be .pptx format with named shapes",
+      "naming_convention": "{category}_{identifier}"
+    },
+    {
+      "id": "REQ-PPTX-002",
+      "description": "Shape names MUST be unique within a slide",
+      "enforcement": "Validation during template upload"
+    },
+    {
+      "id": "REQ-PPTX-003",
+      "description": "Templates MUST be versioned",
+      "versioning": "template_version field in manifest"
+    }
+  ],
+  "shape_naming_convention": {
+    "format": "{category}_{identifier}",
+    "categories": ["text", "chart", "table", "image", "metric", "kpi"],
+    "examples": ["text_title", "chart_revenue", "table_summary", "image_logo"]
+  },
+  "template_manifest": {
+    "required_fields": ["template_id", "name", "version", "slides", "created_at"],
+    "slide_fields": ["slide_index", "layout", "shapes"]
+  },
+  "references": [
+    "ADR-0018_PPTX-Template-Processing-Model: WHY named shapes",
+    "shared/contracts/pptx/template.py: Tier-0 contracts"
+  ]
+}

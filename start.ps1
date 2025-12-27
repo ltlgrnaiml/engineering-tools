@@ -100,6 +100,10 @@ if ($StartFrontend) {
     Write-Host "  Data Aggregator: http://localhost:8000/api/dat/docs" -ForegroundColor White
     Write-Host "  SOV Analyzer:    http://localhost:8000/api/sov/docs" -ForegroundColor White
     Write-Host ""
+    Write-Host "Developer Tools:" -ForegroundColor Cyan
+    Write-Host "  Enable DevTools: http://localhost:3000?devmode=true" -ForegroundColor White
+    Write-Host "  (Or use the debug panel button in bottom-right corner)" -ForegroundColor DarkGray
+    Write-Host ""
     Write-Host "Press Ctrl+C to stop all services" -ForegroundColor Yellow
     Write-Host ""
     

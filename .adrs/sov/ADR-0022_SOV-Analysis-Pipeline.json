@@ -1,0 +1,102 @@
+{
+  "schema_type": "adr",
+  "id": "ADR-0022_SOV-Analysis-Pipeline",
+  "title": "SOV Analyzer ANOVA-Based Analysis Pipeline",
+  "status": "accepted",
+  "date": "2024-12-27",
+  "review_date": "2025-06-27",
+  "deciders": "Mycahya Eggleston",
+  "scope": "subsystem:SOV",
+  "provenance": [
+    {
+      "at": "2024-12-27",
+      "by": "AI Analysis",
+      "note": "Initial draft based on SOV Analyzer tool requirements"
+    },
+    {
+      "at": "2025-12-27",
+      "by": "DevTools Editor",
+      "note": "Updated via DevTools ADR Editor"
+    }
+  ],
+  "context": "SOV (Source of Variation) Analyzer performs statistical analysis to decompose variance in semiconductor manufacturing data. The primary method is ANOVA (Analysis of Variance), which partitions total variance into components attributable to different factors (lot, wafer, step, etc.). Results inform process engineers about which factors contribute most to variability. The challenge is implementing robust, reproducible statistical analysis that handles real-world data quality issues while providing actionable insights.",
+  "decision_primary": "SOV Analyzer implements ANOVA-based variance decomposition using a 5-stage pipeline: (1) Data Ingestion - load from DataSet or file upload, (2) Factor Identification - detect categorical factors and continuous responses, (3) ANOVA Computation - Type III sum of squares with unbalanced data support, (4) Variance Decomposition - compute percentage contribution per factor, (5) Visualization Preparation - generate chart-ready data contracts. All computations use Polars for performance and reproducibility.",
+  "decision_details": {
+    "approach": "Pipeline architecture with clear stage boundaries. Each stage produces intermediate artifacts. ANOVA uses Type III SS for robustness with unbalanced designs. Visualization contracts are Pydantic models consumed by frontend.",
+    "constraints": [
+      "Input data MUST have at least one categorical factor column",
+      "Input data MUST have at least one numeric response column",
+      "ANOVA computation uses Type III sum of squares (handles unbalanced data)",
+      "Missing values are excluded from analysis (listwise deletion)",
+      "Variance contribution percentages MUST sum to 100% (including residual)",
+      "All computations MUST be deterministic (same input yields same output)",
+      "Statistical significance uses alpha=0.05 by default (configurable)"
+    ],
+    "implementation_specs": [
+      "SPEC-0024_SOV-ANOVA-Computation-Spec",
+      "SPEC-0025_SOVline-Stages-Spec"
+    ]
+  },
+  "consequences": [
+    "Robust variance decomposition for unbalanced semiconductor data",
+    "Clear pipeline stages enable debugging and intermediate inspection",
+    "Visualization contracts ensure frontend/backend contract stability",
+    "Polars provides performance for large datasets",
+    "Risk: Type III SS is computationally expensive (mitigated by Polars optimization)",
+    "Risk: Missing value handling may surprise users (mitigated by clear documentation)"
+  ],
+  "alternatives_considered": [
+    {
+      "name": "Type I Sum of Squares",
+      "pros": "Simpler computation, widely understood",
+      "cons": "Order-dependent, biased for unbalanced designs",
+      "rejected_reason": "Semiconductor data is often unbalanced; Type III is more robust"
+    },
+    {
+      "name": "Pandas-based Computation",
+      "pros": "Familiar API, large ecosystem",
+      "cons": "Slower for large datasets, memory-intensive",
+      "rejected_reason": "Polars provides better performance for production workloads"
+    },
+    {
+      "name": "R Integration (via rpy2)",
+      "pros": "Proven statistical implementations",
+      "cons": "Adds R dependency, complex deployment",
+      "rejected_reason": "Pure Python preferred for deployment simplicity"
+    }
+  ],
+  "tradeoffs": "We trade implementation complexity (Type III SS) for statistical robustness. Polars adds learning curve but provides performance. Pipeline architecture adds stages but enables debugging.",
+  "guardrails": [
+    {
+      "rule": "All ANOVA computations MUST be deterministic",
+      "enforcement": "Fixed random seeds; reproducibility tests with known datasets",
+      "scope": "subsystem:SOV",
+      "id": "sov-anova-determinism"
+    },
+    {
+      "rule": "Variance contribution percentages MUST sum to 100%",
+      "enforcement": "Backend validates sum; raises error if not within tolerance (0.01%)",
+      "scope": "subsystem:SOV",
+      "id": "sov-variance-sum-validation"
+    }
+  ],
+  "cross_cutting_guardrails": [
+    "Deterministic Artifacts: All outputs must be reproducible (see ADR-0017#deterministic-artifacts)"
+  ],
+  "references": [
+    "ADR-0012_Windows-First-Concurrency",
+    "apps/sov_analyzer/backend/src/sov_analyzer/analysis/"
+  ],
+  "tags": [
+    "sov",
+    "anova",
+    "statistics",
+    "variance-decomposition",
+    "pipeline"
+  ],
+  "affected_components": [
+    "apps/sov_analyzer/backend/src/sov_analyzer/analysis/",
+    "apps/sov_analyzer/backend/src/sov_analyzer/core/",
+    "apps/sov_analyzer/frontend/src/components/"
+  ]
+}

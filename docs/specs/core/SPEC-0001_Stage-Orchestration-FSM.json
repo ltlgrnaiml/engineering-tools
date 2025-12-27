@@ -1,0 +1,83 @@
+{
+  "schema_type": "spec",
+  "id": "SPEC-0001_Stage-Orchestration-FSM",
+  "title": "Stage Orchestration Finite State Machine Specification",
+  "version": "0.1.0",
+  "status": "draft",
+  "date": "2025-12-27",
+  "author": "Mycahya Eggleston",
+  "implements_adr": [
+    "ADR-0001_Hybrid-FSM-Stage-Orchestration"
+  ],
+  "tier_0_contracts": [
+    {
+      "module": "shared.contracts.core.pipeline",
+      "classes": ["Pipeline", "PipelineStep", "PipelineStepState", "PipelineStepType", "PipelineState"]
+    }
+  ],
+  "purpose": "Define the Finite State Machine pattern for stage orchestration across all tools. Each tool (DAT, PPTX, SOV) implements guided workflows using this common FSM pattern with tool-specific stage graphs.",
+  "scope": "core",
+  "requirements": [
+    {
+      "id": "REQ-FSM-001",
+      "description": "All guided workflows MUST use PipelineStep state machine",
+      "states": ["PENDING", "IN_PROGRESS", "COMPLETED", "FAILED", "CANCELLED", "SKIPPED"]
+    },
+    {
+      "id": "REQ-FSM-002",
+      "description": "Stage transitions MUST follow allowed_transitions graph",
+      "transitions": {
+        "PENDING": ["IN_PROGRESS", "SKIPPED"],
+        "IN_PROGRESS": ["COMPLETED", "FAILED", "CANCELLED"],
+        "COMPLETED": ["PENDING"],
+        "FAILED": ["PENDING", "IN_PROGRESS"],
+        "CANCELLED": ["PENDING"],
+        "SKIPPED": ["PENDING"]
+      }
+    },
+    {
+      "id": "REQ-FSM-003",
+      "description": "Unlock cascade MUST propagate to downstream stages",
+      "behavior": "When stage N is unlocked, stages N+1..end are set to PENDING"
+    },
+    {
+      "id": "REQ-FSM-004",
+      "description": "Artifacts MUST be preserved on unlock per ADR-0002",
+      "behavior": "Set locked=false, do NOT delete artifacts"
+    },
+    {
+      "id": "REQ-FSM-005",
+      "description": "Optional stages MUST support skip functionality",
+      "implementation": "SKIPPED state bypasses stage without artifacts"
+    }
+  ],
+  "state_machine": {
+    "states": [
+      {"name": "PENDING", "description": "Stage not started, awaiting dependencies"},
+      {"name": "IN_PROGRESS", "description": "Stage actively executing"},
+      {"name": "COMPLETED", "description": "Stage finished successfully with artifacts"},
+      {"name": "FAILED", "description": "Stage encountered error, can retry"},
+      {"name": "CANCELLED", "description": "Stage was cancelled by user"},
+      {"name": "SKIPPED", "description": "Optional stage was bypassed"}
+    ],
+    "initial_state": "PENDING",
+    "terminal_states": ["COMPLETED", "SKIPPED"]
+  },
+  "orchestrator_responsibilities": [
+    "Track state of all stages in pipeline",
+    "Validate stage dependencies before allowing transition to IN_PROGRESS",
+    "Trigger unlock cascade when upstream stage is modified",
+    "Emit state change events for frontend updates",
+    "Handle cancellation requests gracefully"
+  ],
+  "tool_extensions": {
+    "DAT": "8-stage pipeline: Source → Context → Parse → Preview → Aggregate → Validate → Export → Done",
+    "PPTX": "4-stage pipeline: Template → Data → Bind → Generate",
+    "SOV": "3-stage pipeline: Load → Analyze → Visualize"
+  },
+  "references": [
+    "ADR-0001_Hybrid-FSM-Stage-Orchestration: WHY we use FSM pattern",
+    "shared/contracts/core/pipeline.py: Tier-0 contracts",
+    "ADR-0002_Artifact-Preservation-on-Unlock: Unlock behavior"
+  ]
+}

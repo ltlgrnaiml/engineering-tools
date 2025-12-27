@@ -1,0 +1,71 @@
+{
+  "schema_type": "spec",
+  "id": "SPEC-0016_Path-Safety-Normalization",
+  "title": "Path Safety and Normalization Specification",
+  "version": "0.1.0",
+  "status": "draft",
+  "date": "2025-12-27",
+  "author": "Mycahya Eggleston",
+  "implements_adr": [
+    "ADR-0017_Cross-Cutting-Guardrails"
+  ],
+  "tier_0_contracts": [
+    {
+      "module": "shared.contracts.core.path_safety",
+      "classes": ["RelativePath", "WorkspacePath", "PathSafetyConfig", "PathValidationError"],
+      "functions": ["normalize_path", "is_safe_relative_path", "make_relative"]
+    }
+  ],
+  "purpose": "Define the implementation details for path safety across all tools. This spec describes WHAT path formats are allowed, HOW paths are normalized, and WHERE path validation occurs.",
+  "scope": "core",
+  "requirements": [
+    {
+      "id": "REQ-PATH-001",
+      "description": "All API responses MUST use relative paths only",
+      "validation": "No leading slash, no Windows drive letters (C:/)",
+      "contract": "RelativePath"
+    },
+    {
+      "id": "REQ-PATH-002",
+      "description": "All paths MUST use forward slashes",
+      "rationale": "Cross-platform consistency in storage and APIs",
+      "implementation": "normalize_path() converts backslashes to forward slashes"
+    },
+    {
+      "id": "REQ-PATH-003",
+      "description": "Path traversal (..) MUST be blocked",
+      "rationale": "Security - prevent escaping workspace",
+      "error": "PathValidationError raised on detection"
+    },
+    {
+      "id": "REQ-PATH-004",
+      "description": "Internal operations MAY use absolute paths",
+      "constraint": "Convert to relative before API response or storage",
+      "utility": "make_relative(path, base) -> RelativePath"
+    }
+  ],
+  "path_formats": {
+    "storage": "Forward slashes, relative to workspace root",
+    "api_response": "Forward slashes, relative paths only",
+    "internal": "Native Path objects, absolute allowed",
+    "examples": {
+      "valid": ["datasets/abc123/data.parquet", "exports/report.pptx"],
+      "invalid": ["/absolute/path", "C:/windows/path", "../escape/attempt"]
+    }
+  },
+  "validation_rules": [
+    "CI MUST validate no absolute paths in API response contracts",
+    "CI MUST validate no path traversal in stored paths",
+    "RelativePath validator MUST reject absolute and traversal paths"
+  ],
+  "examples": {
+    "normalize": "normalize_path('datasets\\\\abc123\\\\data.parquet') -> 'datasets/abc123/data.parquet'",
+    "relative_path": "RelativePath(path='datasets/abc123/data.parquet')",
+    "make_relative": "make_relative(Path('/workspace/datasets/abc123'), Path('/workspace')) -> RelativePath('datasets/abc123')"
+  },
+  "references": [
+    "ADR-0017_Cross-Cutting-Guardrails#path-safety: WHY paths must be relative",
+    "shared/contracts/core/path_safety.py: Tier-0 contracts",
+    "ADR-0012_Cross-Platform-Concurrency: Cross-platform file handling"
+  ]
+}

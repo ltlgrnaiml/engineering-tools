@@ -92,6 +92,10 @@ if [ "$START_FRONTEND" = true ]; then
     echo "  Data Aggregator: http://localhost:8000/api/dat/docs"
     echo "  SOV Analyzer:    http://localhost:8000/api/sov/docs"
     echo ""
+    echo "🛠️  Developer Tools:"
+    echo "  Enable DevTools: http://localhost:3000?devmode=true"
+    echo "  (Or use the debug panel button in bottom-right corner)"
+    echo ""
     echo "Press Ctrl+C to stop all services"
     echo ""
     

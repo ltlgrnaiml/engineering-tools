@@ -1,0 +1,123 @@
+{
+  "schema_type": "adr",
+  "id": "ADR-0002_Artifact-Preservation-on-Unlock",
+  "title": "Artifact Preservation on State Changes for All Guided Workflows",
+  "status": "accepted",
+  "date": "2025-01-15",
+  "review_date": "2025-07-15",
+  "deciders": "Mycahya Eggleston",
+  "scope": "shared",
+  "provenance": [
+    {
+      "at": "2025-01-15",
+      "by": "Mycahya Eggleston",
+      "note": "Initial decision extracted from stage orchestration vision document"
+    },
+    {
+      "at": "2025-11-22",
+      "by": "Mycahya Eggleston",
+      "note": "Refactored for explicit coverage of all pipeline stages"
+    },
+    {
+      "at": "2024-12-27",
+      "by": "Mycahya Eggleston",
+      "note": "Promoted to shared scope as core principle for all guided workflows with artifacts"
+    }
+  ],
+  "context": "All engineering tools with guided workflows (DAT, PPTX, SOV) may involve user effort in curation, configuration, or computation that produces artifacts. Accidental state changes or iterative refinement should not result in loss of user work. This ADR defines the core artifact preservation policy that supports the FSM orchestration pattern (ADR-0001). Tools using the 'lockable_with_artifacts' or 'hybrid' state models MUST implement this policy.",
+  "decision_primary": "When any workflow stage changes state (unlock, reset, invalidate), preserve artifact files on disk and update metadata only. Never delete user-created artifacts on state changes. Add state change timestamps to artifact metadata for audit trails. On re-lock or re-completion, if an artifact exists with the same deterministic ID, reuse it (idempotent re-computation). This policy applies to all tools using artifact-producing stages.",
+  "decision_details": {
+    "approach": "Soft state changes with artifact preservation. State change operations modify metadata (locked:false, stale:true, validation_status:null) but never delete files. Artifact files remain on disk. Re-lock/re-completion checks for existing artifact with same deterministic ID and reuses if present. Cascade operations preserve all downstream artifacts.",
+    "constraints": [
+      "State changes MUST preserve user-created artifacts on disk",
+      "State changes MUST only modify metadata (locked, stale, validation_status, timestamps)",
+      "Accidental state changes MUST be recoverable (re-lock with same inputs reuses artifact)",
+      "Audit trail MUST be maintained (all snapshots remain readable for debugging/compliance)",
+      "Idempotent re-computation MUST be supported (same inputs yield same ID and artifact reuse)",
+      "No automatic cleanup; manual cleanup or future garbage collection may be added",
+      "Tools using 'simple_linear' model without heavy artifacts MAY implement lighter preservation (reset validation only)"
+    ],
+    "implementation_specs": [
+      "SPEC-0013_Artifact-Lifecycle-Preservation-Spec",
+      "SPEC-0012_Audit-Trail-Enforcement-Spec"
+    ]
+  },
+  "consequences": [
+    "Accidental unlock recovery: Users can re-lock without losing work if inputs are unchanged.",
+    "Audit trails: All snapshots remain readable for debugging and compliance.",
+    "Idempotent re-lock: Same inputs yield same stage ID and artifact reuse (no re-computation).",
+    "User confidence: Users can experiment with unlocks without fear of data loss.",
+    "Disk usage grows: Artifacts accumulate with locked:false (not garbage collected).",
+    "Stale artifacts: Users might re-lock with different inputs, creating orphaned artifacts.",
+    "No automatic cleanup: Requires manual cleanup or future garbage collection feature."
+  ],
+  "alternatives_considered": [
+    {
+      "name": "Delete Artifacts on Unlock",
+      "pros": "Clean disk usage, simple implementation.",
+      "cons": "Loses user work on accidental unlock, no recovery mechanism, users lose confidence.",
+      "rejected_reason": "Unacceptable user experience; users would lose expensive manual edits on accidental unlock."
+    },
+    {
+      "name": "Copy-on-Write Snapshots",
+      "pros": "Preserves all versions, full history for rollback.",
+      "cons": "Disk bloat, complex snapshot management, unclear UX.",
+      "rejected_reason": "Overkill for local desktop tool; disk bloat is worse than soft unlock."
+    },
+    {
+      "name": "Confirmation Dialog on Unlock",
+      "pros": "Prevents accidental unlocks, no artifact preservation needed.",
+      "cons": "Annoying UX, doesn't solve intentional unlock + re-lock scenario.",
+      "rejected_reason": "Doesn't address intentional unlock scenarios; only adds friction."
+    }
+  ],
+  "tradeoffs": "We trade disk usage (artifacts accumulate with locked:false) for user effort preservation (accidental unlock recovery). We accept the need for future garbage collection to gain user confidence and compliance.",
+  "guardrails": [
+    {
+      "rule": "Artifact Preservation: State changes MUST modify metadata only, NEVER delete artifact files",
+      "enforcement": "State change operations set metadata flags; file system delete operations are prohibited",
+      "scope": "shared",
+      "id": "shared-artifact-preservation"
+    },
+    {
+      "rule": "Cascade Preservation: Cascade operations MUST preserve all downstream artifacts",
+      "enforcement": "Orchestrator modifies metadata for all dependent stages; no file deletions",
+      "scope": "shared",
+      "id": "shared-cascade-preservation"
+    },
+    {
+      "rule": "Idempotent Re-computation: Same inputs MUST yield same artifact ID and reuse existing artifact",
+      "enforcement": "Backend checks for existing artifact with same deterministic ID before recomputing",
+      "scope": "shared",
+      "id": "shared-idempotent-recomputation"
+    },
+    {
+      "rule": "Audit Trail: State change timestamps MUST be recorded in artifact metadata",
+      "enforcement": "State change operations add timestamps (unlocked_at, invalidated_at, etc.) to metadata",
+      "scope": "shared",
+      "id": "shared-audit-trail-timestamps"
+    }
+  ],
+  "cross_cutting_guardrails": [
+    "Path Safety: All public paths must be relative (see ADR-0017#path-safety)",
+    "Idempotency: All mutating requests must be idempotent or safely retryable (see ADR-0017_Cross-Cutting-Guardrails#idempotency)"
+  ],
+  "references": [
+    "ADR-0001_Guided-Workflow-FSM-Orchestration: Core FSM pattern this supports",
+    "ADR-0004_Deterministic-Stage-IDs: Deterministic ID generation for artifact reuse",
+    "ADR-0017_Cross-Cutting-Guardrails: Platform-wide guardrails"
+  ],
+  "tags": [
+    "artifact-preservation",
+    "user-experience",
+    "data-integrity",
+    "idempotency",
+    "audit-trail"
+  ],
+  "affected_components": [
+    "shared/workflows/artifact_manager.py: Core artifact preservation implementation",
+    "apps/dat_aggregator/backend/core/snapshot_manager.py: DAT-specific artifact handling",
+    "apps/pptx_generator/backend/services/project_state.py: PPTX project state persistence",
+    "All tool run directories: Artifact storage locations"
+  ]
+}

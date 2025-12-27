@@ -1,0 +1,58 @@
+{
+  "schema_type": "spec",
+  "id": "SPEC-DAT-0002_Profile-Extraction",
+  "title": "DAT Profile-Driven Extraction Specification",
+  "version": "0.1.0",
+  "status": "draft",
+  "date": "2025-12-27",
+  "author": "Mycahya Eggleston",
+  "implements_adr": [
+    "ADR-0011_Profile-Driven-Extraction-and-Adapters"
+  ],
+  "tier_0_contracts": [
+    {
+      "module": "shared.contracts.dat.profile",
+      "classes": ["ExtractionProfile", "ColumnMapping", "AggregationRule", "FilePattern", "ValidationRule", "AggregationLevel"]
+    }
+  ],
+  "purpose": "Define how extraction profiles configure DAT parsing behavior. Profiles are versioned configurations that specify file patterns, column mappings, aggregation rules, and validation constraints.",
+  "scope": "subsystem:DAT",
+  "requirements": [
+    {
+      "id": "REQ-PROFILE-001",
+      "description": "Profiles MUST be versioned and immutable once published",
+      "versioning": "Semantic versioning (major.minor.patch)"
+    },
+    {
+      "id": "REQ-PROFILE-002",
+      "description": "File patterns MUST support glob syntax",
+      "examples": ["*.csv", "data_*.parquet", "**/*.xlsx"]
+    },
+    {
+      "id": "REQ-PROFILE-003",
+      "description": "Column mappings MUST define source→target transformations",
+      "fields": ["source_column", "target_column", "transform", "default_value"]
+    },
+    {
+      "id": "REQ-PROFILE-004",
+      "description": "Aggregation rules MUST specify groupby and aggregation functions",
+      "functions": ["sum", "mean", "median", "min", "max", "count", "std"]
+    }
+  ],
+  "profile_structure": {
+    "metadata": ["profile_id", "name", "version", "description", "created_at"],
+    "file_config": ["patterns", "encoding", "delimiter", "header_row"],
+    "column_mappings": ["source_column", "target_column", "data_type", "transform"],
+    "aggregation": ["group_by_columns", "aggregation_rules"],
+    "validation": ["required_columns", "value_constraints", "row_count_bounds"]
+  },
+  "adapter_pattern": {
+    "description": "AdapterFactory creates source-specific adapters based on profile",
+    "adapters": ["CSVAdapter", "ParquetAdapter", "ExcelAdapter", "JSONAdapter"],
+    "interface": "read(source: Path, profile: ExtractionProfile) -> DataFrame"
+  },
+  "references": [
+    "ADR-0011_Profile-Driven-Extraction: WHY profiles exist",
+    "shared/contracts/dat/profile.py: Tier-0 contracts"
+  ]
+}

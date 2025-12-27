@@ -1,0 +1,159 @@
+{
+  "schema_type": "adr",
+  "id": "ADR-0004_Deterministic-Content-Addressed-IDs",
+  "title": "Deterministic Content-Addressed IDs for Artifacts and Stage Outputs Across All Tools",
+  "status": "accepted",
+  "date": "2025-01-15",
+  "review_date": "2025-07-15",
+  "deciders": "Mycahya Eggleston",
+  "scope": "core",
+  "provenance": [
+    {
+      "at": "2025-01-15",
+      "by": "Mycahya Eggleston",
+      "note": "Initial decision extracted from DAT stage orchestration vision document"
+    },
+    {
+      "at": "2025-11-22",
+      "by": "Mycahya Eggleston",
+      "note": "Refactored for explicit coverage of collision policy and reproducibility"
+    },
+    {
+      "at": "2024-12-27",
+      "by": "Mycahya Eggleston",
+      "note": "Promoted to CORE scope as unified pattern for all tools producing artifacts"
+    }
+  ],
+  "context": "All engineering tools (DAT, PPTX Generator, SOV Analyzer) produce artifacts (parsed data, generated reports, analysis results) that benefit from deterministic identification. Users frequently iterate on workflows, and the system must support: (1) idempotent re-computation - same inputs yield same outputs without re-work, (2) artifact reuse - if an artifact exists with matching ID, reuse it, (3) reproducibility - same inputs on different machines yield same IDs, (4) auditability - IDs trace back to inputs for debugging. Non-deterministic IDs (UUIDs, timestamps, counters) break these guarantees. A CORE pattern for deterministic, content-addressed IDs enables consistent behavior across all tools and supports the FSM orchestration (ADR-0001) and artifact preservation (ADR-0002) patterns.",
+  "decision_primary": "All tools MUST compute artifact/stage IDs as a SHA-256 hash of a stable JSON serialization of inputs plus a fixed seed (default seed=42). Use the first 8 characters of the hash for brevity (configurable). Same inputs yield the same ID, enabling idempotent re-computation and artifact reuse. If inputs change, a new ID is generated. Tools implement this pattern via shared/workflows/id_generator.py which provides compute_deterministic_id(inputs: dict, seed: int = 42, prefix_length: int = 8) -> str.",
+  "decision_details": {
+    "approach": "Content-addressed IDs via cryptographic hashing. Inputs are serialized to stable, sorted JSON with no whitespace. The hash is computed using SHA-256 and truncated to configurable length (default 8 characters). The seed is fixed at 42 for determinism, but may be overridden for testing.",
+    "algorithm": {
+      "step_1": "Collect all inputs that affect the output (file paths, configuration, upstream IDs)",
+      "step_2": "Serialize inputs to JSON with sorted keys, no whitespace: json.dumps(inputs, sort_keys=True, separators=(',', ':'))",
+      "step_3": "Append seed to serialized string: f'{serialized}:{seed}'",
+      "step_4": "Compute SHA-256 hash: hashlib.sha256(input_string.encode('utf-8')).hexdigest()",
+      "step_5": "Truncate to prefix_length characters (default 8): hash[:prefix_length]",
+      "step_6": "Return ID string"
+    },
+    "input_normalization": {
+      "paths": "Normalize all paths to forward slashes, relative paths only (no absolute paths)",
+      "strings": "Strip whitespace, normalize unicode (NFC)",
+      "numbers": "Use string representation with consistent precision",
+      "lists": "Sort if order doesn't matter semantically; preserve order if it does",
+      "dicts": "Always sort keys",
+      "nulls": "Use JSON null, not Python None string"
+    },
+    "constraints": [
+      "Determinism: Same inputs and seed MUST always yield the same ID",
+      "Collision Resistance: Different inputs MUST yield different IDs with high probability",
+      "Stability: Input order MUST NOT affect the ID (use sorted keys)",
+      "Seed Consistency: Default seed is 42; MUST be documented and stable across versions",
+      "Artifact Reuse: If an ID exists, its artifact MUST be reused (no re-computation)",
+      "Collision Detection: If an ID exists with different inputs, MUST raise error and not overwrite",
+      "Prefix Length: Default 8 characters; can be extended to 12 or 16 if collision rate increases",
+      "No Timestamps: Timestamps MUST NOT be included in ID inputs (breaks determinism)"
+    ],
+    "implementation_specs": [
+      "SPEC-0014_Deterministic-Id-Generation-Spec"
+    ],
+    "shared_implementation": {
+      "location": "shared/workflows/id_generator.py",
+      "interface": "compute_deterministic_id(inputs: dict[str, Any], seed: int = 42, prefix_length: int = 8) -> str",
+      "helper_functions": [
+        "normalize_path(path: str) -> str",
+        "normalize_inputs(inputs: dict) -> dict",
+        "verify_id_collision(id: str, inputs: dict, storage: ArtifactStore) -> bool"
+      ]
+    }
+  },
+  "consequences": [
+    "Idempotent re-computation: Same inputs yield same ID and artifact reuse across all tools",
+    "Accidental state change recovery: Re-lock/re-run with same inputs reuses existing artifacts",
+    "Deterministic reproducibility: Same inputs on different machines yield same IDs",
+    "Testing support: Configurable seed enables generating different IDs for testing",
+    "Cross-tool consistency: DAT, PPTX, SOV all use same ID generation pattern",
+    "AI-friendly: Consistent pattern enables reliable AI-assisted code generation",
+    "Opaque IDs: Users cannot infer inputs from the ID prefix (security benefit)",
+    "Hash collisions: 8-char prefix has low but nonzero collision risk (mitigated by detection, can extend prefix)"
+  ],
+  "alternatives_considered": [
+    {
+      "name": "UUIDs (uuid.uuid4())",
+      "pros": "Guaranteed unique, simple implementation, widely supported",
+      "cons": "Non-deterministic, breaks idempotent re-computation, no artifact reuse",
+      "rejected_reason": "Breaks idempotent re-computation and artifact traceability"
+    },
+    {
+      "name": "Timestamp-Based IDs",
+      "pros": "Human-readable, sortable, simple implementation",
+      "cons": "Non-deterministic, no artifact reuse, no reproducibility across machines",
+      "rejected_reason": "Same issues as UUIDs; not suitable for deterministic workflows"
+    },
+    {
+      "name": "Sequential IDs",
+      "pros": "Human-readable, simple implementation, compact",
+      "cons": "Non-deterministic, requires global counter, no artifact reuse",
+      "rejected_reason": "Non-deterministic and not suitable for distributed or parallel workflows"
+    },
+    {
+      "name": "MD5 Hash",
+      "pros": "Faster than SHA-256, shorter hash, widely supported",
+      "cons": "Cryptographically broken, not future-proof",
+      "rejected_reason": "MD5 is deprecated for security reasons; SHA-256 is industry standard"
+    }
+  ],
+  "tradeoffs": "We trade human-readable IDs for deterministic, content-addressed IDs. We accept a small risk of hash collisions (with 8-char prefix) for brevity, mitigated by collision detection and the option to extend the prefix if needed.",
+  "guardrails": [
+    {
+      "rule": "Determinism: compute_deterministic_id(inputs, seed) MUST be deterministic (same inputs yield same ID)",
+      "enforcement": "Stable JSON serialization with sorted keys and fixed seed; validated in unit tests",
+      "scope": "core",
+      "id": "core-deterministic-id-generation"
+    },
+    {
+      "rule": "Collision Detection: If ID exists with different inputs, MUST raise error and not overwrite",
+      "enforcement": "ArtifactStore checks input hash matches before artifact reuse; raises CollisionError if mismatch",
+      "scope": "core",
+      "id": "core-id-collision-detection"
+    },
+    {
+      "rule": "Artifact Reuse: If ID exists with matching inputs, MUST reuse artifact (no re-computation)",
+      "enforcement": "All tools check ArtifactStore for existing artifact before computing",
+      "scope": "core",
+      "id": "core-artifact-reuse-on-id-match"
+    },
+    {
+      "rule": "No Timestamps in ID Inputs: Timestamps MUST NOT be included in ID computation inputs",
+      "enforcement": "Code review and CI linting for timestamp usage in ID generation",
+      "scope": "core",
+      "id": "core-no-timestamps-in-id-inputs"
+    }
+  ],
+  "cross_cutting_guardrails": [
+    "Path Safety: All paths in ID inputs must be relative (see ADR-0017#path-safety)",
+    "Deterministic Artifacts: All outputs must be reproducible given same inputs (see ADR-0017#deterministic-artifacts)"
+  ],
+  "references": [
+    "ADR-0001_Guided-Workflow-FSM-Orchestration: Core FSM pattern using deterministic IDs",
+    "ADR-0002_Artifact-Preservation-on-Unlock: Artifact preservation with ID-based reuse",
+    "ADR-0017_Cross-Cutting-Guardrails: Platform-wide guardrails",
+    "shared/workflows/id_generator.py: Shared implementation"
+  ],
+  "tags": [
+    "core",
+    "determinism",
+    "idempotency",
+    "content-addressing",
+    "hashing",
+    "artifact-reuse",
+    "sha256"
+  ],
+  "affected_components": [
+    "shared/workflows/id_generator.py: Core ID generation implementation",
+    "shared/storage/artifact_store.py: Artifact storage with ID-based lookup",
+    "apps/dat_aggregator/backend/core/id_generator.py: DAT-specific ID generation (extends core)",
+    "apps/pptx_generator/backend/services/: PPTX artifact ID generation",
+    "apps/sov_analyzer/backend/: SOV analysis result ID generation"
+  ]
+}

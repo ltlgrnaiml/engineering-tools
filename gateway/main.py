@@ -15,6 +15,7 @@ from fastapi.staticfiles import StaticFiles
 
 from gateway.services.dataset_service import router as dataset_router
 from gateway.services.pipeline_service import router as pipeline_router
+from gateway.services.devtools_service import router as devtools_router
 
 __version__ = "0.1.0"
 
@@ -40,6 +41,7 @@ app.add_middleware(
 # === Cross-Tool APIs (gateway-level) ===
 app.include_router(dataset_router, prefix="/api/v1/datasets", tags=["datasets"])
 app.include_router(pipeline_router, prefix="/api/v1/pipelines", tags=["pipelines"])
+app.include_router(devtools_router, prefix="/api/v1/devtools", tags=["devtools"])
 
 
 # === Health Check ===

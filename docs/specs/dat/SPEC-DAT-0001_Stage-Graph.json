@@ -1,0 +1,62 @@
+{
+  "schema_type": "spec",
+  "id": "SPEC-DAT-0001_Stage-Graph",
+  "title": "DAT 8-Stage Pipeline Graph Specification",
+  "version": "0.1.0",
+  "status": "draft",
+  "date": "2025-12-27",
+  "author": "Mycahya Eggleston",
+  "implements_adr": [
+    "ADR-0001-DAT_Stage-Graph-Configuration",
+    "ADR-0003_Optional-Context-Preview-Stages"
+  ],
+  "tier_0_contracts": [
+    {
+      "module": "shared.contracts.dat.stage",
+      "classes": ["DATStageState", "DATStageType", "DATStageConfig", "DATStageResult", "ParseStageConfig", "AggregateStageConfig", "ExportStageConfig"]
+    }
+  ],
+  "purpose": "Define the DAT-specific 8-stage pipeline for data extraction and aggregation. This extends the core FSM pattern with DAT-specific stages, dependencies, and configurations.",
+  "scope": "subsystem:DAT",
+  "stages": [
+    {"order": 1, "name": "SOURCE", "type": "DATStageType.SOURCE", "optional": false, "description": "Select data source location"},
+    {"order": 2, "name": "CONTEXT", "type": "DATStageType.CONTEXT", "optional": true, "description": "Configure extraction context"},
+    {"order": 3, "name": "PARSE", "type": "DATStageType.PARSE", "optional": false, "description": "Parse raw data into structured format"},
+    {"order": 4, "name": "PREVIEW", "type": "DATStageType.PREVIEW", "optional": true, "description": "Preview parsed data before aggregation"},
+    {"order": 5, "name": "AGGREGATE", "type": "DATStageType.AGGREGATE", "optional": false, "description": "Apply aggregation rules"},
+    {"order": 6, "name": "VALIDATE", "type": "DATStageType.VALIDATE", "optional": false, "description": "Validate data quality"},
+    {"order": 7, "name": "EXPORT", "type": "DATStageType.EXPORT", "optional": false, "description": "Export to target format"},
+    {"order": 8, "name": "DONE", "type": "DATStageType.DONE", "optional": false, "description": "Pipeline complete"}
+  ],
+  "requirements": [
+    {
+      "id": "REQ-DAT-001",
+      "description": "Optional stages (CONTEXT, PREVIEW) MUST use defaults when skipped",
+      "reference": "ADR-0003"
+    },
+    {
+      "id": "REQ-DAT-002",
+      "description": "PARSE stage MUST produce Parquet output",
+      "reference": "ADR-0014"
+    },
+    {
+      "id": "REQ-DAT-003",
+      "description": "Stage IDs MUST be deterministic based on inputs",
+      "reference": "ADR-0004-DAT"
+    }
+  ],
+  "stage_dependencies": {
+    "SOURCE": [],
+    "CONTEXT": ["SOURCE"],
+    "PARSE": ["SOURCE", "CONTEXT?"],
+    "PREVIEW": ["PARSE"],
+    "AGGREGATE": ["PARSE", "PREVIEW?"],
+    "VALIDATE": ["AGGREGATE"],
+    "EXPORT": ["VALIDATE"],
+    "DONE": ["EXPORT"]
+  },
+  "references": [
+    "SPEC-0001_Stage-Orchestration-FSM: Base FSM pattern",
+    "shared/contracts/dat/stage.py: Tier-0 contracts"
+  ]
+}

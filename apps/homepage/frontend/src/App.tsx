@@ -9,10 +9,21 @@ import { PipelineDetailsPage } from './pages/PipelineDetailsPage'
 import { DataAggregatorPage } from './pages/DataAggregatorPage'
 import { PPTXGeneratorPage } from './pages/PPTXGeneratorPage'
 import { SOVAnalyzerPage } from './pages/SOVAnalyzerPage'
+import { DevToolsPage } from './pages/DevToolsPage'
 
 function AppContent() {
   const location = useLocation()
   const isToolPage = location.pathname.startsWith('/tools/')
+
+  const isDevToolsPage = location.pathname.startsWith('/devtools')
+
+  if (isDevToolsPage) {
+    return (
+      <Routes>
+        <Route path="/devtools" element={<DevToolsPage />} />
+      </Routes>
+    )
+  }
 
   if (isToolPage) {
     return (

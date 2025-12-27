@@ -1,0 +1,94 @@
+{
+  "schema_type": "adr",
+  "id": "ADR-0023_SOV-DataSet-Integration",
+  "title": "SOV Analyzer Integration with Platform DataSets and Lineage Tracking",
+  "status": "accepted",
+  "date": "2024-12-27",
+  "review_date": "2025-06-27",
+  "deciders": "Mycahya Eggleston",
+  "scope": "subsystem:SOV",
+  "provenance": [
+    {
+      "at": "2024-12-27",
+      "by": "AI Analysis",
+      "note": "Initial draft based on platform DataSet architecture"
+    },
+    {
+      "at": "2025-12-27",
+      "by": "DevTools Editor",
+      "note": "Updated via DevTools ADR Editor"
+    }
+  ],
+  "context": "SOV Analyzer must integrate with the shared DataSet infrastructure to consume data from other tools (especially Data Aggregator) and produce results that can be used by downstream tools (especially PPTX Generator). DataSets are versioned, schema-aware artifacts with lineage tracking. The challenge is ensuring SOV properly reads DataSet manifests, preserves column metadata, and creates output DataSets with accurate lineage.",
+  "decision_primary": "SOV Analyzer consumes input data via DataSetRef, loading both Parquet data and manifest metadata. Output results are saved as new DataSets with lineage tracking (parent_ref pointing to input DataSet). Column metadata from input is preserved and extended with SOV-specific annotations (factor type, statistical significance). SOV results include visualization-ready contracts.",
+  "decision_details": {
+    "approach": "DataSetRef-based input/output. ArtifactStore handles persistence. Manifest includes parent_ref for lineage. ColumnMeta extended with factor_type and significance annotations.",
+    "constraints": [
+      "Input MUST be loaded via DataSetRef (not raw file path)",
+      "Input DataSet manifest MUST be read to preserve column metadata",
+      "Output DataSet MUST include parent_ref linking to input DataSet ID",
+      "Output ColumnMeta MUST preserve input metadata and add SOV annotations",
+      "Output Parquet MUST include ANOVA results (factor, SS, df, MS, F, p, contribution%)",
+      "Visualization contracts MUST be included in output manifest"
+    ],
+    "implementation_specs": [
+      "SPEC-0026_SOV-DataSet-IO-Spec"
+    ]
+  },
+  "consequences": [
+    "Full integration with platform DataSet infrastructure",
+    "Lineage tracking enables provenance queries",
+    "Column metadata preservation supports downstream tools",
+    "Visualization contracts enable seamless PPTX integration",
+    "Risk: Lineage graph can become complex (mitigated by gateway lineage API)",
+    "Risk: Breaking changes to DataSet contract affect SOV (mitigated by contract versioning)"
+  ],
+  "alternatives_considered": [
+    {
+      "name": "File-Based Input/Output Only",
+      "pros": "Simpler, no platform dependency",
+      "cons": "No lineage, no metadata preservation, no cross-tool integration",
+      "rejected_reason": "Fails platform integration requirements"
+    },
+    {
+      "name": "Database-Backed Results",
+      "pros": "Query flexibility, real-time updates",
+      "cons": "Adds database dependency, breaks Parquet standardization",
+      "rejected_reason": "Parquet + manifest is platform standard; database adds complexity"
+    }
+  ],
+  "tradeoffs": "We trade standalone operation for platform integration. DataSet dependency adds coupling but enables cross-tool workflows. Lineage tracking adds manifest complexity but provides provenance.",
+  "guardrails": [
+    {
+      "rule": "Output DataSet MUST include parent_ref linking to input DataSet",
+      "enforcement": "SOV output service validates parent_ref before saving",
+      "scope": "subsystem:SOV",
+      "id": "sov-output-lineage-required"
+    },
+    {
+      "rule": "Column metadata MUST be preserved from input DataSet",
+      "enforcement": "Output service copies input ColumnMeta and extends with annotations",
+      "scope": "subsystem:SOV",
+      "id": "sov-preserve-column-metadata"
+    }
+  ],
+  "cross_cutting_guardrails": [
+    "Path Safety: All DataSet paths must be relative (see ADR-0017#path-safety)"
+  ],
+  "references": [
+    "shared/contracts/core/dataset.py",
+    "shared/storage/artifact_store.py",
+    "ADR-0025_DataSet-Lineage-Tracking"
+  ],
+  "tags": [
+    "sov",
+    "dataset",
+    "lineage",
+    "integration"
+  ],
+  "affected_components": [
+    "apps/sov_analyzer/backend/src/sov_analyzer/core/",
+    "shared/contracts/core/dataset.py",
+    "shared/storage/artifact_store.py"
+  ]
+}

@@ -1,0 +1,118 @@
+{
+  "schema_type": "adr",
+  "id": "ADR-0004-DAT_Stage-ID-Configuration",
+  "title": "DAT-Specific Stage ID Configuration: Inputs and Policies",
+  "status": "accepted",
+  "date": "2025-01-15",
+  "review_date": "2025-07-15",
+  "deciders": "Mycahya Eggleston",
+  "scope": "subsystem:DAT",
+  "provenance": [
+    {
+      "at": "2025-01-15",
+      "by": "Mycahya Eggleston",
+      "note": "Initial decision extracted from stage orchestration vision document"
+    },
+    {
+      "at": "2025-11-22",
+      "by": "Mycahya Eggleston",
+      "note": "Refactored for explicit coverage of all pipeline stages, collision policy, and reproducibility"
+    },
+    {
+      "at": "2024-12-27",
+      "by": "Mycahya Eggleston",
+      "note": "Refactored as tool-specific extension of core ADR-0004_Deterministic-Content-Addressed-IDs"
+    }
+  ],
+  "context": "DAT implements the core deterministic ID pattern (ADR-0004) for all pipeline stages. This ADR defines DAT-specific ID inputs for each stage (Selection, Context, Table Availability, Table Selection, Preview, Parse, Export). Each stage's ID is computed from its specific inputs using the shared id_generator. Stage IDs enable idempotent re-locks, artifact reuse, and accidental unlock recovery within the DAT workflow.",
+  "decision_primary": "DAT extends the core deterministic ID pattern (ADR-0004) with stage-specific input definitions. Each stage computes its ID using compute_deterministic_id() with inputs specific to that stage. Selection ID includes file paths and profile. Context ID includes selection_id and context hints. Parse ID includes table_selection_id and parse options. Export ID includes parse_id and export format. All IDs use the default seed=42 and 8-character prefix.",
+  "decision_details": {
+    "approach": "Content-addressed stage IDs via cryptographic hashing. Inputs are serialized to stable, sorted JSON with no whitespace. The hash is computed using SHA-256 and truncated to 8 characters. The seed is fixed at 42 for determinism, but may be overridden for testing. Export stage IDs include parse_id, selection_id, export options, and environment-independent paths.",
+    "constraints": [
+      "Determinism: Same inputs and seed must always yield the same stage ID.",
+      "Collision Resistance: Different inputs must yield different IDs with high probability.",
+      "Stability: Input order must not affect the ID (use sorted keys).",
+      "Seed Consistency: Default seed is 42; must be documented and stable across versions.",
+      "Artifact Reuse: If a stage ID exists, its artifact must be reused (no re-computation).",
+      "Collision Detection: If a stage ID exists with different inputs, raise an error and do not overwrite."
+    ],
+    "implementation_specs": [
+      "SPEC-0014_Deterministic-Stage-Id-Spec",
+      "SPEC-0013_Artifact-Lifecycle-Preservation-Spec"
+    ]
+  },
+  "consequences": [
+    "Idempotent re-locks: Same inputs yield the same stage ID and artifact reuse.",
+    "Accidental unlock recovery: Re-lock with same inputs reuses all downstream artifacts.",
+    "Deterministic reproducibility: Same inputs on different machines yield the same stage ID.",
+    "Testing support: Configurable seed enables generating different IDs for testing.",
+    "Opaque IDs: Users cannot infer inputs from the ID prefix.",
+    "Hash collisions: 8-char prefix has a low but nonzero collision risk (mitigated by detection and can be extended if needed)."
+  ],
+  "alternatives_considered": [
+    {
+      "name": "UUIDs (uuid.uuid4())",
+      "pros": "Guaranteed unique, simple implementation, widely supported.",
+      "cons": "Non-deterministic, breaks idempotent re-locks, no artifact reuse.",
+      "rejected_reason": "Breaks idempotent re-locks and artifact traceability."
+    },
+    {
+      "name": "Timestamp-Based IDs",
+      "pros": "Human-readable, sortable, simple implementation.",
+      "cons": "Non-deterministic, no artifact reuse, no reproducibility across machines.",
+      "rejected_reason": "Same issues as UUIDs; not suitable for deterministic workflows."
+    },
+    {
+      "name": "Sequential IDs",
+      "pros": "Human-readable, simple implementation, compact.",
+      "cons": "Non-deterministic, requires global counter, no artifact reuse.",
+      "rejected_reason": "Non-deterministic and not suitable for distributed or parallel workflows."
+    },
+    {
+      "name": "MD5 Hash",
+      "pros": "Faster than SHA-256, shorter hash, widely supported.",
+      "cons": "Cryptographically broken, not future-proof.",
+      "rejected_reason": "MD5 is deprecated for security reasons; SHA-256 is industry standard."
+    }
+  ],
+  "tradeoffs": "We trade human-readable IDs for deterministic, content-addressed IDs. We accept a small risk of hash collisions (with 8-char prefix) for brevity, mitigated by collision detection and the option to extend the prefix if needed.",
+  "guardrails": [
+    {
+      "rule": "Determinism: compute_stage_id(inputs, seed) MUST be deterministic (same inputs yield same ID).",
+      "enforcement": "Stable JSON serialization with sorted keys and fixed seed; validated in tests.",
+      "scope": "subsystem:DAT"
+    },
+    {
+      "rule": "Collision Detection: If stage ID exists with different inputs, raise an error and do not overwrite.",
+      "enforcement": "Backend checks for input hash matches before artifact reuse.",
+      "scope": "subsystem:DAT"
+    },
+    {
+      "rule": "Artifact Reuse: If stage ID exists, MUST reuse artifact (no re-computation).",
+      "enforcement": "Backend checks for existing artifact before recomputing.",
+      "scope": "subsystem:DAT"
+    }
+  ],
+  "cross_cutting_guardrails": [
+    "Path Safety: All public paths must be relative (see ADR-0017#path-safety)",
+    "Deterministic Artifacts: All outputs must be reproducible (see ADR-0004_Deterministic-Content-Addressed-IDs)"
+  ],
+  "references": [
+    "ADR-0004_Deterministic-Content-Addressed-IDs: Core ID generation pattern this extends",
+    "ADR-0001_Guided-Workflow-FSM-Orchestration: Core FSM pattern using deterministic IDs",
+    "ADR-0002_Artifact-Preservation-on-Unlock: Artifact preservation with ID-based reuse",
+    "ADR-0017_Cross-Cutting-Guardrails"
+  ],
+  "tags": [
+    "determinism",
+    "idempotency",
+    "content-addressing",
+    "hashing",
+    "artifact-reuse"
+  ],
+  "affected_components": [
+    "backend/src/dramcdu/dat_aggregation/core/id_generator.py",
+    "backend/src/dramcdu/dat_aggregation/core/state_machine.py",
+    "backend/src/dramcdu/dat_aggregation/core/snapshot_manager.py"
+  ]
+}

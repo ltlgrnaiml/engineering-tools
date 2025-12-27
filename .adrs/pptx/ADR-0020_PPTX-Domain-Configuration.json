@@ -1,0 +1,97 @@
+{
+  "schema_type": "adr",
+  "id": "ADR-0020_PPTX-Domain-Configuration",
+  "title": "PPTX Generator Domain-Specific Configuration and Metric Canonicalization",
+  "status": "accepted",
+  "date": "2024-12-27",
+  "review_date": "2025-06-27",
+  "deciders": "Mycahya Eggleston",
+  "scope": "subsystem:PPTX",
+  "provenance": [
+    {
+      "at": "2024-12-27",
+      "by": "AI Analysis",
+      "note": "Initial draft based on existing PPTX domain_config.yaml implementation"
+    },
+    {
+      "at": "2025-12-27",
+      "by": "DevTools Editor",
+      "note": "Updated via DevTools ADR Editor"
+    }
+  ],
+  "context": "PPTX Generator serves domain-specific reporting needs with predefined job contexts (e.g., fab types, process steps) and canonical metrics (e.g., yield, defect density). These domain concepts must be configurable without code changes to support different environments and evolving requirements. The challenge is balancing flexibility (easy config changes) with safety (invalid configs should fail loudly) and performance (config loaded once at startup).",
+  "decision_primary": "PPTX Generator loads domain configuration from YAML files at startup. Configuration is validated against a Pydantic schema. Invalid configurations cause startup failure (fail-fast). Configuration defines: job contexts (dimensions for filtering), canonical metrics (with aliases), and rendering rules. Config is immutable at runtime; changes require restart.",
+  "decision_details": {
+    "approach": "YAML configuration files validated via Pydantic at startup. Domain config service provides read-only access to validated config. Metric aliases are resolved to canonical names during data mapping.",
+    "constraints": [
+      "Config files MUST be valid YAML",
+      "Config MUST validate against DomainConfig Pydantic schema",
+      "Invalid config MUST cause startup failure (fail-fast)",
+      "Config is immutable at runtime (no hot-reload)",
+      "All metric aliases MUST map to canonical metric names",
+      "Job contexts MUST define required dimensions for report filtering"
+    ],
+    "implementation_specs": [
+      "SPEC-0022_PPTX-Domain-Config-Schema-Spec"
+    ]
+  },
+  "consequences": [
+    "Domain knowledge is externalized from code (easier maintenance)",
+    "Validation at startup catches config errors early",
+    "No hot-reload simplifies caching and consistency",
+    "Metric aliasing supports diverse data sources",
+    "Risk: restart required for config changes (acceptable for domain config)",
+    "Risk: invalid config prevents startup (intentional fail-fast)"
+  ],
+  "alternatives_considered": [
+    {
+      "name": "Database-Backed Configuration",
+      "pros": "Hot-reload, admin UI for editing, audit trail",
+      "cons": "Overkill for domain config, adds database dependency",
+      "rejected_reason": "Domain config changes rarely; YAML + restart is sufficient"
+    },
+    {
+      "name": "Environment Variables Only",
+      "pros": "Standard 12-factor pattern, easy in containers",
+      "cons": "Not suitable for complex nested config (job contexts, metrics)",
+      "rejected_reason": "Config structure too complex for flat env vars"
+    },
+    {
+      "name": "JSON Configuration",
+      "pros": "Widely supported, strict syntax",
+      "cons": "Less readable than YAML for humans, no comments",
+      "rejected_reason": "YAML is more readable for domain experts editing config"
+    }
+  ],
+  "tradeoffs": "We trade hot-reload capability for simplicity and fail-fast behavior. YAML is chosen over JSON for readability. Startup validation adds brief delay but catches errors before serving traffic.",
+  "guardrails": [
+    {
+      "rule": "Domain configuration MUST be validated at startup",
+      "enforcement": "DomainConfigService validates config; raises exception on failure",
+      "scope": "subsystem:PPTX",
+      "id": "pptx-domain-config-validation"
+    },
+    {
+      "rule": "All metric aliases MUST resolve to canonical metrics",
+      "enforcement": "Validation checks alias mappings; fails if alias targets unknown canonical",
+      "scope": "subsystem:PPTX",
+      "id": "pptx-metric-alias-validation"
+    }
+  ],
+  "cross_cutting_guardrails": [],
+  "references": [
+    "apps/pptx_generator/config/domain_config.yaml",
+    "apps/pptx_generator/backend/core/domain_config_service.py"
+  ],
+  "tags": [
+    "pptx",
+    "configuration",
+    "domain-model",
+    "metrics"
+  ],
+  "affected_components": [
+    "apps/pptx_generator/config/domain_config.yaml",
+    "apps/pptx_generator/backend/core/domain_config_service.py",
+    "apps/pptx_generator/backend/models/"
+  ]
+}

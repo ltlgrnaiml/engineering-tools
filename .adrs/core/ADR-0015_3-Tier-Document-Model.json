@@ -1,0 +1,139 @@
+{
+  "schema_type": "adr",
+  "id": "ADR-0015_3-Tier-Document-Model",
+  "title": "3-Tier Document Model with Schema-Driven Validation for Separation of Concerns",
+  "status": "accepted",
+  "date": "2025-01-18",
+  "deciders": "Mycahya Eggleston",
+  "scope": "core",
+  "provenance": [
+    {
+      "at": "2025-01-18",
+      "by": "Mycahya Eggleston",
+      "note": "Initial draft based on Context stage integration lessons learned"
+    }
+  ],
+  "context": "During Context stage integration, documentation fell out of sync with code despite 90% of the codebase being functional. The root cause was unclear ownership of 'why' vs 'what' vs 'how' information, leading to duplication across ADRs, specs, and guides. Contradictions emerged when the same information was updated in one location but not others. As a solo developer, manual enforcement of documentation conventions is unsustainable. A structural solution with automated validation is needed to prevent drift and ensure each document type has a single, well-defined responsibility.",
+  "decision_primary": "Adopt a 3-tier document model (ADRs → Specs → Guides) with JSON schema validation enforced in CI/CD. Each tier has exclusive responsibility for one question: ADRs answer 'why' decisions were made, Specs define 'what' is being built, and Guides explain 'how' to perform tasks. Schema validation prevents tier boundary violations (e.g., ADRs containing code snippets, Guides defining API contracts). Cross-references via 'references' fields replace duplication.",
+  "decision_details": {
+    "approach": "Define three document tiers with non-overlapping responsibilities enforced by JSON schemas. Use unidirectional linking (ADRs → Specs → Guides) to create a dependency chain without circular references. Implement field-level constraints in schemas to forbid overlapping content (e.g., ADR schema forbids 'code_examples' field, Guide schema forbids 'api_contracts' field). Enforce validation in CI pipeline to block merges on schema violations.",
+    "constraints": [
+      "Each document tier must have exactly one responsibility (Why/What/How)",
+      "Schemas must forbid overlapping fields across tiers to prevent duplication",
+      "All cross-tier references must use 'references' field with explicit reason",
+      "CI must validate all docs against schemas before merge (red build on violation)",
+      "Schemas must be versioned (e.g., adr_schema.v1.json) to support evolution"
+    ],
+    "implementation_specs": [
+      "SPEC-0009_Engineering-Docs-Tenets-Spec"
+    ]
+  },
+  "consequences": [
+    "Eliminates documentation duplication via schema-enforced boundaries (DRY principle)",
+    "Automated validation in CI prevents drift (no manual review needed)",
+    "Clear mental model for solo-dev: 'Where do I document X?' has unambiguous answer",
+    "Future-proof onboarding: new developers can trace 'why → what → how' lineage",
+    "Upfront cost: schema design, validation tooling, and refactoring existing docs (~90% of docs)",
+    "Schemas may feel restrictive for edge cases (mitigated by 'notes' field in all schemas)",
+    "Schema versioning adds maintenance burden (must update validators when schemas evolve)"
+  ],
+  "alternatives_considered": [
+    {
+      "name": "Single-tier documentation (all in README)",
+      "pros": "Simple, no tooling required, low initial setup cost",
+      "cons": "Doesn't scale beyond ~1000 lines, becomes unmaintainable monolith, no enforcement of structure",
+      "rejected_reason": "Already experienced this pain in early project phases when README exceeded 2000 lines and became unnavigable"
+    },
+    {
+      "name": "Wiki-style freeform Markdown",
+      "pros": "Flexible, easy to write, familiar to most developers",
+      "cons": "No enforcement of conventions, leads to duplication and drift, manual review required",
+      "rejected_reason": "Solo-dev environment cannot sustain manual enforcement; need automated validation"
+    },
+    {
+      "name": "2-tier model (Specs + Guides only)",
+      "pros": "Simpler than 3-tier, covers 'what' and 'how', less schema complexity",
+      "cons": "Missing 'why' layer, ADRs are critical for preserving decision context, no immutable decision records",
+      "rejected_reason": "Need immutable ADRs to answer 'why did we decide X?' in 6 months when context is lost"
+    },
+    {
+      "name": "Code-as-docs only (docstrings + generated API docs)",
+      "pros": "Docs live with code, always in sync, no separate doc files",
+      "cons": "Doesn't capture 'why' decisions, no user-facing guides, no architectural context",
+      "rejected_reason": "Docstrings cannot capture ADR-level decisions or user workflows; need separate doc tiers"
+    }
+  ],
+  "tradeoffs": "Requires upfront investment in schema design and validation tooling, plus effort to refactor existing docs into 3-tier structure. Schemas may feel restrictive for edge cases. However, this cost is justified by long-term benefits: eliminates duplication, prevents drift via automation, and provides clear mental model for solo-dev. The alternative (manual enforcement) is unsustainable and has already failed during Context stage integration.",
+  "rollout_plan": [
+    "Design JSON schemas for each tier (.adrs/_schema/adr_schema.json, docs/_schema/tech_spec.schema.json, docs/_schema/how_to_guide.schema.json)",
+    "Implement validation scripts (validate_adrs.py, validate_specs.py, validate_guides.py)",
+    "Integrate validators into CI pipeline (ci/steps/step_docs_build.ps1)",
+    "Refactor existing docs into 3-tier structure (~90% of docs need migration)",
+    "Add 'references' fields to link across tiers (replace duplicated content with cross-references)",
+    "Document the 3-tier model in SPEC-0009 (Engineering Docs Tenets)",
+    "Create GUIDE-0001 (How to Write an ADR) as reference implementation"
+  ],
+  "rollback_plan": "Revert to freeform Markdown documentation without schema validation. This would require removing CI validation steps and converting JSON docs back to Markdown. Not recommended due to loss of automated enforcement and return to manual review burden.",
+  "metrics_to_watch": [
+    "CI validation failure rate (should decrease as team internalizes tier boundaries)",
+    "Documentation drift incidents (should be zero after rollout)",
+    "Time to find information (should decrease with clear tier separation)",
+    "Onboarding time for new developers (should decrease with 'why → what → how' traceability)"
+  ],
+  "guardrails": [
+    {
+      "rule": "Tier Exclusivity: Each document tier MUST have exactly one responsibility (ADRs=why, Specs=what, Guides=how)",
+      "enforcement": "JSON schemas forbid overlapping fields (e.g., ADR schema has no 'code_examples' field, Guide schema has no 'api_contracts' field). CI validation fails on schema violations.",
+      "scope": "core",
+      "references": [
+        "ADR-0010_Docs-as-Code-Engineering-Tenets",
+        ".adrs/_schema/adr_schema.json",
+        "docs/_schema/tech_spec.schema.json",
+        "docs/_schema/how_to_guide.schema.json"
+      ]
+    },
+    {
+      "rule": "Unidirectional Linking: Cross-tier references MUST flow ADRs → Specs → Guides (no circular dependencies)",
+      "enforcement": "All schemas require 'references' field for cross-tier links. CI validation checks for circular references (future enhancement).",
+      "scope": "core",
+      "references": [
+        "SPEC-0009_Engineering-Docs-Tenets-Spec"
+      ],
+      "id": "unidirectional-linking-cross-tier-references"
+    },
+    {
+      "rule": "Single Source of Truth: Each piece of information MUST exist in exactly one tier (DRY principle)",
+      "enforcement": "Schema validation forbids duplicate fields. Manual review during doc refactoring to identify and eliminate duplication.",
+      "scope": "core",
+      "references": [
+        "ADR-0010_Docs-as-Code-Engineering-Tenets"
+      ],
+      "id": "single-source-truth-each-piece"
+    }
+  ],
+  "cross_cutting_guardrails": [
+    "Tier Boundaries: Each document tier has specific responsibility (see ADR-0017#tier-boundaries)"
+  ],
+  "references": [
+    "ADR-0010_Docs-as-Code-Engineering-Tenets (defines tooling: MkDocs, mkdocstrings, CI enforcement)",
+    "ADR-0009_Type-Safety-and-Contract-Discipline (similar schema-driven approach for code contracts)",
+    "SPEC-0009_Engineering-Docs-Tenets-Spec (implements this ADR)",
+    "docs/_schema/tech_spec.schema.json (Spec tier schema)",
+    "docs/_schema/how_to_guide.schema.json (Guide tier schema)",
+    ".adrs/_schema/adr_schema.json (ADR tier schema)"
+  ],
+  "tags": [
+    "documentation",
+    "schema-validation",
+    "separation-of-concerns",
+    "dry-principle",
+    "ci-enforcement"
+  ],
+  "affected_components": [
+    "documentation",
+    "ci pipeline",
+    "developer workflow",
+    "onboarding process"
+  ],
+  "review_date": "2026-01-18"
+}

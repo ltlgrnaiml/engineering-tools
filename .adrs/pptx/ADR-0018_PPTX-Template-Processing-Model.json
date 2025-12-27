@@ -1,0 +1,163 @@
+{
+  "schema_type": "adr",
+  "id": "ADR-0018_PPTX-Template-Processing-Model",
+  "title": "PowerPoint Template Processing: Named Shape Discovery and Mapping",
+  "status": "accepted",
+  "date": "2024-12-27",
+  "review_date": "2025-06-27",
+  "deciders": "Mycahya Eggleston",
+  "scope": "subsystem:PPTX",
+  "provenance": [
+    {
+      "at": "2024-12-27",
+      "by": "AI Analysis",
+      "note": "Initial draft based on existing PPTX Generator implementation analysis"
+    },
+    {
+      "at": "2025-12-27",
+      "by": "DevTools Editor",
+      "note": "Updated via DevTools ADR Editor"
+    }
+  ],
+  "context": "PPTX Generator must reliably identify and populate placeholders within PowerPoint templates. Templates are authored externally using PowerPoint's native tools. The system must discover placeholders without requiring proprietary markup or external manifest files. PowerPoint's built-in shape naming feature provides a natural, user-friendly mechanism for placeholder identification. The challenge is defining conventions that are intuitive for template authors, machine-parseable for the backend, and flexible enough to support diverse report types. Shape names in PowerPoint are accessed via the python-pptx library through shape.name property, which corresponds to the 'Name' field in PowerPoint's Selection Pane. This provides a robust, version-stable API for shape identification across PowerPoint versions and platforms.",
+  "decision_primary": "PPTX Generator uses PowerPoint's native shape naming feature to identify template placeholders. All mappable shapes MUST have explicit names following the convention {category}_{identifier}[_{variant}] (e.g., chart_revenue, text_title_main, table_summary_q1). The backend performs shape discovery via python-pptx by iterating through presentation.slides and accessing shape.name for each shape object. Shape names are validated against a strict regex pattern, parsed into components (category, identifier, optional variant), and mapped to data columns based on domain configuration. Unnamed shapes (default PowerPoint names like 'Rectangle 1') are ignored; shapes with invalid naming patterns generate validation warnings with specific error messages indicating the violation.",
+  "decision_details": {
+    "approach": "Shape discovery via python-pptx with convention-based naming and strict validation. Template validation occurs at upload time with detailed error reporting. Mapping configuration links data columns to shape identifiers using a hierarchical lookup system. Shape name parsing uses regex: ^(text|chart|table|image|metric|dimension)_([a-zA-Z0-9]+)(?:_([a-zA-Z0-9]+))?$ to extract category, identifier, and optional variant components.",
+    "constraints": [
+      "Templates MUST be .pptx format (Open XML)",
+      "Mappable shapes MUST have names following {category}_{identifier}[_{variant}] convention where variant is optional",
+      "Valid categories: text (text boxes, labels), chart (graphs, visualizations), table (data tables), image (logos, icons), metric (single numeric values), dimension (categorical labels)",
+      "Identifier component MUST be alphanumeric (a-zA-Z0-9) with no spaces or special characters except underscore as separator",
+      "Variant component (optional) MUST be alphanumeric and provides sub-categorization (e.g., text_title_main vs text_title_sub)",
+      "Shape names MUST be unique within a single slide (case-insensitive comparison)",
+      "Shape names MUST NOT exceed 255 characters (PowerPoint limitation)",
+      "Reserved PowerPoint default names (e.g., 'Rectangle 1', 'TextBox 2') are automatically ignored during discovery",
+      "Validation MUST fail if required shapes (per domain config) are missing, returning HTTP 400 with list of missing shapes",
+      "Orphan shapes (valid name but unmapped in domain config) generate warnings, not errors, to support template evolution",
+      "Shape names are case-insensitive for matching purposes (normalized to lowercase internally)",
+      "Duplicate shape names within a slide MUST fail validation with HTTP 400 and list of duplicates",
+      "Invalid category names MUST fail validation with HTTP 400 and suggestion of valid categories",
+      "Shape discovery MUST traverse all slides in presentation order (slide index 0 to N-1)",
+      "Shape discovery MUST handle grouped shapes by recursing into group.shapes collection",
+      "Shape discovery MUST skip placeholder shapes (is_placeholder=True) as they are PowerPoint layout elements"
+    ],
+    "implementation_specs": [
+      "SPEC-0019_PPTX-Template-Schema-Spec",
+      "SPEC-0020_PPTX-Shape-Discovery-Spec"
+    ],
+    "naming_pattern_examples": [
+      "text_title: Main slide title text box",
+      "text_subtitle_date: Subtitle with date variant",
+      "chart_revenue: Revenue trend chart",
+      "chart_revenue_ytd: Year-to-date revenue variant",
+      "table_summary: Summary data table",
+      "table_summary_q1: Q1-specific summary variant",
+      "image_logo: Company logo placeholder",
+      "metric_total_sales: Single numeric metric display",
+      "dimension_region: Categorical dimension label"
+    ],
+    "validation_error_examples": [
+      "Invalid: 'Chart_Revenue' → Error: Category must be lowercase",
+      "Invalid: 'text-title' → Error: Use underscore separator, not hyphen",
+      "Invalid: 'text title' → Error: No spaces allowed in shape names",
+      "Invalid: 'unknown_revenue' → Error: Invalid category 'unknown', must be one of: text, chart, table, image, metric, dimension",
+      "Invalid: 'text_' → Error: Identifier component is required",
+      "Invalid: '_revenue' → Error: Category component is required",
+      "Valid but unmapped: 'text_future_field' → Warning: Shape name is valid but not mapped in domain config"
+    ],
+    "discovery_algorithm": "1. Iterate through presentation.slides (ordered by index). 2. For each slide, iterate through slide.shapes. 3. For each shape, check if shape.has_text_frame or shape.has_chart or shape.has_table. 4. Extract shape.name and apply regex validation. 5. Parse name into components (category, identifier, variant). 6. Check for duplicates within current slide. 7. Validate category against allowed list. 8. Build shape registry: {slide_index: {shape_name: {category, identifier, variant, shape_type, shape_object}}}. 9. Cross-reference registry against domain config required shapes. 10. Generate validation report with errors (missing required, duplicates, invalid patterns) and warnings (orphaned shapes)."
+  },
+  "consequences": [
+    "Template authors use familiar PowerPoint tooling (no external markup)",
+    "Shape discovery is deterministic and reproducible across PowerPoint versions",
+    "Convention violations are caught at upload time with detailed error messages (early feedback)",
+    "Flexibility: new shape categories can be added without code changes by updating regex pattern",
+    "Variant support enables template evolution without breaking existing mappings",
+    "Case-insensitive matching reduces user friction while maintaining consistency",
+    "Grouped shape recursion ensures nested shapes are discovered correctly",
+    "Risk: template authors may forget to name shapes (mitigated by validation warnings listing unnamed shapes)",
+    "Risk: naming convention violations may confuse users (mitigated by clear error messages with examples)",
+    "Risk: duplicate names across slides could cause confusion (mitigated by slide-scoped uniqueness requirement)"
+  ],
+  "alternatives_considered": [
+    {
+      "name": "External Manifest File",
+      "pros": "Full control over shape definitions, supports complex mappings",
+      "cons": "Requires maintaining two files (template + manifest), error-prone sync",
+      "rejected_reason": "Adds friction for template authors; PowerPoint naming is sufficient"
+    },
+    {
+      "name": "Custom XML Parts in PPTX",
+      "pros": "Embedded in template, no separate file",
+      "cons": "Requires specialized tools to edit, not visible in PowerPoint UI",
+      "rejected_reason": "Poor user experience for template authors"
+    },
+    {
+      "name": "Positional Placeholders (slide index, shape index)",
+      "pros": "No naming required",
+      "cons": "Fragile, breaks when slide order changes",
+      "rejected_reason": "Not robust for iterative template development"
+    }
+  ],
+  "tradeoffs": "We trade some flexibility (must follow naming convention) for user-friendly template authoring and reliable discovery. Convention enforcement adds validation overhead but catches errors early.",
+  "guardrails": [
+    {
+      "rule": "All mappable shapes MUST have unique names within a slide following {category}_{identifier}[_{variant}] convention with regex validation: ^(text|chart|table|image|metric|dimension)_([a-zA-Z0-9]+)(?:_([a-zA-Z0-9]+))?$",
+      "enforcement": "Backend validates at template upload using regex pattern matching; returns 400 Bad Request with specific violation details (e.g., 'Invalid category', 'Missing identifier', 'Invalid characters')",
+      "scope": "subsystem:PPTX",
+      "id": "pptx-shape-naming-convention"
+    },
+    {
+      "rule": "Template validation MUST fail if required shapes (per domain config) are missing",
+      "enforcement": "Backend checks required shape list against discovered shapes; returns 400 Bad Request with list of missing required shapes by name",
+      "scope": "subsystem:PPTX",
+      "id": "pptx-required-shapes-validation"
+    },
+    {
+      "rule": "Shape names MUST be unique within each slide (case-insensitive)",
+      "enforcement": "Backend tracks shape names per slide during discovery; returns 400 Bad Request listing duplicate names and their slide indices",
+      "scope": "subsystem:PPTX",
+      "id": "pptx-shape-name-uniqueness"
+    },
+    {
+      "rule": "Shape discovery MUST handle grouped shapes by recursing into group.shapes collections",
+      "enforcement": "Backend recursively traverses shape groups during discovery; logs warning if group recursion depth exceeds 10 levels",
+      "scope": "subsystem:PPTX",
+      "id": "pptx-grouped-shape-discovery"
+    },
+    {
+      "rule": "Shape category validation MUST provide helpful error messages suggesting valid categories",
+      "enforcement": "Backend returns 400 Bad Request with message format: 'Invalid category {found}, must be one of: text, chart, table, image, metric, dimension'",
+      "scope": "subsystem:PPTX",
+      "id": "pptx-category-validation-messaging"
+    }
+  ],
+  "cross_cutting_guardrails": [
+    "Path Safety: Template file paths must be relative (see ADR-0017#path-safety)"
+  ],
+  "references": [
+    "apps/pptx_generator/backend/services/template_service.py: Shape discovery implementation",
+    "apps/pptx_generator/backend/renderers/: Shape population logic",
+    "python-pptx documentation: https://python-pptx.readthedocs.io/en/latest/api/shapes.html",
+    "PowerPoint Selection Pane: View > Selection Pane (where shape names are visible)",
+    "Regex pattern reference: ^(text|chart|table|image|metric|dimension)_([a-zA-Z0-9]+)(?:_([a-zA-Z0-9]+))?$"
+  ],
+  "tags": [
+    "pptx",
+    "template",
+    "shape-discovery",
+    "naming-convention",
+    "validation",
+    "regex",
+    "python-pptx",
+    "placeholder-mapping"
+  ],
+  "affected_components": [
+    "apps/pptx_generator/backend/services/template_service.py: Shape discovery and validation logic",
+    "apps/pptx_generator/backend/api/templates.py: Template upload endpoint with validation",
+    "apps/pptx_generator/backend/renderers/: Shape population during report generation",
+    "apps/pptx_generator/backend/config/domain_config.py: Required shapes per domain",
+    "apps/pptx_generator/frontend/src/components/TemplateUpload.tsx: Upload UI with validation feedback",
+    "shared/contracts/pptx_contracts.py: Shape validation schemas"
+  ]
+}

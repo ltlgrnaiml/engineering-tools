@@ -1,0 +1,172 @@
+{
+  "schema_type": "adr",
+  "id": "ADR-0001_Guided-Workflow-FSM-Orchestration",
+  "title": "Hybrid FSM Architecture for Guided Workflow Orchestration Across All Tools",
+  "status": "accepted",
+  "date": "2025-01-15",
+  "review_date": "2025-07-15",
+  "deciders": "Mycahya Eggleston",
+  "scope": "core",
+  "provenance": [
+    {
+      "at": "2025-01-15",
+      "by": "Mycahya Eggleston",
+      "note": "Initial decision extracted from DAT stage orchestration vision document"
+    },
+    {
+      "at": "2025-11-22",
+      "by": "Mycahya Eggleston",
+      "note": "Refactored for explicit coverage of all pipeline stages"
+    },
+    {
+      "at": "2024-12-27",
+      "by": "Mycahya Eggleston",
+      "note": "Promoted to CORE scope as unified pattern for all guided workflows across DAT, PPTX, and SOV tools"
+    }
+  ],
+  "context": "All engineering tools (DAT, PPTX Generator, SOV Analyzer) implement guided workflows where users progress through a series of stages/steps to complete complex tasks. Each tool has similar needs: enforce stage dependencies (forward gating), handle backward navigation (cascade effects), support optional stages, preserve user work on state changes, and maintain deterministic reproducibility. Without a unified pattern, each tool would implement its own FSM logic, leading to inconsistent UX, duplicated code, and divergent mental models. A CORE FSM pattern enables shared implementation in shared/contracts, consistent AI-assisted code generation, and predictable user experience across the platform.",
+  "decision_primary": "Adopt a Hybrid FSM Architecture as the CORE pattern for all guided workflows. The pattern consists of: (1) Per-Stage State Machines - each stage independently manages its own state (typically PENDING → ACTIVE → COMPLETED or UNLOCKED ↔ LOCKED), (2) Global Orchestrator - coordinates forward gating (preventing premature advancement), backward cascades (resetting downstream when upstream changes), and optional stage handling, (3) State Persistence - all stage states are persisted to enable session resumption and audit trails, (4) Artifact Preservation - state changes never delete user work; at most they mark it as stale or unlocked. Tools MAY simplify the pattern (e.g., linear-only progression) but MUST follow the core principles of forward gating, backward cascade awareness, and state preservation.",
+  "decision_details": {
+    "approach": "Two-tier state management with tool-specific configuration. Tier 1: Per-stage FSMs manage individual stage lifecycle. Tier 2: Global orchestrator enforces cross-stage invariants. Configuration defines: stage graph (dependencies), optional stages, cascade rules, and artifact preservation policy.",
+    "constraints": [
+      "Forward Gating: A stage MUST NOT be completable/lockable until all upstream dependencies are satisfied",
+      "Backward Cascade: Changes to an upstream stage MUST invalidate or reset dependent downstream stages (tool-specific: reset validation, unlock, or mark stale)",
+      "State Persistence: All stage states MUST be persisted to enable session resumption (project state file, database, or artifact metadata)",
+      "Artifact Preservation: State changes MUST NOT delete user-created artifacts; at most mark as stale/unlocked (see ADR-0002 for detailed policy)",
+      "Determinism: Given the same inputs and stage graph, state transitions MUST be deterministic and reproducible",
+      "Optional Stages: Tools MAY define stages as optional; optional stages do not block downstream progression and do not trigger cascades when skipped",
+      "Stage Graph: Dependencies between stages MUST be defined as a directed acyclic graph (DAG); cycles are prohibited",
+      "Stage Identity: Each stage instance SHOULD have a deterministic ID derived from inputs (see ADR-0004 pattern) to enable idempotent re-computation"
+    ],
+    "stage_state_models": {
+      "simple_linear": {
+        "states": ["PENDING", "ACTIVE", "COMPLETED"],
+        "description": "For tools with simple step-by-step progression (e.g., PPTX Generator). User advances through steps; completing a step unlocks the next.",
+        "transitions": ["PENDING → ACTIVE (user enters step)", "ACTIVE → COMPLETED (user completes step)", "COMPLETED → ACTIVE (user revisits step)"]
+      },
+      "lockable_with_artifacts": {
+        "states": ["UNLOCKED", "LOCKED"],
+        "description": "For tools with significant per-stage computation/artifacts (e.g., DAT). Locking commits the stage; unlocking preserves artifacts but marks as mutable.",
+        "transitions": ["UNLOCKED → LOCKED (user locks stage)", "LOCKED → UNLOCKED (user unlocks stage, artifacts preserved)"]
+      },
+      "hybrid": {
+        "states": ["PENDING", "ACTIVE", "LOCKED", "UNLOCKED"],
+        "description": "Combines linear progression with lockable artifacts. Stages progress PENDING → ACTIVE → LOCKED, can be unlocked for revision.",
+        "transitions": ["PENDING → ACTIVE (dependencies satisfied)", "ACTIVE → LOCKED (user commits)", "LOCKED → UNLOCKED (user unlocks)", "UNLOCKED → LOCKED (user re-locks)"]
+      }
+    },
+    "cascade_policies": {
+      "reset_validation": "Downstream stages have their validation status reset but retain user inputs (PPTX pattern)",
+      "unlock_cascade": "Downstream stages are automatically unlocked, preserving artifacts with locked:false (DAT pattern)",
+      "mark_stale": "Downstream artifacts are marked stale but remain valid until user explicitly refreshes (lazy invalidation)"
+    },
+    "implementation_specs": [
+      "SPEC-0001_Stage-Orchestration-State-Machine",
+      "SPEC-0028_Core-FSM-Interface-Spec"
+    ],
+    "shared_implementation": {
+      "location": "shared/workflows/fsm_orchestrator.py",
+      "interface": "AbstractStageOrchestrator with methods: can_advance(stage_id), advance(stage_id), can_retreat(stage_id), retreat(stage_id), get_state(stage_id), get_stage_graph()",
+      "configuration": "StageGraphConfig Pydantic model defining stages, dependencies, optional flags, and cascade policy"
+    }
+  },
+  "consequences": [
+    "Unified mental model: Users learn one workflow pattern across all tools",
+    "Shared implementation: FSM logic in shared/workflows reduces duplication",
+    "AI-friendly: Consistent pattern enables reliable AI-assisted code generation",
+    "Flexible: Tools can choose simple_linear, lockable_with_artifacts, or hybrid models",
+    "Extensible: New tools adopt the pattern by defining stage graph configuration",
+    "Debuggable: Centralized orchestrator enables consistent logging and state inspection",
+    "Complexity: Adds abstraction layer; simple tools may feel over-engineered (mitigated by simple_linear model)",
+    "Learning curve: Developers must understand FSM concepts (mitigated by clear documentation)",
+    "Coordination: Frontend and backend must agree on stage graph (mitigated by shared configuration)"
+  ],
+  "alternatives_considered": [
+    {
+      "name": "Per-Tool Custom FSM",
+      "pros": "Maximum flexibility per tool, no abstraction overhead",
+      "cons": "Inconsistent UX, duplicated logic, divergent implementations, harder for AI to assist",
+      "rejected_reason": "Solo dev with AI assistance benefits from consistent patterns; duplication is expensive to maintain"
+    },
+    {
+      "name": "No FSM (Event-Driven Only)",
+      "pros": "Simple, no state machine complexity",
+      "cons": "No forward gating enforcement, inconsistent state, hard to debug",
+      "rejected_reason": "Users need guardrails; ungated workflows lead to confusing errors"
+    },
+    {
+      "name": "Monolithic State Machine",
+      "pros": "Single source of truth, simple to reason about",
+      "cons": "Cannot accommodate optional stages, forces single workflow path",
+      "rejected_reason": "Too rigid; different user personas need different paths through workflows"
+    },
+    {
+      "name": "Saga Pattern with Event Sourcing",
+      "pros": "Full audit trail, compensating transactions, enterprise-grade",
+      "cons": "Overkill for local desktop tools, adds significant infrastructure complexity",
+      "rejected_reason": "Engineering tools are local-first; event sourcing adds unnecessary complexity"
+    }
+  ],
+  "tradeoffs": "We trade some per-tool flexibility for platform-wide consistency and shared implementation. We accept FSM learning curve for predictable state management. We invest in abstraction to reduce long-term maintenance burden and enable reliable AI-assisted development.",
+  "guardrails": [
+    {
+      "rule": "Forward Gating: A stage MUST NOT be completable/lockable until all upstream dependencies are satisfied",
+      "enforcement": "Orchestrator validates dependencies before allowing state transitions; returns 400 Bad Request if violated",
+      "scope": "core",
+      "id": "core-fsm-forward-gating"
+    },
+    {
+      "rule": "Backward Cascade: Changes to an upstream stage MUST trigger configured cascade policy on downstream stages",
+      "enforcement": "Orchestrator automatically applies cascade policy (reset_validation, unlock_cascade, or mark_stale) to dependent stages",
+      "scope": "core",
+      "id": "core-fsm-backward-cascade"
+    },
+    {
+      "rule": "State Persistence: All stage states MUST be persisted and recoverable across sessions",
+      "enforcement": "Orchestrator writes state to configured persistence layer (file, database) on every transition",
+      "scope": "core",
+      "id": "core-fsm-state-persistence"
+    },
+    {
+      "rule": "Artifact Preservation: State changes MUST NOT delete user-created artifacts",
+      "enforcement": "Orchestrator only modifies metadata (locked:false, stale:true); never deletes files",
+      "scope": "core",
+      "id": "core-fsm-artifact-preservation"
+    },
+    {
+      "rule": "Stage Graph Acyclicity: Stage dependency graph MUST be a DAG (no cycles)",
+      "enforcement": "StageGraphConfig validates DAG property at configuration load time; raises error if cycle detected",
+      "scope": "core",
+      "id": "core-fsm-dag-validation"
+    }
+  ],
+  "cross_cutting_guardrails": [
+    "Path Safety: All public paths must be relative (see ADR-0017#path-safety)",
+    "Idempotency: All mutating requests must be idempotent or safely retryable (see ADR-0017#idempotency)",
+    "Deterministic Artifacts: All outputs must be reproducible given same inputs (see ADR-0017#deterministic-artifacts)"
+  ],
+  "references": [
+    "ADR-0002_Artifact-Preservation-on-Unlock: Detailed artifact preservation policy (originally DAT, applicable to all)",
+    "ADR-0004_Deterministic-Stage-IDs: Stage identity hashing for idempotent re-computation",
+    "ADR-0017_Cross-Cutting-Guardrails: Platform-wide guardrails referenced by FSM",
+    "shared/workflows/: Shared FSM implementation location"
+  ],
+  "tags": [
+    "core",
+    "fsm",
+    "state-machine",
+    "orchestration",
+    "guided-workflow",
+    "forward-gating",
+    "backward-cascade",
+    "artifact-preservation"
+  ],
+  "affected_components": [
+    "shared/workflows/fsm_orchestrator.py: Core FSM implementation",
+    "shared/contracts/stage_graph.py: StageGraphConfig Pydantic model",
+    "apps/dat_aggregator/backend/: DAT-specific stage graph and orchestrator extension",
+    "apps/pptx_generator/backend/: PPTX-specific stage graph and orchestrator extension",
+    "apps/sov_analyzer/backend/: SOV-specific stage graph and orchestrator extension",
+    "All tool frontends: WorkflowStepper components consume orchestrator state"
+  ]
+}
