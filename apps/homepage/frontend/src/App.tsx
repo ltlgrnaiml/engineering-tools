@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, useLocation } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { HomePage } from './pages/HomePage'
 import { DatasetsPage } from './pages/DatasetsPage'
@@ -6,9 +6,24 @@ import { DataSetDetailsPage } from './pages/DataSetDetailsPage'
 import { PipelinesPage } from './pages/PipelinesPage'
 import { PipelineBuilderPage } from './pages/PipelineBuilderPage'
 import { PipelineDetailsPage } from './pages/PipelineDetailsPage'
-import { ToolPlaceholder } from './pages/ToolPlaceholder'
+import { DataAggregatorPage } from './pages/DataAggregatorPage'
+import { PPTXGeneratorPage } from './pages/PPTXGeneratorPage'
+import { SOVAnalyzerPage } from './pages/SOVAnalyzerPage'
 
-function App() {
+function AppContent() {
+  const location = useLocation()
+  const isToolPage = location.pathname.startsWith('/tools/')
+
+  if (isToolPage) {
+    return (
+      <Routes>
+        <Route path="/tools/dat" element={<DataAggregatorPage />} />
+        <Route path="/tools/pptx" element={<PPTXGeneratorPage />} />
+        <Route path="/tools/sov" element={<SOVAnalyzerPage />} />
+      </Routes>
+    )
+  }
+
   return (
     <Layout>
       <Routes>
@@ -18,12 +33,13 @@ function App() {
         <Route path="/pipelines" element={<PipelinesPage />} />
         <Route path="/pipelines/new" element={<PipelineBuilderPage />} />
         <Route path="/pipelines/:id" element={<PipelineDetailsPage />} />
-        <Route path="/tools/pptx" element={<ToolPlaceholder tool="pptx" />} />
-        <Route path="/tools/dat" element={<ToolPlaceholder tool="dat" />} />
-        <Route path="/tools/sov" element={<ToolPlaceholder tool="sov" />} />
       </Routes>
     </Layout>
   )
+}
+
+function App() {
+  return <AppContent />
 }
 
 export default App

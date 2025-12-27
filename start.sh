@@ -35,30 +35,60 @@ if [ "$START_FRONTEND" = true ]; then
     echo "⏳ Waiting for gateway to start..."
     sleep 3
     
-    # Start frontend
+    # Start homepage frontend
     echo "🎨 Starting Homepage frontend on http://localhost:3000"
-    echo ""
     cd apps/homepage/frontend
+    npm install > /dev/null 2>&1
     npm run dev &
-    FRONTEND_PID=$!
+    HOMEPAGE_PID=$!
+    cd ../../..
+    
+    # Wait for homepage to start
+    sleep 2
+    
+    # Start Data Aggregator frontend
+    echo "📊 Starting Data Aggregator frontend on http://localhost:5173"
+    cd apps/data_aggregator/frontend
+    npm install > /dev/null 2>&1
+    npm run dev &
+    DAT_PID=$!
+    cd ../../..
+    
+    # Wait for DAT to start
+    sleep 2
+    
+    # Start SOV Analyzer frontend
+    echo "📈 Starting SOV Analyzer frontend on http://localhost:5174"
+    cd apps/sov_analyzer/frontend
+    npm install > /dev/null 2>&1
+    npm run dev &
+    SOV_PID=$!
     cd ../../..
     
     echo ""
-    echo "✅ Services started!"
+    echo "✅ All services started!"
     echo ""
-    echo "📍 Gateway:  http://localhost:8000"
-    echo "📍 Homepage: http://localhost:3000"
-    echo "📍 API Docs: http://localhost:8000/docs"
+    echo "📍 Frontend Applications:"
+    echo "  Homepage:         http://localhost:3000"
+    echo "  Data Aggregator:  http://localhost:5173"
+    echo "  SOV Analyzer:     http://localhost:5174"
+    echo ""
+    echo "🔗 API Gateway & Documentation:"
+    echo "  Gateway:         http://localhost:8000"
+    echo "  Gateway Docs:    http://localhost:8000/docs"
+    echo "  PPTX Generator:  http://localhost:8000/api/pptx/docs"
+    echo "  Data Aggregator: http://localhost:8000/api/dat/docs"
+    echo "  SOV Analyzer:    http://localhost:8000/api/sov/docs"
     echo ""
     echo "Press Ctrl+C to stop all services"
     echo ""
     
     # Wait for Ctrl+C
-    trap "kill $GATEWAY_PID $FRONTEND_PID 2>/dev/null; exit" INT TERM
+    trap "kill $GATEWAY_PID $HOMEPAGE_PID $DAT_PID $SOV_PID 2>/dev/null; exit" INT TERM
     wait
 else
     # Start gateway only (foreground)
-    echo "💡 Tip: Use --with-frontend or -f to also start the frontend"
+    echo "💡 Tip: Use --with-frontend or -f to also start all frontends"
     echo ""
     python -m gateway.main
 fi

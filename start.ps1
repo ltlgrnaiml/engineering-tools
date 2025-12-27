@@ -35,25 +35,53 @@ if ($StartFrontend) {
     Write-Host "Waiting for gateway to start..." -ForegroundColor Yellow
     Start-Sleep -Seconds 3
     
-    # Start frontend
+    # Start homepage frontend
     Write-Host "Starting Homepage frontend on http://localhost:3000" -ForegroundColor Yellow
-    Write-Host ""
     Push-Location apps/homepage/frontend
-    npm.cmd install
-    $frontendJob = Start-Job -ScriptBlock {
+    npm.cmd install 2>&1 | Out-Null
+    $homepageJob = Start-Job -ScriptBlock {
+        Set-Location $using:PWD
+        npm.cmd run dev
+    }
+    Pop-Location
+    
+    # Wait for homepage to start
+    Start-Sleep -Seconds 2
+    
+    # Start Data Aggregator frontend
+    Write-Host "Starting Data Aggregator frontend on http://localhost:5173" -ForegroundColor Yellow
+    Push-Location apps/data_aggregator/frontend
+    npm.cmd install 2>&1 | Out-Null
+    $datJob = Start-Job -ScriptBlock {
+        Set-Location $using:PWD
+        npm.cmd run dev
+    }
+    Pop-Location
+    
+    # Wait for DAT to start
+    Start-Sleep -Seconds 2
+    
+    # Start SOV Analyzer frontend
+    Write-Host "Starting SOV Analyzer frontend on http://localhost:5174" -ForegroundColor Yellow
+    Push-Location apps/sov_analyzer/frontend
+    npm.cmd install 2>&1 | Out-Null
+    $sovJob = Start-Job -ScriptBlock {
         Set-Location $using:PWD
         npm.cmd run dev
     }
     Pop-Location
     
     Write-Host ""
-    Write-Host "Services started!" -ForegroundColor Green
+    Write-Host "[SUCCESS] All services started!" -ForegroundColor Green
     Write-Host ""
-    Write-Host "Gateway:  http://localhost:8000" -ForegroundColor Cyan
-    Write-Host "Homepage: http://localhost:3000" -ForegroundColor Cyan
+    Write-Host "Frontend Applications:" -ForegroundColor Cyan
+    Write-Host "  Homepage:         http://localhost:3000" -ForegroundColor White
+    Write-Host "  Data Aggregator:  http://localhost:5173" -ForegroundColor White
+    Write-Host "  SOV Analyzer:     http://localhost:5174" -ForegroundColor White
     Write-Host ""
-    Write-Host "API Documentation:" -ForegroundColor Cyan
-    Write-Host "  Gateway:         http://localhost:8000/api/docs" -ForegroundColor White
+    Write-Host "API Gateway & Documentation:" -ForegroundColor Cyan
+    Write-Host "  Gateway:         http://localhost:8000" -ForegroundColor White
+    Write-Host "  Gateway Docs:    http://localhost:8000/docs" -ForegroundColor White
     Write-Host "  PPTX Generator:  http://localhost:8000/api/pptx/docs" -ForegroundColor White
     Write-Host "  Data Aggregator: http://localhost:8000/api/dat/docs" -ForegroundColor White
     Write-Host "  SOV Analyzer:    http://localhost:8000/api/sov/docs" -ForegroundColor White
@@ -67,26 +95,29 @@ if ($StartFrontend) {
             Start-Sleep -Seconds 1
             
             # Check if jobs are still running
-            if ($gatewayJob.State -ne "Running" -or $frontendJob.State -ne "Running") {
-                if ($gatewayJob.State -ne "Running") { Write-Host "Gateway stopped unexpectedly" -ForegroundColor Red }
-                if ($frontendJob.State -ne "Running") { Write-Host "Frontend stopped unexpectedly" -ForegroundColor Red }
-                Receive-Job -Job $gatewayJob
-                Receive-Job -Job $frontendJob
+            $jobs = @($gatewayJob, $homepageJob, $datJob, $sovJob)
+            $allRunning = $true
+            foreach ($job in $jobs) {
+                if ($job.State -ne "Running") {
+                    $allRunning = $false
+                    break
+                }
+            }
+            
+            if (-not $allRunning) {
+                Write-Host "One or more services stopped unexpectedly" -ForegroundColor Red
                 break
             }
         }
     } finally {
         Write-Host "Stopping services..." -ForegroundColor Yellow
-        Write-Host "Gateway job output:" -ForegroundColor Yellow
-        Receive-Job -Job $gatewayJob | Out-Host
-        Write-Host "Frontend job output:" -ForegroundColor Yellow
-        Receive-Job -Job $frontendJob | Out-Host
-        Stop-Job -Job $gatewayJob, $frontendJob
-        Remove-Job -Job $gatewayJob, $frontendJob
+        Stop-Job -Job $gatewayJob, $homepageJob, $datJob, $sovJob -ErrorAction SilentlyContinue
+        Remove-Job -Job $gatewayJob, $homepageJob, $datJob, $sovJob -ErrorAction SilentlyContinue
+        Write-Host "All services stopped." -ForegroundColor Green
     }
 } else {
     # Start gateway only (foreground)
-    Write-Host "Tip: Use --with-frontend or -f to also start the frontend" -ForegroundColor Cyan
+    Write-Host "Tip: Use --with-frontend or -f to also start all frontends" -ForegroundColor Cyan
     Write-Host ""
     python -m gateway.main
 }
