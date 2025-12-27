@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Table, Check, Loader2 } from 'lucide-react'
+import { useDebugFetch } from '../debug'
 
 interface TableSelectionPanelProps {
   runId: string
@@ -14,13 +15,14 @@ interface TableInfo {
 }
 
 export function TableSelectionPanel({ runId }: TableSelectionPanelProps) {
-  const [selectedTables, setSelectedTables] = useState<string[]>([])
+  const [selectedTables, setSelectedTables] = useState<Set<string>>(new Set())
   const queryClient = useQueryClient()
+  const debugFetch = useDebugFetch()
 
   const { data: tables, isLoading } = useQuery({
     queryKey: ['dat-available-tables', runId],
     queryFn: async (): Promise<TableInfo[]> => {
-      const response = await fetch(`/api/dat/runs/${runId}/stages/table_selection/tables`)
+      const response = await debugFetch(`/api/dat/runs/${runId}/stages/table_selection/tables`)
       if (!response.ok) throw new Error('Failed to fetch tables')
       return response.json()
     },
@@ -28,10 +30,10 @@ export function TableSelectionPanel({ runId }: TableSelectionPanelProps) {
 
   const lockMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/dat/runs/${runId}/stages/table_selection/lock`, {
+      const response = await debugFetch(`/api/dat/runs/${runId}/stages/table_selection/lock`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ selected_tables: selectedTables }),
+        body: JSON.stringify({ selected_tables: Array.from(selectedTables) }),
       })
       if (!response.ok) throw new Error('Failed to lock stage')
       return response.json()
@@ -42,19 +44,23 @@ export function TableSelectionPanel({ runId }: TableSelectionPanelProps) {
   })
 
   const toggleTable = (tableName: string) => {
-    setSelectedTables(prev =>
-      prev.includes(tableName)
-        ? prev.filter(t => t !== tableName)
-        : [...prev, tableName]
-    )
+    setSelectedTables(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(tableName)) {
+        newSet.delete(tableName)
+      } else {
+        newSet.add(tableName)
+      }
+      return newSet
+    })
   }
 
   const selectAll = () => {
-    setSelectedTables(tables?.map(t => t.name) || [])
+    setSelectedTables(new Set(tables?.map(t => t.name) || []))
   }
 
   const selectNone = () => {
-    setSelectedTables([])
+    setSelectedTables(new Set())
   }
 
   return (
@@ -67,7 +73,7 @@ export function TableSelectionPanel({ runId }: TableSelectionPanelProps) {
       {/* Selection Controls */}
       <div className="flex items-center gap-4">
         <span className="text-sm text-slate-600">
-          {selectedTables.length} of {tables?.length || 0} tables selected
+          {selectedTables.size} of {tables?.length || 0} tables selected
         </span>
         <div className="flex gap-2">
           <button
@@ -94,7 +100,7 @@ export function TableSelectionPanel({ runId }: TableSelectionPanelProps) {
       ) : (
         <div className="grid grid-cols-2 gap-3">
           {tables?.map((table) => {
-            const isSelected = selectedTables.includes(table.name)
+            const isSelected = selectedTables.has(table.name)
             return (
               <button
                 key={table.name}
@@ -133,13 +139,13 @@ export function TableSelectionPanel({ runId }: TableSelectionPanelProps) {
       <div className="flex justify-end gap-3">
         <button
           onClick={() => lockMutation.mutate()}
-          disabled={selectedTables.length === 0 || lockMutation.isPending}
+          disabled={selectedTables.size === 0 || lockMutation.isPending}
           className="px-6 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
         >
           {lockMutation.isPending ? (
             <Loader2 className="w-5 h-5 animate-spin" />
           ) : (
-            `Continue with ${selectedTables.length} table${selectedTables.length !== 1 ? 's' : ''}`
+            `Continue with ${selectedTables.size} table${selectedTables.size !== 1 ? 's' : ''}`
           )}
         </button>
       </div>

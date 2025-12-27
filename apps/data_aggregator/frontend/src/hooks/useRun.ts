@@ -18,12 +18,21 @@ async function fetchRun(runId: string): Promise<DATRun> {
 }
 
 async function createNewRun(): Promise<DATRun> {
+  console.log('Creating new run...')
   const response = await fetch('/api/dat/runs', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
   })
-  if (!response.ok) throw new Error('Failed to create run')
-  return response.json()
+  console.log('Response status:', response.status, response.statusText)
+  if (!response.ok) {
+    const errorText = await response.text()
+    console.error(`Create run failed: ${response.status} ${response.statusText}`, errorText)
+    throw new Error(`Failed to create run: ${response.status} - ${errorText}`)
+  }
+  const data = await response.json()
+  console.log('Run created:', data)
+  return data
 }
 
 export function useRun(runId: string | null) {

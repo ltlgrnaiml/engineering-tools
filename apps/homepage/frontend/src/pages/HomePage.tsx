@@ -48,7 +48,8 @@ const statusLabels: Record<string, string> = {
 
 export function HomePage() {
   const { data: health } = useHealth()
-  const { data: recentDatasets, isLoading: datasetsLoading } = useDataSets({ limit: 5 })
+  // Datasets endpoint not yet implemented, so disable this query
+  const { data: recentDatasets, isLoading: datasetsLoading } = useDataSets({ limit: 5 }, false)
 
   const getToolStatus = (toolId: 'dat' | 'sov' | 'pptx') => {
     return health?.tools?.[toolId] || 'coming_soon'

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Table, CheckCircle2, XCircle, Loader2 } from 'lucide-react'
+import { useDebugFetch } from '../debug'
 
 interface TableAvailabilityPanelProps {
   runId: string
@@ -15,11 +16,12 @@ interface TableInfo {
 
 export function TableAvailabilityPanel({ runId }: TableAvailabilityPanelProps) {
   const queryClient = useQueryClient()
+  const debugFetch = useDebugFetch()
 
   const { data: tables, isLoading } = useQuery({
     queryKey: ['dat-tables', runId],
     queryFn: async (): Promise<TableInfo[]> => {
-      const response = await fetch(`/api/dat/runs/${runId}/stages/table_availability/scan`)
+      const response = await debugFetch(`/api/dat/runs/${runId}/stages/table_availability/scan`)
       if (!response.ok) throw new Error('Failed to scan tables')
       return response.json()
     },
@@ -27,10 +29,9 @@ export function TableAvailabilityPanel({ runId }: TableAvailabilityPanelProps) {
 
   const lockMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/dat/runs/${runId}/stages/table_availability/lock`, {
+      const response = await debugFetch(`/api/dat/runs/${runId}/stages/table_availability/lock`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tables: tables?.filter(t => t.available) || [] }),
       })
       if (!response.ok) throw new Error('Failed to lock stage')
       return response.json()

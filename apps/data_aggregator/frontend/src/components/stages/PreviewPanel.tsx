@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Eye, Loader2 } from 'lucide-react'
+import { useDebugFetch } from '../debug'
 
 interface PreviewPanelProps {
   runId: string
@@ -14,11 +15,12 @@ interface PreviewData {
 
 export function PreviewPanel({ runId }: PreviewPanelProps) {
   const queryClient = useQueryClient()
+  const debugFetch = useDebugFetch()
 
   const { data: preview, isLoading } = useQuery({
     queryKey: ['dat-preview', runId],
     queryFn: async (): Promise<PreviewData> => {
-      const response = await fetch(`/api/dat/runs/${runId}/stages/preview/data?limit=50`)
+      const response = await debugFetch(`/api/dat/runs/${runId}/stages/preview/data?limit=50`)
       if (!response.ok) throw new Error('Failed to fetch preview')
       return response.json()
     },
@@ -26,7 +28,7 @@ export function PreviewPanel({ runId }: PreviewPanelProps) {
 
   const lockMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/dat/runs/${runId}/stages/preview/lock`, {
+      const response = await debugFetch(`/api/dat/runs/${runId}/stages/preview/lock`, {
         method: 'POST',
       })
       if (!response.ok) throw new Error('Failed to lock stage')

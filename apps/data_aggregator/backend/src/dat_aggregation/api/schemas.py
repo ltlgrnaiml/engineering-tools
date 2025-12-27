@@ -35,13 +35,20 @@ class RunResponse(BaseModel):
     name: str
     created_at: datetime
     profile_id: str | None = None
+    current_stage: str = "selection"
     stages: dict[str, StageStatusResponse] = Field(default_factory=dict)
+
+
+class ScanRequest(BaseModel):
+    """Request to scan a folder for files."""
+    folder_path: str
+    recursive: bool = True
 
 
 class SelectionRequest(BaseModel):
     """Request to lock selection stage."""
-    source_paths: list[str]
-    selected_files: list[str] | None = None
+    source_paths: list[str] | None = None
+    selected_files: list[str]
     recursive: bool = True
 
 

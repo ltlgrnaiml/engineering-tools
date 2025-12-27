@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Play, Square, CheckCircle2, Loader2, AlertCircle } from 'lucide-react'
+import { useDebugFetch } from '../debug'
 
 interface ParsePanelProps {
   runId: string
@@ -19,11 +20,12 @@ interface ParseProgress {
 export function ParsePanel({ runId }: ParsePanelProps) {
   const [isPolling, setIsPolling] = useState(false)
   const queryClient = useQueryClient()
+  const debugFetch = useDebugFetch()
 
   const { data: progress, refetch } = useQuery({
     queryKey: ['dat-parse-progress', runId],
     queryFn: async (): Promise<ParseProgress> => {
-      const response = await fetch(`/api/dat/runs/${runId}/stages/parse/progress`)
+      const response = await debugFetch(`/api/dat/runs/${runId}/stages/parse/progress`)
       if (!response.ok) throw new Error('Failed to fetch progress')
       return response.json()
     },
@@ -40,7 +42,7 @@ export function ParsePanel({ runId }: ParsePanelProps) {
 
   const startMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/dat/runs/${runId}/stages/parse/start`, {
+      const response = await debugFetch(`/api/dat/runs/${runId}/stages/parse/start`, {
         method: 'POST',
       })
       if (!response.ok) throw new Error('Failed to start parse')
@@ -67,7 +69,7 @@ export function ParsePanel({ runId }: ParsePanelProps) {
 
   const lockMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/dat/runs/${runId}/stages/parse/lock`, {
+      const response = await debugFetch(`/api/dat/runs/${runId}/stages/parse/lock`, {
         method: 'POST',
       })
       if (!response.ok) throw new Error('Failed to lock stage')

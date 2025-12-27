@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Settings, Loader2 } from 'lucide-react'
+import { useDebugFetch } from '../debug'
 
 interface ContextPanelProps {
   runId: string
@@ -16,11 +17,12 @@ export function ContextPanel({ runId }: ContextPanelProps) {
   const [selectedProfile, setSelectedProfile] = useState<string>('')
   const [aggregationLevels, setAggregationLevels] = useState<string[]>([])
   const queryClient = useQueryClient()
+  const debugFetch = useDebugFetch()
 
   const { data: profiles, isLoading: profilesLoading } = useQuery({
     queryKey: ['dat-profiles'],
     queryFn: async (): Promise<Profile[]> => {
-      const response = await fetch('/api/dat/profiles')
+      const response = await debugFetch('/api/dat/profiles')
       if (!response.ok) throw new Error('Failed to fetch profiles')
       return response.json()
     },
@@ -28,7 +30,7 @@ export function ContextPanel({ runId }: ContextPanelProps) {
 
   const lockMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/dat/runs/${runId}/stages/context/lock`, {
+      const response = await debugFetch(`/api/dat/runs/${runId}/stages/context/lock`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

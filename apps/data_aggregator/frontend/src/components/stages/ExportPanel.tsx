@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Download, Database, Presentation, BarChart3, Loader2, CheckCircle2 } from 'lucide-react'
+import { useDebugFetch } from '../debug'
 
 interface ExportPanelProps {
   runId: string
@@ -17,11 +18,12 @@ export function ExportPanel({ runId }: ExportPanelProps) {
   const [datasetName, setDatasetName] = useState('')
   const [exportedDatasetId, setExportedDatasetId] = useState<string | null>(null)
   const queryClient = useQueryClient()
+  const debugFetch = useDebugFetch()
 
   const { data: summary, isLoading } = useQuery({
     queryKey: ['dat-export-summary', runId],
     queryFn: async (): Promise<ExportSummary> => {
-      const response = await fetch(`/api/dat/runs/${runId}/stages/export/summary`)
+      const response = await debugFetch(`/api/dat/runs/${runId}/stages/export/summary`)
       if (!response.ok) throw new Error('Failed to fetch summary')
       return response.json()
     },
@@ -29,7 +31,7 @@ export function ExportPanel({ runId }: ExportPanelProps) {
 
   const exportMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/dat/runs/${runId}/stages/export/execute`, {
+      const response = await debugFetch(`/api/dat/runs/${runId}/stages/export/lock`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: datasetName || `DAT Export ${new Date().toISOString().split('T')[0]}` }),

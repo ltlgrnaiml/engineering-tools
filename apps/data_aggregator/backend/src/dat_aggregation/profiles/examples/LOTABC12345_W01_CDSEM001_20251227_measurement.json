@@ -1,0 +1,609 @@
+{
+  "metadata": {
+    "lot_id": "LOTABC12345",
+    "wafer_id": "W01",
+    "file_version": "2.1.0",
+    "created_at": "2025-12-27T09:30:00Z",
+    "layer_name": "L01_GATE",
+    "product_id": "PROD-7NM-A01"
+  },
+  "run_info": {
+    "recipe": {
+      "name": "RCP_GATE_CD_STANDARD",
+      "version": "3.2.1",
+      "parameters": {
+        "magnification": 150000,
+        "pixel_size_nm": 0.5,
+        "dwell_time_us": 1.2,
+        "averaging": 16,
+        "algorithm": "threshold_dual_edge"
+      }
+    },
+    "tool": {
+      "tool_id": "CDSEM001",
+      "tool_type": "Hitachi CG6300",
+      "calibration_date": "2025-12-01"
+    },
+    "operator": "OP12345",
+    "start_time": "2025-12-27T08:00:00Z",
+    "end_time": "2025-12-27T09:25:00Z"
+  },
+  "summary": {
+    "total_images": 52,
+    "valid_images": 50,
+    "failed_images": 2,
+    "mean_cd": 24.35,
+    "sigma_cd": 0.82,
+    "range_cd": 3.21,
+    "target_cd": 24.00,
+    "cd_3sigma": 2.46,
+    "uniformity_percent": 3.37
+  },
+  "statistics": {
+    "columns": ["parameter", "mean", "std_dev", "min", "max", "count", "target", "spec_low", "spec_high"],
+    "values": [
+      ["CD_Left", 24.28, 0.85, 22.41, 26.12, 50, 24.00, 22.00, 26.00],
+      ["CD_Right", 24.42, 0.79, 22.85, 26.05, 50, 24.00, 22.00, 26.00],
+      ["CD_Average", 24.35, 0.82, 22.63, 26.08, 50, 24.00, 22.00, 26.00],
+      ["Height", 48.72, 1.15, 46.20, 51.30, 50, 50.00, 45.00, 55.00],
+      ["Sidewall_Angle", 88.5, 0.42, 87.2, 89.8, 50, 90.00, 85.00, 90.00],
+      ["LWR_3sigma", 2.15, 0.28, 1.62, 2.85, 50, 2.50, null, 3.00],
+      ["SWR_3sigma", 1.85, 0.22, 1.35, 2.42, 50, 2.00, null, 2.50]
+    ]
+  },
+  "sites": [
+    {
+      "site_id": "SITE01",
+      "x_position": 0.0,
+      "y_position": 0.0,
+      "zone": "center",
+      "cd_data": {
+        "headers": ["site_id", "x_position", "y_position", "cd_value", "cd_3sigma", "measurement_count"],
+        "rows": [
+          ["SITE01", 0.0, 0.0, 24.12, 2.35, 5]
+        ]
+      }
+    },
+    {
+      "site_id": "SITE02",
+      "x_position": 50.0,
+      "y_position": 0.0,
+      "zone": "center",
+      "cd_data": {
+        "headers": ["site_id", "x_position", "y_position", "cd_value", "cd_3sigma", "measurement_count"],
+        "rows": [
+          ["SITE02", 50.0, 0.0, 24.28, 2.21, 5]
+        ]
+      }
+    },
+    {
+      "site_id": "SITE03",
+      "x_position": -50.0,
+      "y_position": 0.0,
+      "zone": "center",
+      "cd_data": {
+        "headers": ["site_id", "x_position", "y_position", "cd_value", "cd_3sigma", "measurement_count"],
+        "rows": [
+          ["SITE03", -50.0, 0.0, 24.45, 2.52, 5]
+        ]
+      }
+    },
+    {
+      "site_id": "SITE04",
+      "x_position": 0.0,
+      "y_position": 50.0,
+      "zone": "center",
+      "cd_data": {
+        "headers": ["site_id", "x_position", "y_position", "cd_value", "cd_3sigma", "measurement_count"],
+        "rows": [
+          ["SITE04", 0.0, 50.0, 24.18, 2.28, 5]
+        ]
+      }
+    },
+    {
+      "site_id": "SITE05",
+      "x_position": 0.0,
+      "y_position": -50.0,
+      "zone": "center",
+      "cd_data": {
+        "headers": ["site_id", "x_position", "y_position", "cd_value", "cd_3sigma", "measurement_count"],
+        "rows": [
+          ["SITE05", 0.0, -50.0, 24.22, 2.15, 5]
+        ]
+      }
+    },
+    {
+      "site_id": "SITE06",
+      "x_position": 100.0,
+      "y_position": 0.0,
+      "zone": "edge",
+      "cd_data": {
+        "headers": ["site_id", "x_position", "y_position", "cd_value", "cd_3sigma", "measurement_count"],
+        "rows": [
+          ["SITE06", 100.0, 0.0, 24.65, 2.68, 5]
+        ]
+      }
+    },
+    {
+      "site_id": "SITE07",
+      "x_position": -100.0,
+      "y_position": 0.0,
+      "zone": "edge",
+      "cd_data": {
+        "headers": ["site_id", "x_position", "y_position", "cd_value", "cd_3sigma", "measurement_count"],
+        "rows": [
+          ["SITE07", -100.0, 0.0, 24.58, 2.72, 5]
+        ]
+      }
+    },
+    {
+      "site_id": "SITE08",
+      "x_position": 0.0,
+      "y_position": 100.0,
+      "zone": "edge",
+      "cd_data": {
+        "headers": ["site_id", "x_position", "y_position", "cd_value", "cd_3sigma", "measurement_count"],
+        "rows": [
+          ["SITE08", 0.0, 100.0, 24.52, 2.61, 5]
+        ]
+      }
+    },
+    {
+      "site_id": "SITE09",
+      "x_position": 0.0,
+      "y_position": -100.0,
+      "zone": "notch",
+      "cd_data": {
+        "headers": ["site_id", "x_position", "y_position", "cd_value", "cd_3sigma", "measurement_count"],
+        "rows": [
+          ["SITE09", 0.0, -100.0, 24.78, 2.85, 5]
+        ]
+      }
+    },
+    {
+      "site_id": "SITE10",
+      "x_position": 70.7,
+      "y_position": 70.7,
+      "zone": "edge",
+      "cd_data": {
+        "headers": ["site_id", "x_position", "y_position", "cd_value", "cd_3sigma", "measurement_count"],
+        "rows": [
+          ["SITE10", 70.7, 70.7, 24.42, 2.55, 5]
+        ]
+      }
+    }
+  ],
+  "uniformity": [
+    {
+      "parameter": "CD_Average",
+      "columns": ["parameter", "mean", "range", "sigma", "percent_uniformity", "spec_limit"],
+      "data": [
+        ["CD_Average", 24.35, 3.21, 0.82, 3.37, 5.00]
+      ]
+    },
+    {
+      "parameter": "Height",
+      "columns": ["parameter", "mean", "range", "sigma", "percent_uniformity", "spec_limit"],
+      "data": [
+        ["Height", 48.72, 5.10, 1.15, 2.36, 5.00]
+      ]
+    },
+    {
+      "parameter": "LWR",
+      "columns": ["parameter", "mean", "range", "sigma", "percent_uniformity", "spec_limit"],
+      "data": [
+        ["LWR", 2.15, 1.23, 0.28, 13.02, 15.00]
+      ]
+    }
+  ],
+  "distributions": {
+    "cd_histogram": [
+      {
+        "headers": ["bin_center", "bin_count", "cumulative_percent", "bin_width"],
+        "bins": [
+          [22.5, 2, 4.0, 0.5],
+          [23.0, 5, 14.0, 0.5],
+          [23.5, 8, 30.0, 0.5],
+          [24.0, 12, 54.0, 0.5],
+          [24.5, 10, 74.0, 0.5],
+          [25.0, 7, 88.0, 0.5],
+          [25.5, 4, 96.0, 0.5],
+          [26.0, 2, 100.0, 0.5]
+        ]
+      }
+    ],
+    "roughness_histogram": [
+      {
+        "headers": ["bin_center", "bin_count", "cumulative_percent", "bin_width"],
+        "bins": [
+          [1.5, 3, 6.0, 0.25],
+          [1.75, 8, 22.0, 0.25],
+          [2.0, 15, 52.0, 0.25],
+          [2.25, 12, 76.0, 0.25],
+          [2.5, 8, 92.0, 0.25],
+          [2.75, 4, 100.0, 0.25]
+        ]
+      }
+    ]
+  },
+  "roughness": {
+    "lwr": [
+      {
+        "line_id": "LINE_001",
+        "headers": ["line_id", "lwr_3sigma", "lwr_rms", "correlation_length", "sample_length"],
+        "values": [
+          ["LINE_001", 2.12, 0.71, 28.5, 500]
+        ]
+      },
+      {
+        "line_id": "LINE_002",
+        "headers": ["line_id", "lwr_3sigma", "lwr_rms", "correlation_length", "sample_length"],
+        "values": [
+          ["LINE_002", 2.18, 0.73, 27.2, 500]
+        ]
+      },
+      {
+        "line_id": "LINE_003",
+        "headers": ["line_id", "lwr_3sigma", "lwr_rms", "correlation_length", "sample_length"],
+        "values": [
+          ["LINE_003", 2.08, 0.69, 29.8, 500]
+        ]
+      }
+    ],
+    "lwr_histogram": [
+      {
+        "headers": ["bin_center", "count", "normalized"],
+        "bins": [
+          [1.8, 5, 0.10],
+          [2.0, 18, 0.36],
+          [2.2, 15, 0.30],
+          [2.4, 8, 0.16],
+          [2.6, 4, 0.08]
+        ]
+      }
+    ],
+    "swr": [
+      {
+        "edge_id": "EDGE_L001",
+        "headers": ["edge_id", "swr_3sigma", "swr_rms", "alpha", "correlation_length"],
+        "values": [
+          ["EDGE_L001", 1.82, 0.61, 0.45, 32.1]
+        ]
+      },
+      {
+        "edge_id": "EDGE_R001",
+        "headers": ["edge_id", "swr_3sigma", "swr_rms", "alpha", "correlation_length"],
+        "values": [
+          ["EDGE_R001", 1.88, 0.63, 0.42, 30.5]
+        ]
+      },
+      {
+        "edge_id": "EDGE_L002",
+        "headers": ["edge_id", "swr_3sigma", "swr_rms", "alpha", "correlation_length"],
+        "values": [
+          ["EDGE_L002", 1.78, 0.59, 0.48, 33.2]
+        ]
+      }
+    ],
+    "swr_histogram": [
+      {
+        "headers": ["bin_center", "count", "normalized"],
+        "bins": [
+          [1.4, 4, 0.08],
+          [1.6, 12, 0.24],
+          [1.8, 18, 0.36],
+          [2.0, 10, 0.20],
+          [2.2, 6, 0.12]
+        ]
+      }
+    ]
+  },
+  "psd": {
+    "unbiased": {
+      "columns": ["frequency", "psd_value", "log_frequency", "log_psd", "unit"],
+      "data": [
+        [0.001, 125.5, -3.0, 2.099, "nm^2/Hz"],
+        [0.002, 98.2, -2.699, 1.992, "nm^2/Hz"],
+        [0.005, 62.4, -2.301, 1.795, "nm^2/Hz"],
+        [0.01, 38.1, -2.0, 1.581, "nm^2/Hz"],
+        [0.02, 21.5, -1.699, 1.332, "nm^2/Hz"],
+        [0.05, 8.2, -1.301, 0.914, "nm^2/Hz"],
+        [0.1, 3.5, -1.0, 0.544, "nm^2/Hz"],
+        [0.2, 1.2, -0.699, 0.079, "nm^2/Hz"],
+        [0.5, 0.28, -0.301, -0.553, "nm^2/Hz"],
+        [1.0, 0.08, 0.0, -1.097, "nm^2/Hz"]
+      ]
+    },
+    "biased": {
+      "columns": ["frequency", "psd_value", "log_frequency", "log_psd", "unit"],
+      "data": [
+        [0.001, 118.2, -3.0, 2.073, "nm^2/Hz"],
+        [0.002, 92.5, -2.699, 1.966, "nm^2/Hz"],
+        [0.005, 58.8, -2.301, 1.769, "nm^2/Hz"],
+        [0.01, 35.2, -2.0, 1.547, "nm^2/Hz"],
+        [0.02, 19.8, -1.699, 1.297, "nm^2/Hz"],
+        [0.05, 7.5, -1.301, 0.875, "nm^2/Hz"],
+        [0.1, 3.1, -1.0, 0.491, "nm^2/Hz"],
+        [0.2, 1.05, -0.699, 0.021, "nm^2/Hz"],
+        [0.5, 0.24, -0.301, -0.620, "nm^2/Hz"],
+        [1.0, 0.065, 0.0, -1.187, "nm^2/Hz"]
+      ]
+    },
+    "lwr": {
+      "columns": ["frequency", "psd_value", "alpha", "xi"],
+      "data": [
+        [0.001, 142.5, 0.72, 28.5],
+        [0.002, 108.2, 0.72, 28.5],
+        [0.005, 68.4, 0.72, 28.5],
+        [0.01, 42.1, 0.72, 28.5],
+        [0.02, 24.2, 0.72, 28.5],
+        [0.05, 9.5, 0.72, 28.5],
+        [0.1, 4.2, 0.72, 28.5],
+        [0.2, 1.5, 0.72, 28.5],
+        [0.5, 0.35, 0.72, 28.5],
+        [1.0, 0.12, 0.72, 28.5]
+      ]
+    },
+    "swr": {
+      "columns": ["frequency", "psd_value", "alpha", "xi"],
+      "data": [
+        [0.001, 98.5, 0.45, 31.2],
+        [0.002, 75.2, 0.45, 31.2],
+        [0.005, 48.1, 0.45, 31.2],
+        [0.01, 29.5, 0.45, 31.2],
+        [0.02, 17.2, 0.45, 31.2],
+        [0.05, 6.8, 0.45, 31.2],
+        [0.1, 3.0, 0.45, 31.2],
+        [0.2, 1.1, 0.45, 31.2],
+        [0.5, 0.25, 0.45, 31.2],
+        [1.0, 0.08, 0.45, 31.2]
+      ]
+    }
+  },
+  "defects": {
+    "by_category": [
+      {
+        "category": "bridge",
+        "headers": ["category", "count", "severity", "area_percent", "avg_size_nm"],
+        "items": [
+          ["bridge", 3, "critical", 0.02, 45.2]
+        ]
+      },
+      {
+        "category": "break",
+        "headers": ["category", "count", "severity", "area_percent", "avg_size_nm"],
+        "items": [
+          ["break", 2, "critical", 0.01, 38.5]
+        ]
+      },
+      {
+        "category": "particle",
+        "headers": ["category", "count", "severity", "area_percent", "avg_size_nm"],
+        "items": [
+          ["particle", 8, "major", 0.05, 125.0]
+        ]
+      },
+      {
+        "category": "residue",
+        "headers": ["category", "count", "severity", "area_percent", "avg_size_nm"],
+        "items": [
+          ["residue", 12, "minor", 0.08, 85.2]
+        ]
+      }
+    ],
+    "by_location": [
+      {
+        "zone": "center",
+        "headers": ["zone", "defect_count", "density", "area_mm2"],
+        "items": [
+          ["center", 8, 0.25, 32.0]
+        ]
+      },
+      {
+        "zone": "edge",
+        "headers": ["zone", "defect_count", "density", "area_mm2"],
+        "items": [
+          ["edge", 12, 0.42, 28.5]
+        ]
+      },
+      {
+        "zone": "notch",
+        "headers": ["zone", "defect_count", "density", "area_mm2"],
+        "items": [
+          ["notch", 5, 0.55, 9.1]
+        ]
+      }
+    ],
+    "by_severity": [
+      {
+        "severity_level": "critical",
+        "headers": ["severity_level", "count", "percent_of_total", "action_required"],
+        "items": [
+          ["critical", 5, 20.0, true]
+        ]
+      },
+      {
+        "severity_level": "major",
+        "headers": ["severity_level", "count", "percent_of_total", "action_required"],
+        "items": [
+          ["major", 8, 32.0, true]
+        ]
+      },
+      {
+        "severity_level": "minor",
+        "headers": ["severity_level", "count", "percent_of_total", "action_required"],
+        "items": [
+          ["minor", 12, 48.0, false]
+        ]
+      }
+    ],
+    "summary": {
+      "columns": ["total_defects", "defect_density", "critical_count", "major_count", "minor_count", "yield_impact"],
+      "data": [
+        [25, 0.36, 5, 8, 12, 0.15]
+      ]
+    }
+  },
+  "diagnostics": {
+    "beam_current": 8.5,
+    "focus_score": 95.2,
+    "astigmatism": 0.012,
+    "contamination_level": 2.5,
+    "stage_drift_x": 0.8,
+    "stage_drift_y": 0.6,
+    "vibration_level": 0.15
+  },
+  "images": [
+    {
+      "image_id": "IMG_001",
+      "image_name": "SITE01_LINE001_001",
+      "metadata": {
+        "site_id": "SITE01",
+        "acquisition_time": "2025-12-27T08:05:12Z",
+        "x_position": 0.0,
+        "y_position": 0.0,
+        "magnification": 150000,
+        "rotation": 0.0
+      },
+      "measurements": {
+        "columns": ["image_id", "site_id", "cd_left", "cd_right", "cd_average", "height", "sidewall_angle", "pitch"],
+        "values": [
+          ["IMG_001", "SITE01", 24.15, 24.22, 24.18, 48.5, 88.2, 48.0]
+        ]
+      },
+      "quality": {
+        "columns": ["image_id", "contrast", "sharpness", "noise_level", "brightness", "edge_detection_score"],
+        "values": [
+          ["IMG_001", 0.85, 92.5, 0.012, 128, 0.95]
+        ]
+      },
+      "features": [
+        {
+          "feature_id": "F001_L1",
+          "feature_type": "line_edge_left",
+          "x": 125.5,
+          "y": 0.0,
+          "width": 24.15,
+          "height": 512
+        },
+        {
+          "feature_id": "F001_L2",
+          "feature_type": "line_edge_right",
+          "x": 149.7,
+          "y": 0.0,
+          "width": 24.22,
+          "height": 512
+        }
+      ]
+    },
+    {
+      "image_id": "IMG_002",
+      "image_name": "SITE01_LINE002_001",
+      "metadata": {
+        "site_id": "SITE01",
+        "acquisition_time": "2025-12-27T08:06:45Z",
+        "x_position": 0.5,
+        "y_position": 0.0,
+        "magnification": 150000,
+        "rotation": 0.0
+      },
+      "measurements": {
+        "columns": ["image_id", "site_id", "cd_left", "cd_right", "cd_average", "height", "sidewall_angle", "pitch"],
+        "values": [
+          ["IMG_002", "SITE01", 24.08, 24.12, 24.10, 48.8, 88.5, 48.0]
+        ]
+      },
+      "quality": {
+        "columns": ["image_id", "contrast", "sharpness", "noise_level", "brightness", "edge_detection_score"],
+        "values": [
+          ["IMG_002", 0.87, 93.2, 0.011, 130, 0.96]
+        ]
+      },
+      "features": [
+        {
+          "feature_id": "F002_L1",
+          "feature_type": "line_edge_left",
+          "x": 125.2,
+          "y": 0.0,
+          "width": 24.08,
+          "height": 512
+        }
+      ]
+    },
+    {
+      "image_id": "IMG_003",
+      "image_name": "SITE02_LINE001_001",
+      "metadata": {
+        "site_id": "SITE02",
+        "acquisition_time": "2025-12-27T08:10:22Z",
+        "x_position": 50.0,
+        "y_position": 0.0,
+        "magnification": 150000,
+        "rotation": 0.0
+      },
+      "measurements": {
+        "columns": ["image_id", "site_id", "cd_left", "cd_right", "cd_average", "height", "sidewall_angle", "pitch"],
+        "values": [
+          ["IMG_003", "SITE02", 24.32, 24.45, 24.38, 48.2, 88.8, 48.0]
+        ]
+      },
+      "quality": {
+        "columns": ["image_id", "contrast", "sharpness", "noise_level", "brightness", "edge_detection_score"],
+        "values": [
+          ["IMG_003", 0.84, 91.8, 0.014, 125, 0.93]
+        ]
+      },
+      "features": []
+    },
+    {
+      "image_id": "IMG_004",
+      "image_name": "SITE03_LINE001_001",
+      "metadata": {
+        "site_id": "SITE03",
+        "acquisition_time": "2025-12-27T08:15:08Z",
+        "x_position": -50.0,
+        "y_position": 0.0,
+        "magnification": 150000,
+        "rotation": 0.0
+      },
+      "measurements": {
+        "columns": ["image_id", "site_id", "cd_left", "cd_right", "cd_average", "height", "sidewall_angle", "pitch"],
+        "values": [
+          ["IMG_004", "SITE03", 24.55, 24.62, 24.58, 49.1, 87.8, 48.0]
+        ]
+      },
+      "quality": {
+        "columns": ["image_id", "contrast", "sharpness", "noise_level", "brightness", "edge_detection_score"],
+        "values": [
+          ["IMG_004", 0.82, 90.5, 0.016, 122, 0.91]
+        ]
+      },
+      "features": []
+    },
+    {
+      "image_id": "IMG_005",
+      "image_name": "SITE04_LINE001_001",
+      "metadata": {
+        "site_id": "SITE04",
+        "acquisition_time": "2025-12-27T08:20:35Z",
+        "x_position": 0.0,
+        "y_position": 50.0,
+        "magnification": 150000,
+        "rotation": 0.0
+      },
+      "measurements": {
+        "columns": ["image_id", "site_id", "cd_left", "cd_right", "cd_average", "height", "sidewall_angle", "pitch"],
+        "values": [
+          ["IMG_005", "SITE04", 24.18, 24.25, 24.21, 48.6, 88.4, 48.0]
+        ]
+      },
+      "quality": {
+        "columns": ["image_id", "contrast", "sharpness", "noise_level", "brightness", "edge_detection_score"],
+        "values": [
+          ["IMG_005", 0.86, 92.8, 0.013, 127, 0.94]
+        ]
+      },
+      "features": []
+    }
+  ]
+}

@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { FileSpreadsheet, ChevronRight, Loader2 } from 'lucide-react'
 import { SelectionPanel } from './components/stages/SelectionPanel'
 import { ContextPanel } from './components/stages/ContextPanel'
@@ -9,6 +8,7 @@ import { PreviewPanel } from './components/stages/PreviewPanel'
 import { ParsePanel } from './components/stages/ParsePanel'
 import { ExportPanel } from './components/stages/ExportPanel'
 import { useRun } from './hooks/useRun'
+import { DebugProvider, DebugPanel } from './components/debug'
 
 type Stage = 'selection' | 'context' | 'table_availability' | 'table_selection' | 'preview' | 'parse' | 'export'
 
@@ -24,8 +24,6 @@ const stages: { id: Stage; label: string }[] = [
 
 function App() {
   const [runId, setRunId] = useState<string | null>(null)
-  const queryClient = useQueryClient()
-  
   const { run, isLoading, createRun } = useRun(runId)
 
   const handleCreateRun = async () => {
@@ -37,6 +35,7 @@ function App() {
   const stageIndex = stages.findIndex(s => s.id === currentStage)
 
   return (
+    <DebugProvider>
     <div className="min-h-screen">
       {/* Header */}
       <header className="bg-white border-b border-slate-200 px-6 py-4">
@@ -119,7 +118,9 @@ function App() {
           )}
         </main>
       </div>
+      <DebugPanel />
     </div>
+    </DebugProvider>
   )
 }
 

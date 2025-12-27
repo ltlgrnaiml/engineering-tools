@@ -10,6 +10,7 @@ import polars as pl
 from .base import FileAdapter
 from .csv_adapter import CSVAdapter
 from .excel_adapter import ExcelAdapter
+from .json_adapter import JSONAdapter
 from .parquet_adapter import ParquetAdapter
 
 
@@ -17,6 +18,7 @@ from .parquet_adapter import ParquetAdapter
 ADAPTERS: list[Type] = [
     ParquetAdapter,
     ExcelAdapter,
+    JSONAdapter,
     CSVAdapter,
 ]
 

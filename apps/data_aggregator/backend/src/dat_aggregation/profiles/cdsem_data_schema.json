@@ -1,0 +1,514 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "cdsem-metrology-data-schema-v1",
+  "title": "CD-SEM Metrology Measurement Data Schema",
+  "description": "JSON Schema for CD-SEM measurement data files. Defines the nested structure expected by the cdsem_metrology_profile.yaml SSoT profile.",
+  "type": "object",
+  "required": ["metadata", "run_info", "summary", "statistics", "images"],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "description": "Top-level metadata for the measurement file",
+      "required": ["lot_id", "wafer_id", "file_version"],
+      "properties": {
+        "lot_id": {
+          "type": "string",
+          "pattern": "^LOT[A-Z0-9]{6,10}$",
+          "description": "Lot identifier (e.g., LOTABC12345)"
+        },
+        "wafer_id": {
+          "type": "string",
+          "pattern": "^W[0-9]{2}$",
+          "description": "Wafer identifier (e.g., W01)"
+        },
+        "file_version": {
+          "type": "string",
+          "description": "Data file format version"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO-8601 UTC timestamp of file creation"
+        },
+        "layer_name": {
+          "type": "string",
+          "description": "Process layer name (e.g., L01_GATE)"
+        },
+        "product_id": {
+          "type": "string",
+          "description": "Product/device identifier"
+        }
+      }
+    },
+    "run_info": {
+      "type": "object",
+      "description": "Information about the measurement run",
+      "required": ["recipe", "tool", "operator"],
+      "properties": {
+        "recipe": {
+          "type": "object",
+          "required": ["name", "version"],
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Recipe name"
+            },
+            "version": {
+              "type": "string",
+              "description": "Recipe version"
+            },
+            "parameters": {
+              "type": "object",
+              "description": "Recipe parameters",
+              "properties": {
+                "magnification": { "type": "number" },
+                "pixel_size_nm": { "type": "number" },
+                "dwell_time_us": { "type": "number" },
+                "averaging": { "type": "integer" },
+                "algorithm": { "type": "string" }
+              }
+            }
+          }
+        },
+        "tool": {
+          "type": "object",
+          "required": ["tool_id", "tool_type"],
+          "properties": {
+            "tool_id": {
+              "type": "string",
+              "pattern": "^CDSEM[0-9]{3}$",
+              "description": "CD-SEM tool identifier"
+            },
+            "tool_type": {
+              "type": "string",
+              "description": "Tool model/type"
+            },
+            "calibration_date": {
+              "type": "string",
+              "format": "date",
+              "description": "Last calibration date"
+            }
+          }
+        },
+        "operator": {
+          "type": "string",
+          "description": "Operator ID or name"
+        },
+        "start_time": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Measurement start time"
+        },
+        "end_time": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Measurement end time"
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "description": "Run summary statistics (flat object for run_summary table)",
+      "required": ["total_images", "valid_images", "mean_cd", "sigma_cd"],
+      "properties": {
+        "total_images": {
+          "type": "integer",
+          "description": "Total number of images acquired"
+        },
+        "valid_images": {
+          "type": "integer",
+          "description": "Number of valid/usable images"
+        },
+        "failed_images": {
+          "type": "integer",
+          "description": "Number of failed images"
+        },
+        "mean_cd": {
+          "type": "number",
+          "description": "Mean CD value (nm)"
+        },
+        "sigma_cd": {
+          "type": "number",
+          "description": "CD standard deviation (nm)"
+        },
+        "range_cd": {
+          "type": "number",
+          "description": "CD range (max - min) in nm"
+        },
+        "target_cd": {
+          "type": "number",
+          "description": "Target CD specification (nm)"
+        },
+        "cd_3sigma": {
+          "type": "number",
+          "description": "3-sigma CD value (nm)"
+        },
+        "uniformity_percent": {
+          "type": "number",
+          "description": "Within-wafer uniformity percentage"
+        }
+      }
+    },
+    "statistics": {
+      "type": "object",
+      "description": "Detailed statistics table (headers + data format)",
+      "required": ["columns", "values"],
+      "properties": {
+        "columns": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Column headers for statistics table"
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "description": "Row of values matching columns"
+          },
+          "description": "2D array of statistic values"
+        }
+      }
+    },
+    "sites": {
+      "type": "array",
+      "description": "Measurement data per site location",
+      "items": {
+        "type": "object",
+        "required": ["site_id", "cd_data"],
+        "properties": {
+          "site_id": {
+            "type": "string",
+            "description": "Site identifier"
+          },
+          "x_position": {
+            "type": "number",
+            "description": "X coordinate on wafer (mm)"
+          },
+          "y_position": {
+            "type": "number",
+            "description": "Y coordinate on wafer (mm)"
+          },
+          "zone": {
+            "type": "string",
+            "enum": ["center", "edge", "notch"],
+            "description": "Wafer zone"
+          },
+          "cd_data": {
+            "type": "object",
+            "required": ["headers", "rows"],
+            "properties": {
+              "headers": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "rows": {
+                "type": "array",
+                "items": { "type": "array" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "uniformity": {
+      "type": "array",
+      "description": "Uniformity metrics per parameter",
+      "items": {
+        "type": "object",
+        "required": ["columns", "data"],
+        "properties": {
+          "parameter": { "type": "string" },
+          "columns": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "data": {
+            "type": "array",
+            "items": { "type": "array" }
+          }
+        }
+      }
+    },
+    "distributions": {
+      "type": "object",
+      "description": "Distribution/histogram data",
+      "properties": {
+        "cd_histogram": {
+          "type": "array",
+          "description": "CD value histogram bins",
+          "items": {
+            "type": "object",
+            "required": ["headers", "bins"],
+            "properties": {
+              "headers": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "bins": {
+                "type": "array",
+                "items": { "type": "array" }
+              }
+            }
+          }
+        },
+        "roughness_histogram": {
+          "type": "array",
+          "description": "Edge roughness histogram bins",
+          "items": {
+            "type": "object",
+            "required": ["headers", "bins"],
+            "properties": {
+              "headers": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "bins": {
+                "type": "array",
+                "items": { "type": "array" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "roughness": {
+      "type": "object",
+      "description": "Line and sidewall roughness analysis",
+      "properties": {
+        "lwr": {
+          "type": "array",
+          "description": "Line Width Roughness per line",
+          "items": {
+            "type": "object",
+            "required": ["headers", "values"],
+            "properties": {
+              "line_id": { "type": "string" },
+              "headers": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "values": {
+                "type": "array",
+                "items": { "type": "array" }
+              }
+            }
+          }
+        },
+        "lwr_histogram": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "headers": { "type": "array", "items": { "type": "string" } },
+              "bins": { "type": "array", "items": { "type": "array" } }
+            }
+          }
+        },
+        "swr": {
+          "type": "array",
+          "description": "Sidewall Roughness per edge",
+          "items": {
+            "type": "object",
+            "required": ["headers", "values"],
+            "properties": {
+              "edge_id": { "type": "string" },
+              "headers": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "values": {
+                "type": "array",
+                "items": { "type": "array" }
+              }
+            }
+          }
+        },
+        "swr_histogram": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "headers": { "type": "array", "items": { "type": "string" } },
+              "bins": { "type": "array", "items": { "type": "array" } }
+            }
+          }
+        }
+      }
+    },
+    "psd": {
+      "type": "object",
+      "description": "Power Spectral Density analysis",
+      "properties": {
+        "unbiased": {
+          "type": "object",
+          "required": ["columns", "data"],
+          "properties": {
+            "columns": { "type": "array", "items": { "type": "string" } },
+            "data": { "type": "array", "items": { "type": "array" } }
+          }
+        },
+        "biased": {
+          "type": "object",
+          "required": ["columns", "data"],
+          "properties": {
+            "columns": { "type": "array", "items": { "type": "string" } },
+            "data": { "type": "array", "items": { "type": "array" } }
+          }
+        },
+        "lwr": {
+          "type": "object",
+          "required": ["columns", "data"],
+          "properties": {
+            "columns": { "type": "array", "items": { "type": "string" } },
+            "data": { "type": "array", "items": { "type": "array" } }
+          }
+        },
+        "swr": {
+          "type": "object",
+          "required": ["columns", "data"],
+          "properties": {
+            "columns": { "type": "array", "items": { "type": "string" } },
+            "data": { "type": "array", "items": { "type": "array" } }
+          }
+        }
+      }
+    },
+    "defects": {
+      "type": "object",
+      "description": "Defect analysis results",
+      "properties": {
+        "by_category": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["headers", "items"],
+            "properties": {
+              "category": { "type": "string" },
+              "headers": { "type": "array", "items": { "type": "string" } },
+              "items": { "type": "array", "items": { "type": "array" } }
+            }
+          }
+        },
+        "by_location": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["headers", "items"],
+            "properties": {
+              "zone": { "type": "string" },
+              "headers": { "type": "array", "items": { "type": "string" } },
+              "items": { "type": "array", "items": { "type": "array" } }
+            }
+          }
+        },
+        "by_severity": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["headers", "items"],
+            "properties": {
+              "severity_level": { "type": "string" },
+              "headers": { "type": "array", "items": { "type": "string" } },
+              "items": { "type": "array", "items": { "type": "array" } }
+            }
+          }
+        },
+        "summary": {
+          "type": "object",
+          "required": ["columns", "data"],
+          "properties": {
+            "columns": { "type": "array", "items": { "type": "string" } },
+            "data": { "type": "array", "items": { "type": "array" } }
+          }
+        }
+      }
+    },
+    "diagnostics": {
+      "type": "object",
+      "description": "Tool diagnostics (flat object)",
+      "properties": {
+        "beam_current": { "type": "number", "description": "Beam current (pA)" },
+        "focus_score": { "type": "number", "description": "Focus quality score (0-100)" },
+        "astigmatism": { "type": "number", "description": "Astigmatism value" },
+        "contamination_level": { "type": "number", "description": "Contamination level (0-100)" },
+        "stage_drift_x": { "type": "number", "description": "Stage drift in X (nm)" },
+        "stage_drift_y": { "type": "number", "description": "Stage drift in Y (nm)" },
+        "vibration_level": { "type": "number", "description": "Vibration level" }
+      }
+    },
+    "images": {
+      "type": "array",
+      "description": "Per-image measurement data",
+      "items": {
+        "type": "object",
+        "required": ["image_id", "metadata", "measurements"],
+        "properties": {
+          "image_id": {
+            "type": "string",
+            "description": "Unique image identifier"
+          },
+          "image_name": {
+            "type": "string",
+            "description": "Human-readable image name"
+          },
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "site_id": { "type": "string" },
+              "acquisition_time": { "type": "string", "format": "date-time" },
+              "x_position": { "type": "number" },
+              "y_position": { "type": "number" },
+              "magnification": { "type": "number" },
+              "rotation": { "type": "number" }
+            }
+          },
+          "measurements": {
+            "type": "object",
+            "required": ["columns", "values"],
+            "properties": {
+              "columns": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "Measurement column headers"
+              },
+              "values": {
+                "type": "array",
+                "items": { "type": "array" },
+                "description": "Measurement values (2D array)"
+              }
+            }
+          },
+          "quality": {
+            "type": "object",
+            "required": ["columns", "values"],
+            "properties": {
+              "columns": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "values": {
+                "type": "array",
+                "items": { "type": "array" }
+              }
+            }
+          },
+          "features": {
+            "type": "array",
+            "description": "Detected features in image",
+            "items": {
+              "type": "object",
+              "properties": {
+                "feature_id": { "type": "string" },
+                "feature_type": { "type": "string" },
+                "x": { "type": "number" },
+                "y": { "type": "number" },
+                "width": { "type": "number" },
+                "height": { "type": "number" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

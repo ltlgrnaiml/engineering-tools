@@ -26,10 +26,11 @@ async function fetchDatasets(options?: UseDataSetsOptions): Promise<DataSetRef[]
   return response.json()
 }
 
-export function useDataSets(options?: UseDataSetsOptions) {
+export function useDataSets(options?: UseDataSetsOptions, enabled: boolean = true) {
   return useQuery<DataSetRef[]>({
     queryKey: ['datasets', options],
     queryFn: () => fetchDatasets(options),
+    enabled,
   })
 }
 

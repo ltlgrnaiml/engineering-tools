@@ -1,0 +1,643 @@
+# =============================================================================
+# CDU-DAT Profile: CD-SEM Metrology Data Aggregation
+# =============================================================================
+# SSoT Profile for extracting tables from CD-SEM measurement JSON files.
+# Per ADR-0011: All extraction logic is governed by this versioned profile.
+# =============================================================================
+
+schema_version: "1.0.0"
+version: 1
+
+meta:
+  profile_id: "cdsem-metrology-v1"
+  title: "CD-SEM Metrology Data Profile"
+  description: "Profile for extracting and aggregating CD-SEM measurement data including summary statistics, distributions, LWR/SWR, PSD, and defect analysis."
+  created_by: "CDU-DAT Engineering Team"
+  created_at: "2025-12-27T09:00:00Z"
+  modified_at: "2025-12-27T09:00:00Z"
+  revision: 1
+  hash: ""  # Computed at runtime
+
+datasource:
+  id: "cdsem-json"
+  label: "CD-SEM JSON Measurement Files"
+  format: "json"
+  filters:
+    type: "group"
+    op: "AND"
+    children:
+      - type: "predicate"
+        field: "filename"
+        op: "endswith"
+        value: ".json"
+        case: "insensitive"
+      - type: "predicate"
+        field: "filename"
+        op: "contains"
+        value: "measurement"
+        case: "insensitive"
+  options:
+    json:
+      allow_bom: true
+      case_insensitive: false
+
+population:
+  default_strategy: "all"
+  include_populations:
+    - "all"
+    - "valid_only"
+    - "outliers_excluded"
+
+# =============================================================================
+# Context Defaults (for Context Stage)
+# =============================================================================
+context_defaults:
+  # Level 4: Default Values (Fallback)
+  defaults:
+    jobname: "Unknown Job"
+
+  # Level 3: REGEX Patterns (Automated Extraction from filename)
+  regex_patterns:
+    - field: "lot_id"
+      pattern: "(?P<lot_id>LOT[A-Z0-9]{6,10})"
+      scope: "filename"
+      required: true
+      description: "Extract Lot ID from filename (e.g., LOTABC12345)"
+      example: "LOTABC12345_W01_measurement.json"
+
+    - field: "wafer_id"
+      pattern: "(?P<wafer_id>W[0-9]{2})"
+      scope: "filename"
+      required: true
+      description: "Extract Wafer ID from filename (e.g., W01)"
+      example: "LOTABC12345_W01_measurement.json"
+
+    - field: "recipe_name"
+      pattern: "(?P<recipe_name>RCP_[A-Za-z0-9_]+)"
+      scope: "filename"
+      required: false
+      description: "Extract Recipe Name from filename"
+      example: "RCP_STANDARD_v2"
+
+    - field: "tool_id"
+      pattern: "(?P<tool_id>CDSEM[0-9]{3})"
+      scope: "filename"
+      required: false
+      description: "Extract CD-SEM Tool ID from filename"
+      example: "CDSEM001"
+
+    - field: "measurement_date"
+      pattern: "(?P<measurement_date>[0-9]{8})"
+      scope: "filename"
+      required: false
+      description: "Extract measurement date (YYYYMMDD) from filename"
+      example: "20251227"
+
+    - field: "site_id"
+      pattern: "(?P<site_id>SITE[0-9]{2})"
+      scope: "filename"
+      required: false
+      description: "Extract measurement site ID"
+      example: "SITE05"
+
+    - field: "layer_name"
+      pattern: "(?P<layer_name>L[0-9]{2}_[A-Z]+)"
+      scope: "filename"
+      required: false
+      description: "Extract layer name from filename"
+      example: "L01_GATE"
+
+contexts:
+  - name: "run_context"
+    level: "run"
+    paths:
+      - "$.metadata"
+      - "$.run_info"
+    key_map:
+      LotID: "$.metadata.lot_id"
+      WaferID: "$.metadata.wafer_id"
+      RecipeName: "$.run_info.recipe.name"
+      CD-SEM: "$.run_info.tool.tool_id"
+    primary_keys:
+      - "LotID"
+      - "WaferID"
+
+  - name: "image_context"
+    level: "image"
+    paths:
+      - "$.images[*].metadata"
+    key_map:
+      ImageName: "$.image_name"
+    primary_keys:
+      - "ImageName"
+    time_fields:
+      earliest: "$.acquisition_time"
+      latest: "$.acquisition_time"
+
+levels:
+  # =====================================================================
+  # RUN LEVEL - Aggregate statistics across all images in a run
+  # =====================================================================
+  - name: "run"
+    apply_context: "run_context"
+    tables:
+      # --- Run Summary Table (flat object) ---
+      - id: "run_summary"
+        label: "Run Summary"
+        description: "High-level summary statistics for the entire measurement run"
+        select:
+          strategy: "flat_object"
+          path: "$.summary"
+        stable_columns:
+          - "total_images"
+          - "valid_images"
+          - "mean_cd"
+          - "sigma_cd"
+          - "range_cd"
+        stable_columns_mode: "warn"
+        stable_columns_subset: true
+
+      # --- Run Statistics Table (headers + data arrays) ---
+      - id: "run_statistics"
+        label: "Run Statistics"
+        description: "Detailed statistics per measurement parameter"
+        select:
+          strategy: "headers_data"
+          path: "$.statistics"
+          headers_key: "columns"
+          data_key: "values"
+        stable_columns:
+          - "parameter"
+          - "mean"
+          - "std_dev"
+          - "min"
+          - "max"
+          - "count"
+        stable_columns_mode: "warn"
+        stable_columns_subset: true
+
+      # --- CD Measurements by Site (repeat over sites) ---
+      - id: "cd_by_site"
+        label: "CD Measurements by Site"
+        description: "CD measurements aggregated per site location"
+        select:
+          strategy: "headers_data"
+          path: "$.sites[{site_index}].cd_data"
+          headers_key: "headers"
+          data_key: "rows"
+          repeat_over:
+            path: "$.sites"
+            as: "site_index"
+        stable_columns:
+          - "site_id"
+          - "x_position"
+          - "y_position"
+          - "cd_value"
+          - "cd_3sigma"
+        stable_columns_mode: "warn"
+        stable_columns_subset: true
+
+      # --- Uniformity Metrics (repeat over parameters) ---
+      - id: "uniformity_metrics"
+        label: "Uniformity Metrics"
+        description: "Within-wafer uniformity metrics per parameter"
+        select:
+          strategy: "headers_data"
+          path: "$.uniformity[{param_index}]"
+          headers_key: "columns"
+          data_key: "data"
+          repeat_over:
+            path: "$.uniformity"
+            as: "param_index"
+        stable_columns:
+          - "parameter"
+          - "mean"
+          - "range"
+          - "sigma"
+          - "percent_uniformity"
+        stable_columns_mode: "warn"
+        stable_columns_subset: true
+
+      # --- Distributions - CD Histogram ---
+      - id: "cd_histogram"
+        label: "CD Distribution Histogram"
+        description: "Histogram data for CD value distribution"
+        select:
+          strategy: "headers_data"
+          path: "$.distributions.cd_histogram[{bin_index}]"
+          headers_key: "headers"
+          data_key: "bins"
+          repeat_over:
+            path: "$.distributions.cd_histogram"
+            as: "bin_index"
+        stable_columns:
+          - "bin_center"
+          - "bin_count"
+          - "cumulative_percent"
+        stable_columns_mode: "warn"
+        stable_columns_subset: true
+
+      # --- Distributions - Edge Roughness Histogram ---
+      - id: "roughness_histogram"
+        label: "Edge Roughness Distribution"
+        description: "Histogram data for edge roughness distribution"
+        select:
+          strategy: "headers_data"
+          path: "$.distributions.roughness_histogram[{bin_index}]"
+          headers_key: "headers"
+          data_key: "bins"
+          repeat_over:
+            path: "$.distributions.roughness_histogram"
+            as: "bin_index"
+        stable_columns:
+          - "bin_center"
+          - "bin_count"
+          - "cumulative_percent"
+        stable_columns_mode: "warn"
+        stable_columns_subset: true
+
+      # --- LWR Statistics (Line Width Roughness) ---
+      - id: "lwr_statistics"
+        label: "LWR Statistics"
+        description: "Line Width Roughness analysis results"
+        select:
+          strategy: "headers_data"
+          path: "$.roughness.lwr[{line_index}]"
+          headers_key: "headers"
+          data_key: "values"
+          repeat_over:
+            path: "$.roughness.lwr"
+            as: "line_index"
+        stable_columns:
+          - "line_id"
+          - "lwr_3sigma"
+          - "lwr_rms"
+          - "correlation_length"
+        stable_columns_mode: "warn"
+        stable_columns_subset: true
+
+      # --- LWR Histogram ---
+      - id: "lwr_histogram"
+        label: "LWR Histogram"
+        description: "LWR distribution histogram"
+        select:
+          strategy: "headers_data"
+          path: "$.roughness.lwr_histogram[{bin_index}]"
+          headers_key: "headers"
+          data_key: "bins"
+          repeat_over:
+            path: "$.roughness.lwr_histogram"
+            as: "bin_index"
+        stable_columns:
+          - "bin_center"
+          - "count"
+        stable_columns_mode: "warn"
+        stable_columns_subset: true
+
+      # --- SWR Statistics (Sidewall Roughness) ---
+      - id: "swr_statistics"
+        label: "SWR Statistics"
+        description: "Sidewall Roughness analysis results"
+        select:
+          strategy: "headers_data"
+          path: "$.roughness.swr[{edge_index}]"
+          headers_key: "headers"
+          data_key: "values"
+          repeat_over:
+            path: "$.roughness.swr"
+            as: "edge_index"
+        stable_columns:
+          - "edge_id"
+          - "swr_3sigma"
+          - "swr_rms"
+          - "alpha"
+        stable_columns_mode: "warn"
+        stable_columns_subset: true
+
+      # --- SWR Histogram ---
+      - id: "swr_histogram"
+        label: "SWR Histogram"
+        description: "SWR distribution histogram"
+        select:
+          strategy: "headers_data"
+          path: "$.roughness.swr_histogram[{bin_index}]"
+          headers_key: "headers"
+          data_key: "bins"
+          repeat_over:
+            path: "$.roughness.swr_histogram"
+            as: "bin_index"
+        stable_columns:
+          - "bin_center"
+          - "count"
+        stable_columns_mode: "warn"
+        stable_columns_subset: true
+
+      # --- PSD Unbiased ---
+      - id: "psd_unbiased"
+        label: "PSD Unbiased"
+        description: "Unbiased Power Spectral Density data"
+        select:
+          strategy: "headers_data"
+          path: "$.psd.unbiased"
+          headers_key: "columns"
+          data_key: "data"
+        stable_columns:
+          - "frequency"
+          - "psd_value"
+          - "log_frequency"
+          - "log_psd"
+        stable_columns_mode: "warn"
+        stable_columns_subset: true
+
+      # --- PSD Biased ---
+      - id: "psd_biased"
+        label: "PSD Biased"
+        description: "Biased Power Spectral Density data"
+        select:
+          strategy: "headers_data"
+          path: "$.psd.biased"
+          headers_key: "columns"
+          data_key: "data"
+        stable_columns:
+          - "frequency"
+          - "psd_value"
+          - "log_frequency"
+          - "log_psd"
+        stable_columns_mode: "warn"
+        stable_columns_subset: true
+
+      # --- PSD LWR ---
+      - id: "psd_lwr"
+        label: "PSD LWR"
+        description: "Power Spectral Density for Line Width Roughness"
+        select:
+          strategy: "headers_data"
+          path: "$.psd.lwr"
+          headers_key: "columns"
+          data_key: "data"
+        stable_columns:
+          - "frequency"
+          - "psd_value"
+        stable_columns_mode: "warn"
+        stable_columns_subset: true
+
+      # --- PSD SWR ---
+      - id: "psd_swr"
+        label: "PSD SWR"
+        description: "Power Spectral Density for Sidewall Roughness"
+        select:
+          strategy: "headers_data"
+          path: "$.psd.swr"
+          headers_key: "columns"
+          data_key: "data"
+        stable_columns:
+          - "frequency"
+          - "psd_value"
+        stable_columns_mode: "warn"
+        stable_columns_subset: true
+
+      # --- Defects by Category (repeat over categories) ---
+      - id: "defects_by_category"
+        label: "Defects by Category"
+        description: "Defect counts and details by category"
+        select:
+          strategy: "headers_data"
+          path: "$.defects.by_category[{cat_index}]"
+          headers_key: "headers"
+          data_key: "items"
+          repeat_over:
+            path: "$.defects.by_category"
+            as: "cat_index"
+        stable_columns:
+          - "category"
+          - "count"
+          - "severity"
+          - "area_percent"
+        stable_columns_mode: "warn"
+        stable_columns_subset: true
+
+      # --- Defects by Location ---
+      - id: "defects_by_location"
+        label: "Defects by Location"
+        description: "Defect distribution by wafer location"
+        select:
+          strategy: "headers_data"
+          path: "$.defects.by_location[{loc_index}]"
+          headers_key: "headers"
+          data_key: "items"
+          repeat_over:
+            path: "$.defects.by_location"
+            as: "loc_index"
+        stable_columns:
+          - "zone"
+          - "defect_count"
+          - "density"
+        stable_columns_mode: "warn"
+        stable_columns_subset: true
+
+      # --- Defects by Severity ---
+      - id: "defects_by_severity"
+        label: "Defects by Severity"
+        description: "Defect summary by severity level"
+        select:
+          strategy: "headers_data"
+          path: "$.defects.by_severity[{sev_index}]"
+          headers_key: "headers"
+          data_key: "items"
+          repeat_over:
+            path: "$.defects.by_severity"
+            as: "sev_index"
+        stable_columns:
+          - "severity_level"
+          - "count"
+          - "percent_of_total"
+        stable_columns_mode: "warn"
+        stable_columns_subset: true
+
+      # --- Defects Summary ---
+      - id: "defects_summary"
+        label: "Defects Summary"
+        description: "Overall defect summary statistics"
+        select:
+          strategy: "headers_data"
+          path: "$.defects.summary"
+          headers_key: "columns"
+          data_key: "data"
+        stable_columns:
+          - "total_defects"
+          - "defect_density"
+          - "critical_count"
+          - "major_count"
+          - "minor_count"
+        stable_columns_mode: "warn"
+        stable_columns_subset: true
+
+      # --- Tool Diagnostics ---
+      - id: "tool_diagnostics"
+        label: "Tool Diagnostics"
+        description: "CD-SEM tool diagnostic information"
+        select:
+          strategy: "flat_object"
+          path: "$.diagnostics"
+        stable_columns:
+          - "beam_current"
+          - "focus_score"
+          - "astigmatism"
+          - "contamination_level"
+        stable_columns_mode: "warn"
+        stable_columns_subset: true
+
+  # =====================================================================
+  # IMAGE LEVEL - Per-image measurements and analysis
+  # =====================================================================
+  - name: "image"
+    apply_context: "image_context"
+    tables:
+      # --- Image Measurements ---
+      - id: "image_measurements"
+        label: "Image Measurements"
+        description: "Per-image measurement results"
+        select:
+          strategy: "headers_data"
+          path: "$.images[{img_index}].measurements"
+          headers_key: "columns"
+          data_key: "values"
+          repeat_over:
+            path: "$.images"
+            as: "img_index"
+        stable_columns:
+          - "image_id"
+          - "site_id"
+          - "cd_left"
+          - "cd_right"
+          - "cd_average"
+          - "height"
+          - "sidewall_angle"
+        stable_columns_mode: "warn"
+        stable_columns_subset: true
+
+      # --- Image Quality Metrics ---
+      - id: "image_quality"
+        label: "Image Quality Metrics"
+        description: "Quality metrics per acquired image"
+        select:
+          strategy: "headers_data"
+          path: "$.images[{img_index}].quality"
+          headers_key: "columns"
+          data_key: "values"
+          repeat_over:
+            path: "$.images"
+            as: "img_index"
+        stable_columns:
+          - "image_id"
+          - "contrast"
+          - "sharpness"
+          - "noise_level"
+          - "brightness"
+          - "edge_detection_score"
+        stable_columns_mode: "warn"
+        stable_columns_subset: true
+
+normalization:
+  nan_values:
+    - "N/A"
+    - "NA"
+    - "null"
+    - "-"
+    - ""
+  units_policy: "preserve"
+  numeric_coercion: true
+
+outputs:
+  defaults:
+    - id: "run_summary_export"
+      from_level: "run"
+      from_tables:
+        - "run_summary"
+        - "run_statistics"
+      include_context: true
+    - id: "cd_analysis_export"
+      from_level: "run"
+      from_tables:
+        - "cd_by_site"
+        - "uniformity_metrics"
+        - "cd_histogram"
+      include_context: true
+    - id: "roughness_export"
+      from_level: "run"
+      from_tables:
+        - "lwr_statistics"
+        - "swr_statistics"
+        - "lwr_histogram"
+        - "swr_histogram"
+      include_context: true
+    - id: "image_detail_export"
+      from_level: "image"
+      from_tables:
+        - "image_measurements"
+        - "image_quality"
+      include_context: true
+  long_form_optional:
+    - id: "psd_full_export"
+      from_level: "run"
+      from_tables:
+        - "psd_unbiased"
+        - "psd_biased"
+        - "psd_lwr"
+        - "psd_swr"
+      include_context: true
+    - id: "defects_full_export"
+      from_level: "run"
+      from_tables:
+        - "defects_by_category"
+        - "defects_by_location"
+        - "defects_by_severity"
+        - "defects_summary"
+      include_context: true
+    - id: "diagnostics_export"
+      from_level: "run"
+      from_tables:
+        - "tool_diagnostics"
+      include_context: false
+  ui:
+    options:
+      group_by_level: true
+      include_context_toggle: true
+      population_mode_toggle:
+        - "all"
+        - "valid_only"
+        - "outliers_excluded"
+      default_selected_tables:
+        run:
+          - "run_summary"
+          - "run_statistics"
+          - "cd_by_site"
+        image:
+          - "image_measurements"
+
+overrides:
+  discovery:
+    mode:
+      allow_replace_profile_file_match: false
+    file_match:
+      allow_simple_strings: true
+      allow_regex: true
+      allowed_ops:
+        - "equals"
+        - "contains"
+        - "startswith"
+        - "endswith"
+        - "matches"
+      allowed_fields:
+        - "filename"
+        - "extension"
+        - "path"
+    limits:
+      max_total_predicates: 10
+      max_depth: 3
+      max_regex_length: 256
+    regex:
+      allowed_flags:
+        - "i"
+        - "m"
+        - "s"

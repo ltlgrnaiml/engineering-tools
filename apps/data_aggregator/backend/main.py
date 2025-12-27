@@ -45,8 +45,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include API routes
-app.include_router(router, prefix="/api", tags=["dat"])
+# Include API routes (no prefix - gateway mounts at /api/dat)
+app.include_router(router, tags=["dat"])
 
 
 @app.get("/health")
