@@ -122,9 +122,14 @@ async def health_check() -> dict:
 try:
     from apps.pptx_generator.backend.main import app as pptx_app
     app.mount("/api/pptx", pptx_app)
+    import logging
+    logging.info("PPTX Generator mounted successfully at /api/pptx")
 except ImportError as e:
     import logging
-    logging.warning(f"PPTX Generator not available: {e}")
+    logging.error(f"PPTX Generator import failed: {e}", exc_info=True)
+except Exception as e:
+    import logging
+    logging.error(f"PPTX Generator mount failed: {e}", exc_info=True)
 
 try:
     from apps.data_aggregator.backend.main import app as dat_app
