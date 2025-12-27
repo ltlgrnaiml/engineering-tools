@@ -1,0 +1,110 @@
+{
+  "schema_type": "adr",
+  "id": "ADR-0001_Hybrid-FSM-Stage-Orchestration",
+  "title": "Hybrid FSM Architecture for CDU-DAT Stage Lifecycle Management",
+  "status": "accepted",
+  "date": "2025-01-15",
+  "review_date": "2025-07-15",
+  "deciders": "Mycahya Eggleston",
+  "scope": "subsystem:CDU-DAT",
+  "provenance": [
+    {
+      "at": "2025-01-15",
+      "by": "Mycahya Eggleston",
+      "note": "Initial decision extracted from stage orchestration vision document"
+    },
+    {
+      "at": "2025-11-22",
+      "by": "Mycahya Eggleston",
+      "note": "Refactored to explicitly include Export stage, forward/backward gating, and artifact lifecycle per refactored docs strategy"
+    }
+  ],
+  "context": "CDU-DAT manages multi-stage data pipelines \n\n```text\n\n(Discovery → Selection → Context → Table Availability → Table Selection → Preview → Parse → Export)\n\n```\n\n where users invest significant effort in manual edits (context hints, file selections, JSONPath probes). The system must balance user effort preservation, deterministic reproducibility, and flexible workflows. The orchestration must ensure data consistency, allow unlocks without data loss, and support both quick-path and power-user validation. Export is a terminal stage that depends on Parse completion and is responsible for generating deliverables from parse artifacts.",
+  "decision_primary": "Adopt a hybrid FSM architecture where each stage (Selection, Context, Table Availability, Table Selection, Preview, Parse, Export) independently manages its own UNLOCKED ↔ LOCKED lifecycle, while a global orchestrator coordinates unlock cascades to maintain data consistency across dependent stages. Export is integrated as a terminal stage, gated on Parse.locked == true and Parse.completed == true. Unlocking upstream stages cascades unlocks downstream, but all artifacts are preserved (never deleted) to support accidental unlock recovery and idempotent re-locks.",
+  "decision_details": {
+    "approach": "Two-tier state management: (1) Per-stage FSMs for Selection, Context, Table Availability, Table Selection, Preview, Parse, Export; (2) Global orchestrator for unlock cascades and forward/backward gating. Export lock requires Parse.locked == true and Parse.completed == true. Unlocking Parse auto-unlocks Export. All unlocks are soft (locked:false, artifact preserved).",
+    "constraints": [
+      "Forward Gating: Downstream stages (including Export) MUST require upstream locks and, for Export, Parse must be completed.",
+      "Artifact Preservation: Unlocking a stage MUST set locked:false but NEVER delete artifacts from disk.",
+      "Cascade Consistency: Global orchestrator MUST unlock downstream stages when upstream stage unlocks (based on dependency graph).",
+      "Independence: Context and Preview are optional and do not cascade unlocks to other stages.",
+      "Determinism: Stage IDs and artifact reuse governed by deterministic hashing (see ADR-0004)."
+    ],
+    "implementation_specs": [
+      "SPEC-0001_Stage-Orchestration-State-Machine",
+      "SPEC-0013_Artifact-Lifecycle-Preservation-Spec",
+      "SPEC-0006_Table-Availability-Status-Spec"
+    ]
+  },
+  "consequences": [
+    "Users can skip optional stages (Context, Preview) without breaking the workflow.",
+    "Accidental unlocks do not lose expensive work (artifacts preserved with locked:false).",
+    "Power users get full validation (Context + Preview), quick-path users can skip.",
+    "Deterministic re-locks reuse artifacts (same inputs → same stage ID).",
+    "Export is only lockable after Parse is locked and completed.",
+    "Complexity in cascade logic (must maintain dependency graph consistency).",
+    "Frontend must disable Lock buttons until dependencies satisfied (UX complexity).",
+    "Backend must validate forward gating rules on every lock request (performance overhead).",
+    "Disk usage grows with unlock/re-lock cycles (artifacts accumulate with locked:false)."
+  ],
+  "alternatives_considered": [
+    {
+      "name": "Monolithic State Machine",
+      "pros": "Simple to reason about, single source of truth for workflow state.",
+      "cons": "Forces single workflow (no quick-path), cannot accommodate optional stages (Context, Preview).",
+      "rejected_reason": "Too rigid for diverse user personas; would require all users to engage Context and Preview even if not needed."
+    },
+    {
+      "name": "No State Management",
+      "pros": "Maximum flexibility, users can lock/unlock stages in any order.",
+      "cons": "No consistency guarantees (Parse could use stale Selection), no forward gating (users could lock Parse before Selection).",
+      "rejected_reason": "Risk of data inconsistency. Users could accidentally parse with wrong file list or table selection. No way to prevent invalid state transitions."
+    },
+    {
+      "name": "Event Sourcing with Saga Pattern",
+      "pros": "Full audit trail, compensating transactions for rollback.",
+      "cons": "Overkill for local file-based system, adds complexity (event store, saga coordinator).",
+      "rejected_reason": "CDU-DAT is a local desktop tool, not a distributed system. Event sourcing adds unnecessary infrastructure."
+    }
+  ],
+  "tradeoffs": "We trade implementation complexity (per-stage FSM + global orchestrator) for workflow flexibility (quick-path vs power-path). We trade disk usage (artifacts accumulate with locked:false) for user effort preservation (accidental unlock recovery). We accept frontend UX complexity (conditional Lock button disabling) to enforce data consistency (forward gating rules).",
+  "guardrails": [
+    {
+      "rule": "Forward Gating: Downstream stages (including Export) MUST require upstream locks and, for Export, Parse must be completed.",
+      "enforcement": "Backend API returns 400 Bad Request if violated (e.g., Export lock attempted before Parse completion).",
+      "scope": "subsystem:CDU-DAT"
+    },
+    {
+      "rule": "Artifact Preservation: Unlocking a stage MUST set locked:false but NEVER delete artifact file.",
+      "enforcement": "Unlock operation sets locked:false in artifact JSON; file remains on disk.",
+      "scope": "subsystem:CDU-DAT"
+    },
+    {
+      "rule": "Cascade Consistency: Global orchestrator MUST unlock downstream stages when upstream stage unlocks (based on dependency graph).",
+      "enforcement": "Unlocking Selection/Context/Parse triggers unlocks for all dependent downstream stages, including Export.",
+      "scope": "subsystem:CDU-DAT",
+      "id": "cascade-consistency-global-orchestrator-unlock"
+    }
+  ],
+  "cross_cutting_guardrails": [
+    "Path Safety: All public paths must be relative (see ADR-0017#path-safety)",
+    "Idempotency: All mutating requests must be idempotent or safely retryable (see .adrs/cross-cutting/GUARDRAILS.md#idempotency)"
+  ],
+  "references": [
+    "ADR-0002_Artifact-Preservation-on-Unlock",
+    "ADR-0004_Deterministic-Stage-IDs",
+    ".adrs/cross-cutting/GUARDRAILS.md"
+  ],
+  "tags": [
+    "state-machine",
+    "fsm",
+    "orchestration",
+    "workflow-flexibility",
+    "export-stage"
+  ],
+  "affected_components": [
+    "backend/src/dramcdu/dat_aggregation/core/state_machine.py",
+    "backend/src/dramcdu/dat_aggregation/api/routes/",
+    "frontend/src/components/stages/"
+  ]
+}

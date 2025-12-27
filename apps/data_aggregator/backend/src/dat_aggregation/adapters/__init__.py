@@ -1,0 +1,1 @@
+"""DAT file format adapters."""

@@ -1,0 +1,212 @@
+"""Project management endpoints."""
+
+from uuid import UUID
+
+from fastapi import APIRouter, HTTPException, status
+
+from apps.pptx_generator.backend.models.project import Project, ProjectCreate, ProjectStatus
+
+router = APIRouter()
+
+projects_db: dict[UUID, Project] = {}
+
+
+@router.post("", response_model=Project, status_code=status.HTTP_201_CREATED)
+async def create_project(project_data: ProjectCreate) -> Project:
+    """
+    Create a new PowerPoint generation project.
+
+    Args:
+        project_data: Project creation data.
+
+    Returns:
+        Project: Created project with generated ID.
+    """
+    project = Project(
+        name=project_data.name,
+        description=project_data.description,
+    )
+    projects_db[project.id] = project
+    return project
+
+
+@router.get("", response_model=list[Project])
+async def list_projects() -> list[Project]:
+    """
+    List all projects.
+
+    Returns:
+        List[Project]: List of all projects.
+    """
+    return list(projects_db.values())
+
+
+@router.get("/{project_id}", response_model=Project)
+async def get_project(project_id: UUID) -> Project:
+    """
+    Get a specific project by ID.
+
+    Args:
+        project_id: Unique project identifier.
+
+    Returns:
+        Project: Project details.
+
+    Raises:
+        HTTPException: If project not found (404).
+    """
+    if project_id not in projects_db:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Project {project_id} not found",
+        )
+    return projects_db[project_id]
+
+
+@router.patch("/{project_id}", response_model=Project)
+async def update_project_status(
+    project_id: UUID,
+    new_status: ProjectStatus,
+) -> Project:
+    """
+    Update project status.
+
+    Args:
+        project_id: Unique project identifier.
+        new_status: New project status.
+
+    Returns:
+        Project: Updated project.
+
+    Raises:
+        HTTPException: If project not found (404).
+    """
+    if project_id not in projects_db:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Project {project_id} not found",
+        )
+
+    project = projects_db[project_id]
+    project.status = new_status
+
+    from datetime import datetime
+
+    project.updated_at = datetime.utcnow()
+
+    return project
+
+
+@router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_project(project_id: UUID) -> None:
+    """
+    Delete a project.
+
+    Args:
+        project_id: Unique project identifier.
+
+    Raises:
+        HTTPException: If project not found (404).
+    """
+    if project_id not in projects_db:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Project {project_id} not found",
+        )
+    del projects_db[project_id]
+
+
+@router.delete("/{project_id}/state/{step_name}", response_model=dict)
+async def clear_project_state(project_id: UUID, step_name: str) -> dict:
+    """
+    Clear project state from a specific step onwards (cascade invalidation).
+
+    This enables backward navigation in the workflow by clearing all
+    dependent artifacts that would be invalidated by going back.
+
+    Args:
+        project_id: Unique project identifier.
+        step_name: Step to clear from (template, environment, data, mappings, validation).
+
+    Returns:
+        dict: Information about what was cleared.
+
+    Raises:
+        HTTPException: If project not found (404) or invalid step (400).
+    """
+    if project_id not in projects_db:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Project {project_id} not found",
+        )
+
+    # Import the databases from other modules
+    from apps.pptx_generator.backend.api.data import data_files_db
+    from apps.pptx_generator.backend.api.requirements import (
+        drm_db,
+        env_profiles_db,
+        mapping_manifests_db,
+        plan_artifacts_db,
+    )
+
+    # Define cascade invalidation rules
+    step_cascade = {
+        "template": ["drm", "environment", "data", "mappings", "validation", "plan"],
+        "environment": ["data", "mappings", "validation", "plan"],
+        "data": ["mappings", "validation", "plan"],
+        "mappings": ["validation", "plan"],
+        "validation": ["plan"],
+    }
+
+    if step_name not in step_cascade:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid step name: {step_name}",
+        )
+
+    artifacts_to_clear = step_cascade[step_name]
+    cleared = []
+
+    # Clear artifacts based on cascade rules
+    if "drm" in artifacts_to_clear and project_id in drm_db:
+        del drm_db[project_id]
+        cleared.append("drm")
+
+    if "environment" in artifacts_to_clear and project_id in env_profiles_db:
+        del env_profiles_db[project_id]
+        cleared.append("environment")
+
+    if "data" in artifacts_to_clear and project_id in data_files_db:
+        del data_files_db[project_id]
+        cleared.append("data")
+
+    if "mappings" in artifacts_to_clear and project_id in mapping_manifests_db:
+        del mapping_manifests_db[project_id]
+        cleared.append("mappings")
+
+    if "plan" in artifacts_to_clear and project_id in plan_artifacts_db:
+        del plan_artifacts_db[project_id]
+        cleared.append("plan")
+
+    # Update project status based on what step we're going back to
+    project = projects_db[project_id]
+    status_map = {
+        "template": ProjectStatus.CREATED,
+        "environment": ProjectStatus.DRM_EXTRACTED,
+        "data": ProjectStatus.ENVIRONMENT_CONFIGURED,
+        "mappings": ProjectStatus.DATA_UPLOADED,
+        "validation": ProjectStatus.MAPPINGS_CONFIGURED,
+    }
+
+    if step_name in status_map:
+        project.status = status_map[step_name]
+        from datetime import datetime
+
+        project.updated_at = datetime.utcnow()
+
+    return {
+        "project_id": str(project_id),
+        "cleared_from": step_name,
+        "artifacts_cleared": cleared,
+        "new_status": project.status,
+    }

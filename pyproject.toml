@@ -1,0 +1,114 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "engineering-tools"
+version = "0.1.0"
+description = "Monorepo for Engineering Tools Platform: Data Aggregator, SOV Analyzer, PowerPoint Generator"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "Engineering Tools Team"}
+]
+
+# Core dependencies shared across all tools
+dependencies = [
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+    "pydantic>=2.5.0",
+    "pydantic-settings>=2.1.0",
+    "python-multipart>=0.0.6",
+    "polars>=0.20.0",
+    "pyarrow>=14.0.0",
+    "aiosqlite>=0.19.0",
+    "aiofiles>=23.2.1",
+    "httpx>=0.26.0",
+    "pyyaml>=6.0.1",
+]
+
+[project.optional-dependencies]
+# Tool-specific dependencies
+pptx = [
+    "python-pptx>=0.6.23",
+    "pillow>=10.2.0",
+    "pandas>=2.2.0",
+    "openpyxl>=3.1.2",
+]
+sov = [
+    "scipy>=1.11.0",
+    "statsmodels>=0.14.0",
+    "numpy>=1.26.0",
+]
+dev = [
+    "ruff>=0.1.14",
+    "pytest>=7.4.4",
+    "pytest-asyncio>=0.23.3",
+    "pytest-cov>=4.1.0",
+    "mypy>=1.8.0",
+    "pre-commit>=3.6.0",
+]
+docs = [
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.5.0",
+    "mkdocstrings[python]>=0.24.0",
+]
+all = [
+    "engineering-tools[pptx,sov,dev,docs]",
+]
+
+[project.scripts]
+eng-tools = "gateway.main:run_server"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["shared*", "gateway*", "apps*", "tools*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "ARG", # flake8-unused-arguments
+    "SIM", # flake8-simplify
+    "ANN", # flake8-annotations (per ADR-0009)
+]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "B008",   # do not perform function calls in argument defaults
+    "ANN101", # missing type annotation for self
+    "ANN102", # missing type annotation for cls
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"tests/**/*.py" = ["ANN"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "apps/*/tests"]
+python_files = ["test_*.py"]
+asyncio_mode = "auto"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+plugins = ["pydantic.mypy"]
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+warn_untyped_fields = true
