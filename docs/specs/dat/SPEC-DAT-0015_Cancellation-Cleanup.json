@@ -1,0 +1,79 @@
+{
+  "id": "SPEC-DAT-0015",
+  "title": "DAT Cancellation and Cleanup Semantics",
+  "version": "1.0.0",
+  "status": "accepted",
+  "created_date": "2024-12-27",
+  "updated_date": "2024-12-27",
+  "implements_adr": ["ADR-0013"],
+  "tier_0_contracts": [
+    "shared/contracts/dat/cancellation.py"
+  ],
+  "overview": {
+    "purpose": "Define cancellation behavior for Parse and Export stages with artifact preservation",
+    "scope": "DAT tool long-running operations"
+  },
+  "requirements": {
+    "functional": [
+      {
+        "id": "SPEC-DAT-0015-F1",
+        "description": "Soft cancellation MUST preserve completed artifacts",
+        "acceptance_criteria": [
+          "Completed tables are preserved on cancel",
+          "Partial/incomplete data is discarded",
+          "Artifact files are never deleted on cancel"
+        ]
+      },
+      {
+        "id": "SPEC-DAT-0015-F2",
+        "description": "Checkpoints mark safe cancellation points",
+        "acceptance_criteria": [
+          "TABLE_COMPLETE and STAGE_COMPLETE are safe points",
+          "ROW_BATCH_COMPLETE is not a safe point (partial data)",
+          "CheckpointRegistry tracks all checkpoints for a stage"
+        ]
+      },
+      {
+        "id": "SPEC-DAT-0015-F3",
+        "description": "Cleanup MUST be explicit and user-initiated",
+        "acceptance_criteria": [
+          "CleanupRequest defaults to dry_run=True",
+          "Cleanup targets: temp_files, partial_artifacts, orphaned_checkpoints",
+          "CleanupResult reports items found, cleaned, and bytes freed"
+        ]
+      },
+      {
+        "id": "SPEC-DAT-0015-F4",
+        "description": "All cancellation events MUST be auditable",
+        "acceptance_criteria": [
+          "CancellationAuditLog tracks all events",
+          "Timestamps are ISO-8601 UTC (no microseconds)",
+          "Events include: cancel_requested, checkpoint_reached, cancel_completed"
+        ]
+      }
+    ]
+  },
+  "api_contracts": {
+    "models": [
+      "CancellationRequest",
+      "CancellationResult",
+      "CancellationReason",
+      "CancellationState",
+      "Checkpoint",
+      "CheckpointType",
+      "CheckpointRegistry",
+      "CleanupRequest",
+      "CleanupResult",
+      "CleanupTarget",
+      "CancellableOperation",
+      "CancellationAuditEntry",
+      "CancellationAuditLog"
+    ]
+  },
+  "test_requirements": [
+    "test_soft_cancellation_preserves_artifacts",
+    "test_checkpoint_safe_points",
+    "test_cleanup_dry_run_default",
+    "test_audit_trail_timestamps"
+  ]
+}

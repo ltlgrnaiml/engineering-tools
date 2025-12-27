@@ -32,6 +32,25 @@ from shared.contracts.dat.table_status import (
     TableStatusReport,
     TableHealthCheck,
 )
+from shared.contracts.dat.cancellation import (
+    CancellationReason,
+    CancellationState,
+    CancellationRequest,
+    CancellationResult,
+    CleanupState,
+    CleanupTarget,
+    CleanupRequest,
+    CleanupResult,
+    Checkpoint,
+    CheckpointType,
+    CheckpointRegistry,
+    CancellableOperation,
+    CancellableOperationState,
+    CancellationAuditEntry,
+    CancellationAuditLog,
+)
+
+__version__ = "0.1.0"
 
 __all__ = [
     # Stage contracts
@@ -54,4 +73,20 @@ __all__ = [
     "TableAvailabilityStatus",
     "TableStatusReport",
     "TableHealthCheck",
+    # Cancellation contracts
+    "CancellationReason",
+    "CancellationState",
+    "CancellationRequest",
+    "CancellationResult",
+    "CleanupState",
+    "CleanupTarget",
+    "CleanupRequest",
+    "CleanupResult",
+    "Checkpoint",
+    "CheckpointType",
+    "CheckpointRegistry",
+    "CancellableOperation",
+    "CancellableOperationState",
+    "CancellationAuditEntry",
+    "CancellationAuditLog",
 ]

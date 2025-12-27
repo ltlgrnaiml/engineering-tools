@@ -87,6 +87,7 @@ Tier 1: ADRs (WHY)
 | PathSafety | `shared/contracts/core/path_safety.py` | RelativePath, WorkspacePath, PathValidationError | SPEC-0016 |
 | Concurrency | `shared/contracts/core/concurrency.py` | PlatformInfo, ConcurrencyConfig, OSType, ShellType | SPEC-0011, SPEC-0019 |
 | **Rendering** | `shared/contracts/core/rendering.py` | RenderSpec, ChartSpec, TableSpec, RenderStyle, DataSeries, OutputTarget | SPEC-0031, SPEC-0032, SPEC-0033 |
+| **IDGenerator** | `shared/contracts/core/id_generator.py` | IDConfig, compute_deterministic_id, StageIDInputs, UploadStageInputs, ParseStageInputs | SPEC-0014 |
 
 ### DAT Contracts ✓
 
@@ -95,6 +96,7 @@ Tier 1: ADRs (WHY)
 | **Stage** | `shared/contracts/dat/stage.py` | DATStageState, DATStageConfig, DATStageResult, ParseStageConfig, AggregateStageConfig, ExportStageConfig | SPEC-0001 |
 | **Profile** | `shared/contracts/dat/profile.py` | ExtractionProfile, ColumnMapping, AggregationRule, FilePattern, ValidationRule | SPEC-0002, SPEC-0004 |
 | **TableStatus** | `shared/contracts/dat/table_status.py` | TableAvailability, TableAvailabilityStatus, TableStatusReport, TableHealth | SPEC-0006 |
+| **Cancellation** | `shared/contracts/dat/cancellation.py` | CancellationRequest, CancellationResult, Checkpoint, CheckpointRegistry, CleanupRequest, CancellationAuditLog | SPEC-DAT-0015 |
 
 ### PPTX Contracts ✓
 
@@ -115,6 +117,21 @@ Tier 1: ADRs (WHY)
 | Contract | Location | Key Classes | Used By |
 |----------|----------|-------------|---------|
 | **Catalog** | `shared/contracts/messages/catalog.py` | MessageDefinition, MessageCatalog, ErrorMessage, ProgressMessage, ValidationMessage | SPEC-0005, ADR-0017#message-catalogs |
+
+### DevTools Contracts ✓
+
+| Contract | Location | Key Classes | Used By |
+|----------|----------|-------------|---------|
+| **API** | `shared/contracts/devtools/api.py` | DevToolsState, ADRListResponse, ADRSaveRequest, SchemaValidationRequest, APITestRequest | SPEC-0030 |
+
+### Rendering Engine Implementation ✓
+
+| Module | Location | Key Classes | Used By |
+|--------|----------|-------------|---------|
+| **Engine** | `shared/rendering/engine.py` | RenderEngine | SPEC-0032 |
+| **Registry** | `shared/rendering/registry.py` | AdapterRegistry, get_adapter, register_adapter | SPEC-0033 |
+| **BaseAdapter** | `shared/rendering/adapters/base.py` | BaseOutputAdapter, MatplotlibAdapterMixin | SPEC-0033 |
+| **JSONAdapter** | `shared/rendering/adapters/json_adapter.py` | JSONAdapter | SPEC-0033 |
 
 ## Cross-Reference Validation
 
