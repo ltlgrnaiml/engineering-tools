@@ -22,9 +22,9 @@ app = FastAPI(
     title="Engineering Tools Platform",
     description="Unified API for Data Aggregator, SOV Analyzer, and PowerPoint Generator",
     version=__version__,
-    docs_url="/api/docs",
-    redoc_url="/api/redoc",
-    openapi_url="/api/openapi.json",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json",
 )
 
 # CORS for local development
@@ -38,8 +38,8 @@ app.add_middleware(
 
 
 # === Cross-Tool APIs (gateway-level) ===
-app.include_router(dataset_router, prefix="/api/datasets/v1", tags=["datasets"])
-app.include_router(pipeline_router, prefix="/api/pipelines/v1", tags=["pipelines"])
+app.include_router(dataset_router, prefix="/api/v1/datasets", tags=["datasets"])
+app.include_router(pipeline_router, prefix="/api/v1/pipelines", tags=["pipelines"])
 
 
 # === Health Check ===
@@ -84,6 +84,7 @@ async def _get_storage_stats() -> dict:
         }
 
 
+@app.get("/health")
 @app.get("/api/health")
 async def health_check() -> dict:
     """Health check endpoint with dynamic tool status."""

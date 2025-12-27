@@ -71,6 +71,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(health.router, tags=["health"])
 app.include_router(health.router, prefix="/api/v1", tags=["health"])
 app.include_router(projects.router, prefix="/api/v1/projects", tags=["projects"])
 app.include_router(templates.router, prefix="/api/v1/templates", tags=["templates"])

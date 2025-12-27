@@ -1,0 +1,96 @@
+# MkDocs Configuration for Engineering Tools Platform
+# Local documentation preview and build
+# Run: mkdocs serve (preview) | mkdocs build (static site)
+
+site_name: Engineering Tools Platform
+site_description: Unified platform for engineering data processing, analysis, and visualization
+site_author: Engineering Tools Team
+dev_addr: '127.0.0.1:8001'
+
+# Theme configuration
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+
+# Extensions for enhanced Markdown
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - toc:
+      permalink: true
+  - attr_list
+  - md_in_html
+
+# Plugins
+plugins:
+  - search
+
+# Navigation structure
+nav:
+  - Home: index.md
+  - Platform:
+    - Architecture: platform/ARCHITECTURE.md
+    - DataSets: platform/DATASETS.md
+    - Pipelines: platform/PIPELINES.md
+    - Contributing: platform/CONTRIBUTING.md
+  - PowerPoint Generator:
+    - Overview: pptx-generator/index.md
+    - Getting Started:
+      - Quick Start: pptx-generator/getting-started/QUICK_START.md
+    - User Guide:
+      - Troubleshooting: pptx-generator/user-guide/TROUBLESHOOTING.md
+    - Reference:
+      - Architecture: pptx-generator/reference/ARCHITECTURE.md
+  - Data Aggregator:
+    - Overview: data-aggregator/index.md
+  - SOV Analyzer:
+    - Overview: sov-analyzer/index.md
+  - Change Plan:
+    - Overview: change-plan/README.md
+    - Vision: change-plan/tier-1-vision/PLATFORM_VISION.md
+    - Integration:
+      - Cross-Tool: change-plan/tier-2-integration/CROSS_TOOL_INTEGRATION.md
+      - Homepage: change-plan/tier-2-integration/HOMEPAGE_CONTROL.md
+    - Specifications:
+      - Data Aggregator: change-plan/tier-3-tools/data-aggregator/DAT_SPEC.md
+      - Homepage: change-plan/tier-3-tools/homepage/HOMEPAGE_SPEC.md
+      - PPTX Generator: change-plan/tier-3-tools/pptx-generator/PPTX_SPEC.md
+      - SOV Analyzer: change-plan/tier-3-tools/sov-analyzer/SOV_SPEC.md
+    - Implementation:
+      - Phase 1: change-plan/tier-4-implementation/phase-1-foundation/PHASE1_INSTRUCTIONS.md
+      - Phase 2: change-plan/tier-4-implementation/phase-2-homepage-pptx/PHASE2_INSTRUCTIONS.md
+      - Phase 3: change-plan/tier-4-implementation/phase-3-data-aggregator/PHASE3_INSTRUCTIONS.md
+      - Phase 4: change-plan/tier-4-implementation/phase-4-sov-analyzer/PHASE4_INSTRUCTIONS.md
+
+# Watch for changes in development
+watch:
+  - docs

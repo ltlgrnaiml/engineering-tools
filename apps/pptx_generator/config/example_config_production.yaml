@@ -1,0 +1,278 @@
+# PowerPoint Generator Configuration - Production Ready
+# Version: 2.0.0
+# Aligned with codebase models as of December 2024
+
+job_description:
+  name: "Report"
+  version: "2.0.0"
+
+logging:
+  level: "INFO"
+  folder: "logs"
+
+job_contexts:
+  - name: "Sides"
+    key: "side"
+    values:
+      - "Left"
+      - "Right"
+    aliases:
+      l: "Left"
+      left: "Left"
+      L: "Left"
+      r: "Right"
+      right: "Right"
+      R: "Right"
+
+primary_job_context: "side"
+
+repositories:
+  dataagg_fs:
+    kind: fs
+    root: "data"
+
+files:
+  - id: "population_stats"
+    title: "Population Statistics"
+    repo: dataagg_fs
+    patterns:
+      - "**/Population*.csv"
+      - "**/population*.csv"
+    required_columns:
+      - "Image File Name"
+      - "Space CD (nm)"
+      - "Line CD (nm)"
+  - id: "condition_summary"
+    title: "Condition Summary"
+    repo: dataagg_fs
+    patterns:
+      - "**/Condition*.csv"
+    variants:
+      - "Left"
+      - "Right"
+    required_columns:
+      - "Condition"
+      - "Value"
+
+env_profile:
+  source: "filesystem"
+  roots:
+    templates_root: "templates"
+    output_root: "output"
+    dataagg_rel: "{run_key}/DataAgg/{category}"
+  encoding_policy: ["utf-8", "utf-8-sig", "cp1252"]
+
+template:
+  file: "PowerpointGeneratorExample.pptx"
+  keep_geometry_slide: false
+  geometry:
+    source: slideset
+  job_slides:
+    slide_titles: ["Job Overview", "Summary"]
+    output_layout: { name: "Job Overview", index: 1 }
+  run_slides:
+    slide_titles: ["Geometry L0", "Geometry L1"]
+    output_layout: { name: "Blank", index: -1 }
+
+metrics:
+  canonical:
+    - "CD"
+    - "LWR"
+    - "LCDU"
+    - "SWR"
+    - "sLCDU"
+    - "LineCD"
+  rename_map:
+    "Image File Name": "ImageName"
+    "ImageName": "ImageName"
+    "Space CD (nm)": "CD"
+    "SpaceCD": "CD"
+    "CD": "CD"
+    "Unbiased SWR 3s (nm)": "SWR"
+    "uSWR": "SWR"
+    "SWR": "SWR"
+    "Local Space CDU 3s (nm)": "sLCDU"
+    "sLCDU": "sLCDU"
+    "Line CD (nm)": "LineCD"
+    "LineCD": "LineCD"
+    "Unbiased LWR 3s (nm)": "LWR"
+    "uLWR": "LWR"
+    "LWR": "LWR"
+    "Local Line CDU 3s (nm)": "LCDU"
+    "LCDU": "LCDU"
+
+data:
+  global_where:
+    SourceTable: "Population All"
+  enforce_singleton:
+    index: ["Image File Name"]
+    on_conflict: "error"
+
+shape_naming:
+  version: "2"
+  format: "<renderer>:<data>[@<filter>][|<options>]"
+  allowed_renderers:
+    plots: ["contour", "box", "scatter", "line", "bar", "hist", "heatmap", "stacked"]
+    non_plots: ["table", "text", "kpi", "sparkline", "image", "inert", "link"]
+  filter_shorthands:
+    left: "side=left"
+    right: "side=right"
+    both: "side=both"
+    all: "side=all"
+    W1: "wafer=W1"
+    W2: "wafer=W2"
+    W3: "wafer=W3"
+  # Note: Shorthands automatically sync with job_contexts definitions
+  # Additional contexts can be added by extending job_contexts array
+  option_keys: ["layout", "agg", "cmap", "title", "sort", "limit", "fmt", "group"]
+  examples:
+    - "contour:CD"
+    - "contour:CD@left"
+    - "contour:CD,LWR,LCDU@left|layout=3x1"
+    - "box:CD,LWR,LCDU@both"
+    - "kpi:CD|agg=mean"
+    - "link>contour:CD@left:Open"
+    - "#divider"
+
+context:
+  image_name_regex: "DZ\\d+_LC(?P<ImageColumn>\\d+)_LC(?P<ImageRow>\\d+)"
+  required_columns:
+    - "ImageName"
+    - "Side"
+    - "ImageColumn"
+    - "ImageRow"
+  rename_map:
+    "Image File Name": "ImageName"
+    "ImageName": "ImageName"
+    "Space CD (nm)": "SpaceCD"
+    "SpaceCD": "SpaceCD"
+    "Unbiased SWR 3s (nm)": "SWR"
+    "uSWR": "SWR"
+    "Local Space CDU 3s (nm)": "sLCDU"
+    "sLCDU": "sLCDU"
+    "Line CD (nm)": "LineCD"
+    "LineCD": "LineCD"
+    "Unbiased LWR 3s (nm)": "LWR"
+    "uLWR": "LWR"
+    "Local Line CDU 3s (nm)": "LCDU"
+    "LCDU": "LCDU"
+
+outputs:
+  folder: "artifacts"
+  ppt_output_template: "{run_key}_{job_name}_{timestamp}.pptx"
+  boxplot_png_template: "{run_key}_boxplot_{metric}.png"
+  boxplot_html_template: "{run_key}_boxplot_{metric}.html"
+
+determinism:
+  enable: true
+  rng_seed: 42
+  spec_sort_keys: [slideIndex, top, left, name]
+  filename_canonicalization: true
+  record_hashes: true
+  record_code_version: true
+
+plotting:
+  job_context_colors:
+    "Left": "#4E79A7"
+    "Right": "#F28E2B"
+  use_fixed_y_ranges: false
+  fixed_y_ranges:
+    SpaceCD: [40.0, 50.0]
+    LineCD: [40.0, 50.0]
+    LWR: [0.0, 5.0]
+    SWR: [0.0, 5.0]
+  reverse_left_axis: true
+  left_contour_lines: true
+  reverse_right_axis: false
+  right_contour_lines: true
+  colormap: "viridis"
+  figure_dpi: 150
+
+defaults:
+  tables:
+    font_size: 8
+    width_in: 11.4
+    height_in: 2.6
+    top_in: 0.6
+    first_col_w_in: 1.2
+    second_col_w_in: 1.4
+    header_fill_rgb: [230, 230, 230]
+    header_font_rgb: [0, 0, 0]
+    subheader_fill_rgb: [242, 242, 242]
+    body_font_rgb: [0, 0, 0]
+    metric_band_rgb: [191, 191, 191]
+    row_stripe_rgb: [242, 242, 242]
+    grid:
+      header_line_pt: 1.5
+      body_line_pt: 0.5
+    link_rgb: [0, 144, 218]
+  kpi:
+    font_size: 24
+    decimal_places: 2
+    show_unit: true
+  text:
+    font_size: 12
+    font_family: "Arial"
+
+ui_gates:
+  preflight_pass_rate_threshold: 0.95
+  require_all_metrics_mapped: true
+  require_all_contexts_mapped: true
+
+automation:
+  lookup_archive:
+    dir: "archives"
+    naming: "lookup_{job_name}_{yyyymmdd}_{template_hash}.json"
+  cli:
+    allow_preflight_lite: true
+    fail_on_out_of_policy_job_context: true
+
+postprocess:
+  embed_html_as_ole: true
+  strip_image_links: true
+  ole_visible: false
+  replace_text_links: true
+  convert_images_too: true
+  overlay_pictures_as_transparent_ole: true
+
+# Quick Test Defaults - for faster development/testing
+test_defaults:
+  project_name: "Test Project"
+  template_file: "PowerpointGeneratorExample.pptx"
+  data_file: "population_all.csv"
+
+  # Pre-configured context mappings
+  context_mappings:
+    - context_name: "side"
+      source_type: "column"
+      source_column: "Side"
+      description: "Left or Right side"
+    - context_name: "imcol"
+      source_type: "column"
+      source_column: "ImageColumn"
+      description: "Image column position"
+
+  # Pre-configured metrics mappings
+  metrics_mappings:
+    - metric_name: "CD"
+      source_column: "CD"
+      aggregation_semantics: "mean"
+      data_type: "float"
+      unit: "nm"
+    - metric_name: "LWR"
+      source_column: "LWR"
+      aggregation_semantics: "mean"
+      data_type: "float"
+      unit: "nm"
+    - metric_name: "LCDU"
+      source_column: "LCDU"
+      aggregation_semantics: "mean"
+      data_type: "float"
+      unit: "nm"
+
+  # Sample run metadata
+  run_metadata:
+    run_key: "DZ001"
+    project_name: "Monster"
+    date: "2024-12-23"
+    author: "PowerPoint Generator"

@@ -13,10 +13,12 @@ class HealthResponse(BaseModel):
     Attributes:
         status: Health status of the service.
         version: API version.
+        service: Service name.
     """
 
     status: str
     version: str
+    service: str = "pptx-generator"
 
 
 @router.get("/health", response_model=HealthResponse)
@@ -27,4 +29,4 @@ async def health_check() -> HealthResponse:
     Returns:
         HealthResponse: Health status and version information.
     """
-    return HealthResponse(status="healthy", version="0.1.0")
+    return HealthResponse(status="healthy", version="0.1.0", service="pptx-generator")

@@ -32,14 +32,19 @@ def _find_config_path() -> Path:
     Raises:
         ConfigurationError: If config file not found in any location.
     """
+    # Get the absolute path to the pptx_generator app directory
+    app_root = Path(__file__).parent.parent.parent.resolve()
+    
     candidates = [
+        app_root / "config" / "example_config_production.yaml",
+        app_root / "config" / "custom_config.yaml",
         Path("config/example_config_production.yaml"),
         Path("../config/example_config_production.yaml"),
-        Path(__file__).parent.parent.parent / "config" / "example_config_production.yaml",
     ]
 
     for path in candidates:
         if path.exists():
+            logger.info(f"Found config file at: {path}")
             return path.resolve()
 
     raise ConfigurationError(

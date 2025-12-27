@@ -26,6 +26,13 @@ class SaveConfigRequest(BaseModel):
     overwrite: bool = False
 
 
+def _get_config_dir() -> Path:
+    """Get the absolute path to the config directory."""
+    # Get the absolute path to the pptx_generator app directory
+    app_root = Path(__file__).parent.parent.parent.resolve()
+    return app_root / "config"
+
+
 @router.get("/config/defaults")
 async def get_config_defaults() -> dict[str, Any]:
     """Load test defaults from configuration file.
@@ -33,15 +40,17 @@ async def get_config_defaults() -> dict[str, Any]:
     Returns:
         Dict with context_mappings and metrics_mappings.
     """
-    config_path = Path("config/example_config_production.yaml")
+    config_dir = _get_config_dir()
+    config_path = config_dir / "example_config_production.yaml"
 
     if not config_path.exists():
-        # Try alternative path
-        config_path = Path("../config/example_config_production.yaml")
+        # Try custom config as fallback
+        config_path = config_dir / "custom_config.yaml"
 
     if not config_path.exists():
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Configuration file not found"
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail=f"Configuration file not found in {config_dir}"
         )
 
     try:
@@ -283,7 +292,7 @@ async def save_config_mappings(request: SaveConfigRequest) -> dict[str, Any]:
     Returns:
         Success message with saved file path.
     """
-    config_dir = Path("config")
+    config_dir = _get_config_dir()
     config_dir.mkdir(exist_ok=True)
 
     # Determine filename
@@ -305,7 +314,7 @@ async def save_config_mappings(request: SaveConfigRequest) -> dict[str, Any]:
         )
 
     # Load existing config as base or create new one
-    base_config_path = Path("config/example_config_production.yaml")
+    base_config_path = config_dir / "example_config_production.yaml"
     if base_config_path.exists():
         with base_config_path.open() as f:
             config = yaml.safe_load(f)
@@ -351,8 +360,9 @@ async def list_config_files() -> dict[str, Any]:
     Returns:
         List of config file names with metadata.
     """
-    config_dir = Path("config")
+    config_dir = _get_config_dir()
     if not config_dir.exists():
+        logger.warning(f"Config directory not found: {config_dir}")
         return {"files": [], "count": 0}
 
     files_info = []
@@ -383,7 +393,7 @@ async def load_config_file(filename: str) -> dict[str, Any]:
     Returns:
         Full config file contents with validation status.
     """
-    config_dir = Path("config")
+    config_dir = _get_config_dir()
     config_path = config_dir / filename
 
     if not config_path.exists():
@@ -443,7 +453,7 @@ async def save_full_config(request: dict[str, Any]) -> dict[str, Any]:
     Returns:
         Success message with saved file path.
     """
-    config_dir = Path("config")
+    config_dir = _get_config_dir()
     config_dir.mkdir(exist_ok=True)
 
     filename = request.get("filename")

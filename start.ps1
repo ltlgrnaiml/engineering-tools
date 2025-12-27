@@ -61,6 +61,19 @@ if ($StartFrontend) {
     # Wait for DAT to start
     Start-Sleep -Seconds 2
     
+    # Start PPTX Generator frontend
+    Write-Host "Starting PPTX Generator frontend on http://localhost:5175" -ForegroundColor Yellow
+    Push-Location apps/pptx_generator/frontend
+    npm.cmd install 2>&1 | Out-Null
+    $pptxJob = Start-Job -ScriptBlock {
+        Set-Location $using:PWD
+        npm.cmd run dev
+    }
+    Pop-Location
+    
+    # Wait for PPTX to start
+    Start-Sleep -Seconds 2
+    
     # Start SOV Analyzer frontend
     Write-Host "Starting SOV Analyzer frontend on http://localhost:5174" -ForegroundColor Yellow
     Push-Location apps/sov_analyzer/frontend
@@ -77,6 +90,7 @@ if ($StartFrontend) {
     Write-Host "Frontend Applications:" -ForegroundColor Cyan
     Write-Host "  Homepage:         http://localhost:3000" -ForegroundColor White
     Write-Host "  Data Aggregator:  http://localhost:5173" -ForegroundColor White
+    Write-Host "  PPTX Generator:   http://localhost:5175" -ForegroundColor White
     Write-Host "  SOV Analyzer:     http://localhost:5174" -ForegroundColor White
     Write-Host ""
     Write-Host "API Gateway & Documentation:" -ForegroundColor Cyan
@@ -95,7 +109,7 @@ if ($StartFrontend) {
             Start-Sleep -Seconds 1
             
             # Check if jobs are still running
-            $jobs = @($gatewayJob, $homepageJob, $datJob, $sovJob)
+            $jobs = @($gatewayJob, $homepageJob, $datJob, $pptxJob, $sovJob)
             $allRunning = $true
             foreach ($job in $jobs) {
                 if ($job.State -ne "Running") {
@@ -111,8 +125,8 @@ if ($StartFrontend) {
         }
     } finally {
         Write-Host "Stopping services..." -ForegroundColor Yellow
-        Stop-Job -Job $gatewayJob, $homepageJob, $datJob, $sovJob -ErrorAction SilentlyContinue
-        Remove-Job -Job $gatewayJob, $homepageJob, $datJob, $sovJob -ErrorAction SilentlyContinue
+        Stop-Job -Job $gatewayJob, $homepageJob, $datJob, $pptxJob, $sovJob -ErrorAction SilentlyContinue
+        Remove-Job -Job $gatewayJob, $homepageJob, $datJob, $pptxJob, $sovJob -ErrorAction SilentlyContinue
         Write-Host "All services stopped." -ForegroundColor Green
     }
 } else {

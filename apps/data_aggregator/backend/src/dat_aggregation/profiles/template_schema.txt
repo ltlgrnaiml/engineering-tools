@@ -1,0 +1,505 @@
+schema_version: TYPE.STRING
+version: TYPE.INTEGER
+
+meta:
+  profile_id: TYPE.STRING
+  title: TYPE.STRING
+  description: TYPE.STRING
+  created_by: TYPE.STRING
+  created_at: TYPE.DATETIME
+  modified_at: TYPE.DATETIME
+  revision: TYPE.INTEGER
+  hash: TYPE.STRING
+
+datasource:
+  id: TYPE.STRING
+  label: TYPE.STRING
+  format: TYPE.STRING
+  filters:
+    type: TYPE.STRING
+    op: TYPE.STRING
+    children:
+      - type: TYPE.STRING
+        field: TYPE.STRING
+        op: TYPE.STRING
+        value: TYPE.STRING
+        case: TYPE.STRING
+  options:
+    json:
+      allow_bom: TYPE.BOOL
+      case_insensitive: TYPE.BOOL
+
+population:
+  default_strategy: TYPE.STRING
+  include_populations: [TYPE.STRING]
+
+# ============================================================================
+# Context Defaults (for Context Stage)
+# ============================================================================
+# Purpose: Provide default values and REGEX patterns for automated context
+#          extraction during the Context stage (POST /api/dat/context).
+#
+# Workflow Integration:
+#   1. POST /api/dat/context/init: Auto-apply REGEX + defaults (no manual hints)
+#   2. POST /api/dat/context: Apply 4-level precedence (manual > REGEX > defaults)
+#
+# Precedence Order (highest to lowest):
+#   Level 1: Per-file manual hints (manual.per_file_hints[file_ref][key])
+#   Level 2: Global manual hints (manual.global_hints[key])
+#   Level 3: REGEX extractions (patterns applied to filename)
+#   Level 4: Profile defaults (this section)
+#
+# REGEX Pattern Rules:
+#   - MUST use named groups matching the field name: (?P<field_name>...)
+#   - Applied to filename only (not full path)
+#   - Patterns evaluated in order (first match wins per field)
+#   - Invalid patterns cause HTTP 500 (fail-fast validation)
+#
+# Provenance: 
+# ============================================================================
+
+context_defaults:
+  # -------------------------------------------------------------------------
+  # Level 4: Default Values (Fallback)
+  # -------------------------------------------------------------------------
+  defaults:
+    jobname: TYPE.STRING
+
+  # -------------------------------------------------------------------------
+  # Level 3: REGEX Patterns (Automated Extraction)
+  # -------------------------------------------------------------------------
+  regex_patterns:
+    - field: TYPE.STRING
+      pattern: TYPE.STRING
+      scope: TYPE.STRING
+      required: TYPE.BOOL
+      description: TYPE.STRING
+      example: TYPE.STRING
+
+    - field: TYPE.STRING
+      pattern: TYPE.STRING
+      scope: TYPE.STRING
+      required: TYPE.BOOL
+      description: TYPE.STRING
+      example: TYPE.STRING
+
+    - field: TYPE.STRING
+      pattern: TYPE.STRING
+      scope: TYPE.STRING
+      required: TYPE.BOOL
+      description: TYPE.STRING
+      example: TYPE.STRING
+
+    - field: TYPE.STRING
+      pattern: TYPE.STRING
+      scope: TYPE.STRING
+      required: TYPE.BOOL
+      description: TYPE.STRING
+      example: TYPE.STRING
+
+    - field: TYPE.STRING
+      pattern: TYPE.STRING
+      scope: TYPE.STRING
+      required: TYPE.BOOL
+      description: TYPE.STRING
+      example: TYPE.STRING
+
+    - field: TYPE.STRING
+      pattern: TYPE.STRING
+      scope: TYPE.STRING
+      required: TYPE.BOOL
+      description: TYPE.STRING
+      example: TYPE.STRING
+
+    - field: TYPE.STRING
+      pattern: TYPE.STRING
+      scope: TYPE.STRING
+      required: TYPE.BOOL
+      description: TYPE.STRING
+      example: TYPE.STRING
+
+contexts:
+  - name: TYPE.STRING
+    level: TYPE.STRING
+    paths: [TYPE.STRING]
+    key_map:
+      LotID: TYPE.STRING
+      WaferID: TYPE.STRING
+      RecipeName: TYPE.STRING
+      CD-SEM: TYPE.STRING
+    primary_keys: [TYPE.STRING]
+
+  - name: TYPE.STRING
+    level: TYPE.STRING
+    paths: [TYPE.STRING]
+    key_map:
+      ImageName: TYPE.STRING
+    primary_keys: [TYPE.STRING]
+    time_fields:
+      earliest: TYPE.STRING
+      latest: TYPE.STRING
+
+levels:
+  # =====================================================================
+  # RUN LEVEL
+  # =====================================================================
+  - name: TYPE.STRING
+    apply_context: TYPE.STRING
+    tables:
+      - id: TYPE.STRING
+        label: TYPE.STRING
+        description: TYPE.STRING
+        select:
+          strategy: TYPE.STRING
+          path: TYPE.STRING
+        stable_columns: [TYPE.STRING]
+        stable_columns_mode: TYPE.STRING
+        stable_columns_subset: TYPE.BOOL
+
+      - id: TYPE.STRING
+        label: TYPE.STRING
+        description: TYPE.STRING
+        select:
+          strategy: TYPE.STRING
+          path: TYPE.STRING
+          headers_key: TYPE.STRING
+          data_key: TYPE.STRING
+        stable_columns: [TYPE.STRING]
+        stable_columns_mode: TYPE.STRING
+        stable_columns_subset: TYPE.BOOL
+
+      - id: TYPE.STRING
+        label: TYPE.STRING
+        description: TYPE.STRING
+        select:
+          strategy: TYPE.STRING
+          path: TYPE.STRING
+          headers_key: TYPE.STRING
+          data_key: TYPE.STRING
+          repeat_over:
+            path: TYPE.STRING
+            as: TYPE.STRING
+        stable_columns: [TYPE.STRING]
+        stable_columns_mode: TYPE.STRING
+        stable_columns_subset: TYPE.BOOL
+
+      - id: TYPE.STRING
+        label: TYPE.STRING
+        description: TYPE.STRING
+        select:
+          strategy: TYPE.STRING
+          path: TYPE.STRING
+          headers_key: TYPE.STRING
+          data_key: TYPE.STRING
+          repeat_over:
+            path: TYPE.STRING
+            as: TYPE.STRING
+        stable_columns: [TYPE.STRING]
+        stable_columns_mode: TYPE.STRING
+        stable_columns_subset: TYPE.BOOL
+
+      # Distributions - Histogram
+      - id: TYPE.STRING
+        label: TYPE.STRING
+        description: TYPE.STRING
+        select:
+          strategy: TYPE.STRING
+          path: TYPE.STRING
+          headers_key: TYPE.STRING
+          data_key: TYPE.STRING
+          repeat_over:
+            path: TYPE.STRING
+            as: TYPE.STRING
+        stable_columns: [TYPE.STRING]
+        stable_columns_mode: TYPE.STRING
+        stable_columns_subset: TYPE.BOOL
+
+      - id: TYPE.STRING
+        label: TYPE.STRING
+        description: TYPE.STRING
+        select:
+          strategy: TYPE.STRING
+          path: TYPE.STRING
+          headers_key: TYPE.STRING
+          data_key: TYPE.STRING
+          repeat_over:
+            path: TYPE.STRING
+            as: TYPE.STRING
+        stable_columns: [TYPE.STRING]
+        stable_columns_mode: TYPE.STRING
+        stable_columns_subset: TYPE.BOOL
+
+      # Distributions - LWR/SWR (histogram + statistics)
+      - id: TYPE.STRING
+        label: TYPE.STRING
+        description: TYPE.STRING
+        select:
+          strategy: TYPE.STRING
+          path: TYPE.STRING
+          headers_key: TYPE.STRING
+          data_key: TYPE.STRING
+          repeat_over:
+            path: TYPE.STRING
+            as: TYPE.STRING
+        stable_columns: [TYPE.STRING]
+        stable_columns_mode: TYPE.STRING
+        stable_columns_subset: TYPE.BOOL
+
+      - id: TYPE.STRING
+        label: TYPE.STRING
+        description: TYPE.STRING
+        select:
+          strategy: TYPE.STRING
+          path: TYPE.STRING
+          headers_key: TYPE.STRING
+          data_key: TYPE.STRING
+          repeat_over:
+            path: TYPE.STRING
+            as: TYPE.STRING
+        stable_columns: [TYPE.STRING]
+        stable_columns_mode: TYPE.STRING
+        stable_columns_subset: TYPE.BOOL
+
+      - id: TYPE.STRING
+        label: TYPE.STRING
+        description: TYPE.STRING
+        select:
+          strategy: TYPE.STRING
+          path: TYPE.STRING
+          headers_key: TYPE.STRING
+          data_key: TYPE.STRING
+          repeat_over:
+            path: TYPE.STRING
+            as: TYPE.STRING
+        stable_columns: [TYPE.STRING]
+        stable_columns_mode: TYPE.STRING
+        stable_columns_subset: TYPE.BOOL
+
+      - id: TYPE.STRING
+        label: TYPE.STRING
+        description: TYPE.STRING
+        select:
+          strategy: TYPE.STRING
+          path: TYPE.STRING
+          headers_key: TYPE.STRING
+          data_key: TYPE.STRING
+          repeat_over:
+            path: TYPE.STRING
+            as: TYPE.STRING
+        stable_columns: [TYPE.STRING]
+        stable_columns_mode: TYPE.STRING
+        stable_columns_subset: TYPE.BOOL
+
+      # PSD (Unbiased/Biased)
+      - id: TYPE.STRING
+        label: TYPE.STRING
+        description: TYPE.STRING
+        select:
+          strategy: TYPE.STRING
+          path: TYPE.STRING
+          headers_key: TYPE.STRING
+          data_key: TYPE.STRING
+        stable_columns: [TYPE.STRING]
+        stable_columns_mode: TYPE.STRING
+        stable_columns_subset: TYPE.BOOL
+
+      - id: TYPE.STRING
+        label: TYPE.STRING
+        description: TYPE.STRING
+        select:
+          strategy: TYPE.STRING
+          path: TYPE.STRING
+          headers_key: TYPE.STRING
+          data_key: TYPE.STRING
+        stable_columns: [TYPE.STRING]
+        stable_columns_mode: TYPE.STRING
+        stable_columns_subset: TYPE.BOOL
+
+      - id: TYPE.STRING
+        label: TYPE.STRING
+        description: TYPE.STRING
+        select:
+          strategy: TYPE.STRING
+          path: TYPE.STRING
+          headers_key: TYPE.STRING
+          data_key: TYPE.STRING
+        stable_columns: [TYPE.STRING]
+        stable_columns_mode: TYPE.STRING
+        stable_columns_subset: TYPE.BOOL
+
+      - id: TYPE.STRING
+        label: TYPE.STRING
+        description: TYPE.STRING
+        select:
+          strategy: TYPE.STRING
+          path: TYPE.STRING
+          headers_key: TYPE.STRING
+          data_key: TYPE.STRING
+        stable_columns: [TYPE.STRING]
+        stable_columns_mode: TYPE.STRING
+        stable_columns_subset: TYPE.BOOL
+
+      # Defects (local categories; SSoT extension optional)
+      - id: TYPE.STRING
+        label: TYPE.STRING
+        description: TYPE.STRING
+        select:
+          strategy: TYPE.STRING
+          path: TYPE.STRING
+          headers_key: TYPE.STRING
+          data_key: TYPE.STRING
+          repeat_over:
+            path: TYPE.STRING
+            as: TYPE.STRING
+        stable_columns: [TYPE.STRING]
+        stable_columns_mode: TYPE.STRING
+        stable_columns_subset: TYPE.BOOL
+
+      - id: TYPE.STRING
+        label: TYPE.STRING
+        description: TYPE.STRING
+        select:
+          strategy: TYPE.STRING
+          path: TYPE.STRING
+          headers_key: TYPE.STRING
+          data_key: TYPE.STRING
+          repeat_over:
+            path: TYPE.STRING
+            as: TYPE.STRING
+        stable_columns: [TYPE.STRING]
+        stable_columns_mode: TYPE.STRING
+        stable_columns_subset: TYPE.BOOL
+
+      - id: TYPE.STRING
+        label: TYPE.STRING
+        description: TYPE.STRING
+        select:
+          strategy: TYPE.STRING
+          path: TYPE.STRING
+          headers_key: TYPE.STRING
+          data_key: TYPE.STRING
+          repeat_over:
+            path: TYPE.STRING
+            as: TYPE.STRING
+        stable_columns: [TYPE.STRING]
+        stable_columns_mode: TYPE.STRING
+        stable_columns_subset: TYPE.BOOL
+
+      - id: TYPE.STRING
+        label: TYPE.STRING
+        description: TYPE.STRING
+        select:
+          strategy: TYPE.STRING
+          path: TYPE.STRING
+          headers_key: TYPE.STRING
+          data_key: TYPE.STRING
+        stable_columns: [TYPE.STRING]
+        stable_columns_mode: TYPE.STRING
+        stable_columns_subset: TYPE.BOOL
+
+      - id: TYPE.STRING
+        label: TYPE.STRING
+        description: TYPE.STRING
+        select:
+          strategy: TYPE.STRING
+          path: TYPE.STRING
+        stable_columns: [TYPE.STRING]
+        stable_columns_mode: TYPE.STRING
+        stable_columns_subset: TYPE.BOOL
+
+  # =====================================================================
+  # IMAGE LEVEL
+  # =====================================================================
+  - name: TYPE.STRING
+    apply_context: TYPE.STRING
+    tables:
+      - id: TYPE.STRING
+        label: TYPE.STRING
+        description: TYPE.STRING
+        select:
+          strategy: TYPE.STRING
+          path: TYPE.STRING
+          headers_key: TYPE.STRING
+          data_key: TYPE.STRING
+          repeat_over:
+            path: TYPE.STRING
+            as: TYPE.STRING
+        stable_columns: [TYPE.STRING]
+        stable_columns_mode: TYPE.STRING
+        stable_columns_subset: TYPE.BOOL
+
+      - id: TYPE.STRING
+        label: TYPE.STRING
+        description: TYPE.STRING
+        select:
+          strategy: TYPE.STRING
+          path: TYPE.STRING
+          headers_key: TYPE.STRING
+          data_key: TYPE.STRING
+          repeat_over:
+            path: TYPE.STRING
+            as: TYPE.STRING
+        stable_columns: [TYPE.STRING]
+        stable_columns_mode: TYPE.STRING
+        stable_columns_subset: TYPE.BOOL
+
+normalization:
+  nan_values: [TYPE.STRING]
+  units_policy: TYPE.STRING
+  numeric_coercion: TYPE.BOOL
+
+outputs:
+  defaults:
+    - id: TYPE.STRING
+      from_level: TYPE.STRING
+      from_tables: [TYPE.STRING]
+      include_context: TYPE.BOOL
+    - id: TYPE.STRING
+      from_level: TYPE.STRING
+      from_tables: [TYPE.STRING]
+      include_context: TYPE.BOOL
+    - id: TYPE.STRING
+      from_level: TYPE.STRING
+      from_tables: [TYPE.STRING]
+      include_context: TYPE.BOOL
+    - id: TYPE.STRING
+      from_level: TYPE.STRING
+      from_tables: [TYPE.STRING]
+      include_context: TYPE.BOOL
+  long_form_optional:
+    - id: TYPE.STRING
+      from_level: TYPE.STRING
+      from_tables: [TYPE.STRING]
+      include_context: TYPE.BOOL
+    - id: TYPE.STRING
+      from_level: TYPE.STRING
+      from_tables: [TYPE.STRING]
+      include_context: TYPE.BOOL
+    - id: TYPE.STRING
+      from_level: TYPE.STRING
+      from_tables: [TYPE.STRING]
+      include_context: TYPE.BOOL
+  ui:
+    options:
+      group_by_level: TYPE.BOOL
+      include_context_toggle: TYPE.BOOL
+      population_mode_toggle: [TYPE.STRING]
+      default_selected_tables:
+        run: [TYPE.STRING]
+        image: [TYPE.STRING]
+
+overrides:
+  discovery:
+    mode:
+      allow_replace_profile_file_match: TYPE.BOOL
+    file_match:
+      allow_simple_strings: TYPE.BOOL
+      allow_regex: TYPE.BOOL
+      allowed_ops: [TYPE.STRING]
+      allowed_fields: [TYPE.STRING]
+    limits:
+      max_total_predicates: TYPE.INTEGER
+      max_depth: TYPE.INTEGER
+      max_regex_length: TYPE.INTEGER
+    regex:
+      allowed_flags: [TYPE.STRING]

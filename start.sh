@@ -57,6 +57,17 @@ if [ "$START_FRONTEND" = true ]; then
     # Wait for DAT to start
     sleep 2
     
+    # Start PPTX Generator frontend
+    echo "📊 Starting PPTX Generator frontend on http://localhost:5175"
+    cd apps/pptx_generator/frontend
+    npm install > /dev/null 2>&1
+    npm run dev &
+    PPTX_PID=$!
+    cd ../../..
+    
+    # Wait for PPTX to start
+    sleep 2
+    
     # Start SOV Analyzer frontend
     echo "📈 Starting SOV Analyzer frontend on http://localhost:5174"
     cd apps/sov_analyzer/frontend
@@ -71,6 +82,7 @@ if [ "$START_FRONTEND" = true ]; then
     echo "📍 Frontend Applications:"
     echo "  Homepage:         http://localhost:3000"
     echo "  Data Aggregator:  http://localhost:5173"
+    echo "  PPTX Generator:   http://localhost:5175"
     echo "  SOV Analyzer:     http://localhost:5174"
     echo ""
     echo "🔗 API Gateway & Documentation:"
@@ -84,7 +96,7 @@ if [ "$START_FRONTEND" = true ]; then
     echo ""
     
     # Wait for Ctrl+C
-    trap "kill $GATEWAY_PID $HOMEPAGE_PID $DAT_PID $SOV_PID 2>/dev/null; exit" INT TERM
+    trap "kill $GATEWAY_PID $HOMEPAGE_PID $DAT_PID $PPTX_PID $SOV_PID 2>/dev/null; exit" INT TERM
     wait
 else
     # Start gateway only (foreground)

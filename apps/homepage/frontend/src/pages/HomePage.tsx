@@ -12,6 +12,7 @@ const tools = [
     icon: FileSpreadsheet,
     color: 'bg-emerald-500',
     path: '/tools/dat',
+    appUrl: 'http://localhost:5173',
   },
   {
     id: 'pptx' as const,
@@ -20,6 +21,7 @@ const tools = [
     icon: Presentation,
     color: 'bg-orange-500',
     path: '/tools/pptx',
+    appUrl: 'http://localhost:5175',
   },
   {
     id: 'sov' as const,
@@ -28,6 +30,7 @@ const tools = [
     icon: BarChart3,
     color: 'bg-purple-500',
     path: '/tools/sov',
+    appUrl: 'http://localhost:5174',
   },
 ]
 
