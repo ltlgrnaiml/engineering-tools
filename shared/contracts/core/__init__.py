@@ -22,13 +22,13 @@ from shared.contracts.core.audit import (
 )
 from shared.contracts.core.concurrency import (
     ConcurrencyConfig,
+    ConcurrencyTier,
     OSType,
     PlatformInfo,
-    ShellConfig,
     ShellType,
-    SubprocessConfig,
-    ThreadPoolConfig,
-    ProcessPoolConfig,
+    TaskResult,
+    BatchResult,
+    get_platform_info,
 )
 from shared.contracts.core.dataset import (
     ColumnMeta,
@@ -110,13 +110,13 @@ __all__ = [
     "to_iso8601",
     # Concurrency
     "ConcurrencyConfig",
+    "ConcurrencyTier",
     "OSType",
     "PlatformInfo",
-    "ShellConfig",
     "ShellType",
-    "SubprocessConfig",
-    "ThreadPoolConfig",
-    "ProcessPoolConfig",
+    "TaskResult",
+    "BatchResult",
+    "get_platform_info",
     # DataSet
     "ColumnMeta",
     "DataSetManifest",

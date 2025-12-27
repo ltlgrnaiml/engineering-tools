@@ -67,8 +67,14 @@ Thumbs.db
 # Uploads and generated files
 uploads/
 generated/
+schemas/
 *.pptx
 !templates/*.pptx
+
+# Generated TypeScript types (future)
+types/
+*.d.ts
+!src/**/*.d.ts
 
 # Logs
 *.log

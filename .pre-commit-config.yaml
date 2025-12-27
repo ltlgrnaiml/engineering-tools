@@ -1,0 +1,75 @@
+# Pre-commit hooks for Engineering Tools Platform
+# Per ADR-0009: Type Safety & Contract Discipline
+# Per ADR-0010: Docs-as-Code Engineering Tenets
+#
+# Install: pip install pre-commit && pre-commit install
+# Run all: pre-commit run --all-files
+
+repos:
+  # Python code quality
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.6
+    hooks:
+      - id: ruff
+        args: [--fix, --ignore, E501]
+        types_or: [python, pyi]
+      - id: ruff-format
+        types_or: [python, pyi]
+
+  # Type checking for contracts
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.7.1
+    hooks:
+      - id: mypy
+        files: ^shared/contracts/
+        additional_dependencies: [pydantic>=2.0]
+        args: [--ignore-missing-imports, --no-error-summary]
+
+  # General file hygiene
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: \.md$
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+        exclude: node_modules/
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+      - id: check-merge-conflict
+      - id: debug-statements
+      - id: mixed-line-ending
+        args: [--fix=lf]
+        exclude: \.ps1$
+
+  # Contract validation (local hook)
+  - repo: local
+    hooks:
+      - id: validate-contracts
+        name: Validate Pydantic Contracts
+        entry: python tools/validate_contracts.py
+        language: python
+        files: ^shared/contracts/
+        pass_filenames: false
+        always_run: false
+        stages: [commit]
+
+      - id: validate-adrs
+        name: Validate ADR JSON files
+        entry: python -c "import json, sys; [json.load(open(f)) for f in sys.argv[1:]]"
+        language: python
+        files: ^\.adrs/.*\.json$
+        types: [json]
+
+      - id: validate-specs
+        name: Validate SPEC JSON files
+        entry: python -c "import json, sys; [json.load(open(f)) for f in sys.argv[1:]]"
+        language: python
+        files: ^docs/specs/.*\.json$
+        types: [json]
+
+# CI-only hooks (not run on every commit)
+ci:
+  autofix_prs: false
+  autoupdate_schedule: monthly

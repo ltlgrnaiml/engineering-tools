@@ -35,6 +35,17 @@ if (-not $SkipLint) {
 
 Write-Host ""
 
+# Step 3a: Contract Validation
+$contractValidation = Join-Path $stepsDir "03a-validate-contracts.ps1"
+if (Test-Path $contractValidation) {
+    & $contractValidation
+    if ($LASTEXITCODE -eq 2) {
+        Write-Warning "Contract validation failed - continuing with warnings"
+    }
+}
+
+Write-Host ""
+
 # Step 4: Test
 $testArgs = @()
 if ($Coverage) {
