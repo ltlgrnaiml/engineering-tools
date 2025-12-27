@@ -15,6 +15,7 @@ from apps.pptx_generator.backend.api import (
     config_defaults,
     data,
     data_operations,
+    dataset_input,
     generation,
     health,
     preview,
@@ -74,6 +75,7 @@ app.include_router(health.router, prefix="/api/v1", tags=["health"])
 app.include_router(projects.router, prefix="/api/v1/projects", tags=["projects"])
 app.include_router(templates.router, prefix="/api/v1/templates", tags=["templates"])
 app.include_router(data.router, prefix="/api/v1/data", tags=["data"])
+app.include_router(dataset_input.router, prefix="/api/v1/data", tags=["dataset-input"])
 app.include_router(generation.router, prefix="/api/v1/generation", tags=["generation"])
 app.include_router(requirements.router, prefix="/api/v1/requirements", tags=["requirements"])
 app.include_router(config.router, prefix="/api/v1/config", tags=["config"])
