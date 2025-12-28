@@ -8,7 +8,8 @@ from pathlib import Path
 from typing import Any
 
 from shared.utils.stage_id import compute_stage_id
-from .table_availability import TableInfo, TableStatus
+from shared.contracts.dat.table_status import TableAvailabilityStatus
+from .table_availability import TableInfo
 
 
 @dataclass
@@ -55,7 +56,7 @@ async def execute_table_selection(
     if config.select_all:
         # Select all available tables
         for table in available_tables:
-            if table.status == TableStatus.AVAILABLE:
+            if table.status == TableAvailabilityStatus.AVAILABLE:
                 selected.append(TableSelection(
                     file_path=table.file_path,
                     table_name=table.table_name,
@@ -70,7 +71,7 @@ async def execute_table_selection(
                     t for t in available_tables
                     if t.file_path == sel.file_path 
                     and t.table_name == sel.table_name
-                    and t.status == TableStatus.AVAILABLE
+                    and t.status == TableAvailabilityStatus.AVAILABLE
                 ]
                 if matching:
                     selected.append(sel)

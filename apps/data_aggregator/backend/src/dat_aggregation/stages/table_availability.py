@@ -1,44 +1,36 @@
 """Table Availability stage - probe available tables from selected files.
 
-Per ADR-0006: Table availability uses a deterministic status model:
-- available: Table exists and has data
-- partial: Table exists but may have issues (missing columns, etc.)
-- missing: Table not found in file
-- empty: Table exists but has no data
+Per ADR-0006: Table availability uses a deterministic status model.
+Uses shared contracts from shared.contracts.dat.table_status.
 """
-from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from enum import Enum
 from pathlib import Path
-from typing import Any
 
+from shared.contracts.dat.table_status import (
+    TableAvailabilityStatus,
+    TableParseError,
+)
 from shared.utils.stage_id import compute_stage_id
+from pydantic import BaseModel, Field
 
 
-class TableStatus(str, Enum):
-    """Status of a table in a source file."""
-    AVAILABLE = "available"
-    PARTIAL = "partial"
-    MISSING = "missing"
-    EMPTY = "empty"
-    ERROR = "error"
-
-
-@dataclass
-class TableInfo:
-    """Information about a single table."""
+class TableInfo(BaseModel):
+    """Information about a single table during availability scan.
+    
+    This is a lightweight version used during the scan phase.
+    Maps to TableAvailabilityStatus from shared contracts.
+    """
     file_path: str
     table_name: str
-    status: TableStatus
+    status: TableAvailabilityStatus
     row_count: int | None = None
     column_count: int | None = None
-    columns: list[str] = field(default_factory=list)
-    missing_columns: list[str] = field(default_factory=list)
+    columns: list[str] = Field(default_factory=list)
+    missing_columns: list[str] = Field(default_factory=list)
     error_message: str | None = None
 
 
-@dataclass
-class TableAvailabilityResult:
+class TableAvailabilityResult(BaseModel):
     """Result of table availability probe."""
     availability_id: str
     tables: list[TableInfo]
@@ -80,11 +72,11 @@ async def execute_table_availability(
             for table_name in table_names:
                 try:
                     # Try to read a sample to get metadata
-                    df = adapter.read(file_path, sheet=table_name)
+                    df = adapter.read(file_path, table=table_name)
 
-                    # Determine status per ADR-0006
+                    # Determine status per ADR-0006 using shared contracts
                     if len(df) == 0:
-                        status = TableStatus.EMPTY
+                        status = TableAvailabilityStatus.FAILED
                         missing_cols: list[str] = []
                     elif expected_columns:
                         # Check for missing expected columns per ADR-0006
@@ -93,11 +85,11 @@ async def execute_table_availability(
                             col for col in expected_columns if col not in actual_cols
                         ]
                         if missing_cols:
-                            status = TableStatus.PARTIAL
+                            status = TableAvailabilityStatus.PARTIAL
                         else:
-                            status = TableStatus.AVAILABLE
+                            status = TableAvailabilityStatus.AVAILABLE
                     else:
-                        status = TableStatus.AVAILABLE
+                        status = TableAvailabilityStatus.AVAILABLE
                         missing_cols = []
 
                     tables.append(TableInfo(
@@ -113,7 +105,7 @@ async def execute_table_availability(
                     tables.append(TableInfo(
                         file_path=str(file_path),
                         table_name=table_name,
-                        status=TableStatus.ERROR,
+                        status=TableAvailabilityStatus.FAILED,
                         error_message=str(e),
                     ))
                     
@@ -122,7 +114,7 @@ async def execute_table_availability(
             tables.append(TableInfo(
                 file_path=str(file_path),
                 table_name="<unknown>",
-                status=TableStatus.ERROR,
+                status=TableAvailabilityStatus.FAILED,
                 error_message=f"Unsupported file format: {e}",
             ))
     
@@ -134,7 +126,7 @@ async def execute_table_availability(
     }
     availability_id = compute_stage_id(availability_inputs, prefix="avail_")
     
-    available_count = sum(1 for t in tables if t.status == TableStatus.AVAILABLE)
+    available_count = sum(1 for t in tables if t.status == TableAvailabilityStatus.AVAILABLE)
     
     return TableAvailabilityResult(
         availability_id=availability_id,
@@ -148,7 +140,7 @@ async def execute_table_availability(
 
 def get_tables_by_status(
     result: TableAvailabilityResult,
-    status: TableStatus,
+    status: TableAvailabilityStatus,
 ) -> list[TableInfo]:
     """Filter tables by status."""
     return [t for t in result.tables if t.status == status]

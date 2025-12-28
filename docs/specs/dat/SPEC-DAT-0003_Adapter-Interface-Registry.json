@@ -1,0 +1,248 @@
+{
+  "schema_type": "tech_spec",
+  "id": "SPEC-DAT-0003_Adapter-Interface-Registry",
+  "title": "DAT File Adapter Interface & Registry Specification",
+  "status": "draft",
+  "version": "1.0.0",
+  "created_at": "2025-12-28",
+  "updated_at": "2025-12-28",
+  "author": "Mycahya Eggleston",
+  "scope": "subsystem:DAT",
+  "implements_adrs": [
+    "ADR-0011_Profile-Driven-Extraction-and-Adapters"
+  ],
+  "tier_0_contracts": [
+    {
+      "module": "shared.contracts.dat.adapter",
+      "classes": [
+        "BaseFileAdapter",
+        "AdapterMetadata",
+        "AdapterCapabilities",
+        "SchemaProbeResult",
+        "ColumnInfo",
+        "ReadOptions",
+        "StreamOptions",
+        "FileValidationResult",
+        "AdapterRegistryState"
+      ]
+    }
+  ],
+  "overview": "This specification defines the file adapter interface and registry pattern for DAT. Adapters are responsible for reading various file formats (CSV, Excel, JSON) into Polars DataFrames. The registry provides automatic adapter selection based on file extension or MIME type. All adapters implement a common interface enabling consistent behavior across formats.",
+  "requirements": [
+    {
+      "id": "REQ-ADAPT-001",
+      "description": "All adapters MUST implement the BaseFileAdapter abstract interface",
+      "priority": "must",
+      "acceptance_criteria": [
+        "Adapter class inherits from BaseFileAdapter",
+        "All abstract methods are implemented",
+        "Adapter passes interface compliance tests"
+      ]
+    },
+    {
+      "id": "REQ-ADAPT-002",
+      "description": "All adapters MUST provide metadata via the metadata property",
+      "priority": "must",
+      "acceptance_criteria": [
+        "adapter_id is unique and follows naming pattern [a-z][a-z0-9_]*",
+        "file_extensions list is non-empty for file-based adapters",
+        "capabilities accurately reflect adapter features"
+      ]
+    },
+    {
+      "id": "REQ-ADAPT-003",
+      "description": "Adapters MUST implement probe_schema for fast schema discovery",
+      "priority": "must",
+      "acceptance_criteria": [
+        "Schema probe completes in < 5 seconds for any file size",
+        "Returns column names, inferred types, and sample values",
+        "Does not load entire file into memory"
+      ]
+    },
+    {
+      "id": "REQ-ADAPT-004",
+      "description": "Adapters MUST implement both read_dataframe and stream_dataframe",
+      "priority": "must",
+      "acceptance_criteria": [
+        "read_dataframe loads file into memory (for files <= 10MB)",
+        "stream_dataframe yields chunks (for files > 10MB)",
+        "Both methods support column selection and row limits"
+      ]
+    },
+    {
+      "id": "REQ-ADAPT-005",
+      "description": "AdapterRegistry MUST support automatic adapter selection",
+      "priority": "must",
+      "acceptance_criteria": [
+        "get_adapter_for_file selects adapter by file extension",
+        "MIME type override is supported",
+        "AdapterNotFoundError raised for unknown formats"
+      ]
+    },
+    {
+      "id": "REQ-ADAPT-006",
+      "description": "Built-in adapters MUST be registered at startup",
+      "priority": "must",
+      "acceptance_criteria": [
+        "CSV adapter registered for .csv, .tsv extensions",
+        "Excel adapter registered for .xlsx, .xls extensions",
+        "JSON adapter registered for .json, .jsonl, .ndjson extensions"
+      ]
+    }
+  ],
+  "implementation_details": {
+    "adapter_interface": {
+      "description": "Base abstract class all adapters must implement",
+      "location": "shared/contracts/dat/adapter.py",
+      "methods": [
+        {
+          "name": "metadata",
+          "type": "property",
+          "returns": "AdapterMetadata",
+          "description": "Adapter identification and capabilities"
+        },
+        {
+          "name": "probe_schema",
+          "type": "async method",
+          "params": ["file_path: str", "options: ReadOptions | None"],
+          "returns": "SchemaProbeResult",
+          "description": "Fast schema discovery without full file read"
+        },
+        {
+          "name": "read_dataframe",
+          "type": "async method",
+          "params": ["file_path: str", "options: ReadOptions | None"],
+          "returns": "tuple[DataFrame, ReadResult]",
+          "description": "Eager load entire file into DataFrame"
+        },
+        {
+          "name": "stream_dataframe",
+          "type": "async generator",
+          "params": ["file_path: str", "options: StreamOptions | None"],
+          "yields": "tuple[DataFrame, StreamChunk]",
+          "description": "Stream file in chunks for large files"
+        },
+        {
+          "name": "validate_file",
+          "type": "async method",
+          "params": ["file_path: str", "options: ReadOptions | None"],
+          "returns": "FileValidationResult",
+          "description": "Validate file can be processed"
+        }
+      ]
+    },
+    "registry_pattern": {
+      "description": "Central registry for adapter lookup",
+      "location": "apps/data_aggregator/backend/adapters/registry.py",
+      "methods": [
+        {
+          "name": "register",
+          "params": ["adapter: BaseFileAdapter"],
+          "description": "Register an adapter instance"
+        },
+        {
+          "name": "get_adapter",
+          "params": ["adapter_id: str"],
+          "returns": "BaseFileAdapter",
+          "description": "Get adapter by ID"
+        },
+        {
+          "name": "get_adapter_for_file",
+          "params": ["file_path: str", "mime_type: str | None"],
+          "returns": "BaseFileAdapter",
+          "description": "Auto-select adapter for file"
+        },
+        {
+          "name": "list_adapters",
+          "returns": "list[AdapterMetadata]",
+          "description": "List all registered adapters"
+        }
+      ]
+    },
+    "builtin_adapters": [
+      {
+        "adapter_id": "csv",
+        "class_name": "CSVAdapter",
+        "location": "apps/data_aggregator/backend/adapters/csv_adapter.py",
+        "file_extensions": [".csv", ".tsv"],
+        "capabilities": {
+          "supports_streaming": true,
+          "supports_schema_inference": true,
+          "supports_column_selection": true,
+          "max_recommended_file_size_mb": null
+        },
+        "polars_functions": ["read_csv", "scan_csv"]
+      },
+      {
+        "adapter_id": "excel",
+        "class_name": "ExcelAdapter",
+        "location": "apps/data_aggregator/backend/adapters/excel_adapter.py",
+        "file_extensions": [".xlsx", ".xls"],
+        "capabilities": {
+          "supports_streaming": false,
+          "supports_schema_inference": true,
+          "supports_multiple_sheets": true,
+          "max_recommended_file_size_mb": 100
+        },
+        "polars_functions": ["read_excel"]
+      },
+      {
+        "adapter_id": "json",
+        "class_name": "JSONAdapter",
+        "location": "apps/data_aggregator/backend/adapters/json_adapter.py",
+        "file_extensions": [".json", ".jsonl", ".ndjson"],
+        "capabilities": {
+          "supports_streaming": true,
+          "supports_schema_inference": true,
+          "max_recommended_file_size_mb": 500
+        },
+        "polars_functions": ["read_json", "read_ndjson", "scan_ndjson"]
+      }
+    ]
+  },
+  "api_endpoints": [
+    {
+      "method": "GET",
+      "path": "/api/dat/adapters",
+      "description": "List all registered adapters",
+      "response": "list[AdapterMetadata]"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dat/adapters/{adapter_id}",
+      "description": "Get adapter details",
+      "response": "AdapterMetadata"
+    },
+    {
+      "method": "POST",
+      "path": "/api/dat/adapters/detect",
+      "description": "Detect adapter for a file path",
+      "request": {"file_path": "string"},
+      "response": "AdapterMetadata"
+    }
+  ],
+  "validation_commands": [
+    "pytest tests/dat/test_adapters.py -v",
+    "pytest tests/dat/test_adapter_registry.py -v"
+  ],
+  "acceptance_criteria_summary": [
+    "All 3 built-in adapters (CSV, Excel, JSON) implement BaseFileAdapter",
+    "AdapterRegistry auto-selects adapters by file extension",
+    "Schema probing completes in < 5 seconds for any file size",
+    "Streaming works for files > 10MB",
+    "All adapters have 100% test coverage for interface methods"
+  ],
+  "related_specs": [
+    "SPEC-DAT-0004_Large-File-Streaming",
+    "SPEC-DAT-0005_Profile-File-Management",
+    "SPEC-DAT-0002_Profile-Extraction"
+  ],
+  "tags": [
+    "dat",
+    "adapter",
+    "registry",
+    "csv",
+    "excel",
+    "json"
+  ]
+}

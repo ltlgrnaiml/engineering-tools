@@ -53,6 +53,29 @@ from shared.contracts.core.id_generator import (
     verify_id_determinism,
     IDConfig,
 )
+from shared.contracts.core.idempotency import (
+    IdempotencyKey,
+    IdempotencyRecord,
+    IdempotencyStatus,
+    IdempotencyConfig,
+    IdempotencyCheck,
+    IdempotencyConflict,
+)
+from shared.contracts.core.logging import (
+    LogEvent,
+    LogLevel,
+    RequestContext,
+    StateSnapshot,
+    FSMTransitionLog,
+    ArtifactLog,
+    TraceQuery,
+    TraceResult,
+)
+from shared.contracts.core.dataset import (
+    VersionRecord,
+    LineageRecord,
+    LineageGraph,
+)
 
 __all__ = [
     # Version
@@ -62,6 +85,9 @@ __all__ = [
     "DataSetManifest",
     "DataSetRef",
     "DataSetPreview",
+    "VersionRecord",
+    "LineageRecord",
+    "LineageGraph",
     # Pipeline
     "Pipeline",
     "PipelineStep",
@@ -84,4 +110,20 @@ __all__ = [
     "compute_content_hash",
     "verify_id_determinism",
     "IDConfig",
+    # Idempotency
+    "IdempotencyKey",
+    "IdempotencyRecord",
+    "IdempotencyStatus",
+    "IdempotencyConfig",
+    "IdempotencyCheck",
+    "IdempotencyConflict",
+    # Logging/Observability
+    "LogEvent",
+    "LogLevel",
+    "RequestContext",
+    "StateSnapshot",
+    "FSMTransitionLog",
+    "ArtifactLog",
+    "TraceQuery",
+    "TraceResult",
 ]

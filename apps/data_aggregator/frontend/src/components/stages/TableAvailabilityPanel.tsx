@@ -85,8 +85,8 @@ export function TableAvailabilityPanel({ runId }: TableAvailabilityPanelProps) {
               </tr>
             </thead>
             <tbody>
-              {tables?.map((table, idx) => (
-                <tr key={idx} className="border-b border-slate-100 last:border-0">
+              {tables?.map((table) => (
+                <tr key={`${table.file}:${table.name}`} className="border-b border-slate-100 last:border-0">
                   <td className="px-4 py-3">
                     {table.available ? (
                       <CheckCircle2 className="w-5 h-5 text-emerald-500" />

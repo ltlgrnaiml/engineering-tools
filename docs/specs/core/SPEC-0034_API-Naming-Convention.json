@@ -1,181 +1,205 @@
 {
   "schema_type": "spec",
   "id": "SPEC-0034",
-  "title": "API Naming Convention Specification",
-  "version": "0.1.0",
+  "title": "Simplified API Naming Convention Specification",
+  "version": "2025.12.001",
   "status": "active",
   "implements": "ADR-0029",
   "date": "2025-12-28",
   "scope": "core",
-  "summary": "Technical specification for API endpoint naming, versioning patterns, and URL structure across the Engineering Tools Platform.",
+  "summary": "Technical specification for simplified API endpoint naming without version prefixes. Pattern: /api/{tool}/{resource} for tool-specific, /api/{resource} for cross-tool. Version suffix (e.g., /runs-v2) added only on breaking changes.",
+  "changelog": [
+    {
+      "version": "2025.12.001",
+      "date": "2025-12-28",
+      "change": "SIMPLIFIED: Removed /v1/ prefix from all routes per ADR-0029 solo-dev simplification"
+    }
+  ],
   "url_patterns": {
     "gateway_cross_tool_apis": {
-      "base_pattern": "/api/v1/{resource}",
+      "base_pattern": "/api/{resource}",
+      "note": "NO version prefix by default; suffix versioning on breaking changes only",
       "endpoints": {
         "datasets": {
-          "list": "GET /api/v1/datasets",
-          "get": "GET /api/v1/datasets/{dataset_id}",
-          "preview": "GET /api/v1/datasets/{dataset_id}/preview",
-          "lineage": "GET /api/v1/datasets/{dataset_id}/lineage"
+          "list": "GET /api/datasets",
+          "get": "GET /api/datasets/{dataset_id}",
+          "preview": "GET /api/datasets/{dataset_id}/preview",
+          "lineage": "GET /api/datasets/{dataset_id}/lineage"
         },
         "pipelines": {
-          "list": "GET /api/v1/pipelines",
-          "get": "GET /api/v1/pipelines/{pipeline_id}",
-          "create": "POST /api/v1/pipelines",
-          "execute": "POST /api/v1/pipelines/{pipeline_id}/execute",
-          "cancel": "POST /api/v1/pipelines/{pipeline_id}/cancel"
+          "list": "GET /api/pipelines",
+          "get": "GET /api/pipelines/{pipeline_id}",
+          "create": "POST /api/pipelines",
+          "execute": "POST /api/pipelines/{pipeline_id}/execute",
+          "cancel": "POST /api/pipelines/{pipeline_id}/cancel"
         },
         "devtools": {
-          "adrs_list": "GET /api/v1/devtools/adrs",
-          "adr_get": "GET /api/v1/devtools/adrs/{folder}/{filename}",
-          "adr_create": "POST /api/v1/devtools/adrs",
-          "adr_update": "PUT /api/v1/devtools/adrs/{folder}/{filename}"
+          "adrs_list": "GET /api/devtools/adrs",
+          "adr_get": "GET /api/devtools/adrs/{folder}/{filename}",
+          "adr_create": "POST /api/devtools/adrs",
+          "adr_update": "PUT /api/devtools/adrs/{folder}/{filename}"
         }
       }
     },
     "tool_specific_apis": {
       "dat": {
-        "base_pattern": "/api/dat/v1/{resource}",
-        "router_config": "APIRouter(prefix='/v1')",
+        "base_pattern": "/api/dat/{resource}",
+        "router_config": "APIRouter() - no prefix needed",
         "gateway_mount": "app.mount('/api/dat', dat_app)",
         "endpoints": {
           "runs": {
-            "list": "GET /api/dat/v1/runs",
-            "get": "GET /api/dat/v1/runs/{run_id}",
-            "create": "POST /api/dat/v1/runs"
+            "list": "GET /api/dat/runs",
+            "get": "GET /api/dat/runs/{run_id}",
+            "create": "POST /api/dat/runs"
           },
           "stages": {
-            "get_status": "GET /api/dat/v1/runs/{run_id}/stages/{stage}",
-            "lock": "POST /api/dat/v1/runs/{run_id}/stages/{stage}/lock",
-            "unlock": "POST /api/dat/v1/runs/{run_id}/stages/{stage}/unlock",
-            "scan": "POST /api/dat/v1/runs/{run_id}/stages/selection/scan"
+            "get_status": "GET /api/dat/runs/{run_id}/stages/{stage}",
+            "lock": "POST /api/dat/runs/{run_id}/stages/{stage}/lock",
+            "unlock": "POST /api/dat/runs/{run_id}/stages/{stage}/unlock",
+            "scan": "POST /api/dat/runs/{run_id}/stages/selection/scan"
           },
           "export": {
-            "create": "POST /api/dat/v1/runs/{run_id}/export"
+            "create": "POST /api/dat/runs/{run_id}/export"
           },
           "profiles": {
-            "list": "GET /api/dat/v1/profiles"
+            "list": "GET /api/dat/profiles"
           }
         }
       },
       "sov": {
-        "base_pattern": "/api/sov/v1/{resource}",
-        "router_config": "APIRouter(prefix='/v1')",
+        "base_pattern": "/api/sov/{resource}",
+        "router_config": "APIRouter() - no prefix needed",
         "gateway_mount": "app.mount('/api/sov', sov_app)",
         "endpoints": {
           "analyses": {
-            "list": "GET /api/sov/v1/analyses",
-            "get": "GET /api/sov/v1/analyses/{analysis_id}",
-            "create": "POST /api/sov/v1/analyses",
-            "run": "POST /api/sov/v1/analyses/{analysis_id}/run",
-            "export": "POST /api/sov/v1/analyses/{analysis_id}/export"
+            "list": "GET /api/sov/analyses",
+            "get": "GET /api/sov/analyses/{analysis_id}",
+            "create": "POST /api/sov/analyses",
+            "run": "POST /api/sov/analyses/{analysis_id}/run",
+            "export": "POST /api/sov/analyses/{analysis_id}/export"
           }
         }
       },
       "pptx": {
-        "base_pattern": "/api/pptx/v1/{resource}",
-        "router_config": "Individual routers mounted with prefix='/api/v1/{resource}'",
+        "base_pattern": "/api/pptx/{resource}",
+        "router_config": "APIRouter() - routes mounted directly",
         "gateway_mount": "app.mount('/api/pptx', pptx_app)",
         "endpoints": {
           "projects": {
-            "list": "GET /api/pptx/v1/projects",
-            "get": "GET /api/pptx/v1/projects/{project_id}",
-            "create": "POST /api/pptx/v1/projects",
-            "from_dataset": "POST /api/pptx/v1/projects/{project_id}/from-dataset",
-            "generate": "POST /api/pptx/v1/projects/{project_id}/generate",
-            "render": "POST /api/pptx/v1/projects/{project_id}/render"
+            "list": "GET /api/pptx/projects",
+            "get": "GET /api/pptx/projects/{project_id}",
+            "create": "POST /api/pptx/projects",
+            "from_dataset": "POST /api/pptx/projects/{project_id}/from-dataset",
+            "generate": "POST /api/pptx/projects/{project_id}/generate",
+            "render": "POST /api/pptx/projects/{project_id}/render"
           },
           "templates": {
-            "list": "GET /api/pptx/v1/templates",
-            "get": "GET /api/pptx/v1/templates/{template_id}"
+            "list": "GET /api/pptx/templates",
+            "get": "GET /api/pptx/templates/{template_id}"
           },
           "data": {
-            "upload": "POST /api/pptx/v1/data/upload"
+            "upload": "POST /api/pptx/data/upload"
           },
           "preview": {
-            "get": "GET /api/pptx/v1/preview/{project_id}"
+            "get": "GET /api/pptx/preview/{project_id}"
           }
         }
       }
     },
     "health_endpoints": {
-      "note": "Health endpoints are UNVERSIONED per ADR-0029",
+      "note": "Health endpoints remain simple per ADR-0029",
       "endpoints": {
-        "gateway_health": "GET /health OR GET /api/health",
+        "gateway_health": "GET /health",
         "dat_health": "GET /api/dat/health",
         "sov_health": "GET /api/sov/health",
         "pptx_health": "GET /api/pptx/health"
       }
+    },
+    "suffix_versioning": {
+      "note": "Used ONLY when breaking change requires parallel implementation",
+      "trigger": "Breaking API change where old behavior must be preserved",
+      "pattern": "/{resource}-v2 alongside /{resource}",
+      "example": {
+        "original": "/api/dat/runs",
+        "new_version": "/api/dat/runs-v2",
+        "deprecation": "Original marked deprecated in OpenAPI; removed after migration"
+      }
     }
   },
   "frontend_api_constants": {
-    "note": "Frontend applications should use these base paths for API calls",
+    "note": "Frontend applications use simplified paths (no /v1/)",
     "dat_frontend": {
-      "base": "/api/dat/v1",
+      "base": "/api/dat",
       "examples": [
-        "fetch(`/api/dat/v1/runs`)",
-        "fetch(`/api/dat/v1/runs/${runId}`)",
-        "fetch(`/api/dat/v1/runs/${runId}/stages/${stage}/lock`)"
+        "fetch(`/api/dat/runs`)",
+        "fetch(`/api/dat/runs/${runId}`)",
+        "fetch(`/api/dat/runs/${runId}/stages/${stage}/lock`)"
       ]
     },
     "sov_frontend": {
-      "base": "/api/sov/v1",
+      "base": "/api/sov",
       "examples": [
-        "fetch(`/api/sov/v1/analyses`)",
-        "fetch(`/api/sov/v1/analyses/${analysisId}`)"
+        "fetch(`/api/sov/analyses`)",
+        "fetch(`/api/sov/analyses/${analysisId}`)"
       ]
     },
     "homepage_frontend": {
-      "datasets_base": "/api/v1/datasets",
-      "pipelines_base": "/api/v1/pipelines",
+      "datasets_base": "/api/datasets",
+      "pipelines_base": "/api/pipelines",
       "examples": [
-        "fetch(`/api/v1/datasets`)",
-        "fetch(`/api/v1/pipelines/${pipelineId}/execute`)"
+        "fetch(`/api/datasets`)",
+        "fetch(`/api/pipelines/${pipelineId}/execute`)"
       ]
     }
   },
   "implementation_checklist": {
     "backend": [
-      "DAT: router = APIRouter(prefix='/v1') - routes use /runs, /profiles, etc.",
-      "SOV: router = APIRouter(prefix='/v1') - routes use /analyses (NO duplicate /v1/)",
-      "PPTX: Each router mounted at /api/v1/{resource}",
-      "Gateway: Cross-tool routes at /api/v1/datasets, /api/v1/pipelines"
+      "DAT: router = APIRouter() - routes use /runs, /profiles directly",
+      "SOV: router = APIRouter() - routes use /analyses directly",
+      "PPTX: Routers mounted directly under /api/pptx/",
+      "Gateway: Cross-tool routes at /api/datasets, /api/pipelines (no /v1/)"
     ],
     "frontend": [
-      "DAT frontend: All fetch calls use /api/dat/v1/... pattern",
-      "SOV frontend: All fetch calls use /api/sov/v1/... pattern",
-      "Homepage: Dataset calls use /api/v1/datasets/...",
-      "Homepage: Pipeline calls use /api/v1/pipelines/..."
+      "DAT frontend: All fetch calls use /api/dat/... pattern",
+      "SOV frontend: All fetch calls use /api/sov/... pattern",
+      "Homepage: Dataset calls use /api/datasets/...",
+      "Homepage: Pipeline calls use /api/pipelines/..."
     ],
     "tests": [
-      "All test API calls must use versioned paths",
+      "All test API calls must use simplified paths (no /v1/)",
       "Integration tests verify actual route accessibility"
+    ],
+    "migration_from_v1": [
+      "Remove prefix='/v1' from all APIRouter() calls",
+      "Update frontend fetch calls to remove /v1/",
+      "Update test URLs to remove /v1/",
+      "Verify OpenAPI spec reflects simplified paths"
     ]
   },
   "validation_commands": {
-    "verify_dat_routes": "curl http://localhost:8000/api/dat/v1/runs",
-    "verify_sov_routes": "curl http://localhost:8000/api/sov/v1/analyses",
-    "verify_pptx_routes": "curl http://localhost:8000/api/pptx/v1/projects",
-    "verify_datasets": "curl http://localhost:8000/api/v1/datasets",
-    "verify_pipelines": "curl http://localhost:8000/api/v1/pipelines",
+    "verify_dat_routes": "curl http://localhost:8000/api/dat/runs",
+    "verify_sov_routes": "curl http://localhost:8000/api/sov/analyses",
+    "verify_pptx_routes": "curl http://localhost:8000/api/pptx/projects",
+    "verify_datasets": "curl http://localhost:8000/api/datasets",
+    "verify_pipelines": "curl http://localhost:8000/api/pipelines",
     "verify_health": "curl http://localhost:8000/health"
   },
   "common_mistakes": [
     {
-      "mistake": "Double /v1/ in route decorator when router already has prefix",
-      "wrong": "router = APIRouter(prefix='/v1'); @router.get('/v1/analyses')",
-      "correct": "router = APIRouter(prefix='/v1'); @router.get('/analyses')"
+      "mistake": "Adding /v1/ prefix (old pattern)",
+      "wrong": "fetch('/api/dat/v1/runs')",
+      "correct": "fetch('/api/dat/runs')"
     },
     {
-      "mistake": "Missing /v1/ in frontend API calls",
-      "wrong": "fetch('/api/dat/runs')",
-      "correct": "fetch('/api/dat/v1/runs')"
+      "mistake": "Using path versioning instead of suffix versioning",
+      "wrong": "/api/dat/v2/runs (path versioning)",
+      "correct": "/api/dat/runs-v2 (suffix versioning for breaking changes)"
     },
     {
-      "mistake": "Inconsistent cross-tool API paths",
-      "wrong": "fetch('/api/datasets/v1/') or fetch('/api/v1/dataset/')",
-      "correct": "fetch('/api/v1/datasets')"
+      "mistake": "Adding version to cross-tool APIs",
+      "wrong": "fetch('/api/v1/datasets')",
+      "correct": "fetch('/api/datasets')"
     }
   ],
-  "tags": ["api", "naming", "versioning", "specification", "url-patterns"]
+  "tags": ["api", "naming", "simplified", "solo-dev", "url-patterns"]
 }

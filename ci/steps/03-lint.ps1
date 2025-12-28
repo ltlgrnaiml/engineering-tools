@@ -48,4 +48,24 @@ if (Test-Path $homepageFrontend) {
     Pop-Location
 }
 
+# === Contract Validation (ADR-0009, ADR-0034) ===
+
+# Generate JSON Schemas from Pydantic contracts
+Write-Host "Generating JSON Schemas from contracts..." -ForegroundColor Yellow
+$genSchemaResult = python $rootDir/tools/gen_json_schema.py --validate 2>&1
+if ($LASTEXITCODE -ne 0) {
+    Write-Warning "JSON Schema generation failed"
+    Write-Host $genSchemaResult
+}
+
+# Check for contract drift
+Write-Host "Checking for contract drift..." -ForegroundColor Yellow
+$driftResult = python $rootDir/tools/check_contract_drift.py --fail-on-breaking 2>&1
+if ($LASTEXITCODE -eq 2) {
+    Write-Error "BREAKING contract changes detected! Per ADR-0016, bump version."
+    exit 1
+} elseif ($LASTEXITCODE -eq 1) {
+    Write-Warning "Non-breaking contract drift detected"
+}
+
 Write-Host "=== Linting Complete ===" -ForegroundColor Cyan

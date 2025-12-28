@@ -212,12 +212,13 @@ class JSONAdapter:
                 data_keys = ["data", "values", "rows", "bins", "items"]
                 if any(k in data for k in data_keys):
                     tables.append(path or "$")
-                    return
+                    return  # Don't recurse further - this is a complete table
             
             # Check for array of objects (potential table)
             for key, value in data.items():
                 new_path = f"{path}.{key}" if path else f"$.{key}"
                 if isinstance(value, list) and value and isinstance(value[0], dict):
+                    # Array of objects - add as single table
                     tables.append(new_path)
                 elif isinstance(value, dict):
                     JSONAdapter._find_tables(value, new_path, tables, depth + 1)

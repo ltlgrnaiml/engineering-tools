@@ -83,6 +83,8 @@ These ADRs define patterns that ALL tools (DAT, PPTX, SOV) MUST follow:
 | ADR-0011 | Profile-Driven Extraction and Adapters | - |
 | ADR-0013 | Cancellation Semantics for Parse and Export | ADR-0002 |
 | ADR-0014 | Parse and Export Artifact Formats | ADR-0008 |
+| **ADR-0040** | **Large File Streaming Strategy (10MB threshold)** | ADR-0011 |
+| **ADR-0041** | **DAT UI Horizontal Wizard Pattern** | ADR-0001-DAT |
 
 ### PPTX Generator
 
@@ -164,4 +166,4 @@ See `.adrs/TODO_CODE_VALIDATION.md` for the validation checklist.
 
 *Last Updated: 2025-12-28*
 *Maintainer: Mycahya Eggleston*
-*Total ADRs: 40 (26 core + 7 DAT + 4 PPTX + 3 SOV)*
+*Total ADRs: 42 (26 core + 9 DAT + 4 PPTX + 3 SOV)*

@@ -3,11 +3,11 @@
 from .selection import FileInfo, SelectionResult, execute_selection, discover_files
 from .context import ContextConfig, ContextResult, execute_context, apply_context_to_dataframe
 from .table_availability import (
-    TableStatus,
     TableInfo,
     TableAvailabilityResult,
     execute_table_availability,
 )
+from shared.contracts.dat.table_status import TableAvailabilityStatus
 from .table_selection import (
     TableSelection,
     TableSelectionConfig,
@@ -31,7 +31,7 @@ __all__ = [
     "execute_context",
     "apply_context_to_dataframe",
     # Table Availability
-    "TableStatus",
+    "TableAvailabilityStatus",
     "TableInfo",
     "TableAvailabilityResult",
     "execute_table_availability",

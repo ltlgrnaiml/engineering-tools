@@ -1,0 +1,184 @@
+{
+  "schema_type": "spec",
+  "id": "SPEC-0043",
+  "title": "Deployment Infrastructure Specification",
+  "version": "2025.12.001",
+  "status": "active",
+  "implements": "ADR-0039",
+  "date": "2025-12-28",
+  "scope": "core",
+  "summary": "Technical specification for deployment automation using Pulumi IaC, environment parity, and feature flags.",
+  "infrastructure_as_code": {
+    "tool": "Pulumi",
+    "sdk": "Python",
+    "rationale": [
+      "Python SDK aligns with codebase language",
+      "Strong typing with IDE support",
+      "Multi-cloud support (Azure primary)",
+      "Declarative with imperative escape hatches"
+    ],
+    "project_structure": {
+      "directory": "infra/",
+      "files": {
+        "__main__.py": "Pulumi entry point",
+        "config/base.py": "Shared configuration",
+        "config/dev.py": "Development overrides",
+        "config/staging.py": "Staging overrides",
+        "config/prod.py": "Production overrides",
+        "resources/": "Resource definitions by type"
+      }
+    },
+    "state_management": {
+      "backend": "Pulumi Cloud (recommended) or Azure Blob Storage",
+      "stacks": ["dev", "staging", "prod"]
+    }
+  },
+  "environment_configuration": {
+    "parity_principle": "All environments use same resource types; only scale/flags differ",
+    "base_config": {
+      "location": "infra/config/base.py",
+      "contents": [
+        "Resource names",
+        "Network configuration",
+        "Security policies",
+        "Monitoring setup"
+      ]
+    },
+    "environment_overrides": {
+      "dev": {
+        "scale": "Minimal (1 instance, small SKUs)",
+        "debug": true,
+        "cost": "Lowest"
+      },
+      "staging": {
+        "scale": "Production-like (reduced)",
+        "debug": false,
+        "cost": "Medium"
+      },
+      "prod": {
+        "scale": "Full production",
+        "debug": false,
+        "cost": "As needed"
+      }
+    }
+  },
+  "target_cloud": {
+    "provider": "Azure",
+    "resources": {
+      "compute": {
+        "service": "Azure Container Apps",
+        "rationale": "Serverless containers; scales to zero; Kubernetes-based"
+      },
+      "storage": {
+        "service": "Azure Blob Storage",
+        "usage": "Artifacts, DataSets, static files"
+      },
+      "database": {
+        "service": "Azure Cosmos DB (if needed)",
+        "usage": "Metadata, pipeline registry (future)"
+      },
+      "cdn": {
+        "service": "Azure CDN",
+        "usage": "Static frontend assets"
+      }
+    },
+    "pulumi_providers": ["pulumi-azure-native"]
+  },
+  "feature_flags": {
+    "purpose": "Enable gradual rollout, A/B testing, quick disable",
+    "implementation": {
+      "simple": {
+        "method": "Environment variables",
+        "format": "FEATURE_{NAME}_ENABLED=true|false",
+        "examples": [
+          "FEATURE_SOV_ANOVA_V2=false",
+          "FEATURE_PPTX_NEW_RENDERER=true",
+          "FEATURE_DEBUG_LOGGING=true"
+        ]
+      },
+      "advanced": {
+        "method": "Configuration file or feature flag service",
+        "file": "config/features.json",
+        "future": "LaunchDarkly, Azure App Configuration"
+      }
+    },
+    "usage_in_code": "if os.getenv('FEATURE_X_ENABLED', 'false').lower() == 'true':"
+  },
+  "deployment_workflow": {
+    "to_staging": {
+      "trigger": "Automatic on main branch merge",
+      "github_action": ".github/workflows/deploy-staging.yml",
+      "steps": [
+        "CI checks pass",
+        "pulumi preview --stack staging",
+        "pulumi up --stack staging --yes",
+        "Health checks",
+        "Notify on success/failure"
+      ]
+    },
+    "to_production": {
+      "trigger": "Manual (workflow_dispatch)",
+      "github_action": ".github/workflows/deploy-prod.yml",
+      "steps": [
+        "Verify staging healthy",
+        "pulumi preview --stack prod",
+        "Manual approval (GitHub environment protection)",
+        "pulumi up --stack prod --yes",
+        "Health checks",
+        "Notify on success/failure"
+      ]
+    },
+    "rollback": {
+      "method": "Git revert + redeploy",
+      "steps": [
+        "git revert <commit>",
+        "PR and merge revert",
+        "Automatic staging deploy (or manual prod)",
+        "Verify rollback"
+      ],
+      "alternative": "pulumi stack history; pulumi up --target-urn"
+    }
+  },
+  "pulumi_commands": {
+    "preview": "pulumi preview --stack {env}",
+    "deploy": "pulumi up --stack {env} --yes",
+    "destroy": "pulumi destroy --stack {env} --yes",
+    "history": "pulumi stack history",
+    "output": "pulumi stack output"
+  },
+  "requirements": [
+    {
+      "id": "REQ-DEPLOY-001",
+      "description": "All infrastructure MUST be defined in Pulumi code"
+    },
+    {
+      "id": "REQ-DEPLOY-002",
+      "description": "Environments MUST use same resource definitions"
+    },
+    {
+      "id": "REQ-DEPLOY-003",
+      "description": "Feature flags MUST be configurable per environment"
+    },
+    {
+      "id": "REQ-DEPLOY-004",
+      "description": "Deployments MUST be idempotent"
+    },
+    {
+      "id": "REQ-DEPLOY-005",
+      "description": "Rollback MUST be possible via git revert"
+    }
+  ],
+  "validation_commands": {
+    "preview_staging": "cd infra && pulumi preview --stack staging",
+    "deploy_staging": "cd infra && pulumi up --stack staging --yes",
+    "check_feature_flag": "echo $FEATURE_X_ENABLED"
+  },
+  "references": [
+    "ADR-0039_Deployment-Automation",
+    "Pulumi: https://www.pulumi.com/",
+    "Azure Container Apps: https://azure.microsoft.com/products/container-apps/",
+    "infra/",
+    ".github/workflows/deploy-*.yml"
+  ],
+  "tags": ["deployment", "pulumi", "azure", "feature-flags", "infrastructure", "specification"]
+}

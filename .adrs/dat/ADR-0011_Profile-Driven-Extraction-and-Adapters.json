@@ -16,6 +16,11 @@
       "at": "2025-12-27",
       "by": "DevTools Editor",
       "note": "Updated via DevTools ADR Editor"
+    },
+    {
+      "at": "2025-12-28",
+      "by": "Mycahya Eggleston",
+      "note": "Added concrete adapter interface contract reference (shared/contracts/dat/adapter.py)"
     }
   ],
   "context": "Supporting extensible, deterministic, and user-customizable data extraction across multiple formats is critical for operational excellence and auditability. Hardcoded extraction logic and ad-hoc scripts lead to code drift, poor provenance, and limited extensibility. A profile-driven approach, with versioned profiles as the single source of truth and an AdapterFactory pattern for format extensibility, ensures that extraction logic is governed, reproducible, and easily extended. Context mapping, stable column policies, and diagnostic messaging must be profile-driven and standardized.",
@@ -31,12 +36,29 @@
       "Provenance (hashes, timestamps, seed) must be recorded per ADR-0008."
     ],
     "implementation_specs": [
+      "SPEC-DAT-0003_Adapter-Interface-Registry",
+      "SPEC-DAT-0005_Profile-File-Management",
       "SPEC-0015_Cancellation-Cleanup-Spec",
       "SPEC-0002_Profile-Context-Orchestration",
       "SPEC-0007_Stable-Columns-Policy-Spec",
       "SPEC-0016_Path-Safety-And-Normalization-Spec",
       "SPEC-0005_Message-Catalog-Spec",
       "SPEC-0011_Profile-Driven-Extraction"
+    ],
+    "tier_0_contracts": [
+      "shared.contracts.dat.adapter.BaseFileAdapter",
+      "shared.contracts.dat.adapter.AdapterMetadata",
+      "shared.contracts.dat.adapter.AdapterCapabilities",
+      "shared.contracts.dat.adapter.SchemaProbeResult",
+      "shared.contracts.dat.adapter.ReadOptions",
+      "shared.contracts.dat.adapter.StreamOptions",
+      "shared.contracts.dat.profile.ExtractionProfile"
+    ],
+    "builtin_adapters": [
+      {"adapter_id": "csv", "file_extensions": [".csv", ".tsv"], "status": "planned"},
+      {"adapter_id": "excel", "file_extensions": [".xlsx", ".xls"], "status": "planned"},
+      {"adapter_id": "json", "file_extensions": [".json", ".jsonl", ".ndjson"], "status": "planned"},
+      {"adapter_id": "sql", "file_extensions": [], "status": "future"}
     ]
   },
   "consequences": [
@@ -106,11 +128,13 @@
     "path-safety"
   ],
   "affected_components": [
-    "profile schema",
-    "adapter registry",
-    "diagnostics catalog",
-    "ci pipeline",
-    "developer workflow"
+    "shared/contracts/dat/adapter.py",
+    "shared/contracts/dat/profile.py",
+    "apps/data_aggregator/backend/adapters/registry.py",
+    "apps/data_aggregator/backend/adapters/csv_adapter.py",
+    "apps/data_aggregator/backend/adapters/excel_adapter.py",
+    "apps/data_aggregator/backend/adapters/json_adapter.py",
+    "apps/data_aggregator/config/profiles/"
   ],
   "review_date": "2026-05-22"
 }

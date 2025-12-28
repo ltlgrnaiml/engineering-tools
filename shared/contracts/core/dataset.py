@@ -128,3 +128,89 @@ class DataSetPreview(BaseModel):
     rows: list[dict]  # First N rows as dicts
     total_rows: int
     preview_rows: int
+
+
+class VersionRecord(BaseModel):
+    """Record of a single DataSet version.
+
+    Per ADR-0025 extension: Content-addressable versioning via SHA-256.
+    """
+
+    version_id: str = Field(
+        ...,
+        description="SHA-256 hash of Parquet content (content-addressable)",
+    )
+    created_at: datetime = Field(
+        ...,
+        description="When this version was created (ISO-8601 UTC)",
+    )
+    parent_version_id: str | None = Field(
+        None,
+        description="version_id of parent DataSet at time of derivation",
+    )
+    size_bytes: int | None = None
+    row_count: int | None = None
+
+
+class LineageRecord(BaseModel):
+    """Record of DataSet lineage relationship.
+
+    Per ADR-0025: Cross-tool data lineage tracking.
+    """
+
+    dataset_id: str = Field(
+        ...,
+        description="ID of the DataSet this record describes",
+    )
+    parent_dataset_id: str = Field(
+        ...,
+        description="ID of the parent DataSet",
+    )
+    parent_version_id: str | None = Field(
+        None,
+        description="Specific version of parent used (for reproducibility)",
+    )
+    relationship_type: str = Field(
+        default="derived",
+        description="Type of relationship: 'derived', 'subset', 'transformed', 'aggregated'",
+    )
+    created_at: datetime = Field(
+        ...,
+        description="When this lineage relationship was created",
+    )
+    created_by_tool: Literal["dat", "sov", "pptx", "manual"] = Field(
+        ...,
+        description="Tool that created this relationship",
+    )
+    transformation_info: dict | None = Field(
+        None,
+        description="Optional details about the transformation applied",
+    )
+
+
+class LineageGraph(BaseModel):
+    """Graph of DataSet lineage relationships.
+
+    Per ADR-0025: Lineage queries support forward and backward traversal.
+    """
+
+    root_dataset_id: str = Field(
+        ...,
+        description="Starting point for lineage query",
+    )
+    direction: Literal["upstream", "downstream", "both"] = Field(
+        default="both",
+        description="Direction of lineage traversal",
+    )
+    nodes: list[DataSetRef] = Field(
+        default_factory=list,
+        description="DataSet nodes in the graph",
+    )
+    edges: list[LineageRecord] = Field(
+        default_factory=list,
+        description="Lineage relationships (edges) in the graph",
+    )
+    max_depth: int | None = Field(
+        None,
+        description="Maximum depth traversed",
+    )

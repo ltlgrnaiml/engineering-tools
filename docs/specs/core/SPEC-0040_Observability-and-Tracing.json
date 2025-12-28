@@ -1,0 +1,159 @@
+{
+  "schema_type": "spec",
+  "id": "SPEC-0040",
+  "title": "Observability and Tracing Specification",
+  "version": "2025.12.001",
+  "status": "active",
+  "implements": "ADR-0036",
+  "date": "2025-12-28",
+  "scope": "core",
+  "summary": "Technical specification for structured JSON logging, request ID propagation, FSM state logging, artifact logging, and DevTools trace viewer.",
+  "tier_0_contracts": [
+    {
+      "module": "shared.contracts.core.logging",
+      "classes": ["LogEvent", "RequestContext", "StateSnapshot"],
+      "note": "NEW - to be created"
+    }
+  ],
+  "logging_implementation": {
+    "library": "structlog",
+    "format": "JSON lines (one JSON object per log line)",
+    "configuration": {
+      "location": "shared/logging/config.py",
+      "processors": [
+        "structlog.processors.TimeStamper(fmt='iso')",
+        "structlog.processors.add_log_level",
+        "structlog.processors.JSONRenderer()"
+      ],
+      "context_class": "structlog.threadlocal.wrap_dict(dict)"
+    },
+    "required_fields": ["timestamp", "level", "event", "request_id"],
+    "recommended_fields": ["module", "function", "duration_ms"],
+    "context_specific_fields": ["stage_id", "artifact_id", "dataset_id", "error_type"]
+  },
+  "request_tracing": {
+    "header": "X-Request-ID",
+    "generation": "uuid.uuid4() if not provided",
+    "middleware_implementation": {
+      "location": "gateway/middleware/request_id.py",
+      "code_pattern": "@app.middleware('http')\nasync def request_id_middleware(request, call_next):\n    request_id = request.headers.get('X-Request-ID') or str(uuid.uuid4())\n    structlog.contextvars.bind_contextvars(request_id=request_id)\n    response = await call_next(request)\n    response.headers['X-Request-ID'] = request_id\n    return response"
+    },
+    "propagation": {
+      "http_calls": "Include X-Request-ID header in all downstream calls",
+      "background_tasks": "Pass request_id via task context",
+      "logging": "Automatically included via structlog context"
+    }
+  },
+  "fsm_state_logging": {
+    "events": {
+      "stage_transition_start": {
+        "level": "INFO",
+        "fields": ["stage_id", "from_state", "to_state", "trigger", "request_id"]
+      },
+      "stage_transition_complete": {
+        "level": "INFO",
+        "fields": ["stage_id", "from_state", "to_state", "duration_ms", "artifacts_created"]
+      },
+      "cascade_triggered": {
+        "level": "INFO",
+        "fields": ["source_stage_id", "affected_stages", "cascade_policy"]
+      },
+      "state_snapshot": {
+        "level": "DEBUG",
+        "fields": ["stage_id", "full_state_json"],
+        "note": "Full state serialized; DEBUG level to control volume"
+      }
+    },
+    "implementation": {
+      "location": "shared/workflows/fsm_orchestrator.py",
+      "pattern": "Emit log events at transition boundaries"
+    }
+  },
+  "artifact_logging": {
+    "events": {
+      "artifact_write": {
+        "level": "INFO",
+        "fields": ["artifact_id", "content_hash", "file_path", "size_bytes", "request_id"]
+      },
+      "artifact_read": {
+        "level": "DEBUG",
+        "fields": ["artifact_id", "file_path", "request_id"]
+      }
+    },
+    "implementation": {
+      "location": "shared/storage/artifact_store.py",
+      "pattern": "Log on every write with SHA-256 hash for verification"
+    }
+  },
+  "error_logging": {
+    "required_fields": [
+      "exception_type",
+      "exception_message",
+      "stack_trace",
+      "request_id",
+      "context"
+    ],
+    "implementation": {
+      "pattern": "try/except with structlog.exception()",
+      "example": "except Exception as e:\n    logger.exception('Operation failed', error_type=type(e).__name__, context={'stage_id': stage_id})\n    raise"
+    }
+  },
+  "devtools_trace_viewer": {
+    "location": "apps/homepage/frontend/src/devtools/TraceViewer.tsx",
+    "features": [
+      "Filter by request_id",
+      "Timeline view of stage transitions",
+      "State diff viewer (before/after)",
+      "Artifact content preview",
+      "Log level filtering"
+    ],
+    "api_endpoints": {
+      "get_logs": "GET /api/devtools/logs?request_id={id}",
+      "get_trace": "GET /api/devtools/traces/{request_id}"
+    },
+    "implementation": {
+      "backend": "gateway/services/devtools_service.py",
+      "storage": "In-memory ring buffer (last N requests); file-based for persistence"
+    }
+  },
+  "log_levels": {
+    "DEBUG": "Detailed diagnostic (state snapshots, artifact reads)",
+    "INFO": "Normal operations (transitions, writes)",
+    "WARNING": "Unexpected but handled",
+    "ERROR": "Failures requiring attention",
+    "CRITICAL": "System-level failures"
+  },
+  "requirements": [
+    {
+      "id": "REQ-OBS-001",
+      "description": "All log messages MUST be structured JSON via structlog"
+    },
+    {
+      "id": "REQ-OBS-002",
+      "description": "All API requests MUST have request_id propagated"
+    },
+    {
+      "id": "REQ-OBS-003",
+      "description": "FSM transitions MUST emit structured log events"
+    },
+    {
+      "id": "REQ-OBS-004",
+      "description": "ArtifactStore writes MUST log artifact_id and content_hash"
+    },
+    {
+      "id": "REQ-OBS-005",
+      "description": "DevTools MUST provide trace viewer"
+    }
+  ],
+  "validation_commands": {
+    "verify_structured_logs": "grep -v '^{' app.log | wc -l  # Should be 0",
+    "test_request_id": "curl -H 'X-Request-ID: test-123' http://localhost:8000/health",
+    "view_traces": "Open DevTools → Traces tab"
+  },
+  "references": [
+    "ADR-0036_Observability-and-Debugging-First",
+    "structlog: https://www.structlog.org/",
+    "12-Factor App - Logs: https://12factor.net/logs"
+  ],
+  "tags": ["observability", "logging", "tracing", "structlog", "devtools", "specification"]
+}

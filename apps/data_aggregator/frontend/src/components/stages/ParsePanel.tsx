@@ -168,7 +168,7 @@ export function ParsePanel({ runId }: ParsePanelProps) {
           </div>
         )}
 
-        {status === 'completed' && progress && (
+        {status === 'completed' && progress && progress.processed_rows !== undefined && (
           <div className="text-center py-8">
             <CheckCircle2 className="w-12 h-12 mx-auto mb-4 text-emerald-500" />
             <h3 className="text-lg font-medium text-slate-900 mb-2">Parsing Complete!</h3>

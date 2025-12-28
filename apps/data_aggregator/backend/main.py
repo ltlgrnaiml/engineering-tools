@@ -7,7 +7,15 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+import sys
+from pathlib import Path
+
+# Add project root to Python path
+project_root = Path(__file__).parent.parent.parent.parent
+sys.path.insert(0, str(project_root))
+
 from apps.data_aggregator.backend.src.dat_aggregation.api.routes import router
+from apps.data_aggregator.backend.routers.jobs import router as jobs_router
 
 # Configure logging
 logging.basicConfig(
@@ -47,6 +55,7 @@ app.add_middleware(
 
 # Include API routes (no prefix - gateway mounts at /api/dat)
 app.include_router(router, tags=["dat"])
+app.include_router(jobs_router, tags=["jobs"])
 
 
 @app.get("/health")

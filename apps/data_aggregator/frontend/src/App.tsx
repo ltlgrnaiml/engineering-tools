@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { FileSpreadsheet, ChevronRight, Loader2, ArrowLeft } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import { FileSpreadsheet, Loader2 } from 'lucide-react'
 import { SelectionPanel } from './components/stages/SelectionPanel'
 import { ContextPanel } from './components/stages/ContextPanel'
 import { TableAvailabilityPanel } from './components/stages/TableAvailabilityPanel'
@@ -9,17 +9,52 @@ import { ParsePanel } from './components/stages/ParsePanel'
 import { ExportPanel } from './components/stages/ExportPanel'
 import { useRun, useStageAction } from './hooks/useRun'
 import { DebugProvider, DebugPanel } from './components/debug'
+import { DATWizard, StageConfig, StageState } from './components/wizard'
 
 type Stage = 'selection' | 'context' | 'table_availability' | 'table_selection' | 'preview' | 'parse' | 'export'
 
-const stages: { id: Stage; label: string; optional?: boolean }[] = [
-  { id: 'selection', label: 'File Selection' },
-  { id: 'context', label: 'Context', optional: true },
-  { id: 'table_availability', label: 'Table Availability' },
-  { id: 'table_selection', label: 'Table Selection' },
-  { id: 'preview', label: 'Preview', optional: true },
-  { id: 'parse', label: 'Parse' },
-  { id: 'export', label: 'Export' },
+/**
+ * DAT stage configuration for the horizontal wizard.
+ * Per ADR-0041: Horizontal wizard stepper pattern.
+ */
+const STAGES: StageConfig[] = [
+  {
+    id: 'selection',
+    label: 'Selection',
+    description: 'Select files or folder containing data to aggregate',
+  },
+  {
+    id: 'context',
+    label: 'Context',
+    description: 'Provide additional context for extraction',
+    optional: true,
+  },
+  {
+    id: 'table_availability',
+    label: 'Tables',
+    description: 'View available tables in selected files',
+  },
+  {
+    id: 'table_selection',
+    label: 'Table Select',
+    description: 'Choose which tables to extract',
+  },
+  {
+    id: 'preview',
+    label: 'Preview',
+    description: 'Preview extracted data before parsing',
+    optional: true,
+  },
+  {
+    id: 'parse',
+    label: 'Parse',
+    description: 'Parse and transform the data',
+  },
+  {
+    id: 'export',
+    label: 'Export',
+    description: 'Export aggregated data to desired format',
+  },
 ]
 
 function App() {
@@ -32,12 +67,27 @@ function App() {
     setRunId(newRun.run_id)
   }
 
-  const currentStage = run?.current_stage || 'selection'
-  const stageIndex = stages.findIndex(s => s.id === currentStage)
+  const currentStage = (run?.current_stage || 'selection') as Stage
+  const stageIndex = STAGES.findIndex(s => s.id === currentStage)
+
+  // Compute stage states for the wizard
+  const stageStates = useMemo<Record<string, StageState>>(() => {
+    const states: Record<string, StageState> = {}
+    STAGES.forEach((stage, idx) => {
+      if (idx < stageIndex) {
+        states[stage.id] = 'completed'
+      } else if (idx === stageIndex) {
+        states[stage.id] = 'active'
+      } else {
+        states[stage.id] = 'locked'
+      }
+    })
+    return states
+  }, [stageIndex])
 
   // Handle navigating back to a previous stage (per ADR-0001: backward cascade)
-  const handleNavigateToStage = async (targetStageId: Stage) => {
-    const targetIndex = stages.findIndex(s => s.id === targetStageId)
+  const handleStageClick = async (targetStageId: string) => {
+    const targetIndex = STAGES.findIndex(s => s.id === targetStageId)
     if (targetIndex < stageIndex && runId) {
       // Unlock the target stage (cascades downstream per ADR-0001-DAT)
       try {
@@ -51,74 +101,54 @@ function App() {
   // Handle going back one step
   const handleBack = () => {
     if (stageIndex > 0) {
-      const prevStage = stages[stageIndex - 1]
-      handleNavigateToStage(prevStage.id)
+      const prevStage = STAGES[stageIndex - 1]
+      handleStageClick(prevStage.id)
+    }
+  }
+
+  // Render the current stage panel
+  const renderStagePanel = () => {
+    if (!runId) return null
+    switch (currentStage) {
+      case 'selection':
+        return <SelectionPanel runId={runId} />
+      case 'context':
+        return <ContextPanel runId={runId} />
+      case 'table_availability':
+        return <TableAvailabilityPanel runId={runId} />
+      case 'table_selection':
+        return <TableSelectionPanel runId={runId} />
+      case 'preview':
+        return <PreviewPanel runId={runId} />
+      case 'parse':
+        return <ParsePanel runId={runId} />
+      case 'export':
+        return <ExportPanel runId={runId} />
+      default:
+        return null
     }
   }
 
   return (
     <DebugProvider>
-    <div className="min-h-screen">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200 px-6 py-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-emerald-500 flex items-center justify-center">
-            <FileSpreadsheet className="w-5 h-5 text-white" />
+      <div className="min-h-screen bg-slate-50 flex flex-col">
+        {/* Header */}
+        <header className="bg-white border-b border-slate-200 px-6 py-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-emerald-500 flex items-center justify-center">
+              <FileSpreadsheet className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-semibold text-slate-900">Data Aggregator</h1>
+              <p className="text-sm text-slate-500">Parse, transform, and aggregate data</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl font-semibold text-slate-900">Data Aggregator</h1>
-            <p className="text-sm text-slate-500">Parse, transform, and aggregate data</p>
-          </div>
-        </div>
-      </header>
-
-      <div className="flex">
-        {/* Stage Sidebar */}
-        <aside className="w-64 bg-white border-r border-slate-200 min-h-[calc(100vh-73px)]">
-          <nav className="p-4 space-y-1">
-            {stages.map((stage, idx) => {
-              const isActive = stage.id === currentStage
-              const isCompleted = idx < stageIndex
-              const isLocked = idx > stageIndex
-              const canNavigate = isCompleted && runId
-
-              return (
-                <button
-                  key={stage.id}
-                  onClick={() => canNavigate && handleNavigateToStage(stage.id)}
-                  disabled={!canNavigate && !isActive}
-                  className={`
-                    w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-left
-                    ${isActive ? 'bg-emerald-50 text-emerald-700 font-medium' : ''}
-                    ${isCompleted ? 'text-slate-700 hover:bg-slate-50 cursor-pointer' : ''}
-                    ${isLocked ? 'text-slate-400 cursor-not-allowed' : ''}
-                    ${canNavigate ? 'hover:bg-emerald-50' : ''}
-                    transition-colors
-                  `}
-                  title={canNavigate ? `Go back to ${stage.label}` : undefined}
-                >
-                  <div className={`
-                    w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium
-                    ${isActive ? 'bg-emerald-500 text-white' : ''}
-                    ${isCompleted ? 'bg-emerald-100 text-emerald-700' : ''}
-                    ${isLocked ? 'bg-slate-100 text-slate-400' : ''}
-                  `}>
-                    {isCompleted ? '✓' : idx + 1}
-                  </div>
-                  <span className="flex-1">{stage.label}</span>
-                  {stage.optional && (
-                    <span className="text-xs text-slate-400">(optional)</span>
-                  )}
-                  {isActive && <ChevronRight className="w-4 h-4" />}
-                </button>
-              )
-            })}
-          </nav>
-        </aside>
+        </header>
 
         {/* Main Content */}
-        <main className="flex-1 p-6">
-          {!runId ? (
+        {!runId ? (
+          // Landing page - no run created yet
+          <main className="flex-1 flex items-center justify-center p-6">
             <div className="text-center py-16">
               <FileSpreadsheet className="w-16 h-16 mx-auto mb-4 text-slate-300" />
               <h2 className="text-xl font-semibold text-slate-900 mb-2">Start a New Aggregation Run</h2>
@@ -132,36 +162,28 @@ function App() {
                 Create New Run
               </button>
             </div>
-          ) : isLoading ? (
-            <div className="flex items-center justify-center py-16">
-              <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
-            </div>
-          ) : (
-            <div className="max-w-4xl">
-              {/* Back Button - shown for all stages except first */}
-              {stageIndex > 0 && (
-                <button
-                  onClick={handleBack}
-                  className="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-4 transition-colors"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span>Back to {stages[stageIndex - 1]?.label}</span>
-                </button>
-              )}
-              
-              {currentStage === 'selection' && <SelectionPanel runId={runId} />}
-              {currentStage === 'context' && <ContextPanel runId={runId} />}
-              {currentStage === 'table_availability' && <TableAvailabilityPanel runId={runId} />}
-              {currentStage === 'table_selection' && <TableSelectionPanel runId={runId} />}
-              {currentStage === 'preview' && <PreviewPanel runId={runId} />}
-              {currentStage === 'parse' && <ParsePanel runId={runId} />}
-              {currentStage === 'export' && <ExportPanel runId={runId} />}
-            </div>
-          )}
-        </main>
+          </main>
+        ) : isLoading ? (
+          // Loading state
+          <main className="flex-1 flex items-center justify-center">
+            <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
+          </main>
+        ) : (
+          // Horizontal Wizard - active run
+          <DATWizard
+            stages={STAGES}
+            currentStageId={currentStage}
+            stageStates={stageStates}
+            onStageClick={handleStageClick}
+            onBack={handleBack}
+            isLoading={unlockStage.isPending}
+          >
+            {renderStagePanel()}
+          </DATWizard>
+        )}
+
+        <DebugPanel />
       </div>
-      <DebugPanel />
-    </div>
     </DebugProvider>
   )
 }

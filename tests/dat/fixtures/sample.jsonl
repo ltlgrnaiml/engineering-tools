@@ -1,0 +1,5 @@
+{"id": 1, "name": "Alpha", "value": 100.5, "active": true}
+{"id": 2, "name": "Beta", "value": 200.25, "active": false}
+{"id": 3, "name": "Gamma", "value": 150.0, "active": true}
+{"id": 4, "name": "Delta", "value": null, "active": true}
+{"id": 5, "name": "Epsilon", "value": 175.75, "active": false}
