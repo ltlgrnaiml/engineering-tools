@@ -10,16 +10,12 @@ from fastapi import APIRouter, HTTPException, BackgroundTasks
 
 from shared.contracts.dat.cancellation import (
     CancellationAuditLog,
-    CancellationReason,
-    CancellationState,
 )
 from shared.contracts.core.error_response import (
     ErrorCategory,
-    ErrorResponse,
-    ErrorSeverity,
     create_error_response,
 )
-from ..core.state_machine import DATStateMachine, Stage, StageState
+from ..core.state_machine import Stage, StageState
 from ..core.run_manager import RunManager
 from ..stages.selection import execute_selection
 from ..stages.parse import execute_parse, ParseConfig, CancellationToken
@@ -106,11 +102,11 @@ async def get_run(run_id: str):
             message=f"Run not found: {run_id}",
             category=ErrorCategory.NOT_FOUND,
         )
-    
+
     # Get all stage statuses
     sm = run_manager.get_state_machine(run_id)
     statuses = await sm.get_all_statuses()
-    
+
     stages = {}
     for stage, status in statuses.items():
         stages[stage.value] = StageStatusResponse(
@@ -122,11 +118,11 @@ async def get_run(run_id: str):
             completed=status.completed,
             error=status.error,
         )
-    
+
     # Determine current stage based on progression
     stage_order = [Stage.SELECTION, Stage.CONTEXT, Stage.TABLE_AVAILABILITY, Stage.TABLE_SELECTION, Stage.PREVIEW, Stage.PARSE, Stage.EXPORT]
     current_stage = Stage.SELECTION  # default
-    
+
     for stage in stage_order:
         stage_status = statuses.get(stage)
         if stage_status and stage_status.state == StageState.LOCKED and stage_status.completed:
@@ -144,7 +140,7 @@ async def get_run(run_id: str):
             # This is the first unlocked stage, current stage
             current_stage = stage
             break
-    
+
     return RunResponse(
         run_id=run["run_id"],
         name=run["name"],
@@ -162,10 +158,10 @@ async def get_stage_status(run_id: str, stage: str):
         stage_enum = Stage(stage)
     except ValueError:
         raise HTTPException(status_code=400, detail=f"Invalid stage: {stage}")
-    
+
     sm = run_manager.get_state_machine(run_id)
     status = await sm.store.get_stage_status(run_id, stage_enum)
-    
+
     return StageStatusResponse(
         stage=status.stage.value,
         state=status.state.value,
@@ -185,37 +181,37 @@ async def lock_discovery(run_id: str, request: ScanRequest):
     """
     import logging
     logger = logging.getLogger(__name__)
-    
+
     # Verify run exists
     run = await run_manager.get_run(run_id)
     if not run:
         raise HTTPException(status_code=404, detail="Run not found")
-    
+
     sm = run_manager.get_state_machine(run_id)
-    
+
     # Handle both Windows and Unix paths
     folder_path = request.folder_path.strip().replace('\\', '/')
     source_path = Path(folder_path)
-    
+
     if not source_path.exists():
         raise HTTPException(
-            status_code=400, 
+            status_code=400,
             detail=f"Path does not exist: {folder_path}"
         )
-    
+
     if not source_path.is_dir():
         raise HTTPException(
             status_code=400,
             detail=f"Path is not a directory: {folder_path}"
         )
-    
+
     # Discover files
     from ..stages.discovery import execute_discovery
     from ..stages.discovery import DiscoveryConfig
-    
+
     try:
         config = DiscoveryConfig(root_path=source_path)
-        
+
         async def execute():
             result = await execute_discovery(run_id, config)
             return {
@@ -234,10 +230,10 @@ async def lock_discovery(run_id: str, request: ScanRequest):
                 "supported_files": result.supported_files,
                 "completed": result.completed,
             }
-        
+
         inputs = {"root_path": str(source_path)}
         status = await sm.lock_stage(Stage.DISCOVERY, inputs=inputs, execute_fn=execute)
-        
+
         artifact = await sm.store.get_artifact(run_id, Stage.DISCOVERY, status.stage_id)
         return {
             "discovery_id": artifact.get("discovery_id"),
@@ -258,34 +254,34 @@ async def scan_selection(run_id: str, request: ScanRequest):
     """Scan folder for files without locking stage."""
     import logging
     logger = logging.getLogger(__name__)
-    
+
     # Verify run exists
     run = await run_manager.get_run(run_id)
     if not run:
         raise HTTPException(status_code=404, detail="Run not found")
-    
+
     # Handle both Windows and Unix paths
     # Normalize path: convert backslashes to forward slashes for consistent handling
     folder_path = request.folder_path.strip().replace('\\', '/')
     logger.info(f"Scanning path: {folder_path}")
-    
+
     source_path = Path(folder_path)
     logger.info(f"Resolved path: {source_path}")
     logger.info(f"Path exists: {source_path.exists()}")
     logger.info(f"Is directory: {source_path.is_dir()}")
-    
+
     if not source_path.exists():
         raise HTTPException(
-            status_code=400, 
+            status_code=400,
             detail=f"Path does not exist: {folder_path} (resolved to: {source_path})"
         )
-    
+
     if not source_path.is_dir():
         raise HTTPException(
             status_code=400,
             detail=f"Path is not a directory: {folder_path}"
         )
-    
+
     # Discover files
     from ..stages.selection import discover_files
     try:
@@ -294,7 +290,7 @@ async def scan_selection(run_id: str, request: ScanRequest):
     except Exception as e:
         logger.error(f"Error discovering files: {e}")
         raise HTTPException(status_code=400, detail=f"Error scanning directory: {str(e)}")
-    
+
     # Return list of file paths for frontend
     files = [str(f.path) for f in discovered]
     return {"files": files, "count": len(files)}
@@ -305,18 +301,18 @@ async def lock_selection(run_id: str, request: SelectionRequest):
     """Lock selection stage - finalize file selection."""
     import logging
     logger = logging.getLogger(__name__)
-    
+
     # Verify run exists
     run = await run_manager.get_run(run_id)
     if not run:
         raise HTTPException(status_code=404, detail="Run not found")
-    
+
     sm = run_manager.get_state_machine(run_id)
-    
+
     # Normalize paths (handle Windows backslashes)
     normalized_files = [p.replace('\\', '/') for p in request.selected_files]
     logger.info(f"Locking selection with {len(normalized_files)} files")
-    
+
     # Validate files exist
     selected = []
     for p in normalized_files:
@@ -324,13 +320,13 @@ async def lock_selection(run_id: str, request: SelectionRequest):
         if not path.exists():
             logger.warning(f"File does not exist: {p}")
         selected.append(path)
-    
+
     if request.source_paths:
         source_paths = [Path(p.replace('\\', '/')) for p in request.source_paths]
     else:
         # Derive source paths from selected files (use parent directories)
         source_paths = list(set(p.parent for p in selected))
-    
+
     async def execute():
         result = await execute_selection(source_paths, selected, request.recursive)
         return {
@@ -347,14 +343,14 @@ async def lock_selection(run_id: str, request: SelectionRequest):
             "selected_files": [str(p) for p in result.selected_files],
             "completed": result.completed,
         }
-    
+
     try:
         inputs = {"source_paths": request.source_paths, "recursive": request.recursive}
         status = await sm.lock_stage(Stage.SELECTION, inputs=inputs, execute_fn=execute)
-        
+
         # Get artifact for response
         artifact = await sm.store.get_artifact(run_id, Stage.SELECTION, status.stage_id)
-        
+
         return SelectionResponse(
             discovered_files=[FileInfoResponse(**f) for f in artifact.get("discovered_files", [])],
             selected_files=artifact.get("selected_files", []),
@@ -366,30 +362,29 @@ async def lock_selection(run_id: str, request: SelectionRequest):
 @router.post("/runs/{run_id}/stages/context/lock")
 async def lock_context(run_id: str, request: dict | None = None):
     """Lock context stage - set profile and aggregation levels."""
-    from fastapi import Body
     import logging
     logger = logging.getLogger(__name__)
-    
+
     run = await run_manager.get_run(run_id)
     if not run:
         raise HTTPException(status_code=404, detail="Run not found")
-    
+
     sm = run_manager.get_state_machine(run_id)
-    
+
     # Context is optional, just store the settings
     request_data = request if request else {}
     profile_id = request_data.get("profile_id") if isinstance(request_data, dict) else None
     aggregation_levels = request_data.get("aggregation_levels", []) if isinstance(request_data, dict) else []
-    
+
     logger.info(f"Locking context: profile={profile_id}, levels={aggregation_levels}")
-    
+
     async def execute():
         return {
             "profile_id": profile_id,
             "aggregation_levels": aggregation_levels,
             "completed": True,
         }
-    
+
     try:
         inputs = {"profile_id": profile_id, "aggregation_levels": aggregation_levels}
         status = await sm.lock_stage(Stage.CONTEXT, inputs=inputs, execute_fn=execute)
@@ -405,13 +400,13 @@ async def lock_context(run_id: str, request: dict | None = None):
 async def lock_table_selection(run_id: str, request: TableSelectionRequest):
     """Lock table selection stage."""
     sm = run_manager.get_state_machine(run_id)
-    
+
     async def execute():
         return {
             "selected_tables": request.selected_tables,
             "completed": True,
         }
-    
+
     try:
         inputs = {"tables": request.selected_tables}
         status = await sm.lock_stage(Stage.TABLE_SELECTION, inputs=inputs, execute_fn=execute)
@@ -424,31 +419,31 @@ async def lock_table_selection(run_id: str, request: TableSelectionRequest):
 async def lock_parse(run_id: str, request: ParseRequest, background_tasks: BackgroundTasks):
     """Lock parse stage - start data extraction."""
     sm = run_manager.get_state_machine(run_id)
-    
+
     # Get selection result for file list
     selection_status = await sm.store.get_stage_status(run_id, Stage.SELECTION)
     if selection_status.state != StageState.LOCKED:
         raise HTTPException(status_code=400, detail="Selection stage must be locked first")
-    
+
     selection_artifact = await sm.store.get_artifact(run_id, Stage.SELECTION, selection_status.stage_id)
-    
+
     # Get table selection
     table_status = await sm.store.get_stage_status(run_id, Stage.TABLE_SELECTION)
     selected_tables = {}
     if table_status.state == StageState.LOCKED and table_status.stage_id:
         table_artifact = await sm.store.get_artifact(run_id, Stage.TABLE_SELECTION, table_status.stage_id)
         selected_tables = table_artifact.get("selected_tables", {})
-    
+
     config = ParseConfig(
         selected_files=[Path(p) for p in selection_artifact.get("selected_files", [])],
         selected_tables=selected_tables,
         column_mappings=request.column_mappings,
     )
-    
+
     # Create cancellation token
     cancel_token = CancellationToken()
     _cancel_tokens[run_id] = cancel_token
-    
+
     async def execute():
         result = await execute_parse(
             run_id=run_id,
@@ -464,7 +459,7 @@ async def lock_parse(run_id: str, request: ParseRequest, background_tasks: Backg
             "parse_id": result.parse_id,
             "output_path": result.output_path,
         }
-    
+
     try:
         inputs = {
             "files": selection_artifact.get("selected_files", []),
@@ -472,10 +467,10 @@ async def lock_parse(run_id: str, request: ParseRequest, background_tasks: Backg
             "mappings": request.column_mappings,
         }
         status = await sm.lock_stage(Stage.PARSE, inputs=inputs, execute_fn=execute)
-        
+
         # Clean up cancel token
         _cancel_tokens.pop(run_id, None)
-        
+
         artifact = await sm.store.get_artifact(run_id, Stage.PARSE, status.stage_id)
         return {
             "status": "locked",
@@ -530,21 +525,21 @@ async def cancel_parse(run_id: str, reason: str = "user_requested", actor: str =
 async def export_dataset(run_id: str, request: ExportRequest):
     """Export run as DataSet."""
     sm = run_manager.get_state_machine(run_id)
-    
+
     # Get parse result
     parse_status = await sm.store.get_stage_status(run_id, Stage.PARSE)
     if parse_status.state != StageState.LOCKED or not parse_status.completed:
         raise HTTPException(status_code=400, detail="Parse stage must be completed first")
-    
+
     parse_artifact = await sm.store.get_artifact(run_id, Stage.PARSE, parse_status.stage_id)
     if not parse_artifact:
         raise HTTPException(status_code=400, detail="Parse artifact not found")
-    
+
     # Load the parsed data
     import polars as pl
     output_path = Path(parse_artifact["output_path"])
     data = pl.read_parquet(output_path)
-    
+
     # Create a ParseResult-like object for export
     from ..stages.parse import ParseResult
     parse_result = ParseResult(
@@ -556,7 +551,7 @@ async def export_dataset(run_id: str, request: ExportRequest):
         parse_id=parse_artifact["parse_id"],
         output_path=str(output_path),
     )
-    
+
     manifest = await execute_export(
         run_id=run_id,
         parse_result=parse_result,
@@ -564,7 +559,7 @@ async def export_dataset(run_id: str, request: ExportRequest):
         description=request.description,
         aggregation_levels=request.aggregation_levels,
     )
-    
+
     # Lock export stage
     async def execute():
         return {
@@ -573,9 +568,9 @@ async def export_dataset(run_id: str, request: ExportRequest):
             "row_count": manifest.row_count,
             "completed": True,
         }
-    
+
     await sm.lock_stage(Stage.EXPORT, execute_fn=execute)
-    
+
     return manifest.model_dump()
 
 
@@ -583,10 +578,10 @@ async def export_dataset(run_id: str, request: ExportRequest):
 async def list_profiles():
     """List available profiles."""
     from ..profiles.profile_loader import get_builtin_profiles, get_profile_by_id
-    
+
     profiles = get_builtin_profiles()
     result = []
-    
+
     for profile_id, profile_path in profiles.items():
         profile = get_profile_by_id(profile_id)
         if profile:
@@ -594,7 +589,7 @@ async def list_profiles():
                 "id": profile_id,
                 "name": profile.title if hasattr(profile, 'title') else profile_id
             })
-    
+
     return result
 
 
@@ -606,17 +601,17 @@ async def scan_table_availability(run_id: str):
     """
     import logging
     logger = logging.getLogger(__name__)
-    
+
     sm = run_manager.get_state_machine(run_id)
-    
+
     # Get selection result
     selection_status = await sm.store.get_stage_status(run_id, Stage.SELECTION)
     if selection_status.state != StageState.LOCKED:
         raise HTTPException(status_code=400, detail="Selection stage must be locked first")
-    
+
     selection_artifact = await sm.store.get_artifact(run_id, Stage.SELECTION, selection_status.stage_id)
     selected_files = selection_artifact.get("selected_files", [])
-    
+
     # Get tables from selected files with actual row/column counts
     from ..adapters.factory import AdapterFactory
     tables = []
@@ -637,7 +632,7 @@ async def scan_table_availability(run_id: str):
                     logger.warning(f"Could not get counts for table {table} in {file_path}: {e}")
                     row_count = 0
                     column_count = 0
-                
+
                 tables.append({
                     "name": table,
                     "file": file_path,
@@ -647,7 +642,7 @@ async def scan_table_availability(run_id: str):
                 })
         except Exception as e:
             logger.warning(f"Could not get tables from {file_path}: {e}")
-    
+
     return tables
 
 
@@ -659,17 +654,17 @@ async def lock_table_availability(run_id: str):
     """
     import logging
     logger = logging.getLogger(__name__)
-    
+
     sm = run_manager.get_state_machine(run_id)
-    
+
     # Get selection result
     selection_status = await sm.store.get_stage_status(run_id, Stage.SELECTION)
     if selection_status.state != StageState.LOCKED:
         raise HTTPException(status_code=400, detail="Selection stage must be locked first")
-    
+
     selection_artifact = await sm.store.get_artifact(run_id, Stage.SELECTION, selection_status.stage_id)
     selected_files = selection_artifact.get("selected_files", [])
-    
+
     # Discover tables from selected files with actual row/column counts
     from ..adapters.factory import AdapterFactory
     tables = []
@@ -687,7 +682,7 @@ async def lock_table_availability(run_id: str):
                     logger.warning(f"Could not get counts for table {table}: {e}")
                     row_count = 0
                     column_count = 0
-                
+
                 tables.append({
                     "name": table,
                     "file": file_path,
@@ -697,13 +692,13 @@ async def lock_table_availability(run_id: str):
                 })
         except Exception as e:
             logger.warning(f"Could not get tables from {file_path}: {e}")
-    
+
     async def execute():
         return {
             "discovered_tables": tables,
             "completed": True,
         }
-    
+
     try:
         inputs = {"files": selected_files}
         status = await sm.lock_stage(Stage.TABLE_AVAILABILITY, inputs=inputs, execute_fn=execute)
@@ -716,16 +711,16 @@ async def lock_table_availability(run_id: str):
 async def get_table_selection_tables(run_id: str):
     """Get available tables for selection."""
     sm = run_manager.get_state_machine(run_id)
-    
+
     # Get table availability result
     table_avail_status = await sm.store.get_stage_status(run_id, Stage.TABLE_AVAILABILITY)
     if table_avail_status.state != StageState.LOCKED:
         raise HTTPException(status_code=400, detail="Table availability stage must be locked first")
-    
+
     # Get discovered tables from table availability artifact
     table_avail_artifact = await sm.store.get_artifact(run_id, Stage.TABLE_AVAILABILITY, table_avail_status.stage_id)
     discovered_tables = table_avail_artifact.get("discovered_tables", [])
-    
+
     return discovered_tables
 
 
@@ -737,19 +732,18 @@ async def complete_stage(run_id: str, stage: str):
         stage_enum = Stage(stage)
     except ValueError:
         raise HTTPException(status_code=400, detail=f"Invalid stage: {stage}")
-    
+
     sm = run_manager.get_state_machine(run_id)
-    
+
     # Get current status
     status = await sm.store.get_stage_status(run_id, stage_enum)
     if status.state != StageState.LOCKED:
         raise HTTPException(status_code=400, detail=f"Stage {stage} must be locked first")
-    
+
     if status.completed:
         return {"status": "already_completed", "stage": stage}
-    
+
     # Update status to completed
-    from datetime import datetime, timezone
     updated_status = StageStatus(
         stage=stage_enum,
         state=StageState.LOCKED,
@@ -759,7 +753,7 @@ async def complete_stage(run_id: str, stage: str):
         artifact_path=status.artifact_path,
     )
     await sm.store.set_stage_status(run_id, stage_enum, updated_status)
-    
+
     return {"status": "completed", "stage": stage}
 
 
@@ -771,15 +765,15 @@ async def unlock_stage(run_id: str, stage: str):
         stage_enum = Stage(stage)
     except ValueError:
         raise HTTPException(status_code=400, detail=f"Invalid stage: {stage}")
-    
+
     sm = run_manager.get_state_machine(run_id)
-    
+
     try:
         # Unlock with cascade - preserves artifacts per ADR-0002
         unlocked = await sm.unlock_stage(stage_enum, cascade=True)
         primary_status = unlocked[0] if unlocked else None
         return {
-            "status": "unlocked", 
+            "status": "unlocked",
             "stage": stage,
             "unlocked_at": primary_status.unlocked_at.isoformat() if primary_status and primary_status.unlocked_at else None,
             "cascade_unlocked": len(unlocked) > 1
@@ -797,52 +791,51 @@ async def lock_preview(run_id: str):
     """
     import logging
     logger = logging.getLogger(__name__)
-    
+
     sm = run_manager.get_state_machine(run_id)
-    
+
     # Get table selection result (Preview comes AFTER Table Selection, BEFORE Parse)
     table_sel_status = await sm.store.get_stage_status(run_id, Stage.TABLE_SELECTION)
     if table_sel_status.state != StageState.LOCKED:
         raise HTTPException(status_code=400, detail="Table Selection stage must be locked first")
-    
+
     table_sel_artifact = await sm.store.get_artifact(run_id, Stage.TABLE_SELECTION, table_sel_status.stage_id)
     if not table_sel_artifact:
         raise HTTPException(status_code=400, detail="Table Selection artifact not found")
-    
+
     async def execute():
         # Generate preview data from selected tables
         from ..adapters.factory import AdapterFactory
-        import polars as pl
-        
+
         selected_tables = table_sel_artifact.get("selected_tables", {})
         all_rows = []
         all_columns = set()
-        
+
         preview_rows_per_table = 20  # Limit per table
-        
+
         for file_path, tables in selected_tables.items():
             for table_name in tables[:5]:  # Limit tables per file
                 try:
                     adapter = AdapterFactory.get_adapter(Path(file_path))
                     df = adapter.read(Path(file_path), table=table_name)
-                    
+
                     if len(df) > 0:
                         preview_df = df.head(preview_rows_per_table)
                         rows = preview_df.to_dicts()
-                        
+
                         # Add source info to each row
                         for row in rows:
                             row["_source_table"] = table_name
                             row["_source_file"] = Path(file_path).name
-                        
+
                         all_rows.extend(rows)
                         all_columns.update(preview_df.columns)
                 except Exception as e:
                     logger.warning(f"Could not preview {table_name} from {file_path}: {e}")
-        
+
         # Ensure consistent column order
         columns = ["_source_file", "_source_table"] + sorted(all_columns - {"_source_file", "_source_table"})
-        
+
         return {
             "preview_data": {
                 "columns": columns,
@@ -852,7 +845,7 @@ async def lock_preview(run_id: str):
             },
             "completed": False  # User should stay on Preview to see data before advancing
         }
-    
+
     try:
         inputs = {"table_selection_id": table_sel_status.stage_id}
         status = await sm.lock_stage(Stage.PREVIEW, inputs=inputs, execute_fn=execute)
@@ -865,7 +858,7 @@ async def lock_preview(run_id: str):
 async def get_preview(run_id: str, rows: int = 100):
     """Get preview of parsed data from preview stage artifact."""
     sm = run_manager.get_state_machine(run_id)
-    
+
     # Get preview artifact first (if stage is locked)
     preview_status = await sm.store.get_stage_status(run_id, Stage.PREVIEW)
     if preview_status.state == StageState.LOCKED and preview_status.stage_id:
@@ -878,22 +871,22 @@ async def get_preview(run_id: str, rows: int = 100):
                 row_count=min(len(preview_data["rows"]), rows),
                 total_rows=preview_data["total_rows"],
             )
-    
+
     # Fallback: generate preview from parse data if no preview artifact
     parse_status = await sm.store.get_stage_status(run_id, Stage.PARSE)
     if parse_status.state != StageState.LOCKED:
         raise HTTPException(status_code=400, detail="Parse or Preview stage must be locked first")
-    
+
     parse_artifact = await sm.store.get_artifact(run_id, Stage.PARSE, parse_status.stage_id)
     if not parse_artifact:
         raise HTTPException(status_code=400, detail="Parse artifact not found")
-    
+
     import polars as pl
     output_path = Path(parse_artifact["output_path"])
     data = pl.read_parquet(output_path)
-    
+
     preview = data.head(rows)
-    
+
     return PreviewResponse(
         columns=preview.columns,
         rows=preview.to_dicts(),
@@ -906,22 +899,22 @@ async def get_preview(run_id: str, rows: int = 100):
 async def lock_export(run_id: str, request: ExportRequest):
     """Lock export stage with dataset generation."""
     sm = run_manager.get_state_machine(run_id)
-    
+
     # Get parse result
     parse_status = await sm.store.get_stage_status(run_id, Stage.PARSE)
     if parse_status.state != StageState.LOCKED or not parse_status.completed:
         raise HTTPException(status_code=400, detail="Parse stage must be completed first")
-    
+
     parse_artifact = await sm.store.get_artifact(run_id, Stage.PARSE, parse_status.stage_id)
     if not parse_artifact:
         raise HTTPException(status_code=400, detail="Parse artifact not found")
-    
+
     async def execute():
         # Load the parsed data
         import polars as pl
         output_path = Path(parse_artifact["output_path"])
         data = pl.read_parquet(output_path)
-        
+
         # Create a ParseResult-like object for export
         from ..stages.parse import ParseResult
         parse_result = ParseResult(
@@ -933,7 +926,7 @@ async def lock_export(run_id: str, request: ExportRequest):
             parse_id=parse_artifact["parse_id"],
             output_path=str(output_path),
         )
-        
+
         manifest = await execute_export(
             run_id=run_id,
             parse_result=parse_result,
@@ -941,7 +934,7 @@ async def lock_export(run_id: str, request: ExportRequest):
             description=request.description,
             aggregation_levels=request.aggregation_levels,
         )
-        
+
         return {
             "dataset_id": manifest.dataset_id,
             "name": manifest.name,
@@ -949,7 +942,7 @@ async def lock_export(run_id: str, request: ExportRequest):
             "completed": True,
             "manifest": manifest.model_dump()
         }
-    
+
     try:
         inputs = {
             "name": request.name,
@@ -957,7 +950,7 @@ async def lock_export(run_id: str, request: ExportRequest):
             "aggregation_levels": request.aggregation_levels
         }
         status = await sm.lock_stage(Stage.EXPORT, inputs=inputs, execute_fn=execute)
-        
+
         # Get artifact for response
         artifact = await sm.store.get_artifact(run_id, Stage.EXPORT, status.stage_id)
         return {
@@ -974,16 +967,16 @@ async def lock_export(run_id: str, request: ExportRequest):
 async def get_export_summary(run_id: str):
     """Get export summary before executing export."""
     sm = run_manager.get_state_machine(run_id)
-    
+
     # Get parse result
     parse_status = await sm.store.get_stage_status(run_id, Stage.PARSE)
     if parse_status.state != StageState.LOCKED:
         raise HTTPException(status_code=400, detail="Parse stage must be locked first")
-    
+
     parse_artifact = await sm.store.get_artifact(run_id, Stage.PARSE, parse_status.stage_id)
     if not parse_artifact:
         raise HTTPException(status_code=400, detail="Parse artifact not found")
-    
+
     return {
         "row_count": parse_artifact.get("row_count", 0),
         "column_count": parse_artifact.get("column_count", 0),
@@ -997,25 +990,25 @@ async def execute_export_stage(run_id: str, request: ExportRequest):
     """Execute export stage."""
     import logging
     logger = logging.getLogger(__name__)
-    
+
     sm = run_manager.get_state_machine(run_id)
-    
+
     # Get parse result
     parse_status = await sm.store.get_stage_status(run_id, Stage.PARSE)
     if parse_status.state != StageState.LOCKED or not parse_status.completed:
         raise HTTPException(status_code=400, detail="Parse stage must be completed first")
-    
+
     parse_artifact = await sm.store.get_artifact(run_id, Stage.PARSE, parse_status.stage_id)
     if not parse_artifact:
         raise HTTPException(status_code=400, detail="Parse artifact not found")
-    
+
     logger.info(f"Executing export for run {run_id}")
-    
+
     # Load the parsed data
     import polars as pl
     output_path = Path(parse_artifact["output_path"])
     data = pl.read_parquet(output_path)
-    
+
     # Create a ParseResult-like object for export
     from ..stages.parse import ParseResult
     parse_result = ParseResult(
@@ -1027,7 +1020,7 @@ async def execute_export_stage(run_id: str, request: ExportRequest):
         parse_id=parse_artifact["parse_id"],
         output_path=str(output_path),
     )
-    
+
     manifest = await execute_export(
         run_id=run_id,
         parse_result=parse_result,
@@ -1035,7 +1028,7 @@ async def execute_export_stage(run_id: str, request: ExportRequest):
         description=request.description,
         aggregation_levels=request.aggregation_levels,
     )
-    
+
     # Lock export stage
     async def execute():
         return {
@@ -1044,9 +1037,9 @@ async def execute_export_stage(run_id: str, request: ExportRequest):
             "row_count": manifest.row_count,
             "completed": True,
         }
-    
+
     await sm.lock_stage(Stage.EXPORT, execute_fn=execute)
-    
+
     return manifest.model_dump()
 
 
@@ -1054,9 +1047,9 @@ async def execute_export_stage(run_id: str, request: ExportRequest):
 async def get_parse_progress(run_id: str):
     """Get parse stage progress."""
     sm = run_manager.get_state_machine(run_id)
-    
+
     parse_status = await sm.store.get_stage_status(run_id, Stage.PARSE)
-    
+
     # Return progress info
     return {
         "status": "idle" if parse_status.state == StageState.UNLOCKED else "running" if not parse_status.completed else "completed",
@@ -1069,31 +1062,31 @@ async def get_parse_progress(run_id: str):
 async def start_parse(run_id: str):
     """Start parse stage execution with table selection data."""
     sm = run_manager.get_state_machine(run_id)
-    
+
     # Verify prerequisites
     selection_status = await sm.store.get_stage_status(run_id, Stage.SELECTION)
     if selection_status.state != StageState.LOCKED:
         raise HTTPException(status_code=400, detail="Selection stage must be locked first")
-    
+
     # Get selection artifact
     selection_artifact = await sm.store.get_artifact(run_id, Stage.SELECTION, selection_status.stage_id)
-    
+
     # Get table selection if available
     table_status = await sm.store.get_stage_status(run_id, Stage.TABLE_SELECTION)
     selected_tables = {}
     if table_status.state == StageState.LOCKED and table_status.stage_id:
         table_artifact = await sm.store.get_artifact(run_id, Stage.TABLE_SELECTION, table_status.stage_id)
         selected_tables = table_artifact.get("selected_tables", {})
-    
+
     config = ParseConfig(
         selected_files=[Path(p) for p in selection_artifact.get("selected_files", [])],
         selected_tables=selected_tables,
         column_mappings=None,
     )
-    
+
     cancel_token = CancellationToken()
     _cancel_tokens[run_id] = cancel_token
-    
+
     async def execute():
         result = await execute_parse(
             run_id=run_id,
@@ -1109,7 +1102,7 @@ async def start_parse(run_id: str):
             "parse_id": result.parse_id,
             "output_path": result.output_path,
         }
-    
+
     try:
         inputs = {
             "files": selection_artifact.get("selected_files", []),
@@ -1117,7 +1110,7 @@ async def start_parse(run_id: str):
         }
         status = await sm.lock_stage(Stage.PARSE, inputs=inputs, execute_fn=execute)
         _cancel_tokens.pop(run_id, None)
-        
+
         artifact = await sm.store.get_artifact(run_id, Stage.PARSE, status.stage_id)
         return {
             "status": "started",

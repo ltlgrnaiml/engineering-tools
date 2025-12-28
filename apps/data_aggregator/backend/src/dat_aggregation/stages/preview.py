@@ -3,7 +3,7 @@
 Per ADR-0003: Preview is an optional stage that does NOT cascade unlock.
 Users can skip directly from Table Selection to Parse.
 """
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -63,33 +63,33 @@ async def execute_preview(
         PreviewResult with table previews
     """
     from dat_aggregation.adapters.factory import AdapterFactory
-    
+
     file_table_map = get_selected_file_table_map(table_selection)
     previews: list[TablePreview] = []
     total_rows = 0
     all_columns: set[str] = set()
-    
+
     for file_path_str, table_names in file_table_map.items():
         file_path = Path(file_path_str)
         adapter = AdapterFactory.get_adapter(file_path)
-        
+
         for table_name in table_names:
             try:
                 # Read the table
                 df = adapter.read(file_path, sheet=table_name)
-                
+
                 # Apply context configuration if provided
                 if context_config:
                     df = apply_context_to_dataframe(df, context_config)
-                
+
                 # Get preview rows
                 preview_df = df.head(config.max_rows_per_table)
-                
+
                 # Compute stats if requested
                 stats = None
                 if config.include_stats:
                     stats = _compute_table_stats(df)
-                
+
                 previews.append(TablePreview(
                     file_path=file_path_str,
                     table_name=table_name,
@@ -99,10 +99,10 @@ async def execute_preview(
                     preview_rows=preview_df.to_dicts(),
                     stats=stats,
                 ))
-                
+
                 total_rows += len(df)
                 all_columns.update(df.columns)
-                
+
             except Exception as e:
                 # Include error in preview
                 previews.append(TablePreview(
@@ -114,7 +114,7 @@ async def execute_preview(
                     preview_rows=[],
                     stats={"error": str(e)},
                 ))
-    
+
     # Compute deterministic ID
     preview_inputs = {
         "run_id": run_id,
@@ -125,7 +125,7 @@ async def execute_preview(
         "max_rows": config.max_rows_per_table,
     }
     preview_id = compute_stage_id(preview_inputs, prefix="prev_")
-    
+
     return PreviewResult(
         preview_id=preview_id,
         table_previews=previews,
@@ -143,13 +143,13 @@ def _compute_table_stats(df: pl.DataFrame) -> dict[str, Any]:
         "null_counts": {},
         "numeric_summary": {},
     }
-    
+
     for col in df.columns:
         # Null count
         null_count = df[col].null_count()
         if null_count > 0:
             stats["null_counts"][col] = null_count
-        
+
         # Numeric summary
         if df[col].dtype in [pl.Float64, pl.Float32, pl.Int64, pl.Int32]:
             try:
@@ -161,5 +161,5 @@ def _compute_table_stats(df: pl.DataFrame) -> dict[str, Any]:
                 }
             except Exception:
                 pass
-    
+
     return stats

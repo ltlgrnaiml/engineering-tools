@@ -14,9 +14,9 @@ consumers (frontend, SOV, PPTX).
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Literal
+from typing import Any
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 __version__ = "0.1.0"
 

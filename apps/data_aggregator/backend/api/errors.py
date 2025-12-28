@@ -12,7 +12,6 @@ from fastapi import HTTPException
 from shared.contracts.core.error_response import (
     ErrorCategory,
     ErrorDetail,
-    ErrorResponse,
     create_error_response,
 )
 

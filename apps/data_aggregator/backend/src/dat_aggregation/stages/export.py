@@ -5,7 +5,6 @@ Multi-format export support: Parquet (default), CSV, Excel.
 """
 from datetime import datetime, timezone
 from enum import Enum
-from pathlib import Path
 
 import polars as pl
 
@@ -51,7 +50,7 @@ async def execute_export(
         DataSetManifest for the created DataSet.
     """
     data = parse_result.data
-    
+
     # Apply aggregation if levels specified
     if aggregation_levels and len(aggregation_levels) > 0:
         # Group by aggregation levels and compute summary stats
@@ -65,10 +64,10 @@ async def execute_export(
                         pl.col(col).std().alias(f"{col}_std"),
                         pl.col(col).count().alias(f"{col}_count"),
                     ])
-        
+
         if agg_exprs:
             data = data.group_by(aggregation_levels).agg(agg_exprs)
-    
+
     # Compute deterministic DataSet ID
     dataset_id = compute_dataset_id(
         run_id=run_id,
@@ -76,11 +75,11 @@ async def execute_export(
         row_count=len(data),
         aggregation_levels=aggregation_levels,
     )
-    
+
     # Build manifest
     now = datetime.now(timezone.utc)
     default_name = name or f"DAT Export - {run_id[:8]}"
-    
+
     manifest = DataSetManifest(
         dataset_id=dataset_id,
         name=default_name,
@@ -102,7 +101,7 @@ async def execute_export(
         profile_id=profile_id,
         parent_ids=[],  # Could link to input datasets if applicable
     )
-    
+
     # Write to shared storage
     store = ArtifactStore()
     await store.write_dataset(dataset_id, data, manifest)

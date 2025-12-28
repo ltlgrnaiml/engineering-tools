@@ -4,8 +4,6 @@ Per ADR-0003: Context is an optional stage that does NOT cascade unlock.
 Users can skip directly from Selection to Table Availability.
 """
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Any
 
 from shared.utils.stage_id import compute_stage_id
 
@@ -72,7 +70,7 @@ async def execute_context(
         "encoding": config.encoding,
     }
     context_id = compute_stage_id(context_inputs, prefix="ctx_")
-    
+
     return ContextResult(
         context_id=context_id,
         config=config,
@@ -94,25 +92,25 @@ def apply_context_to_dataframe(
         Transformed DataFrame
     """
     import polars as pl
-    
+
     result = df
-    
+
     for override in config.column_overrides:
         if override.column_name not in result.columns:
             continue
-            
+
         # Drop column if requested
         if override.drop:
             result = result.drop(override.column_name)
             continue
-        
+
         # Rename column if requested
         if override.rename_to:
             result = result.rename({override.column_name: override.rename_to})
             col_name = override.rename_to
         else:
             col_name = override.column_name
-        
+
         # Cast to target dtype if specified
         if override.target_dtype:
             dtype_map = {
@@ -125,5 +123,5 @@ def apply_context_to_dataframe(
                 result = result.with_columns(
                     pl.col(col_name).cast(dtype_map[override.target_dtype])
                 )
-    
+
     return result

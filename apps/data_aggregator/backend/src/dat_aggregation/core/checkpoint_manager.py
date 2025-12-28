@@ -16,7 +16,6 @@ from typing import Any
 from shared.contracts.dat.cancellation import (
     CancellableOperation,
     CancellableOperationState,
-    CancellationAuditEntry,
     CancellationAuditLog,
     CancellationReason,
     CancellationRequest,

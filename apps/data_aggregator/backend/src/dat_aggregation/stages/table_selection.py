@@ -4,8 +4,6 @@ After Table Availability identifies available tables, users select
 which tables they want to include in the parse operation.
 """
 from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Any
 
 from shared.utils.stage_id import compute_stage_id
 from shared.contracts.dat.table_status import TableAvailabilityStatus
@@ -52,7 +50,7 @@ async def execute_table_selection(
         TableSelectionResult with selected tables
     """
     selected: list[TableSelection] = []
-    
+
     if config.select_all:
         # Select all available tables
         for table in available_tables:
@@ -69,13 +67,13 @@ async def execute_table_selection(
                 # Verify table is available
                 matching = [
                     t for t in available_tables
-                    if t.file_path == sel.file_path 
+                    if t.file_path == sel.file_path
                     and t.table_name == sel.table_name
                     and t.status == TableAvailabilityStatus.AVAILABLE
                 ]
                 if matching:
                     selected.append(sel)
-    
+
     # Compute deterministic ID
     selection_inputs = {
         "run_id": run_id,
@@ -85,7 +83,7 @@ async def execute_table_selection(
         ]),
     }
     selection_id = compute_stage_id(selection_inputs, prefix="sel_")
-    
+
     return TableSelectionResult(
         selection_id=selection_id,
         selected_tables=selected,
@@ -103,10 +101,10 @@ def get_selected_file_table_map(
         Dict mapping file paths to list of selected table names
     """
     mapping: dict[str, list[str]] = {}
-    
+
     for sel in result.selected_tables:
         if sel.file_path not in mapping:
             mapping[sel.file_path] = []
         mapping[sel.file_path].append(sel.table_name)
-    
+
     return mapping

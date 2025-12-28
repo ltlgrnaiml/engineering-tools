@@ -1,6 +1,5 @@
 """API request/response schemas for DAT."""
 from datetime import datetime
-from pathlib import Path
 from pydantic import BaseModel, Field
 
 

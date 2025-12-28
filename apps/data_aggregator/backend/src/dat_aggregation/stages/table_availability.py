@@ -3,12 +3,10 @@
 Per ADR-0006: Table availability uses a deterministic status model.
 Uses shared contracts from shared.contracts.dat.table_status.
 """
-from datetime import datetime, timezone
 from pathlib import Path
 
 from shared.contracts.dat.table_status import (
     TableAvailabilityStatus,
-    TableParseError,
 )
 from shared.utils.stage_id import compute_stage_id
 from pydantic import BaseModel, Field
@@ -108,7 +106,7 @@ async def execute_table_availability(
                         status=TableAvailabilityStatus.FAILED,
                         error_message=str(e),
                     ))
-                    
+
         except ValueError as e:
             # No adapter found for file
             tables.append(TableInfo(
@@ -117,7 +115,7 @@ async def execute_table_availability(
                 status=TableAvailabilityStatus.FAILED,
                 error_message=f"Unsupported file format: {e}",
             ))
-    
+
     # Compute deterministic ID
     availability_inputs = {
         "run_id": run_id,
@@ -125,9 +123,9 @@ async def execute_table_availability(
         "table_count": len(tables),
     }
     availability_id = compute_stage_id(availability_inputs, prefix="avail_")
-    
+
     available_count = sum(1 for t in tables if t.status == TableAvailabilityStatus.AVAILABLE)
-    
+
     return TableAvailabilityResult(
         availability_id=availability_id,
         tables=tables,

@@ -1,36 +1,27 @@
 """Hybrid FSM for DAT stage orchestration.
 
-Per ADR-0001: Each stage manages its own UNLOCKED ↔ LOCKED lifecycle,
-while a global orchestrator coordinates unlock cascades.
+Per ADR-0001-DAT: 8-stage pipeline with lockable artifacts.
+Per ADR-0002: Artifacts preserved on unlock (never deleted).
+Per ADR-0003: Context and Preview are optional, do not cascade.
+Per ADR-0004-DAT: Stage IDs are deterministic (same inputs = same ID).
+
+Each stage manages its own lifecycle while a global orchestrator
+coordinates forward gating and unlock cascades.
 """
-from enum import Enum
-from dataclasses import dataclass, field
+
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Callable, Any, TYPE_CHECKING
+
+from shared.contracts.dat import DATStageType, DATStageState
 
 if TYPE_CHECKING:
     from .run_store import RunStore
 
 
-class Stage(str, Enum):
-    """DAT pipeline stages.
-
-    Per ADR-0001-DAT: 8-stage pipeline with Discovery as first stage.
-    """
-    DISCOVERY = "discovery"  # Implicit file scan made explicit
-    SELECTION = "selection"
-    CONTEXT = "context"
-    TABLE_AVAILABILITY = "table_availability"
-    TABLE_SELECTION = "table_selection"
-    PREVIEW = "preview"
-    PARSE = "parse"
-    EXPORT = "export"
-
-
-class StageState(str, Enum):
-    """State of a stage."""
-    UNLOCKED = "unlocked"
-    LOCKED = "locked"
+# Re-export for backward compatibility
+Stage = DATStageType
+StageState = DATStageState
 
 
 @dataclass
@@ -82,11 +73,11 @@ CASCADE_TARGETS: dict[Stage, list[Stage]] = {
 
 class DATStateMachine:
     """Hybrid FSM for DAT stage orchestration."""
-    
+
     def __init__(self, run_id: str, store: "RunStore"):
         self.run_id = run_id
         self.store = store
-    
+
     async def can_lock(self, stage: Stage) -> tuple[bool, str | None]:
         """Check if a stage can be locked (forward gating).
         
@@ -94,18 +85,18 @@ class DATStateMachine:
             (can_lock, reason) - reason is None if can_lock is True
         """
         gates = FORWARD_GATES.get(stage, [])
-        
+
         for required_stage, must_complete in gates:
             status = await self.store.get_stage_status(self.run_id, required_stage)
-            
+
             if status.state != StageState.LOCKED:
                 return False, f"{required_stage.value} must be locked first"
-            
+
             if must_complete and not status.completed:
                 return False, f"{required_stage.value} must be completed first"
-        
+
         return True, None
-    
+
     async def lock_stage(
         self,
         stage: Stage,
@@ -117,16 +108,16 @@ class DATStateMachine:
         Per ADR-0002: If stage ID exists, reuse artifact (idempotent re-lock).
         """
         from shared.utils.stage_id import compute_stage_id
-        
+
         # Check forward gating
         can_lock, reason = await self.can_lock(stage)
         if not can_lock:
             raise ValueError(f"Cannot lock {stage.value}: {reason}")
-        
+
         # Get inputs for deterministic ID
         stage_inputs = inputs or await self._get_stage_inputs(stage)
         stage_id = compute_stage_id(stage_inputs, prefix=f"{stage.value}_")
-        
+
         # Check for existing artifact (idempotent re-lock per ADR-0004)
         existing = await self.store.get_artifact(self.run_id, stage, stage_id)
         if existing:
@@ -141,12 +132,12 @@ class DATStateMachine:
             )
             await self.store.set_stage_status(self.run_id, stage, status)
             return status
-        
+
         # Execute stage logic if provided
         result: dict = {}
         if execute_fn:
             result = await execute_fn()
-        
+
         # Save artifact and update status
         artifact_path = await self.store.save_artifact(self.run_id, stage, stage_id, result)
         status = StageStatus(
@@ -158,9 +149,9 @@ class DATStateMachine:
             artifact_path=artifact_path,
         )
         await self.store.set_stage_status(self.run_id, stage, status)
-        
+
         return status
-    
+
     async def unlock_stage(self, stage: Stage, cascade: bool = True) -> list[StageStatus]:
         """Unlock a stage and optionally cascade to downstream stages.
         
@@ -175,7 +166,7 @@ class DATStateMachine:
         """
         now = datetime.now(timezone.utc)
         unlocked: list[StageStatus] = []
-        
+
         # Unlock this stage (preserve artifact)
         status = StageStatus(
             stage=stage,
@@ -184,7 +175,7 @@ class DATStateMachine:
         )
         await self.store.set_stage_status(self.run_id, stage, status)
         unlocked.append(status)
-        
+
         # Cascade to downstream stages if requested
         if cascade:
             for target in CASCADE_TARGETS.get(stage, []):
@@ -197,13 +188,13 @@ class DATStateMachine:
                     )
                     await self.store.set_stage_status(self.run_id, target, target_status)
                     unlocked.append(target_status)
-        
+
         return unlocked
-    
+
     async def get_all_statuses(self) -> dict[Stage, StageStatus]:
         """Get status of all stages."""
         return await self.store.get_all_stage_statuses(self.run_id)
-    
+
     async def _get_stage_inputs(self, stage: Stage) -> dict:
         """Get inputs for deterministic stage ID computation."""
         return {"run_id": self.run_id, "stage": stage.value}

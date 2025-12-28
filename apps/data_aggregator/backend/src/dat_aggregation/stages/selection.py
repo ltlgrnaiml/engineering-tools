@@ -38,7 +38,7 @@ async def discover_files(
     """
     supported = AdapterFactory.get_supported_extensions()
     discovered: list[FileInfo] = []
-    
+
     for source in source_paths:
         if source.is_file():
             if source.suffix.lower() in supported:
@@ -66,7 +66,7 @@ async def discover_files(
                     except Exception:
                         # Skip files that can't be read
                         continue
-    
+
     return discovered
 
 
@@ -86,11 +86,11 @@ async def execute_selection(
         SelectionResult with discovered and selected files
     """
     discovered = await discover_files(source_paths, recursive)
-    
+
     if selected_files is None:
         # Default: select all discovered files
         selected_files = [f.path for f in discovered]
-    
+
     return SelectionResult(
         discovered_files=discovered,
         selected_files=selected_files,

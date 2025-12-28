@@ -10,7 +10,6 @@ This module provides a StageGraphConfig that allows customization of:
 """
 
 from dataclasses import dataclass, field
-from enum import Enum
 from typing import Any
 
 __version__ = "0.1.0"

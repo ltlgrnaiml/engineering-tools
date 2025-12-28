@@ -87,7 +87,7 @@ class DATProfile:
     """Complete DAT extraction profile."""
     schema_version: str
     version: int
-    
+
     # Meta
     profile_id: str
     title: str
@@ -97,41 +97,41 @@ class DATProfile:
     modified_at: datetime | None = None
     revision: int = 1
     hash: str = ""
-    
+
     # Datasource
     datasource_id: str = ""
     datasource_label: str = ""
     datasource_format: str = "json"
     datasource_filters: dict[str, Any] = field(default_factory=dict)
     datasource_options: dict[str, Any] = field(default_factory=dict)
-    
+
     # Population
     default_strategy: str = "all"
     include_populations: list[str] = field(default_factory=list)
-    
+
     # Context
     context_defaults: ContextDefaults | None = None
     contexts: list[ContextConfig] = field(default_factory=list)
-    
+
     # Levels and tables
     levels: list[LevelConfig] = field(default_factory=list)
-    
+
     # Normalization
     nan_values: list[str] = field(default_factory=list)
     units_policy: str = "preserve"
     numeric_coercion: bool = True
-    
+
     # Outputs
     default_outputs: list[OutputConfig] = field(default_factory=list)
     optional_outputs: list[OutputConfig] = field(default_factory=list)
-    
+
     def get_level(self, name: str) -> LevelConfig | None:
         """Get level configuration by name."""
         for level in self.levels:
             if level.name == name:
                 return level
         return None
-    
+
     def get_table(self, level_name: str, table_id: str) -> TableConfig | None:
         """Get table configuration by level and table ID."""
         level = self.get_level(level_name)
@@ -141,7 +141,7 @@ class DATProfile:
             if table.id == table_id:
                 return table
         return None
-    
+
     def get_all_tables(self) -> list[tuple[str, TableConfig]]:
         """Get all tables across all levels as (level_name, table) tuples."""
         result = []
@@ -149,12 +149,12 @@ class DATProfile:
             for table in level.tables:
                 result.append((level.name, table))
         return result
-    
+
     def extract_context_from_filename(self, filename: str) -> dict[str, str]:
         """Extract context values from filename using regex patterns."""
         if not self.context_defaults:
             return {}
-        
+
         context = {}
         for pattern in self.context_defaults.regex_patterns:
             if pattern.scope != "filename":
@@ -168,7 +168,7 @@ class DATProfile:
                         context[pattern.field] = groups[pattern.field]
             except re.error:
                 continue
-        
+
         return context
 
 
@@ -184,7 +184,7 @@ def load_profile(path: Path | str) -> DATProfile:
     path = Path(path)
     with open(path, encoding="utf-8") as f:
         data = yaml.safe_load(f)
-    
+
     return _parse_profile(data)
 
 
@@ -201,7 +201,7 @@ def _parse_profile(data: dict) -> DATProfile:
     population = data.get("population", {})
     normalization = data.get("normalization", {})
     outputs = data.get("outputs", {})
-    
+
     # Parse context defaults
     context_defaults = None
     if "context_defaults" in data:
@@ -220,7 +220,7 @@ def _parse_profile(data: dict) -> DATProfile:
             defaults=cd.get("defaults", {}),
             regex_patterns=patterns,
         )
-    
+
     # Parse contexts
     contexts = []
     for ctx in data.get("contexts", []):
@@ -232,7 +232,7 @@ def _parse_profile(data: dict) -> DATProfile:
             primary_keys=ctx.get("primary_keys", []),
             time_fields=ctx.get("time_fields"),
         ))
-    
+
     # Parse levels and tables
     levels = []
     for level_data in data.get("levels", []):
@@ -255,13 +255,13 @@ def _parse_profile(data: dict) -> DATProfile:
                 stable_columns_mode=table_data.get("stable_columns_mode", "warn"),
                 stable_columns_subset=table_data.get("stable_columns_subset", True),
             ))
-        
+
         levels.append(LevelConfig(
             name=level_data.get("name", ""),
             apply_context=level_data.get("apply_context", ""),
             tables=tables,
         ))
-    
+
     # Parse outputs
     default_outputs = []
     for out in outputs.get("defaults", []):
@@ -271,7 +271,7 @@ def _parse_profile(data: dict) -> DATProfile:
             from_tables=out.get("from_tables", []),
             include_context=out.get("include_context", True),
         ))
-    
+
     optional_outputs = []
     for out in outputs.get("long_form_optional", []):
         optional_outputs.append(OutputConfig(
@@ -280,7 +280,7 @@ def _parse_profile(data: dict) -> DATProfile:
             from_tables=out.get("from_tables", []),
             include_context=out.get("include_context", True),
         ))
-    
+
     return DATProfile(
         schema_version=data.get("schema_version", "1.0.0"),
         version=data.get("version", 1),
@@ -324,7 +324,7 @@ def get_builtin_profiles() -> dict[str, Path]:
     """Get dictionary of built-in profile IDs to file paths."""
     profiles_dir = Path(__file__).parent
     profiles = {}
-    
+
     for yaml_file in profiles_dir.glob("*.yaml"):
         try:
             with open(yaml_file, encoding="utf-8") as f:
@@ -334,7 +334,7 @@ def get_builtin_profiles() -> dict[str, Path]:
                 profiles[profile_id] = yaml_file
         except Exception:
             continue
-    
+
     return profiles
 
 

@@ -56,7 +56,7 @@ class AdapterFactory:
             ValueError: If no adapter can handle the file.
         """
         return cls._get_registry().get_adapter(path)
-    
+
     @classmethod
     def read_file(cls, path: Path, **options) -> pl.DataFrame:
         """Read file using appropriate adapter.
@@ -70,7 +70,7 @@ class AdapterFactory:
         """
         adapter = cls.get_adapter(path)
         return adapter.read(path, **options)
-    
+
     @classmethod
     def get_tables(cls, path: Path) -> list[str]:
         """Get tables/sheets from file.
@@ -83,7 +83,7 @@ class AdapterFactory:
         """
         adapter = cls.get_adapter(path)
         return adapter.get_tables(path)
-    
+
     @classmethod
     def get_preview(cls, path: Path, table: str | None = None, rows: int = 100) -> pl.DataFrame:
         """Get preview of table data.
@@ -98,7 +98,7 @@ class AdapterFactory:
         """
         adapter = cls.get_adapter(path)
         return adapter.get_preview(path, table, rows)
-    
+
     @classmethod
     def get_supported_extensions(cls) -> set[str]:
         """Get all supported file extensions."""
@@ -113,7 +113,6 @@ class AdapterFactory:
         Returns:
             Dict mapping adapter names to their capabilities.
         """
-        from .registry import AdapterCapabilities
 
         catalog = cls._get_registry().get_catalog()
         return {

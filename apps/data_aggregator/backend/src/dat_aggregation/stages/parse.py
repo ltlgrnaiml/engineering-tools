@@ -7,7 +7,6 @@ Per ADR-0014: Output saved as Parquet.
 import json
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
@@ -48,13 +47,13 @@ class ParseResult:
 
 class CancellationToken:
     """Token for checking cancellation status."""
-    
+
     def __init__(self):
         self._cancelled = False
-    
+
     def cancel(self):
         self._cancelled = True
-    
+
     @property
     def is_cancelled(self) -> bool:
         return self._cancelled
@@ -101,7 +100,7 @@ def _load_context_with_fallback(
                 f"using profile defaults per ADR-0003"
             )
         else:
-            logger.debug(f"No context.json and no profile defaults available")
+            logger.debug("No context.json and no profile defaults available")
 
     # 3. Apply explicit overrides (highest priority)
     if context_overrides:
@@ -164,7 +163,7 @@ async def execute_parse(
     completed_tables: list[str] = []
     total_files = len(config.selected_files)
     tables_processed = 0
-    
+
     # Pre-calculate actual tables to process for accurate progress tracking
     file_tables_map: dict[Path, list[str]] = {}
     for file_path in config.selected_files:
@@ -172,7 +171,7 @@ async def execute_parse(
         if not tables:
             tables = AdapterFactory.get_tables(file_path)
         file_tables_map[file_path] = tables
-    
+
     total_tables = sum(len(tables) for tables in file_tables_map.values())
 
     for i, file_path in enumerate(config.selected_files):
