@@ -1,7 +1,7 @@
 {
   "schema_type": "adr",
   "id": "ADR-0036_Observability-and-Debugging-First",
-  "title": "Observability & Debugging First: Every Operation Must Be Traceable",
+  "title": "Observability & Debugging First: Every Operation Must Be Traceable (Backend + Frontend)",
   "status": "accepted",
   "date": "2025-12-28",
   "review_date": "2026-06-28",
@@ -12,10 +12,15 @@
       "at": "2025-12-28",
       "by": "Mycahya Eggleston",
       "note": "Initial draft to establish observability as first-class architectural concern"
+    },
+    {
+      "at": "2025-12-28",
+      "by": "Mycahya Eggleston",
+      "note": "Extended to include frontend debugging patterns for unified observability"
     }
   ],
-  "context": "For a solo developer, debugging is the largest time sink. Without comprehensive observability, issues require manual reproduction, print-statement debugging, and guesswork. The deterministic system design (ADR-0004, ADR-0001) provides reproducibility, but without structured logging and tracing, the 'what happened' question remains difficult to answer. Modern observability practices (structured logging, distributed tracing, state snapshots) enable rapid root-cause analysis. This ADR mandates that every operation MUST be traceable, transforming debugging from art to science.",
-  "decision_primary": "Every operation MUST be traceable. This requires: (1) Structured JSON logging (not text) for all log messages, (2) Request ID propagated through all API calls and background tasks, (3) FSM stage transitions emit events with before/after state snapshots, (4) ArtifactStore logs every write with SHA-256 hash for content verification, (5) DevTools surfaces a trace viewer for inspecting request flows. All logging uses Python's structlog library for consistent structured output.",
+  "context": "For a solo developer, debugging is the largest time sink. Without comprehensive observability, issues require manual reproduction, print-statement debugging, and guesswork. The deterministic system design (ADR-0004, ADR-0001) provides reproducibility, but without structured logging and tracing, the 'what happened' question remains difficult to answer. Modern observability practices (structured logging, distributed tracing, state snapshots) enable rapid root-cause analysis. This extends to BOTH backend (Python/FastAPI) AND frontend (React/TypeScript) - a unified observability story where every operation is traceable regardless of where it originates. This ADR mandates that every operation MUST be traceable, transforming debugging from art to science.",
+  "decision_primary": "Every operation MUST be traceable across the full stack. BACKEND: (1) Structured JSON logging via structlog, (2) Request ID propagation, (3) FSM state snapshots, (4) ArtifactStore logging with SHA-256 hashes, (5) DevTools trace viewer. FRONTEND: (6) Tool-specific debug panels for real-time API call inspection, (7) UI state transition logging, (8) Debug context provider pattern for React apps, (9) Unified log export format.",
   "decision_details": {
     "approach": "Structured logging with correlation IDs; state snapshots at boundaries; trace viewer for inspection",
     "constraints": [
@@ -25,7 +30,12 @@
       "FSM stage transitions MUST emit before_state and after_state in log events",
       "ArtifactStore writes MUST log: artifact_id, content_hash (SHA-256), file_path, timestamp",
       "Error logs MUST include: exception type, message, stack trace, request_id, relevant context",
-      "DevTools MUST provide trace viewer for inspecting request flows"
+      "DevTools MUST provide trace viewer for inspecting request flows",
+      "Each tool frontend MUST include a DebugPanel component for API call inspection",
+      "Frontend debug panels MUST use DebugContext provider pattern for state management",
+      "Frontend API calls MUST use debugFetch wrapper to log requests/responses",
+      "Frontend state transitions MUST be logged with from/to states and trigger",
+      "Debug logs MUST be exportable in unified JSON format"
     ],
     "logging_standard": {
       "library": "structlog",
@@ -88,7 +98,70 @@
       ],
       "implementation": "React component in DevTools frontend; API endpoint for log retrieval"
     },
-    "implementation_specs": []
+    "frontend_debugging": {
+      "architecture": {
+        "debug_context": {
+          "purpose": "React Context provider for debug state management",
+          "location": "apps/{tool}/frontend/src/components/debug/DebugContext.tsx",
+          "responsibilities": [
+            "Store API call logs with request/response bodies",
+            "Store UI state transitions with from/to states",
+            "Store general debug log entries",
+            "Provide log/clear/export functions",
+            "Manage panel open/closed state"
+          ]
+        },
+        "debug_panel": {
+          "purpose": "Floating debug panel UI for real-time inspection",
+          "location": "apps/{tool}/frontend/src/components/debug/DebugPanel.tsx",
+          "features": [
+            "Floating bug icon button (always visible, bottom-right)",
+            "Expandable panel with tabs: API Calls, Logs, State",
+            "Filter/search within logs",
+            "Copy/export logs as JSON",
+            "Error indicator (red dot when errors present)"
+          ]
+        },
+        "debug_fetch": {
+          "purpose": "Fetch wrapper that automatically logs API calls",
+          "location": "apps/{tool}/frontend/src/components/debug/useDebugFetch.ts",
+          "responsibilities": [
+            "Intercept all fetch calls",
+            "Log request method, URL, body",
+            "Log response status, body, duration",
+            "Handle errors gracefully"
+          ]
+        }
+      },
+      "log_format": {
+        "api_call": {
+          "fields": ["id", "timestamp", "method", "url", "requestBody", "responseStatus", "responseBody", "duration", "error", "pending"]
+        },
+        "state_transition": {
+          "fields": ["id", "timestamp", "from", "to", "trigger", "payload"]
+        },
+        "log_entry": {
+          "fields": ["id", "timestamp", "level", "category", "message", "details", "source"]
+        }
+      },
+      "export_format": {
+        "structure": {
+          "exportedAt": "ISO-8601 timestamp",
+          "tool": "Tool identifier (dat, sov, pptx)",
+          "logs": "Array of log entries",
+          "apiCalls": "Array of API call logs",
+          "stateTransitions": "Array of state transitions"
+        },
+        "purpose": "Unified format for sharing debug sessions"
+      },
+      "guardrails": [
+        "Debug panel MUST always render floating button regardless of panel state",
+        "Debug panel MUST NOT interfere with normal UI interactions (z-index, pointer-events)",
+        "Debug logs MUST be capped (max 500 entries) to prevent memory issues",
+        "Debug fetch wrapper MUST fall back to normal fetch if context unavailable"
+      ]
+    },
+    "implementation_specs": ["SPEC-0040"]
   },
   "consequences": [
     "✅ POSITIVE: Rapid root-cause analysis (filter logs by request_id)",
@@ -97,9 +170,12 @@
     "✅ POSITIVE: Structured logs enable querying and aggregation",
     "✅ POSITIVE: DevTools trace viewer reduces debugging time",
     "✅ POSITIVE: Solo-dev can 'replay' issues without manual reproduction",
+    "✅ POSITIVE: Frontend debug panels provide real-time API inspection during development",
+    "✅ POSITIVE: Unified log export format enables sharing debug sessions",
     "❌ NEGATIVE: Increased log volume (mitigated: log levels, retention policy)",
     "❌ NEGATIVE: Structlog learning curve (mitigated: consistent patterns)",
     "❌ NEGATIVE: Performance overhead for state snapshots (mitigated: DEBUG level only)",
+    "❌ NEGATIVE: Frontend debug panel adds bundle size (mitigated: tree-shaking, dev-only imports)",
     "⚠️ NEUTRAL: JSON logs less human-readable than text (mitigated: trace viewer)"
   ],
   "alternatives_considered": [
@@ -130,7 +206,11 @@
     "4. Add FSM transition logging to stage orchestrator",
     "5. Add artifact logging to ArtifactStore",
     "6. Create DevTools trace viewer component",
-    "7. Add log retrieval API endpoint for DevTools"
+    "7. Add log retrieval API endpoint for DevTools",
+    "8. Create shared frontend debug components (DebugContext, DebugPanel, useDebugFetch)",
+    "9. Integrate debug components into each tool frontend (DAT, PPTX, SOV)",
+    "10. Ensure all frontend API calls use debugFetch wrapper",
+    "11. Add state transition logging to frontend FSM/wizard components"
   ],
   "rollback_plan": "If structured logging proves too verbose: (1) Reduce log levels (INFO → WARNING for routine events), (2) Disable state snapshots (DEBUG level), (3) Keep request_id propagation (low overhead, high value). Incremental rollback possible.",
   "metrics_to_watch": [
@@ -162,6 +242,24 @@
       "rule": "ArtifactStore writes MUST log artifact_id and content_hash",
       "enforcement": "ArtifactStore includes logging; tests verify log output",
       "scope": "core"
+    },
+    {
+      "id": "observability-frontend-debug-panel",
+      "rule": "Each tool frontend MUST include DebugPanel component wrapped in DebugProvider",
+      "enforcement": "Code review; check App.tsx includes DebugProvider and DebugPanel",
+      "scope": "core"
+    },
+    {
+      "id": "observability-frontend-debug-fetch",
+      "rule": "Frontend API calls MUST use useDebugFetch hook for automatic logging",
+      "enforcement": "Code review; grep for raw fetch() calls in components",
+      "scope": "core"
+    },
+    {
+      "id": "observability-frontend-state-logging",
+      "rule": "Frontend FSM/wizard state transitions MUST log from/to states",
+      "enforcement": "Code review; wizard components call logStateTransition",
+      "scope": "core"
     }
   ],
   "cross_cutting_guardrails": [
@@ -182,6 +280,7 @@
     "tracing",
     "structlog",
     "devtools",
+    "frontend-debugging",
     "solo-dev"
   ],
   "affected_components": [
@@ -189,6 +288,11 @@
     "gateway/main.py (request_id middleware)",
     "shared/workflows/fsm_orchestrator.py (transition logging)",
     "shared/storage/artifact_store.py (write logging)",
-    "apps/homepage/frontend/src/devtools/ (trace viewer)"
+    "apps/homepage/frontend/src/devtools/ (trace viewer)",
+    "apps/data_aggregator/frontend/src/components/debug/ (DebugContext, DebugPanel, useDebugFetch)",
+    "apps/pptx_generator/frontend/src/components/debug/ (DebugContext, DebugPanel, useDebugFetch)",
+    "apps/sov_analyzer/frontend/src/components/debug/ (DebugContext, DebugPanel, useDebugFetch)",
+    "shared/frontend/src/debug/ (shared debug components - future)",
+    "shared/contracts/core/frontend_logging.py (frontend log contracts)"
   ]
 }

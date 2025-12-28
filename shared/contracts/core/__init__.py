@@ -91,6 +91,25 @@ from shared.contracts.core.rendering import (
     TextSpec,
     ImageSpec,
 )
+from shared.contracts.core.logging import (
+    LogLevel,
+    RequestContext,
+    LogEvent,
+    StateSnapshot,
+    FSMTransitionLog,
+    ArtifactLog,
+    TraceQuery,
+    TraceResult,
+)
+from shared.contracts.core.frontend_logging import (
+    FrontendLogLevel,
+    FrontendLogCategory,
+    FrontendLogEntry,
+    FrontendAPICall,
+    FrontendStateTransition,
+    FrontendDebugExport,
+    DebugPanelConfig,
+)
 
 __version__ = "0.1.0"
 
@@ -173,4 +192,21 @@ __all__ = [
     "TableSpec",
     "TextSpec",
     "ImageSpec",
+    # Logging (Backend)
+    "LogLevel",
+    "RequestContext",
+    "LogEvent",
+    "StateSnapshot",
+    "FSMTransitionLog",
+    "ArtifactLog",
+    "TraceQuery",
+    "TraceResult",
+    # Frontend Logging
+    "FrontendLogLevel",
+    "FrontendLogCategory",
+    "FrontendLogEntry",
+    "FrontendAPICall",
+    "FrontendStateTransition",
+    "FrontendDebugExport",
+    "DebugPanelConfig",
 ]

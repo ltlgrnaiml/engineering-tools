@@ -46,6 +46,7 @@ CONTRACT_MODULES = {
         "shared.contracts.core.id_generator",
         "shared.contracts.core.idempotency",
         "shared.contracts.core.logging",
+        "shared.contracts.core.frontend_logging",
         "shared.contracts.core.path_safety",
         "shared.contracts.core.pipeline",
         "shared.contracts.core.rendering",

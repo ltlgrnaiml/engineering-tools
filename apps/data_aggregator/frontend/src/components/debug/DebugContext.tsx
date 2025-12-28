@@ -67,6 +67,8 @@ export function DebugProvider({ children }: { children: React.ReactNode }) {
   
   const maxLogs = useRef(500)
 
+  console.log('DebugProvider initialized:', { isEnabled, isPanelOpen, logs: logs.length, apiCalls: apiCalls.length })
+
   const log = useCallback((
     level: LogLevel,
     category: DebugLogEntry['category'],

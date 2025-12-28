@@ -194,6 +194,9 @@ export function DebugPanel() {
   const [activeTab, setActiveTab] = useState<Tab>('api')
   const [filter, setFilter] = useState('')
   
+  // Debug logging
+  console.log('DebugPanel render:', { isPanelOpen, isEnabled, apiCalls: apiCalls.length, logs: logs.length })
+  
   const handleExport = () => {
     const data = exportLogs()
     const blob = new Blob([data], { type: 'application/json' })
@@ -219,9 +222,13 @@ export function DebugPanel() {
   
   // Floating debug button when panel is closed
   if (!isPanelOpen) {
+    console.log('Rendering floating debug button')
     return (
       <button
-        onClick={togglePanel}
+        onClick={() => {
+          console.log('Debug button clicked')
+          togglePanel()
+        }}
         className="fixed bottom-4 right-4 z-50 p-3 bg-slate-800 hover:bg-slate-700 text-white rounded-full shadow-lg border border-slate-600 flex items-center gap-2"
         title="Open Debug Panel"
       >

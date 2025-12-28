@@ -65,7 +65,7 @@ These ADRs define patterns that ALL tools (DAT, PPTX, SOV) MUST follow:
 | **ADR-0033** | **AI-Assisted Development Patterns** | core | AI-parseable code: naming conventions, docstrings, flat structure |
 | **ADR-0034** | **Automated Documentation Pipeline** | core | Generate docs from code: JSON Schema, OpenAPI, mkdocstrings, git-cliff |
 | **ADR-0035** | **Contract-Driven Test Generation** | core | Pydantic → Hypothesis tests; FSM exhaustive path testing |
-| **ADR-0036** | **Observability & Debugging First** | core | Structured JSON logging, request tracing, state snapshots |
+| **ADR-0036** | **Observability & Debugging First (Backend + Frontend)** | core | Unified observability: structured logging, request tracing, state snapshots, frontend debug panels |
 | **ADR-0037** | **Single-Command Development Environment** | core | ./start.ps1 starts everything; uv for deps; Docker Compose option |
 | **ADR-0038** | **CI/CD Pipeline for Data & Code** | core | Pre-commit + PR checks + main deploy; GitHub Actions |
 | **ADR-0039** | **Deployment Automation** | core | Pulumi IaC; environment parity; feature flags |

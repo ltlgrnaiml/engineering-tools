@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useDebugFetch } from '../components/debug'
 
 export interface DATRun {
   run_id: string
@@ -11,15 +12,15 @@ export interface DATRun {
   created_at: string
 }
 
-async function fetchRun(runId: string): Promise<DATRun> {
-  const response = await fetch(`/api/dat/v1/runs/${runId}`)
+async function fetchRun(runId: string, debugFetch: any): Promise<DATRun> {
+  const response = await debugFetch(`/api/dat/v1/runs/${runId}`)
   if (!response.ok) throw new Error('Failed to fetch run')
   return response.json()
 }
 
-async function createNewRun(): Promise<DATRun> {
+async function createNewRun(debugFetch: any): Promise<DATRun> {
   console.log('Creating new run...')
-  const response = await fetch('/api/dat/v1/runs', {
+  const response = await debugFetch('/api/dat/v1/runs', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({}),
@@ -37,15 +38,16 @@ async function createNewRun(): Promise<DATRun> {
 
 export function useRun(runId: string | null) {
   const queryClient = useQueryClient()
+  const debugFetch = useDebugFetch()
 
   const { data: run, isLoading, error } = useQuery({
     queryKey: ['dat-run', runId],
-    queryFn: () => fetchRun(runId!),
+    queryFn: () => fetchRun(runId!, debugFetch),
     enabled: !!runId,
   })
 
   const createMutation = useMutation({
-    mutationFn: createNewRun,
+    mutationFn: () => createNewRun(debugFetch),
     onSuccess: (newRun) => {
       queryClient.setQueryData(['dat-run', newRun.run_id], newRun)
     },
@@ -61,10 +63,11 @@ export function useRun(runId: string | null) {
 
 export function useStageAction(runId: string) {
   const queryClient = useQueryClient()
+  const debugFetch = useDebugFetch()
 
   const lockStage = useMutation({
     mutationFn: async ({ stage, data }: { stage: string; data: unknown }) => {
-      const response = await fetch(`/api/dat/v1/runs/${runId}/stages/${stage}/lock`, {
+      const response = await debugFetch(`/api/dat/v1/runs/${runId}/stages/${stage}/lock`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -79,7 +82,7 @@ export function useStageAction(runId: string) {
 
   const unlockStage = useMutation({
     mutationFn: async (stage: string) => {
-      const response = await fetch(`/api/dat/v1/runs/${runId}/stages/${stage}/unlock`, {
+      const response = await debugFetch(`/api/dat/v1/runs/${runId}/stages/${stage}/unlock`, {
         method: 'POST',
       })
       if (!response.ok) throw new Error('Failed to unlock stage')

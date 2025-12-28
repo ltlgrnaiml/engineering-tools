@@ -1,18 +1,23 @@
 {
   "schema_type": "spec",
   "id": "SPEC-0040",
-  "title": "Observability and Tracing Specification",
-  "version": "2025.12.001",
+  "title": "Observability and Tracing Specification (Backend + Frontend)",
+  "version": "2025.12.002",
   "status": "active",
   "implements": "ADR-0036",
   "date": "2025-12-28",
   "scope": "core",
-  "summary": "Technical specification for structured JSON logging, request ID propagation, FSM state logging, artifact logging, and DevTools trace viewer.",
+  "summary": "Technical specification for unified observability across backend (structured JSON logging, request ID propagation, FSM state logging, artifact logging) and frontend (tool-specific debug panels, API call logging, state transition tracking).",
   "tier_0_contracts": [
     {
       "module": "shared.contracts.core.logging",
-      "classes": ["LogEvent", "RequestContext", "StateSnapshot"],
-      "note": "NEW - to be created"
+      "classes": ["LogEvent", "RequestContext", "StateSnapshot", "FSMTransitionLog", "ArtifactLog", "TraceQuery", "TraceResult"],
+      "note": "Backend logging contracts - IMPLEMENTED"
+    },
+    {
+      "module": "shared.contracts.core.frontend_logging",
+      "classes": ["FrontendLogEntry", "FrontendAPICall", "FrontendStateTransition", "FrontendDebugExport"],
+      "note": "Frontend logging contracts - NEW"
     }
   ],
   "logging_implementation": {
@@ -116,6 +121,122 @@
       "storage": "In-memory ring buffer (last N requests); file-based for persistence"
     }
   },
+  "frontend_debugging": {
+    "overview": "Each tool frontend includes a debug panel for real-time API call inspection and state transition logging during development.",
+    "components": {
+      "DebugContext": {
+        "location": "apps/{tool}/frontend/src/components/debug/DebugContext.tsx",
+        "purpose": "React Context provider for debug state management",
+        "exports": ["DebugProvider", "useDebug", "useDebugOptional"],
+        "state": {
+          "logs": "Array of FrontendLogEntry",
+          "apiCalls": "Array of FrontendAPICall",
+          "stateTransitions": "Array of FrontendStateTransition",
+          "isEnabled": "boolean - whether logging is active",
+          "isPanelOpen": "boolean - whether panel is expanded"
+        },
+        "methods": {
+          "log": "(level, category, message, details?, source?) => void",
+          "logAPI": "(entry) => string (returns call ID)",
+          "updateAPI": "(id, updates) => void",
+          "logStateTransition": "(from, to, trigger, payload?) => void",
+          "clearLogs": "() => void",
+          "togglePanel": "() => void",
+          "setEnabled": "(enabled) => void",
+          "exportLogs": "() => string (JSON)"
+        }
+      },
+      "DebugPanel": {
+        "location": "apps/{tool}/frontend/src/components/debug/DebugPanel.tsx",
+        "purpose": "Floating debug panel UI for real-time inspection",
+        "ui_structure": {
+          "closed_state": "Floating bug icon button in bottom-right corner (fixed, z-50)",
+          "open_state": "Expandable panel with header, tabs, and content area",
+          "tabs": ["API Calls", "All Logs", "State Transitions"],
+          "features": [
+            "Filter/search within current tab",
+            "Copy logs to clipboard",
+            "Export logs as JSON file",
+            "Clear all logs",
+            "Pause/resume logging",
+            "Error indicator (red dot when errors present)"
+          ]
+        },
+        "styling": {
+          "framework": "TailwindCSS",
+          "theme": "Dark slate theme for visibility",
+          "position": "fixed bottom-0 right-0 (panel), fixed bottom-4 right-4 (button)"
+        }
+      },
+      "useDebugFetch": {
+        "location": "apps/{tool}/frontend/src/components/debug/useDebugFetch.ts",
+        "purpose": "Fetch wrapper hook that automatically logs API calls",
+        "usage": "const debugFetch = useDebugFetch(); await debugFetch(url, options);",
+        "behavior": [
+          "Logs request start with method, URL, body",
+          "Logs response with status, body, duration",
+          "Handles errors gracefully",
+          "Falls back to normal fetch if debug context unavailable"
+        ]
+      }
+    },
+    "integration_pattern": {
+      "app_tsx": "Wrap app content with <DebugProvider> and include <DebugPanel /> as sibling",
+      "example": "<DebugProvider>\n  <div className=\"app-content\">...</div>\n  <DebugPanel />\n</DebugProvider>",
+      "hooks_usage": "Replace fetch() calls with useDebugFetch() hook in all components"
+    },
+    "log_schemas": {
+      "FrontendLogEntry": {
+        "fields": {
+          "id": "string - unique log ID",
+          "timestamp": "Date - when logged",
+          "level": "enum: info, warn, error, success, debug",
+          "category": "enum: api, state, render, user, system",
+          "message": "string - log message",
+          "details": "any - optional additional data",
+          "source": "string - optional source identifier"
+        }
+      },
+      "FrontendAPICall": {
+        "fields": {
+          "id": "string - unique call ID",
+          "timestamp": "Date - when request started",
+          "method": "string - HTTP method",
+          "url": "string - request URL",
+          "requestBody": "any - request payload",
+          "responseStatus": "number - HTTP status code",
+          "responseBody": "any - response payload",
+          "duration": "number - milliseconds",
+          "error": "string - error message if failed",
+          "pending": "boolean - whether still in flight"
+        }
+      },
+      "FrontendStateTransition": {
+        "fields": {
+          "id": "string - unique transition ID",
+          "timestamp": "Date - when transition occurred",
+          "from": "string - previous state",
+          "to": "string - new state",
+          "trigger": "string - what caused the transition",
+          "payload": "any - optional transition data"
+        }
+      },
+      "FrontendDebugExport": {
+        "fields": {
+          "exportedAt": "string - ISO-8601 timestamp",
+          "tool": "string - tool identifier (dat, sov, pptx)",
+          "logs": "FrontendLogEntry[]",
+          "apiCalls": "FrontendAPICall[]",
+          "stateTransitions": "FrontendStateTransition[]"
+        }
+      }
+    },
+    "constraints": {
+      "max_entries": 500,
+      "auto_cleanup": "Oldest entries dropped when limit exceeded",
+      "memory_safety": "All arrays capped to prevent memory leaks"
+    }
+  },
   "log_levels": {
     "DEBUG": "Detailed diagnostic (state snapshots, artifact reads)",
     "INFO": "Normal operations (transitions, writes)",
@@ -143,17 +264,40 @@
     {
       "id": "REQ-OBS-005",
       "description": "DevTools MUST provide trace viewer"
+    },
+    {
+      "id": "REQ-OBS-006",
+      "description": "Each tool frontend MUST include DebugPanel component wrapped in DebugProvider"
+    },
+    {
+      "id": "REQ-OBS-007",
+      "description": "Frontend API calls MUST use useDebugFetch hook for automatic logging"
+    },
+    {
+      "id": "REQ-OBS-008",
+      "description": "Frontend FSM/wizard state transitions MUST log from/to states via logStateTransition"
+    },
+    {
+      "id": "REQ-OBS-009",
+      "description": "Debug logs MUST be exportable in unified FrontendDebugExport JSON format"
+    },
+    {
+      "id": "REQ-OBS-010",
+      "description": "Debug panel MUST always render floating button regardless of panel state"
     }
   ],
   "validation_commands": {
     "verify_structured_logs": "grep -v '^{' app.log | wc -l  # Should be 0",
     "test_request_id": "curl -H 'X-Request-ID: test-123' http://localhost:8000/health",
-    "view_traces": "Open DevTools → Traces tab"
+    "view_traces": "Open DevTools → Traces tab",
+    "verify_debug_panel_dat": "Check DAT tool at localhost:5173 for bug icon in bottom-right",
+    "verify_debug_provider": "grep -r 'DebugProvider' apps/*/frontend/src/App.tsx",
+    "verify_debug_fetch_usage": "grep -r 'useDebugFetch' apps/*/frontend/src/components/"
   },
   "references": [
     "ADR-0036_Observability-and-Debugging-First",
     "structlog: https://www.structlog.org/",
     "12-Factor App - Logs: https://12factor.net/logs"
   ],
-  "tags": ["observability", "logging", "tracing", "structlog", "devtools", "specification"]
+  "tags": ["observability", "logging", "tracing", "structlog", "devtools", "frontend-debugging", "specification"]
 }

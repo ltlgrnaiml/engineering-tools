@@ -46,7 +46,7 @@ Tier 1: ADRs (WHY)
 | **SPEC-0037** | **AI-Assisted Development Patterns** | **ADR-0033** | - (code conventions) |
 | **SPEC-0038** | **Automated Documentation Pipeline** | **ADR-0034** | - (tooling) |
 | **SPEC-0039** | **Contract-Driven Test Generation** | **ADR-0035** | - (testing) |
-| **SPEC-0040** | **Observability & Tracing** | **ADR-0036** | `shared/contracts/core/logging.py` (NEW) |
+| **SPEC-0040** | **Observability & Tracing (Backend + Frontend)** | **ADR-0036** | `shared/contracts/core/logging.py`, `shared/contracts/core/frontend_logging.py` |
 | **SPEC-0041** | **Development Environment Setup** | **ADR-0037** | - (scripts) |
 | **SPEC-0042** | **CI/CD Pipeline Implementation** | **ADR-0038** | - (workflows) |
 | **SPEC-0043** | **Deployment Infrastructure** | **ADR-0039** | - (Pulumi) |
@@ -103,6 +103,8 @@ Tier 1: ADRs (WHY)
 | Concurrency | `shared/contracts/core/concurrency.py` | PlatformInfo, ConcurrencyConfig, OSType, ShellType | SPEC-0011, SPEC-0019 |
 | **Rendering** | `shared/contracts/core/rendering.py` | RenderSpec, ChartSpec, TableSpec, RenderStyle, DataSeries, OutputTarget | SPEC-0031, SPEC-0032, SPEC-0033 |
 | **IDGenerator** | `shared/contracts/core/id_generator.py` | IDConfig, compute_deterministic_id, StageIDInputs, UploadStageInputs, ParseStageInputs | SPEC-0014 |
+| **Logging** | `shared/contracts/core/logging.py` | LogEvent, RequestContext, StateSnapshot, FSMTransitionLog, ArtifactLog, TraceQuery, TraceResult | SPEC-0040 |
+| **FrontendLogging** | `shared/contracts/core/frontend_logging.py` | FrontendLogEntry, FrontendAPICall, FrontendStateTransition, FrontendDebugExport, DebugPanelConfig | SPEC-0040 |
 
 ### DAT Contracts ✓
 
