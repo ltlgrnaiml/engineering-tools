@@ -139,8 +139,8 @@
     },
     {
       "id": "contract-versioning",
-      "rule": "Breaking contract changes require /vN routing and ADR linkage. Non-breaking changes (adding optional fields) can be made in-place. Breaking changes (removing fields, changing types) require new API version.",
-      "enforcement": "Runtime: FastAPI routes use /v1/, /v2/ prefixes for versioned endpoints. CI: ci/steps/step_openapi_client_drift.ps1 detects breaking schema changes. Tests: backend/tests/test_contract_versioning.py validates backward compatibility.",
+      "rule": "Breaking contract changes require semantic versioning in contract modules and ADR linkage. Non-breaking changes (adding optional fields) can be made in-place. Breaking changes (removing fields, changing types) require version bump in contract __version__.",
+      "enforcement": "Runtime: Contract modules have __version__ attribute. CI: ci/steps/step_openapi_client_drift.ps1 detects breaking schema changes. Tests: backend/tests/test_contract_versioning.py validates backward compatibility. API routes do NOT use /v1/ prefixes - versioning is at contract level only.",
       "scope": "cross-cutting",
       "references": [
         "ADR-0016_Hybrid-Semver-Contract-Versioning",

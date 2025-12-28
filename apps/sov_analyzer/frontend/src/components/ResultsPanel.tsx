@@ -41,7 +41,7 @@ interface ANOVAResult {
 }
 
 async function fetchResults(id: string): Promise<ANOVAResult> {
-  const response = await fetch(`/api/sov/v1/analysis/${id}`)
+  const response = await fetch(`/api/sov/analysis/${id}`)
   if (!response.ok) throw new Error('Failed to fetch results')
   return response.json()
 }

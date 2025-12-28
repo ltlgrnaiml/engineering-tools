@@ -35,19 +35,19 @@ export interface CreatePipelineRequest {
 }
 
 async function fetchPipelines(): Promise<PipelineRef[]> {
-  const response = await fetch('/api/pipelines/v1/')
+  const response = await fetch('/api/pipelines/')
   if (!response.ok) throw new Error('Failed to fetch pipelines')
   return response.json()
 }
 
 async function fetchPipeline(pipelineId: string): Promise<Pipeline> {
-  const response = await fetch(`/api/pipelines/v1/${pipelineId}`)
+  const response = await fetch(`/api/pipelines/${pipelineId}`)
   if (!response.ok) throw new Error('Failed to fetch pipeline')
   return response.json()
 }
 
 async function createPipeline(request: CreatePipelineRequest): Promise<Pipeline> {
-  const response = await fetch('/api/pipelines/v1/', {
+  const response = await fetch('/api/pipelines/', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),
@@ -57,7 +57,7 @@ async function createPipeline(request: CreatePipelineRequest): Promise<Pipeline>
 }
 
 async function executePipeline(pipelineId: string): Promise<Pipeline> {
-  const response = await fetch(`/api/pipelines/v1/${pipelineId}/execute`, {
+  const response = await fetch(`/api/pipelines/${pipelineId}/execute`, {
     method: 'POST',
   })
   if (!response.ok) throw new Error('Failed to execute pipeline')
@@ -65,7 +65,7 @@ async function executePipeline(pipelineId: string): Promise<Pipeline> {
 }
 
 async function cancelPipeline(pipelineId: string): Promise<Pipeline> {
-  const response = await fetch(`/api/pipelines/v1/${pipelineId}/cancel`, {
+  const response = await fetch(`/api/pipelines/${pipelineId}/cancel`, {
     method: 'POST',
   })
   if (!response.ok) throw new Error('Failed to cancel pipeline')

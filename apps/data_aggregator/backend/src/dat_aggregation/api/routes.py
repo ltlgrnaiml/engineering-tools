@@ -39,8 +39,8 @@ from .schemas import (
     PreviewResponse,
 )
 
-# Versioned router per API-001
-router = APIRouter(prefix="/v1")
+# Router without versioning per project decision
+router = APIRouter()
 run_manager = RunManager()
 
 # Track active cancellation tokens
