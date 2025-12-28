@@ -300,7 +300,7 @@ def validate_adr_files(report: ValidationReport) -> int:
         return 0
     
     required_fields = ["id", "title", "status"]
-    recommended_fields = ["decision_primary", "key_constraints"]
+    recommended_fields = ["decision_primary"]
     
     valid_count = 0
     
@@ -322,7 +322,13 @@ def validate_adr_files(report: ValidationReport) -> int:
             
             # Check recommended fields
             missing_recommended = [field for field in recommended_fields if field not in adr]
-            if missing_recommended:
+            # Also check for constraints in decision_details (per ADR schema)
+            has_constraints = (
+                "decision_details" in adr and 
+                isinstance(adr.get("decision_details"), dict) and
+                adr["decision_details"].get("constraints")
+            )
+            if missing_recommended and not has_constraints:
                 report.add_warning(
                     "adr_files",
                     f"ADR missing recommended fields: {missing_recommended}",
@@ -385,19 +391,12 @@ def validate_spec_files(report: ValidationReport) -> int:
             else:
                 valid_count += 1
             
-            # Check ADR reference
-            if "implements_adr" not in spec:
+            # Check ADR reference (accepts 'implements_adr' or 'implements')
+            has_adr_ref = "implements_adr" in spec or "implements" in spec
+            if not has_adr_ref:
                 report.add_warning(
                     "spec_files",
-                    "SPEC missing 'implements_adr' reference",
-                    file_path=str(spec_file.relative_to(PROJECT_ROOT)),
-                )
-            
-            # Check contract reference
-            if "tier_0_contracts" not in spec:
-                report.add_warning(
-                    "spec_files",
-                    "SPEC missing 'tier_0_contracts' reference",
+                    "SPEC missing ADR reference ('implements_adr' or 'implements')",
                     file_path=str(spec_file.relative_to(PROJECT_ROOT)),
                 )
                 

@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import Enum
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ProjectStatus(str, Enum):
@@ -85,16 +85,13 @@ class Project(BaseModel):
         description="Last update timestamp",
     )
 
-    class Config:
-        """Pydantic model configuration."""
-
-        json_schema_extra = {
-            "example": {
-                "id": "123e4567-e89b-12d3-a456-426614174000",
-                "name": "Q4 Sales Report",
-                "description": "Quarterly sales presentation for executive team",
-                "status": "created",
-                "created_at": "2024-01-15T10:30:00Z",
-                "updated_at": "2024-01-15T10:30:00Z",
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "id": "123e4567-e89b-12d3-a456-426614174000",
+            "name": "Q4 Sales Report",
+            "description": "Quarterly sales presentation for executive team",
+            "status": "created",
+            "created_at": "2024-01-15T10:30:00Z",
+            "updated_at": "2024-01-15T10:30:00Z",
         }
+    })

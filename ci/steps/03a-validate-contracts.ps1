@@ -24,7 +24,7 @@ if (Test-Path $validateScript) {
     $exitCode = $LASTEXITCODE
     
     if ($exitCode -eq 0) {
-        Write-Host "✓ All contract validations passed" -ForegroundColor Green
+        Write-Host "All contract validations passed" -ForegroundColor Green
     } elseif ($exitCode -eq 1) {
         Write-Warning "Contract validation completed with warnings"
     } else {

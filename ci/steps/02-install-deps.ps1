@@ -14,31 +14,10 @@ if (Test-Path $activateScript) {
     . $activateScript
 }
 
-# Install root Python dependencies
-Write-Host "Installing root Python dependencies..." -ForegroundColor Yellow
-$requirementsPath = Join-Path $rootDir "requirements.txt"
-if (Test-Path $requirementsPath) {
-    pip install -r $requirementsPath
-    Write-Host "Root dependencies installed" -ForegroundColor Green
-}
-
-# Install shared package in editable mode
-Write-Host "Installing shared package..." -ForegroundColor Yellow
-pip install -e "$rootDir/shared"
-
-# Install gateway
-Write-Host "Installing gateway package..." -ForegroundColor Yellow
-pip install -e "$rootDir/gateway"
-
-# Install app packages
-$apps = @("data_aggregator", "pptx_generator", "sov_analyzer")
-foreach ($app in $apps) {
-    $appPath = Join-Path $rootDir "apps/$app"
-    if (Test-Path $appPath) {
-        Write-Host "Installing $app..." -ForegroundColor Yellow
-        pip install -e $appPath
-    }
-}
+# Install root package in editable mode (includes shared, gateway, apps via setuptools.packages.find)
+Write-Host "Installing root package in editable mode..." -ForegroundColor Yellow
+pip install -e "$rootDir[all]"
+Write-Host "Root package installed" -ForegroundColor Green
 
 # Install test dependencies
 Write-Host "Installing test dependencies..." -ForegroundColor Yellow
@@ -49,9 +28,16 @@ $homepageFrontend = Join-Path $rootDir "apps/homepage/frontend"
 if (Test-Path $homepageFrontend) {
     Write-Host "Installing Homepage frontend dependencies..." -ForegroundColor Yellow
     Push-Location $homepageFrontend
-    npm ci
+    try {
+        # Use npm install instead of npm ci for better compatibility on Windows
+        # npm ci can fail with EPERM errors when node_modules exists with locked files
+        npm install --prefer-offline
+        Write-Host "Homepage frontend dependencies installed" -ForegroundColor Green
+    } catch {
+        Write-Warning "npm install failed (may need to close IDE/processes using node_modules): $_"
+        Write-Warning "Continuing CI - frontend deps may need manual installation"
+    }
     Pop-Location
-    Write-Host "Homepage frontend dependencies installed" -ForegroundColor Green
 }
 
 Write-Host "=== Dependencies Installation Complete ===" -ForegroundColor Cyan

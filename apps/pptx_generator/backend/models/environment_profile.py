@@ -6,7 +6,7 @@ Models for configuring data source environments and job context taxonomy.
 from enum import Enum
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class SourceType(str, Enum):
@@ -49,17 +49,14 @@ class JobContext(BaseModel):
         # Check aliases
         return self.aliases.get(value)
 
-    class Config:
-        """Pydantic model configuration."""
-
-        json_schema_extra = {
-            "example": {
-                "name": "Sides",
-                "key": "sides",
-                "values": ["Left", "Right"],
-                "aliases": {"l": "Left", "left": "Left", "r": "Right", "right": "Right"},
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "name": "Sides",
+            "key": "sides",
+            "values": ["Left", "Right"],
+            "aliases": {"l": "Left", "left": "Left", "r": "Right", "right": "Right"},
         }
+    })
 
 
 class DataRoots(BaseModel):
@@ -78,16 +75,13 @@ class DataRoots(BaseModel):
         description="Relative data aggregation path pattern",
     )
 
-    class Config:
-        """Pydantic model configuration."""
-
-        json_schema_extra = {
-            "example": {
-                "templates_root": "C:/Users/user/templates",
-                "output_root": "C:/Users/user/output",
-                "dataagg_rel": "{run_key}/DataAgg/{category}",
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "templates_root": "C:/Users/user/templates",
+            "output_root": "C:/Users/user/output",
+            "dataagg_rel": "{run_key}/DataAgg/{category}",
         }
+    })
 
 
 class EnvironmentProfile(BaseModel):
@@ -202,28 +196,25 @@ class EnvironmentProfile(BaseModel):
         else:
             raise ValueError(f"Unknown preset: {preset_name}")
 
-    class Config:
-        """Pydantic model configuration."""
-
-        json_schema_extra = {
-            "example": {
-                "id": "123e4567-e89b-12d3-a456-426614174001",
-                "name": "Local Filesystem",
-                "source": "filesystem",
-                "roots": {
-                    "templates_root": "C:/Users/user/templates",
-                    "output_root": "C:/Users/user/output",
-                },
-                "job_contexts": [
-                    {
-                        "name": "Sides",
-                        "key": "side",
-                        "values": ["Left", "Right"],
-                    }
-                ],
-                "primary_job_context_key": "side",
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "id": "123e4567-e89b-12d3-a456-426614174001",
+            "name": "Local Filesystem",
+            "source": "filesystem",
+            "roots": {
+                "templates_root": "C:/Users/user/templates",
+                "output_root": "C:/Users/user/output",
+            },
+            "job_contexts": [
+                {
+                    "name": "Sides",
+                    "key": "side",
+                    "values": ["Left", "Right"],
+                }
+            ],
+            "primary_job_context_key": "side",
         }
+    })
 
 
 # Validation test

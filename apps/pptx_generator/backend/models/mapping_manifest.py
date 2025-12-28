@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from apps.pptx_generator.backend.models.drm import AggregationType, MappingSourceType
 
@@ -21,13 +21,12 @@ class ValueAlias(BaseModel):
     source_values: list[str] = Field(..., description="Values to match")
     target_value: str = Field(..., description="Normalized target value")
 
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "source_values": ["L", "l", "left"],
-                "target_value": "Left",
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "source_values": ["L", "l", "left"],
+            "target_value": "Left",
         }
+    })
 
 
 class DerivedColumn(BaseModel):
@@ -44,16 +43,15 @@ class DerivedColumn(BaseModel):
     lookup_table: dict[str, str] | None = Field(None, description="Value lookup table")
     description: str | None = Field(None, description="Human-readable description")
 
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "name": "imcol",
-                "source_column": "ImageName",
-                "derivation_type": "regex",
-                "pattern": "LC(?P<imcol>\\d+)_",
-                "description": "Extract image column from ImageName",
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "name": "imcol",
+            "source_column": "ImageName",
+            "derivation_type": "regex",
+            "pattern": "LC(?P<imcol>\\d+)_",
+            "description": "Extract image column from ImageName",
         }
+    })
 
 
 class DataJoin(BaseModel):
@@ -68,16 +66,15 @@ class DataJoin(BaseModel):
     )
     suffix: str = Field(default="_joined", description="Suffix for duplicate columns")
 
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "secondary_file_id": "123e4567-e89b-12d3-a456-426614174002",
-                "join_type": "left",
-                "primary_column": "Condition",
-                "secondary_column": "ConditionID",
-                "columns_to_include": ["Value", "Category"],
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "secondary_file_id": "123e4567-e89b-12d3-a456-426614174002",
+            "join_type": "left",
+            "primary_column": "Condition",
+            "secondary_column": "ConditionID",
+            "columns_to_include": ["Value", "Category"],
         }
+    })
 
 
 class ContextMapping(BaseModel):
@@ -123,17 +120,14 @@ class ContextMapping(BaseModel):
             raise ValueError("default_value required when source_type is DEFAULT")
         return v
 
-    class Config:
-        """Pydantic model configuration."""
-
-        json_schema_extra = {
-            "example": {
-                "context_name": "side",
-                "source_type": "column",
-                "source_column": "SpaceCD_Side",
-                "description": "Side dimension from SpaceCD_Side column",
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "context_name": "side",
+            "source_type": "column",
+            "source_column": "SpaceCD_Side",
+            "description": "Side dimension from SpaceCD_Side column",
         }
+    })
 
 
 class MetricMapping(BaseModel):
@@ -165,18 +159,15 @@ class MetricMapping(BaseModel):
         """
         return self.rename_to if self.rename_to else self.metric_name
 
-    class Config:
-        """Pydantic model configuration."""
-
-        json_schema_extra = {
-            "example": {
-                "metric_name": "CD",
-                "source_column": "Space CD (nm)",
-                "rename_to": "SpaceCD",
-                "aggregation_semantics": "mean",
-                "unit": "nm",
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "metric_name": "CD",
+            "source_column": "Space CD (nm)",
+            "rename_to": "SpaceCD",
+            "aggregation_semantics": "mean",
+            "unit": "nm",
         }
+    })
 
 
 class MappingSuggestion(BaseModel):
@@ -196,18 +187,15 @@ class MappingSuggestion(BaseModel):
     confidence_score: float = Field(..., ge=0.0, le=1.0, description="Confidence score 0-1")
     reasoning: str = Field(..., description="Why this was suggested")
 
-    class Config:
-        """Pydantic model configuration."""
-
-        json_schema_extra = {
-            "example": {
-                "target_name": "side",
-                "suggested_source": "SpaceCD_Side",
-                "source_type": "column",
-                "confidence_score": 0.9,
-                "reasoning": "Substring match: 'side' found in 'SpaceCD_Side'",
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "target_name": "side",
+            "suggested_source": "SpaceCD_Side",
+            "source_type": "column",
+            "confidence_score": 0.9,
+            "reasoning": "Substring match: 'side' found in 'SpaceCD_Side'",
         }
+    })
 
 
 class CoverageReport(BaseModel):
@@ -235,17 +223,14 @@ class CoverageReport(BaseModel):
             return (mapped / total) * 100.0
         return 0.0
 
-    class Config:
-        """Pydantic model configuration."""
-
-        json_schema_extra = {
-            "example": {
-                "total_required": 5,
-                "mapped_count": 4,
-                "coverage_percentage": 80.0,
-                "missing_items": ["wafer"],
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "total_required": 5,
+            "mapped_count": 4,
+            "coverage_percentage": 80.0,
+            "missing_items": ["wafer"],
         }
+    })
 
 
 class MappingManifest(BaseModel):
@@ -329,29 +314,26 @@ class MappingManifest(BaseModel):
         )
         return context_complete and metrics_complete
 
-    class Config:
-        """Pydantic model configuration."""
-
-        json_schema_extra = {
-            "example": {
-                "id": "123e4567-e89b-12d3-a456-426614174001",
-                "project_id": "123e4567-e89b-12d3-a456-426614174000",
-                "context_mappings": [
-                    {
-                        "context_name": "side",
-                        "source_type": "column",
-                        "source_column": "SpaceCD_Side",
-                    }
-                ],
-                "metrics_mappings": [
-                    {
-                        "metric_name": "CD",
-                        "source_column": "Space CD (nm)",
-                        "aggregation_semantics": "mean",
-                    }
-                ],
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "id": "123e4567-e89b-12d3-a456-426614174001",
+            "project_id": "123e4567-e89b-12d3-a456-426614174000",
+            "context_mappings": [
+                {
+                    "context_name": "side",
+                    "source_type": "column",
+                    "source_column": "SpaceCD_Side",
+                }
+            ],
+            "metrics_mappings": [
+                {
+                    "metric_name": "CD",
+                    "source_column": "Space CD (nm)",
+                    "aggregation_semantics": "mean",
+                }
+            ],
         }
+    })
 
 
 # Validation test

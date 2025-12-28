@@ -3,7 +3,7 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ShapeInfo(BaseModel):
@@ -34,21 +34,18 @@ class ShapeInfo(BaseModel):
     has_chart: bool = Field(default=False, description="Is a chart")
     parsed_name: object | None = Field(None, description="Parsed shape name (ParsedShapeName)")
 
-    class Config:
-        """Pydantic model configuration."""
-
-        json_schema_extra = {
-            "example": {
-                "shape_id": 1,
-                "name": "Title_Placeholder",
-                "shape_type": "text_box",
-                "slide_index": 0,
-                "position": {"left": 914400, "top": 685800, "width": 7315200, "height": 1143000},
-                "has_text": True,
-                "has_table": False,
-                "has_chart": False,
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "shape_id": 1,
+            "name": "Title_Placeholder",
+            "shape_type": "text_box",
+            "slide_index": 0,
+            "position": {"left": 914400, "top": 685800, "width": 7315200, "height": 1143000},
+            "has_text": True,
+            "has_table": False,
+            "has_chart": False,
         }
+    })
 
 
 class ShapeMap(BaseModel):
@@ -72,34 +69,31 @@ class ShapeMap(BaseModel):
         description="Creation timestamp",
     )
 
-    class Config:
-        """Pydantic model configuration."""
-
-        json_schema_extra = {
-            "example": {
-                "id": "123e4567-e89b-12d3-a456-426614174001",
-                "template_id": "123e4567-e89b-12d3-a456-426614174002",
-                "slide_count": 5,
-                "shapes": [
-                    {
-                        "shape_id": 1,
-                        "name": "Title_Placeholder",
-                        "shape_type": "text_box",
-                        "slide_index": 0,
-                        "position": {
-                            "left": 914400,
-                            "top": 685800,
-                            "width": 7315200,
-                            "height": 1143000,
-                        },
-                        "has_text": True,
-                        "has_table": False,
-                        "has_chart": False,
-                    }
-                ],
-                "created_at": "2024-01-15T10:35:00Z",
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "id": "123e4567-e89b-12d3-a456-426614174001",
+            "template_id": "123e4567-e89b-12d3-a456-426614174002",
+            "slide_count": 5,
+            "shapes": [
+                {
+                    "shape_id": 1,
+                    "name": "Title_Placeholder",
+                    "shape_type": "text_box",
+                    "slide_index": 0,
+                    "position": {
+                        "left": 914400,
+                        "top": 685800,
+                        "width": 7315200,
+                        "height": 1143000,
+                    },
+                    "has_text": True,
+                    "has_table": False,
+                    "has_chart": False,
+                }
+            ],
+            "created_at": "2024-01-15T10:35:00Z",
         }
+    })
 
 
 class Template(BaseModel):
@@ -125,16 +119,13 @@ class Template(BaseModel):
         description="Upload timestamp",
     )
 
-    class Config:
-        """Pydantic model configuration."""
-
-        json_schema_extra = {
-            "example": {
-                "id": "123e4567-e89b-12d3-a456-426614174002",
-                "project_id": "123e4567-e89b-12d3-a456-426614174000",
-                "filename": "sales_template.pptx",
-                "file_path": "uploads/123e4567-e89b-12d3-a456-426614174002.pptx",
-                "file_size": 1048576,
-                "uploaded_at": "2024-01-15T10:32:00Z",
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "id": "123e4567-e89b-12d3-a456-426614174002",
+            "project_id": "123e4567-e89b-12d3-a456-426614174000",
+            "filename": "sales_template.pptx",
+            "file_path": "uploads/123e4567-e89b-12d3-a456-426614174002.pptx",
+            "file_size": 1048576,
+            "uploaded_at": "2024-01-15T10:32:00Z",
         }
+    })

@@ -79,7 +79,7 @@ export function DevToolsPage() {
   }
 
 
-  const handleFormSave = async (data: Record<string, any>) => {
+  const handleFormSave = async (data: Record<string, unknown>) => {
     try {
       if (isCreatingNew) {
         // Create new ADR
@@ -305,7 +305,7 @@ export function DevToolsPage() {
     return (
       <div className="h-full">
         <ADRFormEditor
-          adr={selectedAdr.content as Record<string, any>}
+          adr={selectedAdr.content as unknown as Record<string, unknown>}
           isNewAdr={false}
           onSave={handleFormSave}
         />

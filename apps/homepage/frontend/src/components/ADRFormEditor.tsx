@@ -2,10 +2,14 @@ import { useState, useEffect } from 'react'
 import { AlertCircle, CheckCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
+interface ADRFormData {
+  [key: string]: string | string[] | Record<string, unknown> | unknown
+}
+
 interface ADRFormEditorProps {
-  adr: Record<string, any> | null
+  adr: ADRFormData | null
   isNewAdr?: boolean
-  onSave: (data: Record<string, any>) => Promise<void>
+  onSave: (data: ADRFormData) => Promise<void>
   onValidate?: () => Promise<void>
 }
 
@@ -16,7 +20,7 @@ interface FieldError {
 const API_BASE = 'http://localhost:8000/api/v1/devtools'
 
 export function ADRFormEditor({ adr, isNewAdr = false, onSave }: ADRFormEditorProps) {
-  const [formData, setFormData] = useState<Record<string, any>>({})
+  const [formData, setFormData] = useState<ADRFormData>({})
   const [fieldErrors, setFieldErrors] = useState<FieldError>({})
   const [isSaving, setIsSaving] = useState(false)
 
@@ -54,7 +58,7 @@ export function ADRFormEditor({ adr, isNewAdr = false, onSave }: ADRFormEditorPr
     }
   }, [adr, isNewAdr])
 
-  const validateField = async (fieldName: string, value: any) => {
+  const validateField = async (fieldName: string, value: unknown) => {
     try {
       const response = await fetch(`${API_BASE}/adrs/validate-field`, {
         method: 'POST',
@@ -74,13 +78,13 @@ export function ADRFormEditor({ adr, isNewAdr = false, onSave }: ADRFormEditorPr
     }
   }
 
-  const handleFieldChange = (fieldName: string, value: any) => {
+  const handleFieldChange = (fieldName: string, value: unknown) => {
     setFormData((prev) => ({ ...prev, [fieldName]: value }))
     // Debounce validation
     setTimeout(() => validateField(fieldName, value), 500)
   }
 
-  const handleNestedFieldChange = (parent: string, child: string, value: any) => {
+  const handleNestedFieldChange = (parent: string, child: string, value: unknown) => {
     setFormData((prev) => ({
       ...prev,
       [parent]: {
@@ -92,7 +96,7 @@ export function ADRFormEditor({ adr, isNewAdr = false, onSave }: ADRFormEditorPr
 
   const handleArrayFieldChange = (fieldName: string, index: number, value: string) => {
     setFormData((prev) => {
-      const arr = [...(prev[fieldName] || [])]
+      const arr = [...((prev[fieldName] as string[]) || [])]
       arr[index] = value
       return { ...prev, [fieldName]: arr }
     })
@@ -101,14 +105,14 @@ export function ADRFormEditor({ adr, isNewAdr = false, onSave }: ADRFormEditorPr
   const addArrayItem = (fieldName: string) => {
     setFormData((prev) => ({
       ...prev,
-      [fieldName]: [...(prev[fieldName] || []), ''],
+      [fieldName]: [...((prev[fieldName] as string[]) || []), ''],
     }))
   }
 
   const removeArrayItem = (fieldName: string, index: number) => {
     setFormData((prev) => ({
       ...prev,
-      [fieldName]: (prev[fieldName] || []).filter((_: any, i: number) => i !== index),
+      [fieldName]: ((prev[fieldName] as string[]) || []).filter((_: string, i: number) => i !== index),
     }))
   }
 
@@ -128,7 +132,7 @@ export function ADRFormEditor({ adr, isNewAdr = false, onSave }: ADRFormEditorPr
     options?: string[],
     required = false
   ) => {
-    const value = formData[fieldName] || ''
+    const value = (formData[fieldName] as string) || ''
     const error = fieldErrors[fieldName]
 
     return (
@@ -139,7 +143,7 @@ export function ADRFormEditor({ adr, isNewAdr = false, onSave }: ADRFormEditorPr
         </label>
         {type === 'textarea' ? (
           <textarea
-            value={value}
+            value={value as string}
             onChange={(e) => handleFieldChange(fieldName, e.target.value)}
             className={cn(
               'w-full px-3 py-2 border rounded-md text-sm resize-y min-h-[80px]',
@@ -149,9 +153,10 @@ export function ADRFormEditor({ adr, isNewAdr = false, onSave }: ADRFormEditorPr
           />
         ) : type === 'select' ? (
           <select
-            value={value}
+            value={value as string}
             onChange={(e) => handleFieldChange(fieldName, e.target.value)}
             className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-primary-500"
+            aria-label={label}
           >
             {options?.map((opt) => (
               <option key={opt} value={opt}>
@@ -162,7 +167,7 @@ export function ADRFormEditor({ adr, isNewAdr = false, onSave }: ADRFormEditorPr
         ) : (
           <input
             type={type}
-            value={value}
+            value={value as string}
             onChange={(e) => handleFieldChange(fieldName, e.target.value)}
             className={cn(
               'w-full px-3 py-2 border rounded-md text-sm',
@@ -262,7 +267,7 @@ export function ADRFormEditor({ adr, isNewAdr = false, onSave }: ADRFormEditorPr
               <label className="block text-sm font-medium text-slate-700">Decision Details</label>
               <input
                 type="text"
-                value={formData.decision_details?.approach || ''}
+                value={((formData.decision_details as Record<string, unknown>)?.approach as string) || ''}
                 onChange={(e) => handleNestedFieldChange('decision_details', 'approach', e.target.value)}
                 className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
                 placeholder="Approach..."

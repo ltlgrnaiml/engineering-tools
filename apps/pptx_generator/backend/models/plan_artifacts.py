@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class LookupJSON(BaseModel):
@@ -25,19 +25,16 @@ class LookupJSON(BaseModel):
     fs_dataagg: str = Field(..., description="Data aggregation root")
     job_context_folders: dict[str, str] = Field(..., description="Folders per job context value")
 
-    class Config:
-        """Pydantic model configuration."""
-
-        json_schema_extra = {
-            "example": {
-                "fs_root": "L:/Y72U/29/XDEC Monster",
-                "fs_dataagg": "L:/Y72U/29/XDEC Monster/WLREV 2.2 XDEC EB",
-                "job_context_folders": {
-                    "Left": "L:/Y72U/29/XDEC Monster/WLREV 2.2 XDEC EB/Left",
-                    "Right": "L:/Y72U/29/XDEC Monster/WLREV 2.2 XDEC EB/Right",
-                },
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "fs_root": "L:/Y72U/29/XDEC Monster",
+            "fs_dataagg": "L:/Y72U/29/XDEC Monster/WLREV 2.2 XDEC EB",
+            "job_context_folders": {
+                "Left": "L:/Y72U/29/XDEC Monster/WLREV 2.2 XDEC EB/Left",
+                "Right": "L:/Y72U/29/XDEC Monster/WLREV 2.2 XDEC EB/Right",
+            },
         }
+    })
 
 
 class RequestGraphPartition(BaseModel):
@@ -63,20 +60,17 @@ class RequestGraphPartition(BaseModel):
         """
         return (self.run_key, self.job_context_value)
 
-    class Config:
-        """Pydantic model configuration."""
-
-        json_schema_extra = {
-            "example": {
-                "run_key": "DZ001",
-                "job_context_value": "Left",
-                "file_paths": [
-                    "L:/path/to/data/Left/stats.csv",
-                    "L:/path/to/data/Left/conditions.csv",
-                ],
-                "deduped": False,
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "run_key": "DZ001",
+            "job_context_value": "Left",
+            "file_paths": [
+                "L:/path/to/data/Left/stats.csv",
+                "L:/path/to/data/Left/conditions.csv",
+            ],
+            "deduped": False,
         }
+    })
 
 
 class RequestGraph(BaseModel):
@@ -128,22 +122,19 @@ class RequestGraph(BaseModel):
         """Return a string representation of the request graph."""
         return str(self.partitions)
 
-    class Config:
-        """Pydantic model configuration."""
-
-        json_schema_extra = {
-            "example": {
-                "partitions": [
-                    {
-                        "run_key": "DZ001",
-                        "job_context_value": "Left",
-                        "file_paths": ["path/to/data.csv"],
-                    }
-                ],
-                "total_partitions": 1,
-                "deduped_count": 0,
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "partitions": [
+                {
+                    "run_key": "DZ001",
+                    "job_context_value": "Left",
+                    "file_paths": ["path/to/data.csv"],
+                }
+            ],
+            "total_partitions": 1,
+            "deduped_count": 0,
         }
+    })
 
 
 class PlanManifest(BaseModel):
@@ -198,19 +189,16 @@ class PlanManifest(BaseModel):
             json_str = json.dumps(obj, sort_keys=True, default=str)
         return hashlib.sha1(json_str.encode()).hexdigest()
 
-    class Config:
-        """Pydantic model configuration."""
-
-        json_schema_extra = {
-            "example": {
-                "drm_sha1": "a1b2c3d4e5f6...",
-                "mappings_sha1": "f6e5d4c3b2a1...",
-                "environment_sha1": "1a2b3c4d5e6f...",
-                "lookup_sha1": "6f5e4d3c2b1a...",
-                "request_graph_sha1": "b1c2d3e4f5a6...",
-                "code_version": "2.0.0",
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "drm_sha1": "a1b2c3d4e5f6...",
+            "mappings_sha1": "f6e5d4c3b2a1...",
+            "environment_sha1": "1a2b3c4d5e6f...",
+            "lookup_sha1": "6f5e4d3c2b1a...",
+            "request_graph_sha1": "b1c2d3e4f5a6...",
+            "code_version": "2.0.0",
         }
+    })
 
 
 class PlanArtifacts(BaseModel):
@@ -232,29 +220,26 @@ class PlanArtifacts(BaseModel):
     manifest: PlanManifest = Field(..., description="Plan manifest")
     created_at: datetime = Field(default_factory=datetime.utcnow, description="Creation timestamp")
 
-    class Config:
-        """Pydantic model configuration."""
-
-        json_schema_extra = {
-            "example": {
-                "id": "123e4567-e89b-12d3-a456-426614174001",
-                "project_id": "123e4567-e89b-12d3-a456-426614174000",
-                "lookup": {
-                    "fs_root": "/path",
-                    "fs_dataagg": "/path/data",
-                    "job_context_folders": {},
-                },
-                "request_graph": {"partitions": [], "total_partitions": 0, "deduped_count": 0},
-                "manifest": {
-                    "drm_sha1": "abc123",
-                    "mappings_sha1": "def456",
-                    "environment_sha1": "ghi789",
-                    "lookup_sha1": "jkl012",
-                    "request_graph_sha1": "mno345",
-                    "code_version": "2.0.0",
-                },
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "id": "123e4567-e89b-12d3-a456-426614174001",
+            "project_id": "123e4567-e89b-12d3-a456-426614174000",
+            "lookup": {
+                "fs_root": "/path",
+                "fs_dataagg": "/path/data",
+                "job_context_folders": {},
+            },
+            "request_graph": {"partitions": [], "total_partitions": 0, "deduped_count": 0},
+            "manifest": {
+                "drm_sha1": "abc123",
+                "mappings_sha1": "def456",
+                "environment_sha1": "ghi789",
+                "lookup_sha1": "jkl012",
+                "request_graph_sha1": "mno345",
+                "code_version": "2.0.0",
+            },
         }
+    })
 
 
 # Validation test

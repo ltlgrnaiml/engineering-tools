@@ -44,13 +44,18 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     Yields:
         None: Control back to the application.
     """
+    # Startup
     upload_dir = Path(settings.UPLOAD_DIR)
     upload_dir.mkdir(parents=True, exist_ok=True)
 
     generated_dir = Path(settings.GENERATED_DIR)
     generated_dir.mkdir(parents=True, exist_ok=True)
 
+    # Validate domain config at startup
+    _validate_domain_config()
+
     yield
+    # Shutdown (nothing to do currently)
 
 
 app = FastAPI(
@@ -90,15 +95,14 @@ app.include_router(preview.router, prefix="/api/v1/preview", tags=["preview"])
 logger = logging.getLogger(__name__)
 
 
-@app.on_event("startup")
-async def validate_domain_config():
+def _validate_domain_config() -> None:
     """Validate domain configuration at startup."""
     from apps.pptx_generator.backend.core.domain_config_service import get_domain_config
     try:
-        config = get_domain_config()
+        domain_config = get_domain_config()
         logger.info(
-            f"Domain config validated: {len(config.job_contexts)} job contexts, "
-            f"{len(config.metrics.canonical)} canonical metrics"
+            f"Domain config validated: {len(domain_config.job_contexts)} job contexts, "
+            f"{len(domain_config.metrics.canonical)} canonical metrics"
         )
     except Exception as e:
         logger.error(f"Domain config validation failed: {e}")

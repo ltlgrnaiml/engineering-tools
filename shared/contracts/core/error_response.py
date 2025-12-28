@@ -10,7 +10,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 __version__ = "0.1.0"
 
@@ -97,28 +97,25 @@ class ErrorResponse(BaseModel):
         description="Link to relevant documentation",
     )
 
-    class Config:
-        """Pydantic model configuration."""
-
-        json_schema_extra = {
-            "example": {
-                "error": True,
-                "status_code": 400,
-                "category": "validation",
-                "severity": "error",
-                "message": "Invalid request parameters",
-                "details": [
-                    {
-                        "field": "factors",
-                        "message": "At least one factor is required",
-                        "code": "REQUIRED_FIELD",
-                    }
-                ],
-                "request_id": "req_abc123xyz",
-                "timestamp": "2024-12-27T10:30:00Z",
-                "tool": "sov",
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "error": True,
+            "status_code": 400,
+            "category": "validation",
+            "severity": "error",
+            "message": "Invalid request parameters",
+            "details": [
+                {
+                    "field": "factors",
+                    "message": "At least one factor is required",
+                    "code": "REQUIRED_FIELD",
+                }
+            ],
+            "request_id": "req_abc123xyz",
+            "timestamp": "2024-12-27T10:30:00Z",
+            "tool": "sov",
         }
+    })
 
 
 class ValidationErrorResponse(ErrorResponse):

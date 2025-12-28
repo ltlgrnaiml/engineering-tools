@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import Enum
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class GenerationStatus(str, Enum):
@@ -37,15 +37,12 @@ class GenerationRequest(BaseModel):
         description="Custom output filename",
     )
 
-    class Config:
-        """Pydantic model configuration."""
-
-        json_schema_extra = {
-            "example": {
-                "project_id": "123e4567-e89b-12d3-a456-426614174000",
-                "output_filename": "Q4_Sales_Report_2024.pptx",
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "project_id": "123e4567-e89b-12d3-a456-426614174000",
+            "output_filename": "Q4_Sales_Report_2024.pptx",
         }
+    })
 
 
 class GenerationResponse(BaseModel):
@@ -87,18 +84,15 @@ class GenerationResponse(BaseModel):
     )
     completed_at: datetime | None = Field(None, description="Completion timestamp")
 
-    class Config:
-        """Pydantic model configuration."""
-
-        json_schema_extra = {
-            "example": {
-                "id": "123e4567-e89b-12d3-a456-426614174005",
-                "project_id": "123e4567-e89b-12d3-a456-426614174000",
-                "status": "completed",
-                "output_file_path": "generated/123e4567-e89b-12d3-a456-426614174005.pptx",
-                "output_filename": "Q4_Sales_Report_2024.pptx",
-                "error_message": None,
-                "started_at": "2024-01-15T10:50:00Z",
-                "completed_at": "2024-01-15T10:51:30Z",
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "id": "123e4567-e89b-12d3-a456-426614174005",
+            "project_id": "123e4567-e89b-12d3-a456-426614174000",
+            "status": "completed",
+            "output_file_path": "generated/123e4567-e89b-12d3-a456-426614174005.pptx",
+            "output_filename": "Q4_Sales_Report_2024.pptx",
+            "error_message": None,
+            "started_at": "2024-01-15T10:50:00Z",
+            "completed_at": "2024-01-15T10:51:30Z",
         }
+    })

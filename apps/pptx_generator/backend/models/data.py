@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class DataFile(BaseModel):
@@ -36,22 +36,19 @@ class DataFile(BaseModel):
         description="Upload timestamp",
     )
 
-    class Config:
-        """Pydantic model configuration."""
-
-        json_schema_extra = {
-            "example": {
-                "id": "123e4567-e89b-12d3-a456-426614174003",
-                "project_id": "123e4567-e89b-12d3-a456-426614174000",
-                "filename": "sales_data.xlsx",
-                "file_path": "uploads/123e4567-e89b-12d3-a456-426614174003.xlsx",
-                "file_size": 524288,
-                "file_type": "xlsx",
-                "row_count": 150,
-                "column_names": ["region", "sales", "growth", "target"],
-                "uploaded_at": "2024-01-15T10:40:00Z",
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "id": "123e4567-e89b-12d3-a456-426614174003",
+            "project_id": "123e4567-e89b-12d3-a456-426614174000",
+            "filename": "sales_data.xlsx",
+            "file_path": "uploads/123e4567-e89b-12d3-a456-426614174003.xlsx",
+            "file_size": 524288,
+            "file_type": "xlsx",
+            "row_count": 150,
+            "column_names": ["region", "sales", "growth", "target"],
+            "uploaded_at": "2024-01-15T10:40:00Z",
         }
+    })
 
 
 class DataMapping(BaseModel):
@@ -70,17 +67,14 @@ class DataMapping(BaseModel):
     transformation: str | None = Field(None, description="Data transformation type")
     default_value: Any | None = Field(None, description="Default value if missing")
 
-    class Config:
-        """Pydantic model configuration."""
-
-        json_schema_extra = {
-            "example": {
-                "shape_name": "Sales_Value_Text",
-                "data_column": "sales",
-                "transformation": "currency",
-                "default_value": "$0",
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "shape_name": "Sales_Value_Text",
+            "data_column": "sales",
+            "transformation": "currency",
+            "default_value": "$0",
         }
+    })
 
 
 class AssetMapping(BaseModel):
@@ -112,23 +106,20 @@ class AssetMapping(BaseModel):
         description="Last update timestamp",
     )
 
-    class Config:
-        """Pydantic model configuration."""
-
-        json_schema_extra = {
-            "example": {
-                "id": "123e4567-e89b-12d3-a456-426614174004",
-                "project_id": "123e4567-e89b-12d3-a456-426614174000",
-                "mappings": [
-                    {
-                        "shape_name": "Sales_Value_Text",
-                        "data_column": "sales",
-                        "transformation": "currency",
-                        "default_value": "$0",
-                    }
-                ],
-                "domain_knowledge": {"currency_format": "USD", "decimal_places": 2},
-                "created_at": "2024-01-15T10:45:00Z",
-                "updated_at": "2024-01-15T10:45:00Z",
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "id": "123e4567-e89b-12d3-a456-426614174004",
+            "project_id": "123e4567-e89b-12d3-a456-426614174000",
+            "mappings": [
+                {
+                    "shape_name": "Sales_Value_Text",
+                    "data_column": "sales",
+                    "transformation": "currency",
+                    "default_value": "$0",
+                }
+            ],
+            "domain_knowledge": {"currency_format": "USD", "decimal_places": 2},
+            "created_at": "2024-01-15T10:45:00Z",
+            "updated_at": "2024-01-15T10:45:00Z",
         }
+    })

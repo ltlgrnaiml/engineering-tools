@@ -11,7 +11,7 @@ from datetime import datetime
 from enum import Enum
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class MappingSourceType(str, Enum):
@@ -61,16 +61,13 @@ class RequiredContext(BaseModel):
     default_value: str | None = Field(None, description="Default value")
     description: str | None = Field(None, description="Human-readable description")
 
-    class Config:
-        """Pydantic model configuration."""
-
-        json_schema_extra = {
-            "example": {
-                "name": "side",
-                "source_type": "column",
-                "description": "Left or Right side dimension",
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "name": "side",
+            "source_type": "column",
+            "description": "Left or Right side dimension",
         }
+    })
 
 
 class RequiredMetric(BaseModel):
@@ -90,17 +87,14 @@ class RequiredMetric(BaseModel):
     unit: str | None = Field(None, description="Measurement unit")
     description: str | None = Field(None, description="Human-readable description")
 
-    class Config:
-        """Pydantic model configuration."""
-
-        json_schema_extra = {
-            "example": {
-                "name": "CD",
-                "aggregation_type": "mean",
-                "data_type": "float",
-                "unit": "nm",
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "name": "CD",
+            "aggregation_type": "mean",
+            "data_type": "float",
+            "unit": "nm",
         }
+    })
 
 
 class RequiredDataLevel(BaseModel):
@@ -116,16 +110,13 @@ class RequiredDataLevel(BaseModel):
     cardinality: DataLevelCardinality = Field(..., description="Required cardinality")
     description: str | None = Field(None, description="Human-readable description")
 
-    class Config:
-        """Pydantic model configuration."""
-
-        json_schema_extra = {
-            "example": {
-                "renderer_class": "plot",
-                "cardinality": "many_rows",
-                "description": "Plots require many rows for distributions",
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "renderer_class": "plot",
+            "cardinality": "many_rows",
+            "description": "Plots require many rows for distributions",
         }
+    })
 
 
 class RequiredRenderer(BaseModel):
@@ -145,17 +136,14 @@ class RequiredRenderer(BaseModel):
     )
     count: int = Field(default=0, description="Number of shapes")
 
-    class Config:
-        """Pydantic model configuration."""
-
-        json_schema_extra = {
-            "example": {
-                "renderer_type": "plot",
-                "renderer_subtype": "contour",
-                "shape_references": ["plot__metrics__by_side__contour__side=left__metrics=CD"],
-                "count": 1,
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "renderer_type": "plot",
+            "renderer_subtype": "contour",
+            "shape_references": ["plot__metrics__by_side__contour__side=left__metrics=CD"],
+            "count": 1,
         }
+    })
 
 
 class DerivedRequirementsManifest(BaseModel):
@@ -250,22 +238,19 @@ class DerivedRequirementsManifest(BaseModel):
                 return metric
         return None
 
-    class Config:
-        """Pydantic model configuration."""
-
-        json_schema_extra = {
-            "example": {
-                "id": "123e4567-e89b-12d3-a456-426614174001",
-                "template_id": "123e4567-e89b-12d3-a456-426614174002",
-                "required_contexts": [{"name": "side"}],
-                "required_metrics": [{"name": "CD", "aggregation_type": "mean"}],
-                "required_data_levels": [{"renderer_class": "plot", "cardinality": "many_rows"}],
-                "required_renderers": [
-                    {"renderer_type": "plot", "renderer_subtype": "contour", "count": 1}
-                ],
-                "version": "1.0",
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "id": "123e4567-e89b-12d3-a456-426614174001",
+            "template_id": "123e4567-e89b-12d3-a456-426614174002",
+            "required_contexts": [{"name": "side"}],
+            "required_metrics": [{"name": "CD", "aggregation_type": "mean"}],
+            "required_data_levels": [{"renderer_class": "plot", "cardinality": "many_rows"}],
+            "required_renderers": [
+                {"renderer_type": "plot", "renderer_subtype": "contour", "count": 1}
+            ],
+            "version": "1.0",
         }
+    })
 
 
 # Validation test (remove after testing)

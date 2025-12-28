@@ -5,7 +5,7 @@ Models for Four Bars validation status and reports.
 
 from enum import Enum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ValidationStatus(str, Enum):
@@ -29,16 +29,13 @@ class ValidationWarning(BaseModel):
     message: str = Field(..., description="Warning message")
     suggested_fix: str | None = Field(None, description="Suggested fix")
 
-    class Config:
-        """Pydantic model configuration."""
-
-        json_schema_extra = {
-            "example": {
-                "severity": "warning",
-                "message": "Context 'wafer' not mapped",
-                "suggested_fix": "Add mapping for 'wafer' context in step 6",
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "severity": "warning",
+            "message": "Context 'wafer' not mapped",
+            "suggested_fix": "Add mapping for 'wafer' context in step 6",
         }
+    })
 
 
 class BarStatus(BaseModel):
@@ -58,23 +55,20 @@ class BarStatus(BaseModel):
         default_factory=list, description="Validation warnings"
     )
 
-    class Config:
-        """Pydantic model configuration."""
-
-        json_schema_extra = {
-            "example": {
-                "status": "yellow",
-                "coverage_percentage": 66.7,
-                "missing_items": ["wafer"],
-                "warnings": [
-                    {
-                        "severity": "warning",
-                        "message": "Context 'wafer' not mapped",
-                        "suggested_fix": "Add mapping in context editor",
-                    }
-                ],
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "status": "yellow",
+            "coverage_percentage": 66.7,
+            "missing_items": ["wafer"],
+            "warnings": [
+                {
+                    "severity": "warning",
+                    "message": "Context 'wafer' not mapped",
+                    "suggested_fix": "Add mapping in context editor",
+                }
+            ],
         }
+    })
 
 
 class FourBarsStatus(BaseModel):
@@ -122,37 +116,34 @@ class FourBarsStatus(BaseModel):
             issues.extend(self.required_renderers.missing_items)
         return issues
 
-    class Config:
-        """Pydantic model configuration."""
-
-        json_schema_extra = {
-            "example": {
-                "required_context": {
-                    "status": "green",
-                    "coverage_percentage": 100.0,
-                    "missing_items": [],
-                    "warnings": [],
-                },
-                "required_metrics": {
-                    "status": "green",
-                    "coverage_percentage": 100.0,
-                    "missing_items": [],
-                    "warnings": [],
-                },
-                "required_data_levels": {
-                    "status": "green",
-                    "coverage_percentage": 100.0,
-                    "missing_items": [],
-                    "warnings": [],
-                },
-                "required_renderers": {
-                    "status": "green",
-                    "coverage_percentage": 100.0,
-                    "missing_items": [],
-                    "warnings": [],
-                },
-            }
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "required_context": {
+                "status": "green",
+                "coverage_percentage": 100.0,
+                "missing_items": [],
+                "warnings": [],
+            },
+            "required_metrics": {
+                "status": "green",
+                "coverage_percentage": 100.0,
+                "missing_items": [],
+                "warnings": [],
+            },
+            "required_data_levels": {
+                "status": "green",
+                "coverage_percentage": 100.0,
+                "missing_items": [],
+                "warnings": [],
+            },
+            "required_renderers": {
+                "status": "green",
+                "coverage_percentage": 100.0,
+                "missing_items": [],
+                "warnings": [],
+            },
         }
+    })
 
 
 # Validation test

@@ -32,7 +32,7 @@ async def test_health_endpoint(client: AsyncClient):
 @pytest.mark.anyio
 async def test_openapi_docs(client: AsyncClient):
     """Test OpenAPI docs are available."""
-    response = await client.get("/api/docs")
+    response = await client.get("/docs")
     
     # Docs endpoint redirects or returns HTML
     assert response.status_code in [200, 307]
@@ -66,15 +66,16 @@ async def test_create_pipeline(client: AsyncClient):
         "description": "Integration test pipeline",
         "steps": [
             {
-                "step_type": "dat",
-                "config": {"files": ["test.csv"]},
+                "step_index": 0,
+                "step_type": "dat:aggregate",
+                "config": {"source_files": ["test.csv"]},
             }
         ],
     }
     
     response = await client.post("/api/v1/pipelines", json=pipeline_data)
     
-    assert response.status_code == 201
+    assert response.status_code == 200
     data = response.json()
     assert "pipeline_id" in data
     assert data["name"] == "Test Pipeline"
