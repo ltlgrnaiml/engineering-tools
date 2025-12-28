@@ -1,67 +1,46 @@
 {
   "schema_type": "adr",
   "id": "ADR-0016_Hybrid-Semver-Contract-Versioning",
-  "title": "Hybrid Semantic Versioning for Pydantic Contracts",
+  "title": "Simplified Calendar Versioning for Pydantic Contracts (Solo-Dev)",
   "status": "accepted",
   "date": "2025-01-18",
   "deciders": "Mycahya Eggleston",
   "scope": "core",
-  "context": "The DAT project uses Pydantic models as API contracts (see ADR-0009). These contracts evolve rapidly during early development but must stabilize for production use. We need a versioning strategy that balances fast iteration during development with strict compatibility guarantees in production. Traditional semantic versioning (semver) requires tracking breaking changes from v0.1.0 onward, which adds ceremony and slows iteration. However, once contracts reach production stability, we need strict semver to communicate breaking changes to consumers. The challenge is: how do we version contracts to support both fast iteration (pre-1.0) and strict compatibility (post-1.0) without maintaining two separate versioning systems?",
-  "decision_primary": "Adopt a hybrid semantic versioning strategy where contracts in development phase (v0.x.x) follow relaxed versioning rules (any change → minor bump), and contracts in stable phase (v1.x.x+) follow strict semver (breaking changes → major bump, new features → minor bump, bug fixes → patch bump). Contracts graduate from v0.x.x to v1.0.0 via explicit manual promotion when deemed production-ready. This approach is enforced via automated tooling (bump_contract_versions.py) and CI drift detection (step_version_drift.ps1).",
+  "context": "The engineering-tools platform uses Pydantic models as API contracts (see ADR-0009). As a solo developer in a greenfield project with no external consumers, the original hybrid semver strategy (pre-1.0 vs post-1.0 phases, graduation ceremonies) was over-engineered. The distinction between 'development' and 'stable' phases adds ceremony without benefit when: (1) there are no external consumers requiring stability guarantees, (2) all code is under single developer control, (3) breaking changes can be applied directly across the codebase. Calendar versioning (CalVer) provides simplicity while maintaining change tracking for audit purposes.",
+  "decision_primary": "Adopt simplified calendar versioning (CalVer) for all Pydantic contracts. Version format: YYYY.MM.PATCH (e.g., 2025.01.001). Year.Month identifies when the contract was last modified; patch increments for multiple changes in the same month. No pre-1.0/post-1.0 distinction. No graduation ceremony. Breaking changes are applied directly (solo-dev controls all consumers). CI validates that version is bumped when contract content changes.",
   "decision_details": {
-    "approach": "Two-phase versioning lifecycle with automated enforcement",
+    "approach": "Calendar versioning with patch counter; no stability phases",
     "implementation_specs": [
       "SPEC-0008_Contract-Discipline-Api-Spec"
     ],
     "constraints": [
       "All Pydantic contracts MUST have a __version__ attribute at module level",
-      "Version format MUST follow semver (MAJOR.MINOR.PATCH)",
-      "Unstable contracts (v0.x.x) MUST bump minor version on any change",
-      "Stable contracts (v1.x.x+) MUST follow strict semver rules",
-      "Graduation from v0.x.x to v1.0.0 MUST be manual (via --graduate flag)",
-      "CI MUST fail if stable contract changes without version bump",
-      "CI MUST warn (non-blocking) if unstable contract changes without version bump"
+      "Version format MUST be 'YYYY.MM.PATCH' (e.g., '2025.01.001', '2025.12.003')",
+      "YYYY.MM MUST reflect the year and month of last modification",
+      "PATCH MUST increment for each change within the same month (001, 002, ...)",
+      "First change in a new month resets PATCH to 001",
+      "CI MUST warn if contract changes without version bump (non-blocking)",
+      "Breaking changes are allowed without ceremony (solo-dev context)"
     ],
     "versioning_rules": {
-      "development_phase": {
-        "version_range": "v0.x.x",
-        "philosophy": "Fast iteration with minimal ceremony",
-        "rules": [
-          "ANY change (breaking or non-breaking) → minor bump (v0.1.0 → v0.2.0)",
-          "Major version stays 0 (no breaking change tracking)",
-          "Patch bumps allowed for hotfixes (v0.1.0 → v0.1.1)",
-          "No migration guides required (consumers expect instability)"
-        ],
-        "rationale": "During early development, contracts change frequently. Tracking breaking changes adds overhead without value since consumers expect instability. Minor bumps signal 'something changed' without requiring detailed change analysis."
-      },
-      "stable_phase": {
-        "version_range": "v1.x.x+",
-        "philosophy": "Strict compatibility guarantees",
-        "rules": [
-          "Breaking changes → major bump (v1.0.0 → v2.0.0)",
-          "New features (backward-compatible) → minor bump (v1.0.0 → v1.1.0)",
-          "Bug fixes (no API changes) → patch bump (v1.0.0 → v1.0.1)",
-          "Migration guides REQUIRED for major bumps",
-          "Deprecation warnings REQUIRED before breaking changes"
-        ],
-        "rationale": "Once contracts reach production, consumers depend on stability. Strict semver communicates impact of changes and allows consumers to plan upgrades."
-      },
-      "graduation_criteria": {
-        "trigger": "Manual decision by engineering team",
-        "requirements": [
-          "Contract has been used in production for at least 1 sprint",
-          "No known bugs or design flaws",
-          "API surface is stable (no planned breaking changes)",
-          "Documentation is complete (docstrings, examples, migration guides)",
-          "All dependent contracts are also stable (or graduation is coordinated)"
-        ],
-        "process": [
-          "Run: python tools/versioning/bump_contract_versions.py --graduate <contract_fqn>",
-          "Review generated changes (version bump v0.x.x → v1.0.0)",
-          "Regenerate artifacts (pwsh tools/ps/codegen.ps1)",
-          "Commit with message: 'feat(<module>)!: Graduate <Contract> to v1.0.0'",
-          "Update dependent systems (if any)"
+      "format": {
+        "pattern": "YYYY.MM.PATCH",
+        "examples": [
+          "2025.01.001 - First version in January 2025",
+          "2025.01.002 - Second change in January 2025",
+          "2025.02.001 - First change in February 2025 (patch resets)",
+          "2025.12.015 - Fifteenth change in December 2025"
         ]
+      },
+      "when_to_bump": {
+        "any_change": "ANY change to contract fields, validators, or behavior requires version bump",
+        "monthly_reset": "New month → new YYYY.MM, patch resets to 001",
+        "multiple_same_month": "Multiple changes in same month → increment patch"
+      },
+      "breaking_changes": {
+        "policy": "Breaking changes are allowed without special handling",
+        "rationale": "Solo-dev controls all consumers; can update all call sites directly",
+        "future_proofing": "If external consumers added later, can adopt semver at that time"
       }
     },
     "tooling": {
@@ -69,152 +48,113 @@
         "purpose": "Automated version bumping for Pydantic contracts",
         "location": "tools/versioning/bump_contract_versions.py",
         "key_features": [
-          "Bump all unstable contracts: --bump minor --stability unstable",
-          "Bump all stable contracts: --bump patch --stability stable",
-          "Graduate contract to stable: --graduate <contract_fqn>",
+          "Auto-detect current month: --bump auto (sets YYYY.MM.001 or increments patch)",
+          "Explicit version: --version 2025.01.005",
           "Dry-run mode: --dry-run (preview changes without modifying files)",
           "Targeted bumps: --module <module> --name <contract>"
         ],
-        "enforcement": "Modifies __version__ attribute in contract modules"
+        "simplified_usage": "python tools/versioning/bump_contract_versions.py --bump auto"
       },
       "step_version_drift.ps1": {
         "purpose": "CI enforcement of version bumping discipline",
         "location": "ci/steps/step_version_drift.ps1",
         "behavior": {
-          "unstable_drift": "Warns (non-blocking) if v0.x.x contract changed without version bump",
-          "stable_drift": "Fails CI (blocking) if v1.x.x+ contract changed without version bump"
+          "drift_detection": "Warns (non-blocking) if contract changed without version bump",
+          "no_blocking": "Never blocks CI; solo-dev can decide when to bump"
         },
-        "rationale": "Unstable contracts change frequently, so warnings avoid blocking development. Stable contracts require strict enforcement to prevent accidental breaking changes."
+        "rationale": "Warnings provide visibility without blocking rapid iteration"
       }
     }
   },
   "consequences": [
-    "✅ POSITIVE: Fast iteration during development (no ceremony for v0.x.x changes)",
-    "✅ POSITIVE: Strict compatibility guarantees for production contracts (v1.x.x+)",
-    "✅ POSITIVE: Clear signal when contract is production-ready (v1.0.0 graduation)",
-    "✅ POSITIVE: Automated enforcement via CI (prevents accidental drift)",
-    "✅ POSITIVE: Tooling reduces manual effort (bump_contract_versions.py)",
-    "❌ NEGATIVE: Developers must remember to bump versions (mitigated by CI warnings)",
-    "❌ NEGATIVE: Graduation is manual (could be forgotten, but intentional to force review)",
-    "❌ NEGATIVE: Two sets of versioning rules to remember (mitigated by tooling and docs)",
-    "⚠️ NEUTRAL: Consumers of v0.x.x contracts must tolerate breaking changes (expected during development)"
+    "✅ POSITIVE: Simple versioning - one format for all contracts (YYYY.MM.PATCH)",
+    "✅ POSITIVE: No graduation ceremony or stability phases to track",
+    "✅ POSITIVE: Version communicates 'when' clearly (temporal context)",
+    "✅ POSITIVE: Breaking changes can be applied directly without ceremony",
+    "✅ POSITIVE: CI warnings provide visibility without blocking iteration",
+    "✅ POSITIVE: Easy to automate (current month + increment patch)",
+    "❌ NEGATIVE: Version doesn't communicate breaking vs non-breaking (acceptable for solo-dev)",
+    "❌ NEGATIVE: If external consumers added later, may need to adopt semver",
+    "⚠️ NEUTRAL: Patch numbers can grow large in active months (cosmetic issue)"
   ],
   "alternatives_considered": [
     {
-      "name": "Strict Semver from Day 1",
-      "pros": "Single set of rules, no graduation ceremony, consumers always know impact of changes",
-      "cons": "Too much overhead during early development, slows iteration, requires tracking breaking changes before API is stable",
-      "rejected_reason": "Early development requires rapid iteration. Tracking breaking changes in v0.1.0 → v0.2.0 adds ceremony without value since consumers expect instability."
+      "name": "Hybrid Semver (Pre-1.0/Post-1.0 Phases)",
+      "pros": "Communicates breaking changes, industry standard for libraries",
+      "cons": "Over-engineered for solo-dev, graduation ceremony is overhead, two rule sets",
+      "rejected_reason": "No external consumers; solo-dev controls all code; ceremony is pure overhead"
     },
     {
-      "name": "Calendar Versioning (CalVer)",
-      "pros": "Simple (version = date), no need to analyze change impact, easy to understand",
-      "cons": "Doesn't communicate breaking changes, consumers can't predict compatibility, no semantic meaning",
-      "rejected_reason": "CalVer doesn't communicate API compatibility. Consumers need to know if upgrading will break their code."
+      "name": "Strict Semver from Day 1",
+      "pros": "Single set of rules, consumers know impact of changes",
+      "cons": "Requires tracking breaking vs non-breaking on every change",
+      "rejected_reason": "Overhead without benefit when solo-dev controls all consumers"
     },
     {
       "name": "No Versioning (Git SHAs only)",
-      "pros": "Zero ceremony, no version bumping required, Git history is source of truth",
-      "cons": "Impossible to detect drift, no semantic meaning, consumers can't predict compatibility, breaks artifact caching",
-      "rejected_reason": "Without versions, CI can't detect when contracts change without regenerating artifacts. Also breaks OpenAPI client generation (needs stable version numbers)."
-    },
-    {
-      "name": "Automatic Graduation (v0.10.0 → v1.0.0)",
-      "pros": "No manual step, contracts automatically stabilize after N versions",
-      "cons": "Arbitrary threshold (why 10?), no guarantee contract is actually stable, could graduate prematurely",
-      "rejected_reason": "Graduation should be intentional, not automatic. Engineering team must review contract and confirm it's production-ready."
+      "pros": "Zero ceremony, Git history is source of truth",
+      "cons": "CI can't detect drift, no version for OpenAPI/schema generation",
+      "rejected_reason": "Need version attribute for schema generation and audit trail"
     }
   ],
-  "tradeoffs": "We trade simplicity (single versioning system) for flexibility (fast iteration + strict guarantees). The hybrid approach adds complexity (two sets of rules) but provides value at each phase: v0.x.x enables rapid prototyping, v1.x.x+ provides production stability. The manual graduation step adds ceremony but forces intentional review before locking in API contracts.",
+  "tradeoffs": "We trade semantic meaning (breaking vs non-breaking) for simplicity (one format, no ceremony). Solo-dev context makes this trade favorable: there are no external consumers who need to know if a change is breaking.",
   "rollout_plan": [
-    "1. Implement bump_contract_versions.py tool (DONE)",
-    "2. Add __version__ attribute to all existing contracts (set to v0.1.0)",
-    "3. Implement step_version_drift.ps1 CI check (DONE)",
-    "4. Update SPEC-0008 with versioning rules and state machine",
-    "5. Create docs/guides/developer/versioning.md guide",
-    "6. Run CI on all branches to detect existing drift",
-    "7. Graduate production-ready contracts to v1.0.0 (ContextRequest, SelectionRequest, etc.)",
-    "8. Announce versioning policy to team (if multi-person team in future)"
+    "1. Update bump_contract_versions.py to support CalVer format",
+    "2. Update all existing contracts to YYYY.MM.PATCH format",
+    "3. Update step_version_drift.ps1 to validate CalVer format",
+    "4. Update SPEC-0008 with CalVer rules",
+    "5. Remove graduation-related tooling (--graduate flag)"
   ],
-  "rollback_plan": "If hybrid versioning proves too complex, revert to strict semver from day 1. This requires: (1) Bump all v0.x.x contracts to v1.0.0, (2) Remove --stability flag from tooling, (3) Enforce strict semver for all contracts, (4) Update CI to fail on any drift (no warnings). Rollback is low-risk since all contracts are currently v0.x.x (no stable contracts to break).",
+  "rollback_plan": "If external consumers are added and need semantic versioning: (1) Switch format from YYYY.MM.PATCH to MAJOR.MINOR.PATCH, (2) Treat current CalVer as starting point (e.g., 2025.12.005 → 1.0.0), (3) Adopt strict semver rules going forward. Low risk; additive change.",
   "metrics_to_watch": [
-    "Number of version bumps per week (should decrease as contracts stabilize)",
-    "Number of CI failures due to version drift (should be low if tooling is effective)",
-    "Number of contracts graduated to v1.0.0 (should increase over time)",
-    "Time spent on version bumping (should be minimal with tooling)",
-    "Number of breaking changes in stable contracts (should be rare)"
+    "Number of CI warnings for version drift (should prompt version bumps)",
+    "Contracts with stale versions (should be zero)",
+    "Time spent on versioning (should be minimal with auto-bump tooling)"
   ],
   "guardrails": [
     {
-      "rule": "All Pydantic contracts MUST have __version__ attribute at module level",
-      "enforcement": "CI fails if contract module missing __version__ (checked by step_version_drift.ps1)",
-      "scope": "core",
-      "references": [
-        "SPEC-0008_Contract-Discipline-Api-Spec",
-        "tools/versioning/bump_contract_versions.py"
-      ]
+      "id": "calver-format-required",
+      "rule": "All Pydantic contracts MUST have __version__ in YYYY.MM.PATCH format",
+      "enforcement": "CI validates format; warns on mismatch",
+      "scope": "core"
     },
     {
-      "rule": "Unstable contracts (v0.x.x) MUST bump minor version on any change",
-      "enforcement": "CI warns (non-blocking) if v0.x.x contract changed without version bump",
-      "scope": "core",
-      "references": [
-        "ci/steps/step_version_drift.ps1"
-      ],
-      "id": "unstable-contracts-v0-x-x"
+      "id": "calver-bump-on-change",
+      "rule": "Contract version MUST be bumped when contract content changes",
+      "enforcement": "CI warns (non-blocking) if contract changed without version bump",
+      "scope": "core"
     },
     {
-      "rule": "Stable contracts (v1.x.x+) MUST bump version on any change (major/minor/patch based on impact)",
-      "enforcement": "CI fails (blocking) if v1.x.x+ contract changed without version bump",
-      "scope": "core",
-      "references": [
-        "ci/steps/step_version_drift.ps1"
-      ],
-      "id": "stable-contracts-v1-x-x"
-    },
-    {
-      "rule": "Graduation from v0.x.x to v1.0.0 MUST be manual (via --graduate flag)",
-      "enforcement": "Tooling does not auto-graduate; requires explicit --graduate flag",
-      "scope": "core",
-      "references": [
-        "tools/versioning/bump_contract_versions.py"
-      ],
-      "id": "graduation-v0-x-x-v1"
-    },
-    {
-      "rule": "Breaking changes in stable contracts (v1.x.x+) MUST include migration guide in commit message",
-      "enforcement": "Code review (manual check, not automated)",
-      "scope": "core",
-      "references": [
-        "docs/guides/developer/versioning.md"
-      ],
-      "id": "breaking-changes-stable-contracts-v1"
+      "id": "calver-monthly-reset",
+      "rule": "PATCH resets to 001 when YYYY.MM changes",
+      "enforcement": "bump_contract_versions.py auto-detects month boundary",
+      "scope": "core"
     }
   ],
-  "cross_cutting_guardrails": [],
+  "cross_cutting_guardrails": [
+    "ADR-0009#contracts-defined-pydantic-shared-contracts: Version attribute required"
+  ],
   "references": [
     "ADR-0009_Type-Safety-Contract-Discipline",
     "SPEC-0008_Contract-Discipline-Api-Spec",
     "tools/versioning/bump_contract_versions.py",
     "ci/steps/step_version_drift.ps1",
-    "docs/guides/developer/versioning.md (TODO)",
-    "Semantic Versioning 2.0.0: https://semver.org/"
+    "Calendar Versioning: https://calver.org/"
   ],
   "tags": [
     "versioning",
     "contracts",
     "pydantic",
-    "semver",
+    "calver",
     "ci",
     "tooling",
-    "api-stability"
+    "solo-dev",
+    "greenfield"
   ],
   "affected_components": [
     "shared/contracts/ (all Pydantic contract modules)",
     "tools/versioning/bump_contract_versions.py",
-    "ci/steps/step_version_drift.ps1",
-    "tools/ps/codegen.ps1 (regenerates artifacts after version bumps)",
-    "backend/src/dramcdu/app.py (FastAPI app uses versioned contracts)"
+    "ci/steps/step_version_drift.ps1"
   ],
   "provenance": [
     {
@@ -231,6 +171,11 @@
       "at": "2025-01-18",
       "by": "Mycahya Eggleston",
       "note": "Finalized guardrails and CI enforcement behavior"
+    },
+    {
+      "at": "2025-12-28",
+      "by": "Mycahya Eggleston",
+      "note": "SIMPLIFIED: Replaced hybrid semver with calendar versioning (YYYY.MM.PATCH) for solo-dev greenfield context. Removed pre-1.0/post-1.0 phases and graduation ceremony."
     }
   ]
 }
