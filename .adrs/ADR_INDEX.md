@@ -36,6 +36,8 @@ These ADRs define patterns that ALL tools (DAT, PPTX, SOV) MUST follow:
 | **ADR-0028** | **Unified Rendering Engine** | **cross-cutting** | **Shared visualization, charting, and rendering for all tools** |
 | **ADR-0029** | **API Versioning and Endpoint Naming** | **core** | **Two-tier versioning: /api/v1/{resource} for gateway, /api/{tool}/v1/{resource} for tools** |
 | **ADR-0030** | **Documentation Lifecycle Management** | **core** | **5-category doc classification, archival policy, CHANGELOG, ADR mutability during dev** |
+| **ADR-0031** | **HTTP Error Response Contracts** | **core** | **Standardized ErrorResponse schema for all HTTP 4xx/5xx responses** |
+| **ADR-0032** | **HTTP Request Idempotency Semantics** | **core** | **Idempotency keys and retry-safe API design patterns** |
 
 ## Tool-Specific ADRs
 
@@ -85,13 +87,14 @@ Each ADR addresses a distinct concern:
 | Deterministic IDs | ADR-0004 | ADR-0004-DAT |
 | API Contracts | ADR-0005, ADR-0009 | ADR-0024 |
 | Timestamps/Audit | ADR-0008 | ADR-0014 |
-| Documentation | ADR-0010, ADR-0015 | - |
+| Documentation | ADR-0010, ADR-0015, ADR-0030 | - |
 | Concurrency | ADR-0012 | - (cross-platform: async, threads, processes) |
-| Versioning | ADR-0016 | - |
+| Versioning | ADR-0016, ADR-0029 | - |
 | Guardrails | ADR-0017 | - |
 | Data Lineage | ADR-0025 | ADR-0023 |
-| Error Handling | ADR-0026 | - |
+| Error Handling | ADR-0026, **ADR-0031** | - |
 | **Visualization/Rendering** | **ADR-0028** | ADR-0021, ADR-0024 |
+| **API Reliability** | **ADR-0032** | - |
 
 ## Validation TODO
 

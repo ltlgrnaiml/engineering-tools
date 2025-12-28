@@ -1,0 +1,170 @@
+{
+  "schema_type": "adr",
+  "id": "ADR-0032",
+  "title": "HTTP Request Idempotency Semantics",
+  "status": "accepted",
+  "date": "2025-12-28",
+  "review_date": "2026-06-28",
+  "deciders": "CDU-DAT Core Engineering Team",
+  "scope": "core",
+  "provenance": [
+    {
+      "at": "2025-12-28",
+      "by": "AI Analysis",
+      "note": "Initial draft to establish idempotency semantics for API-005 compliance"
+    }
+  ],
+  "context": "The Engineering Tools platform exposes HTTP APIs for data processing, report generation, and pipeline orchestration. API-005 acceptance criterion states: 'All mutating requests MUST be idempotent or retriable'. Without clear idempotency semantics:\n\n1. **Network failures cause duplicates**: Retried POST requests may create duplicate resources\n2. **Incomplete operations**: Failed requests may leave system in inconsistent state\n3. **Pipeline reliability**: Multi-step pipelines fail unpredictably on retries\n4. **Frontend complexity**: Clients must implement their own deduplication logic\n\nIdempotency ensures that making the same request multiple times has the same effect as making it once, enabling safe retries and improving system reliability.",
+  "decision_primary": "All mutating HTTP endpoints (POST, PUT, PATCH, DELETE) MUST be either naturally idempotent by design OR support client-provided idempotency keys. GET requests are inherently idempotent. The platform will provide an IdempotencyKey header mechanism for non-naturally-idempotent operations.",
+  "decision_details": {
+    "approach": "Design for natural idempotency where possible; use idempotency keys for complex operations",
+    "idempotency_categories": {
+      "naturally_idempotent": {
+        "description": "Operations that are idempotent by their nature",
+        "examples": [
+          "PUT /projects/{id} - Update replaces entire resource",
+          "DELETE /projects/{id} - Delete same ID always succeeds",
+          "PATCH /projects/{id}/status - Status transition is repeatable"
+        ],
+        "implementation": "No special handling needed; same input always produces same result"
+      },
+      "key_based_idempotent": {
+        "description": "Operations requiring idempotency key for safe retries",
+        "examples": [
+          "POST /projects - Create project (may duplicate without key)",
+          "POST /generation - Start generation job",
+          "POST /pipelines - Execute pipeline"
+        ],
+        "implementation": "Accept X-Idempotency-Key header; cache and return previous result"
+      },
+      "inherently_safe": {
+        "description": "Read-only operations that are always safe to retry",
+        "examples": [
+          "GET /projects - List projects",
+          "GET /projects/{id} - Get single project",
+          "GET /health - Health check"
+        ],
+        "implementation": "No special handling; reads have no side effects"
+      }
+    },
+    "idempotency_key_mechanism": {
+      "header_name": "X-Idempotency-Key",
+      "key_format": "Client-generated UUID or unique string (max 64 chars)",
+      "ttl": "24 hours - keys expire after 24h to allow eventual retry",
+      "storage": "In-memory for development; Redis/database for production",
+      "response_header": "X-Idempotent-Replayed: true - indicates cached response"
+    },
+    "behavior_on_duplicate_key": {
+      "same_request": "Return cached response with X-Idempotent-Replayed: true",
+      "different_request": "Return 409 Conflict - idempotency key reused with different params",
+      "expired_key": "Process as new request (key no longer in cache)"
+    },
+    "constraints": [
+      "All POST endpoints creating resources SHOULD accept X-Idempotency-Key",
+      "PUT and DELETE MUST be naturally idempotent (no key needed)",
+      "Idempotency key MUST be validated before processing",
+      "Response caching MUST include status code, headers, and body",
+      "Keys MUST be scoped per-endpoint and per-user/tenant",
+      "Long-running operations MUST return idempotent job ID for polling"
+    ],
+    "implementation_specs": [
+      "SPEC-0036_Idempotency-Implementation-Guide"
+    ]
+  },
+  "consequences": [
+    "✅ POSITIVE: Safe request retries after network failures",
+    "✅ POSITIVE: No duplicate resource creation on retry",
+    "✅ POSITIVE: Simplified frontend error handling",
+    "✅ POSITIVE: Complies with API-005 acceptance criterion",
+    "✅ POSITIVE: Predictable behavior in distributed systems",
+    "✅ POSITIVE: Pipeline operations can be safely retried",
+    "❌ NEGATIVE: Additional storage for idempotency cache",
+    "❌ NEGATIVE: Complexity in request handling middleware",
+    "❌ NEGATIVE: Clients must generate and track idempotency keys",
+    "⚠️ NEUTRAL: PUT/DELETE semantics require careful endpoint design"
+  ],
+  "alternatives_considered": [
+    {
+      "name": "No idempotency support",
+      "pros": "Simple implementation, no additional storage",
+      "cons": "Duplicates on retry, unreliable in distributed systems",
+      "rejected_reason": "Does not meet API-005 requirement"
+    },
+    {
+      "name": "Server-generated idempotency tokens",
+      "pros": "Clients don't need to generate keys",
+      "cons": "Requires two-phase create (get token, then use it), complex flow",
+      "rejected_reason": "Adds complexity and round trips; client keys are simpler"
+    },
+    {
+      "name": "Database-level deduplication",
+      "pros": "Automatic, no application code needed",
+      "cons": "Limited to unique constraints, doesn't handle complex operations",
+      "rejected_reason": "Insufficient for multi-step operations and complex side effects"
+    }
+  ],
+  "tradeoffs": "We accept the complexity of idempotency key management in exchange for reliable, retry-safe APIs. The 24-hour TTL balances storage costs with reasonable retry windows. Natural idempotency is preferred where possible to minimize client burden.",
+  "rollout_plan": [
+    "1. Define idempotency middleware/decorator pattern",
+    "2. Identify all POST endpoints requiring idempotency keys",
+    "3. Implement in-memory idempotency cache for development",
+    "4. Add X-Idempotency-Key support to project creation endpoints",
+    "5. Add X-Idempotency-Key support to generation/pipeline endpoints",
+    "6. Document idempotency requirements in API docs",
+    "7. Update frontend to send idempotency keys on creates",
+    "8. Add production-grade cache (Redis) for persistence"
+  ],
+  "rollback_plan": "If idempotency causes issues: (1) Remove middleware/decorators, (2) Endpoints revert to non-idempotent behavior, (3) Document that retries may cause duplicates. Low risk since idempotency is additive.",
+  "metrics_to_watch": [
+    "Duplicate resource creation rate (should decrease)",
+    "X-Idempotent-Replayed response count (indicates successful retries)",
+    "Idempotency cache hit rate (indicates retry frequency)",
+    "409 Conflict responses from key reuse (should be low)"
+  ],
+  "guardrails": [
+    {
+      "id": "http-idempotency-post",
+      "rule": "All POST endpoints creating resources SHOULD accept X-Idempotency-Key header",
+      "enforcement": "API documentation review; integration tests",
+      "scope": "core"
+    },
+    {
+      "id": "http-idempotency-put-delete",
+      "rule": "PUT and DELETE endpoints MUST be naturally idempotent",
+      "enforcement": "Code review; endpoint design review",
+      "scope": "core"
+    },
+    {
+      "id": "http-idempotency-long-running",
+      "rule": "Long-running operations MUST return idempotent job ID for status polling",
+      "enforcement": "API design review; documentation",
+      "scope": "core"
+    }
+  ],
+  "cross_cutting_guardrails": [
+    "ADR-0017#contract-versioning: Idempotency behavior is part of API contract",
+    "ADR-0026#pipeline-error-handling: Pipeline retries must be idempotent"
+  ],
+  "references": [
+    "API-005: All mutating requests MUST be idempotent or retriable",
+    "Stripe API Idempotency: https://stripe.com/docs/api/idempotent_requests",
+    "RFC 7231: HTTP Semantics - Safe and Idempotent Methods",
+    "ADR-0026: Pipeline Error Handling"
+  ],
+  "tags": [
+    "api",
+    "idempotency",
+    "reliability",
+    "http",
+    "retry-safety"
+  ],
+  "affected_components": [
+    "gateway/main.py",
+    "gateway/middleware/idempotency.py (new)",
+    "apps/pptx_generator/backend/api/projects.py",
+    "apps/pptx_generator/backend/api/generation.py",
+    "apps/data_aggregator/backend/src/dat_aggregation/api/routes.py",
+    "apps/sov_analyzer/backend/src/sov_analyzer/api/routes.py",
+    "shared/contracts/core/idempotency.py (new)"
+  ]
+}

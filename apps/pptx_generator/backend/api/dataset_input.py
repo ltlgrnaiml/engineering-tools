@@ -1,6 +1,8 @@
 """DataSet input integration for PPTX Generator.
 
 Allows loading data from the shared DataSet format instead of file uploads.
+
+Per ADR-0031: All errors use ErrorResponse contract via errors.py helper.
 """
 
 from datetime import datetime
@@ -8,8 +10,13 @@ from pathlib import Path
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, status
 from pydantic import BaseModel
+
+from apps.pptx_generator.backend.api.errors import (
+    raise_not_found,
+    raise_internal_error,
+)
 
 from apps.pptx_generator.backend.api.projects import projects_db
 from apps.pptx_generator.backend.api.data import data_files_db
@@ -59,10 +66,7 @@ async def load_from_dataset(
         HTTPException: If project not found (404) or DataSet not found (404).
     """
     if project_id not in projects_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {project_id} not found",
-        )
+        raise_not_found("Project", str(project_id))
     
     # Load DataSet from shared storage
     try:
@@ -72,10 +76,7 @@ async def load_from_dataset(
         store = ArtifactStore()
         
         if not store.dataset_exists(request.dataset_id):
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"DataSet {request.dataset_id} not found",
-            )
+            raise_not_found("DataSet", request.dataset_id)
         
         # Read the dataset
         df, manifest = store.read_dataset(request.dataset_id)
@@ -118,13 +119,8 @@ async def load_from_dataset(
             column_names=[col.name for col in manifest.columns],
         )
         
-    except HTTPException:
-        raise
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to load DataSet: {str(e)}",
-        ) from e
+        raise_internal_error(f"Failed to load DataSet: {str(e)}", e)
 
 
 @router.get("/{project_id}/dataset-info")
@@ -142,10 +138,7 @@ async def get_dataset_info(project_id: UUID) -> Optional[dict]:
         HTTPException: If project not found (404).
     """
     if project_id not in projects_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {project_id} not found",
-        )
+        raise_not_found("Project", str(project_id))
     
     project = projects_db[project_id]
     source_dataset_id = getattr(project, 'source_dataset_id', None)

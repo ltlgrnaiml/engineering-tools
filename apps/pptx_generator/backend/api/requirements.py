@@ -5,13 +5,20 @@ Endpoints for TOM v2 requirements management:
 - Mapping suggestions and configuration
 - Four Bars validation
 - Plan building
+
+Per ADR-0031: All errors use ErrorResponse contract via errors.py helper.
 """
 
 import logging
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, status
 from pydantic import BaseModel
+
+from apps.pptx_generator.backend.api.errors import (
+    raise_not_found,
+    raise_validation_error,
+)
 
 from apps.pptx_generator.backend.api.projects import projects_db
 from apps.pptx_generator.backend.models.drm import DerivedRequirementsManifest
@@ -94,10 +101,7 @@ async def create_environment_profile(
         HTTPException: If project not found.
     """
     if project_id not in projects_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {project_id} not found",
-        )
+        raise_not_found("Project", str(project_id))
 
     # Create environment profile
     from apps.pptx_generator.backend.models.environment_profile import DataRoots, JobContext, SourceType
@@ -140,19 +144,13 @@ async def suggest_mappings(project_id: UUID) -> MappingSuggestionsResponse:
         HTTPException: If project, DRM, or data not found.
     """
     if project_id not in projects_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {project_id} not found",
-        )
+        raise_not_found("Project", str(project_id))
 
     project = projects_db[project_id]
 
     # Check DRM exists
     if not project.drm_id or project.drm_id not in drm_db:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="DRM not found. Please parse template first.",
-        )
+        raise_validation_error("DRM not found. Please parse template first.", field="drm_id")
 
     # Check data file exists (would get columns from data file)
     # For now, use placeholder columns
@@ -200,10 +198,7 @@ async def save_context_mappings(
         HTTPException: If project not found.
     """
     if project_id not in projects_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {project_id} not found",
-        )
+        raise_not_found("Project", str(project_id))
 
     # Get or create mapping manifest
     project = projects_db[project_id]
@@ -249,10 +244,7 @@ async def save_metrics_mappings(
         HTTPException: If project not found.
     """
     if project_id not in projects_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {project_id} not found",
-        )
+        raise_not_found("Project", str(project_id))
 
     # Get or create mapping manifest
     project = projects_db[project_id]
@@ -293,19 +285,13 @@ async def get_four_bars_status(project_id: UUID) -> FourBarsStatus:
         HTTPException: If project, DRM, or mappings not found.
     """
     if project_id not in projects_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {project_id} not found",
-        )
+        raise_not_found("Project", str(project_id))
 
     project = projects_db[project_id]
 
     # Check DRM exists
     if not project.drm_id or project.drm_id not in drm_db:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="DRM not found. Please parse template first.",
-        )
+        raise_validation_error("DRM not found. Please parse template first.", field="drm_id")
 
     # Get mappings (may be empty)
     manifest_id = project.context_mapping_id or project.metrics_mapping_id
@@ -345,32 +331,20 @@ async def build_plan(project_id: UUID) -> PlanArtifacts:
         HTTPException: If validation fails or prerequisites missing.
     """
     if project_id not in projects_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {project_id} not found",
-        )
+        raise_not_found("Project", str(project_id))
 
     project = projects_db[project_id]
 
     # Check prerequisites
     if not project.drm_id or project.drm_id not in drm_db:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="DRM not found. Please parse template first.",
-        )
+        raise_validation_error("DRM not found. Please parse template first.", field="drm_id")
 
     if not project.environment_profile_id or project.environment_profile_id not in env_profiles_db:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Environment profile not configured.",
-        )
+        raise_validation_error("Environment profile not configured.", field="environment_profile_id")
 
     manifest_id = project.context_mapping_id or project.metrics_mapping_id
     if not manifest_id or manifest_id not in mapping_manifests_db:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Mappings not configured.",
-        )
+        raise_validation_error("Mappings not configured.", field="mappings")
 
     # Validate Four Bars
     drm = drm_db[project.drm_id]
@@ -379,9 +353,9 @@ async def build_plan(project_id: UUID) -> PlanArtifacts:
 
     if not validation_status.is_all_green():
         blocking_issues = validation_status.get_blocking_issues()
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Validation failed. Blocking issues: {', '.join(blocking_issues)}",
+        raise_validation_error(
+            f"Validation failed. Blocking issues: {', '.join(blocking_issues)}",
+            field="validation",
         )
 
     # Build plan
@@ -416,17 +390,11 @@ async def get_plan(project_id: UUID) -> PlanArtifacts:
         HTTPException: If project or plan not found.
     """
     if project_id not in projects_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {project_id} not found",
-        )
+        raise_not_found("Project", str(project_id))
 
     project = projects_db[project_id]
 
     if not project.plan_artifacts_id or project.plan_artifacts_id not in plan_artifacts_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Plan not built yet. Please build plan first.",
-        )
+        raise_not_found("PlanArtifacts", "Plan not built yet. Please build plan first.")
 
     return plan_artifacts_db[project.plan_artifacts_id]

@@ -33,6 +33,9 @@ Tier 1: ADRs (WHY)
 | **SPEC-0031** | **Unified Rendering Contracts** | **ADR-0028** | `shared/contracts/core/rendering.py` |
 | **SPEC-0032** | **Rendering Engine Architecture** | **ADR-0028** | `shared/rendering/` |
 | **SPEC-0033** | **Output Target Adapters** | **ADR-0028** | `shared/rendering/adapters/` |
+| **SPEC-0034** | **API Naming Convention** | **ADR-0029** | - |
+| **SPEC-0035** | **Error Response Implementation Guide** | **ADR-0031** | `shared/contracts/core/error_response.py` |
+| **SPEC-0036** | **Idempotency Implementation Guide** | **ADR-0032** | `shared/contracts/core/idempotency.py` (NEW) |
 
 ### DAT SPECs (Data Aggregation Tool)
 
@@ -141,5 +144,5 @@ All ADRs must have:
 3. Contracts are the single source of truth for data structures
 
 ---
-*Last Updated: 2025-12-27*
+*Last Updated: 2025-12-28*
 *Maintainer: Mycahya Eggleston*

@@ -2,6 +2,7 @@
 
 Per ADR-0017: Uses ErrorResponse contract for standardized errors.
 Per ADR-0018/0019: Uses RenderRequest/RenderResult contracts for generation tracking.
+Per ADR-0031: All errors use ErrorResponse contract via errors.py helper.
 """
 
 import logging
@@ -9,10 +10,14 @@ from datetime import datetime
 from pathlib import Path
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, HTTPException, status
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi import APIRouter, status
+from fastapi.responses import FileResponse
 
-from shared.contracts.core.error_response import ErrorResponse
+from apps.pptx_generator.backend.api.errors import (
+    raise_not_found,
+    raise_validation_error,
+    raise_internal_error,
+)
 from shared.contracts.pptx.template import (
     RenderResult,
     RenderStageState,
@@ -36,34 +41,6 @@ from apps.pptx_generator.backend.services.presentation_generator import Presenta
 from apps.pptx_generator.backend.services.storage import StorageService
 
 logger = logging.getLogger(__name__)
-
-
-def _create_error_response(
-    status_code: int,
-    message: str,
-    code: str,
-    details: dict | None = None,
-) -> JSONResponse:
-    """Create standardized error response per ADR-0017.
-
-    Args:
-        status_code: HTTP status code.
-        message: Error message.
-        code: Error code (e.g., 'PPTX_PROJECT_NOT_FOUND').
-        details: Optional additional details.
-
-    Returns:
-        JSONResponse with ErrorResponse body.
-    """
-    error = ErrorResponse(
-        code=code,
-        message=message,
-        details=details or {},
-    )
-    return JSONResponse(
-        status_code=status_code,
-        content=error.model_dump(),
-    )
 
 router = APIRouter()
 
@@ -92,10 +69,7 @@ async def generate_presentation(request: GenerationRequest) -> GenerationRespons
     project_id = request.project_id
 
     if project_id not in projects_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {project_id} not found",
-        )
+        raise_not_found("Project", str(project_id))
 
     project = projects_db[project_id]
 
@@ -104,16 +78,13 @@ async def generate_presentation(request: GenerationRequest) -> GenerationRespons
         workflow_state = workflow_states_db[project_id]
         allowed, error_msg = check_generate_allowed(workflow_state)
         if not allowed:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Generation blocked per ADR-0019: {error_msg}",
-            )
+            raise_validation_error(f"Generation blocked per ADR-0019: {error_msg}")
     else:
         # Legacy check: Accept both READY_TO_GENERATE and PLAN_FROZEN
         if project.status not in [ProjectStatus.READY_TO_GENERATE, ProjectStatus.PLAN_FROZEN]:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Project not ready for generation. Current status: {project.status}",
+            raise_validation_error(
+                f"Project not ready for generation. Current status: {project.status}",
+                field="status",
             )
 
     # Check for required components (support both old and new workflow)
@@ -127,9 +98,8 @@ async def generate_presentation(request: GenerationRequest) -> GenerationRespons
             has_mappings,
         ]
     ):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Project missing required components (template, data, or mapping)",
+        raise_validation_error(
+            "Project missing required components (template, data, or mapping)"
         )
 
     # Per ADR-0025: Capture lineage information
@@ -324,10 +294,7 @@ async def generate_presentation(request: GenerationRequest) -> GenerationRespons
         project.status = ProjectStatus.FAILED
         project.updated_at = datetime.utcnow()
 
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Generation failed: {str(e)}",
-        ) from e
+        raise_internal_error(f"Generation failed: {str(e)}", e)
 
     return generation
 
@@ -347,10 +314,7 @@ async def get_generation_status(generation_id: UUID) -> GenerationResponse:
         HTTPException: If generation not found (404).
     """
     if generation_id not in generations_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Generation {generation_id} not found",
-        )
+        raise_not_found("Generation", str(generation_id))
 
     return generations_db[generation_id]
 
@@ -370,31 +334,22 @@ async def download_presentation(generation_id: UUID) -> FileResponse:
         HTTPException: If generation not found (404) or file not ready (400).
     """
     if generation_id not in generations_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Generation {generation_id} not found",
-        )
+        raise_not_found("Generation", str(generation_id))
 
     generation = generations_db[generation_id]
 
     if generation.status != GenerationStatus.COMPLETED:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Generation not completed. Current status: {generation.status}",
+        raise_validation_error(
+            f"Generation not completed. Current status: {generation.status}",
+            field="status",
         )
 
     if not generation.output_file_path:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Output file not found",
-        )
+        raise_not_found("OutputFile", "Output file not found")
 
     file_path = Path(generation.output_file_path)
     if not file_path.exists():
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Output file not found on disk",
-        )
+        raise_not_found("OutputFile", "Output file not found on disk")
 
     return FileResponse(
         path=str(file_path),

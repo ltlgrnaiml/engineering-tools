@@ -1,4 +1,7 @@
-"""API endpoints for loading configuration defaults."""
+"""API endpoints for loading configuration defaults.
+
+Per ADR-0031: All errors use ErrorResponse contract via errors.py helper.
+"""
 
 import logging
 from datetime import datetime
@@ -7,8 +10,15 @@ from typing import Any
 from uuid import UUID
 
 import yaml
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, status
 from pydantic import BaseModel
+
+from apps.pptx_generator.backend.api.errors import (
+    raise_not_found,
+    raise_validation_error,
+    raise_internal_error,
+    raise_conflict_error,
+)
 
 from apps.pptx_generator.backend.models.drm import AggregationType, MappingSourceType
 from apps.pptx_generator.backend.models.mapping_manifest import ContextMapping, MetricMapping
@@ -48,10 +58,7 @@ async def get_config_defaults() -> dict[str, Any]:
         config_path = config_dir / "custom_config.yaml"
 
     if not config_path.exists():
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, 
-            detail=f"Configuration file not found in {config_dir}"
-        )
+        raise_not_found("ConfigFile", f"Configuration file not found in {config_dir}")
 
     try:
         with config_path.open() as f:
@@ -60,10 +67,7 @@ async def get_config_defaults() -> dict[str, Any]:
         test_defaults = config.get("test_defaults", {})
 
         if not test_defaults:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="No test_defaults section found in config",
-            )
+            raise_not_found("ConfigSection", "No test_defaults section found in config")
 
         # Convert to API format
         context_mappings = []
@@ -107,10 +111,7 @@ async def get_config_defaults() -> dict[str, Any]:
 
     except Exception as e:
         logger.error(f"Failed to load config defaults: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to load config defaults: {str(e)}",
-        ) from e
+        raise_internal_error(f"Failed to load config defaults: {str(e)}", e)
 
 
 def _get_or_create_manifest(project_id: UUID):
@@ -120,9 +121,7 @@ def _get_or_create_manifest(project_id: UUID):
     from apps.pptx_generator.backend.models.mapping_manifest import MappingManifest
 
     if project_id not in projects_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=f"Project {project_id} not found"
-        )
+        raise_not_found("Project", str(project_id))
 
     project = projects_db[project_id]
     manifest_id = project.context_mapping_id or project.metrics_mapping_id
@@ -308,10 +307,7 @@ async def save_config_mappings(request: SaveConfigRequest) -> dict[str, Any]:
 
     # Check if file exists and overwrite is not allowed
     if config_path.exists() and not request.overwrite:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Config file '{filename}' already exists. Set overwrite=true to replace it.",
-        )
+        raise_conflict_error(f"Config file '{filename}' already exists. Set overwrite=true to replace it.")
 
     # Load existing config as base or create new one
     base_config_path = config_dir / "example_config_production.yaml"
@@ -347,10 +343,7 @@ async def save_config_mappings(request: SaveConfigRequest) -> dict[str, Any]:
         }
     except Exception as e:
         logger.error(f"Failed to save config: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to save config: {str(e)}",
-        ) from e
+        raise_internal_error(f"Failed to save config: {str(e)}", e)
 
 
 @router.get("/config/list")
@@ -397,10 +390,7 @@ async def load_config_file(filename: str) -> dict[str, Any]:
     config_path = config_dir / filename
 
     if not config_path.exists():
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Config file '{filename}' not found",
-        )
+        raise_not_found("ConfigFile", f"Config file '{filename}' not found")
 
     try:
         with config_path.open() as f:
@@ -431,16 +421,10 @@ async def load_config_file(filename: str) -> dict[str, Any]:
         }
 
     except yaml.YAMLError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid YAML in config file: {str(e)}",
-        ) from e
+        raise_validation_error(f"Invalid YAML in config file: {str(e)}")
     except Exception as e:
         logger.error(f"Failed to load config: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to load config: {str(e)}",
-        ) from e
+        raise_internal_error(f"Failed to load config: {str(e)}", e)
 
 
 @router.put("/config/save-full")
@@ -461,16 +445,10 @@ async def save_full_config(request: dict[str, Any]) -> dict[str, Any]:
     overwrite = request.get("overwrite", False)
 
     if not filename:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Filename is required",
-        )
+        raise_validation_error("Filename is required", field="filename")
 
     if not config:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Config content is required",
-        )
+        raise_validation_error("Config content is required", field="config")
 
     if not filename.endswith(".yaml"):
         filename = f"{filename}.yaml"
@@ -479,10 +457,7 @@ async def save_full_config(request: dict[str, Any]) -> dict[str, Any]:
 
     # Check if file exists and overwrite is not allowed
     if config_path.exists() and not overwrite:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Config file '{filename}' already exists. Set overwrite=true to replace it.",
-        )
+        raise_conflict_error(f"Config file '{filename}' already exists. Set overwrite=true to replace it.")
 
     try:
         with config_path.open("w") as f:
@@ -497,7 +472,4 @@ async def save_full_config(request: dict[str, Any]) -> dict[str, Any]:
         }
     except Exception as e:
         logger.error(f"Failed to save config: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to save config: {str(e)}",
-        ) from e
+        raise_internal_error(f"Failed to save config: {str(e)}", e)

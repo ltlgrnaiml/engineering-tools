@@ -1,0 +1,199 @@
+{
+  "schema_type": "spec",
+  "id": "SPEC-0036",
+  "title": "Idempotency Implementation Guide",
+  "version": "0.1.0",
+  "status": "active",
+  "implements": "ADR-0032",
+  "date": "2025-12-28",
+  "scope": "core",
+  "summary": "Technical specification for implementing HTTP request idempotency across all tools in the Engineering Tools Platform.",
+  "idempotency_header": {
+    "name": "X-Idempotency-Key",
+    "format": "UUID v4 or unique string (1-64 characters)",
+    "example": "550e8400-e29b-41d4-a716-446655440000",
+    "required_for": [
+      "POST endpoints that create resources",
+      "POST endpoints that trigger long-running operations",
+      "POST endpoints with side effects (email, notifications)"
+    ],
+    "not_required_for": [
+      "GET endpoints (inherently idempotent)",
+      "PUT endpoints (naturally idempotent by design)",
+      "DELETE endpoints (naturally idempotent by design)",
+      "PATCH endpoints updating to specific state"
+    ]
+  },
+  "response_headers": {
+    "X-Idempotent-Replayed": {
+      "value": "true",
+      "meaning": "Response was retrieved from cache, not processed again",
+      "when": "Returned when idempotency key matches a previous request"
+    }
+  },
+  "idempotency_cache": {
+    "storage_options": {
+      "development": "In-memory dict with TTL cleanup thread",
+      "production": "Redis with SETEX for automatic expiry"
+    },
+    "cache_key_format": "{endpoint}:{user_id}:{idempotency_key}",
+    "cached_data": {
+      "status_code": "HTTP status code of original response",
+      "headers": "Response headers (JSON serialized)",
+      "body": "Response body (JSON serialized)",
+      "created_at": "Timestamp when cached",
+      "request_hash": "Hash of request body for conflict detection"
+    },
+    "ttl": "86400 seconds (24 hours)"
+  },
+  "implementation_pattern": {
+    "middleware_approach": {
+      "description": "FastAPI middleware/dependency that handles idempotency automatically",
+      "location": "shared/middleware/idempotency.py (recommended)",
+      "flow": [
+        "1. Check for X-Idempotency-Key header",
+        "2. If no key, process request normally (or reject if required)",
+        "3. If key exists, check cache for existing response",
+        "4. If cached: verify request hash matches, return cached response with X-Idempotent-Replayed",
+        "5. If not cached: process request, cache response, return response",
+        "6. On error: don't cache (allow retry)"
+      ]
+    },
+    "decorator_approach": {
+      "description": "Per-endpoint decorator for selective idempotency",
+      "usage": "@idempotent(required=True)\nasync def create_project(...):",
+      "parameters": {
+        "required": "bool - If true, reject requests without idempotency key",
+        "ttl": "int - Custom TTL in seconds (default: 86400)",
+        "key_param": "str - Parameter name to use as key if header not provided"
+      }
+    }
+  },
+  "endpoint_classification": {
+    "naturally_idempotent": {
+      "description": "No idempotency key needed - same request always produces same result",
+      "examples": [
+        {
+          "endpoint": "PUT /v1/projects/{id}",
+          "reason": "Full replacement - idempotent by design"
+        },
+        {
+          "endpoint": "DELETE /v1/projects/{id}",
+          "reason": "Delete same ID is always success or 404"
+        },
+        {
+          "endpoint": "PATCH /v1/projects/{id}/status",
+          "reason": "Setting status to specific value is idempotent"
+        }
+      ]
+    },
+    "key_required": {
+      "description": "Idempotency key SHOULD be provided for safe retries",
+      "examples": [
+        {
+          "endpoint": "POST /v1/projects",
+          "reason": "Creates new resource - may duplicate without key"
+        },
+        {
+          "endpoint": "POST /v1/generation",
+          "reason": "Starts generation job - may create duplicates"
+        },
+        {
+          "endpoint": "POST /v1/pipelines/execute",
+          "reason": "Executes pipeline - expensive operation"
+        },
+        {
+          "endpoint": "POST /v1/templates/{id}/parse",
+          "reason": "Triggers parsing - idempotent result but expensive"
+        }
+      ]
+    }
+  },
+  "error_handling": {
+    "missing_key_when_required": {
+      "status": 400,
+      "response": {
+        "status_code": 400,
+        "category": "validation",
+        "message": "X-Idempotency-Key header is required for this endpoint",
+        "details": [{"field": "X-Idempotency-Key", "message": "Header is required"}]
+      }
+    },
+    "key_reused_different_request": {
+      "status": 409,
+      "response": {
+        "status_code": 409,
+        "category": "conflict",
+        "message": "Idempotency key has already been used with different request parameters",
+        "details": [{"field": "X-Idempotency-Key", "message": "Key reused with different body"}]
+      }
+    },
+    "key_too_long": {
+      "status": 400,
+      "response": {
+        "status_code": 400,
+        "category": "validation",
+        "message": "Idempotency key must be 64 characters or less",
+        "details": [{"field": "X-Idempotency-Key", "message": "Max length is 64 characters"}]
+      }
+    }
+  },
+  "long_running_operations": {
+    "pattern": "Return job ID immediately, poll for status",
+    "flow": [
+      "1. Client sends POST with X-Idempotency-Key",
+      "2. Server creates job, returns job_id immediately (201 Created)",
+      "3. Client polls GET /jobs/{job_id} for status",
+      "4. Retry of original POST returns same job_id (from idempotency cache)"
+    ],
+    "example_response": {
+      "id": "job_550e8400-e29b-41d4-a716-446655440000",
+      "status": "pending",
+      "created_at": "2025-12-28T15:30:00Z",
+      "poll_url": "/v1/generation/job_550e8400.../status"
+    }
+  },
+  "client_implementation": {
+    "generating_keys": {
+      "recommended": "UUID v4 for uniqueness",
+      "alternative": "Hash of request content + timestamp",
+      "storage": "Store key with pending request; clear on success"
+    },
+    "retry_logic": {
+      "when_to_retry": [
+        "Network timeout",
+        "5xx server errors",
+        "Connection refused"
+      ],
+      "when_not_to_retry": [
+        "4xx client errors (except 429)",
+        "Successful response (2xx)"
+      ],
+      "retry_with_same_key": "Always use same idempotency key for retries"
+    },
+    "typescript_example": "const idempotencyKey = crypto.randomUUID();\n\nasync function createProject(data: ProjectCreate): Promise<Project> {\n  const response = await fetch('/api/pptx/v1/projects', {\n    method: 'POST',\n    headers: {\n      'Content-Type': 'application/json',\n      'X-Idempotency-Key': idempotencyKey,\n    },\n    body: JSON.stringify(data),\n  });\n  \n  if (response.headers.get('X-Idempotent-Replayed') === 'true') {\n    console.log('Request was replayed from cache');\n  }\n  \n  return response.json();\n}"
+  },
+  "testing_requirements": [
+    "Test that duplicate requests with same key return same response",
+    "Test that X-Idempotent-Replayed header is set on cached responses",
+    "Test that different request body with same key returns 409",
+    "Test that expired keys are processed as new requests",
+    "Test that missing required key returns 400",
+    "Test that long keys (>64 chars) return 400"
+  ],
+  "migration_checklist": {
+    "per_endpoint": [
+      "Classify endpoint as naturally-idempotent or key-required",
+      "Add @idempotent decorator or middleware for key-required endpoints",
+      "Update OpenAPI docs to indicate idempotency requirements",
+      "Add integration tests for idempotency behavior"
+    ],
+    "infrastructure": [
+      "Implement IdempotencyCache class with TTL support",
+      "Add idempotency middleware to FastAPI app",
+      "Configure Redis for production idempotency storage",
+      "Add metrics for cache hit/miss rates"
+    ]
+  },
+  "tags": ["api", "idempotency", "implementation", "specification"]
+}

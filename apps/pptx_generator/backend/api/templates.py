@@ -2,6 +2,7 @@
 
 Per ADR-0018: Uses ShapeDiscoveryResult contract for shape discovery.
 Per ADR-0020: Uses TemplateValidationResult for template validation.
+Per ADR-0031: All errors use ErrorResponse contract via errors.py helper.
 """
 
 import time
@@ -9,8 +10,14 @@ from datetime import datetime
 from pathlib import Path
 from uuid import UUID
 
-from fastapi import APIRouter, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, File, UploadFile, status
 from pptx import Presentation
+
+from apps.pptx_generator.backend.api.errors import (
+    raise_not_found,
+    raise_validation_error,
+    raise_internal_error,
+)
 
 from shared.contracts.pptx.template import (
     TemplateValidationResult,
@@ -58,22 +65,16 @@ async def upload_template(
         HTTPException: If project not found (404) or file is invalid (400).
     """
     if project_id not in projects_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {project_id} not found",
-        )
+        raise_not_found("Project", str(project_id))
 
     if not file.filename:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No filename provided",
-        )
+        raise_validation_error("No filename provided", field="file")
 
     file_extension = Path(file.filename).suffix.lower()
     if file_extension not in settings.ALLOWED_TEMPLATE_EXTENSIONS:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid file type. Allowed: {settings.ALLOWED_TEMPLATE_EXTENSIONS}",
+        raise_validation_error(
+            f"Invalid file type. Allowed: {settings.ALLOWED_TEMPLATE_EXTENSIONS}",
+            field="file",
         )
 
     template = Template(
@@ -92,10 +93,7 @@ async def upload_template(
         template.file_path = str(file_path)
         template.file_size = file_path.stat().st_size
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to save template: {str(e)}",
-        ) from e
+        raise_internal_error(f"Failed to save template: {str(e)}", e)
 
     templates_db[template.id] = template
 
@@ -125,17 +123,11 @@ async def parse_template(project_id: UUID) -> ShapeMap:
         HTTPException: If project or template not found (404) or parsing fails (500).
     """
     if project_id not in projects_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {project_id} not found",
-        )
+        raise_not_found("Project", str(project_id))
 
     project = projects_db[project_id]
     if not project.template_id or project.template_id not in templates_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No template uploaded for this project",
-        )
+        raise_not_found("Template", "No template uploaded for this project")
 
     template = templates_db[project.template_id]
     template_path = Path(template.file_path)
@@ -144,10 +136,7 @@ async def parse_template(project_id: UUID) -> ShapeMap:
         shape_map = await parser_service.parse_template(template_path)
         shape_map.template_id = template.id
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to parse template: {str(e)}",
-        ) from e
+        raise_internal_error(f"Failed to parse template: {str(e)}", e)
 
     shape_maps_db[shape_map.id] = shape_map
 
@@ -185,17 +174,11 @@ async def parse_template_v2(project_id: UUID) -> dict:
         HTTPException: If project or template not found (404) or parsing fails (500).
     """
     if project_id not in projects_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {project_id} not found",
-        )
+        raise_not_found("Project", str(project_id))
 
     project = projects_db[project_id]
     if not project.template_id or project.template_id not in templates_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No template uploaded for this project",
-        )
+        raise_not_found("Template", "No template uploaded for this project")
 
     template = templates_db[project.template_id]
     template_path = Path(template.file_path)
@@ -229,20 +212,11 @@ async def parse_template_v2(project_id: UUID) -> dict:
         }
 
     except FileNotFoundError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e),
-        ) from e
+        raise_not_found("Template file", str(e))
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        ) from e
+        raise_validation_error(str(e))
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to parse template: {str(e)}",
-        ) from e
+        raise_internal_error(f"Failed to parse template: {str(e)}", e)
 
 
 @router.get("/{project_id}")
@@ -260,17 +234,11 @@ async def get_template(project_id: UUID) -> Template:
         HTTPException: If project or template not found (404).
     """
     if project_id not in projects_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {project_id} not found",
-        )
+        raise_not_found("Project", str(project_id))
 
     project = projects_db[project_id]
     if not project.template_id or project.template_id not in templates_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No template uploaded for this project",
-        )
+        raise_not_found("Template", "No template uploaded for this project")
 
     return templates_db[project.template_id]
 
@@ -290,17 +258,11 @@ async def get_shape_map(project_id: UUID) -> ShapeMap:
         HTTPException: If project or shape map not found (404).
     """
     if project_id not in projects_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {project_id} not found",
-        )
+        raise_not_found("Project", str(project_id))
 
     project = projects_db[project_id]
     if not project.shape_map_id or project.shape_map_id not in shape_maps_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No shape map available. Please parse the template first.",
-        )
+        raise_not_found("ShapeMap", "No shape map available. Please parse the template first.")
 
     return shape_maps_db[project.shape_map_id]
 
@@ -326,17 +288,11 @@ async def discover_template_shapes(project_id: UUID) -> dict:
         HTTPException: If project or template not found (404).
     """
     if project_id not in projects_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {project_id} not found",
-        )
+        raise_not_found("Project", str(project_id))
 
     project = projects_db[project_id]
     if not project.template_id or project.template_id not in templates_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No template uploaded for this project",
-        )
+        raise_not_found("Template", "No template uploaded for this project")
 
     template = templates_db[project.template_id]
     template_path = Path(template.file_path)
@@ -373,10 +329,7 @@ async def discover_template_shapes(project_id: UUID) -> dict:
         }
 
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to discover shapes: {str(e)}",
-        ) from e
+        raise_internal_error(f"Failed to discover shapes: {str(e)}", e)
 
 
 @router.post("/{project_id}/validate")
@@ -397,17 +350,11 @@ async def validate_template(project_id: UUID) -> dict:
     start_time = time.time()
 
     if project_id not in projects_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {project_id} not found",
-        )
+        raise_not_found("Project", str(project_id))
 
     project = projects_db[project_id]
     if not project.template_id or project.template_id not in templates_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No template uploaded for this project",
-        )
+        raise_not_found("Template", "No template uploaded for this project")
 
     template = templates_db[project.template_id]
     template_path = Path(template.file_path)

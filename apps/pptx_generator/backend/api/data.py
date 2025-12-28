@@ -1,10 +1,18 @@
-"""Data file and mapping management endpoints."""
+"""Data file and mapping management endpoints.
+
+Per ADR-0031: All errors use ErrorResponse contract via errors.py helper.
+"""
 
 from pathlib import Path
 from uuid import UUID
 
-from fastapi import APIRouter, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, File, UploadFile, status
 
+from apps.pptx_generator.backend.api.errors import (
+    raise_not_found,
+    raise_validation_error,
+    raise_internal_error,
+)
 from apps.pptx_generator.backend.api.projects import projects_db
 from apps.pptx_generator.backend.core.config import settings
 from apps.pptx_generator.backend.models.data import AssetMapping, DataFile
@@ -40,22 +48,16 @@ async def upload_data_file(
         HTTPException: If project not found (404) or file is invalid (400).
     """
     if project_id not in projects_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {project_id} not found",
-        )
+        raise_not_found("Project", str(project_id))
 
     if not file.filename:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No filename provided",
-        )
+        raise_validation_error("No filename provided", field="file")
 
     file_extension = Path(file.filename).suffix.lower()
     if file_extension not in settings.ALLOWED_DATA_EXTENSIONS:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid file type. Allowed: {settings.ALLOWED_DATA_EXTENSIONS}",
+        raise_validation_error(
+            f"Invalid file type. Allowed: {settings.ALLOWED_DATA_EXTENSIONS}",
+            field="file",
         )
 
     data_file = DataFile(
@@ -83,10 +85,7 @@ async def upload_data_file(
         data_file.column_names = column_names
         data_file.row_count = row_count
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to process data file: {str(e)}",
-        ) from e
+        raise_internal_error(f"Failed to process data file: {str(e)}", e)
 
     data_files_db[data_file.id] = data_file
 
@@ -116,17 +115,11 @@ async def get_data_file(project_id: UUID) -> DataFile:
         HTTPException: If project or data file not found (404).
     """
     if project_id not in projects_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {project_id} not found",
-        )
+        raise_not_found("Project", str(project_id))
 
     project = projects_db[project_id]
     if not project.data_file_id or project.data_file_id not in data_files_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No data file uploaded for this project",
-        )
+        raise_not_found("DataFile", "No data file uploaded for this project")
 
     return data_files_db[project.data_file_id]
 
@@ -152,10 +145,7 @@ async def create_asset_mapping(
         HTTPException: If project not found (404).
     """
     if project_id not in projects_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {project_id} not found",
-        )
+        raise_not_found("Project", str(project_id))
 
     mapping.project_id = project_id
 
@@ -196,17 +186,11 @@ async def get_asset_mapping(project_id: UUID) -> AssetMapping:
         HTTPException: If project or mapping not found (404).
     """
     if project_id not in projects_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {project_id} not found",
-        )
+        raise_not_found("Project", str(project_id))
 
     project = projects_db[project_id]
     if not project.asset_mapping_id or project.asset_mapping_id not in asset_mappings_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No asset mapping configured for this project",
-        )
+        raise_not_found("AssetMapping", "No asset mapping configured for this project")
 
     return asset_mappings_db[project.asset_mapping_id]
 
@@ -230,22 +214,16 @@ async def upload_domain_knowledge(
         HTTPException: If project not found (404) or file is invalid (400).
     """
     if project_id not in projects_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {project_id} not found",
-        )
+        raise_not_found("Project", str(project_id))
 
     if not file.filename:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No filename provided",
-        )
+        raise_validation_error("No filename provided", field="file")
 
     file_extension = Path(file.filename).suffix.lower()
     if file_extension not in settings.ALLOWED_DOMAIN_EXTENSIONS:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid file type. Allowed: {settings.ALLOWED_DOMAIN_EXTENSIONS}",
+        raise_validation_error(
+            f"Invalid file type. Allowed: {settings.ALLOWED_DOMAIN_EXTENSIONS}",
+            field="file",
         )
 
     from uuid import uuid4
@@ -269,10 +247,7 @@ async def upload_domain_knowledge(
         project.updated_at = datetime.utcnow()
 
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to process domain knowledge file: {str(e)}",
-        ) from e
+        raise_internal_error(f"Failed to process domain knowledge file: {str(e)}", e)
 
     return {
         "message": "Domain knowledge uploaded successfully",

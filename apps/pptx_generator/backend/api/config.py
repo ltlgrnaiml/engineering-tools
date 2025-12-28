@@ -1,10 +1,14 @@
-"""API endpoints for domain configuration."""
+"""API endpoints for domain configuration.
+
+Per ADR-0031: All errors use ErrorResponse contract via errors.py helper.
+"""
 
 import logging
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter
 
+from apps.pptx_generator.backend.api.errors import raise_internal_error
 from apps.pptx_generator.backend.core.domain_config_service import (
     ConfigurationError,
     get_domain_config,
@@ -22,10 +26,7 @@ async def get_config() -> dict[str, Any]:
         return config.model_dump()
     except ConfigurationError as e:
         logger.error(f"Failed to load configuration: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e),
-        ) from e
+        raise_internal_error(f"Failed to load configuration: {str(e)}", e)
 
 
 @router.get("/job-contexts")
@@ -39,10 +40,7 @@ async def get_job_contexts() -> dict[str, Any]:
         }
     except ConfigurationError as e:
         logger.error(f"Failed to load configuration: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e),
-        ) from e
+        raise_internal_error(f"Failed to load job contexts: {str(e)}", e)
 
 
 @router.get("/plotting")
@@ -53,10 +51,7 @@ async def get_plotting_config() -> dict[str, Any]:
         return config.plotting.model_dump()
     except ConfigurationError as e:
         logger.error(f"Failed to load configuration: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e),
-        ) from e
+        raise_internal_error(f"Failed to load plotting config: {str(e)}", e)
 
 
 @router.get("/shape-naming")
@@ -67,10 +62,7 @@ async def get_shape_naming_config() -> dict[str, Any]:
         return config.shape_naming.model_dump()
     except ConfigurationError as e:
         logger.error(f"Failed to load configuration: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e),
-        ) from e
+        raise_internal_error(f"Failed to load shape naming config: {str(e)}", e)
 
 
 @router.get("/metrics")
@@ -81,10 +73,7 @@ async def get_metrics_config() -> dict[str, Any]:
         return config.metrics.model_dump()
     except ConfigurationError as e:
         logger.error(f"Failed to load configuration: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e),
-        ) from e
+        raise_internal_error(f"Failed to load metrics config: {str(e)}", e)
 
 
 @router.get("/defaults")
@@ -95,7 +84,4 @@ async def get_defaults_config() -> dict[str, Any]:
         return config.defaults.model_dump()
     except ConfigurationError as e:
         logger.error(f"Failed to load configuration: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e),
-        ) from e
+        raise_internal_error(f"Failed to load defaults config: {str(e)}", e)

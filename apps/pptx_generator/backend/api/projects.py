@@ -1,9 +1,16 @@
-"""Project management endpoints."""
+"""Project management endpoints.
+
+Per ADR-0031: All errors use ErrorResponse contract via errors.py helper.
+"""
 
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, status
 
+from apps.pptx_generator.backend.api.errors import (
+    raise_not_found,
+    raise_validation_error,
+)
 from apps.pptx_generator.backend.models.project import Project, ProjectCreate, ProjectStatus
 from apps.pptx_generator.backend.core.workflow_fsm import (
     WorkflowState,
@@ -79,10 +86,7 @@ async def get_project(project_id: UUID) -> Project:
         HTTPException: If project not found (404).
     """
     if project_id not in projects_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {project_id} not found",
-        )
+        raise_not_found("Project", str(project_id))
     return projects_db[project_id]
 
 
@@ -105,10 +109,7 @@ async def update_project_status(
         HTTPException: If project not found (404).
     """
     if project_id not in projects_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {project_id} not found",
-        )
+        raise_not_found("Project", str(project_id))
 
     project = projects_db[project_id]
     project.status = new_status
@@ -132,10 +133,7 @@ async def delete_project(project_id: UUID) -> None:
         HTTPException: If project not found (404).
     """
     if project_id not in projects_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {project_id} not found",
-        )
+        raise_not_found("Project", str(project_id))
     del projects_db[project_id]
 
 
@@ -158,10 +156,7 @@ async def clear_project_state(project_id: UUID, step_name: str) -> dict:
         HTTPException: If project not found (404) or invalid step (400).
     """
     if project_id not in projects_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {project_id} not found",
-        )
+        raise_not_found("Project", str(project_id))
 
     # Import the databases from other modules
     from apps.pptx_generator.backend.api.data import data_files_db
@@ -182,10 +177,7 @@ async def clear_project_state(project_id: UUID, step_name: str) -> dict:
     }
 
     if step_name not in step_cascade:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid step name: {step_name}",
-        )
+        raise_validation_error(f"Invalid step name: {step_name}", field="step_name")
 
     artifacts_to_clear = step_cascade[step_name]
     cleared = []
@@ -251,10 +243,7 @@ async def get_workflow_state(project_id: UUID) -> dict:
         HTTPException: If project not found (404).
     """
     if project_id not in projects_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {project_id} not found",
-        )
+        raise_not_found("Project", str(project_id))
 
     from apps.pptx_generator.backend.core.workflow_fsm import check_generate_allowed
 

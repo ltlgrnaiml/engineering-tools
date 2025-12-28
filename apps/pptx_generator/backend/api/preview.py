@@ -1,4 +1,7 @@
-"""API endpoints for slide preview generation."""
+"""API endpoints for slide preview generation.
+
+Per ADR-0031: All errors use ErrorResponse contract via errors.py helper.
+"""
 
 import io
 import logging
@@ -6,9 +9,15 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, status
 from fastapi.responses import Response
 from pptx import Presentation
+
+from apps.pptx_generator.backend.api.errors import (
+    raise_not_found,
+    raise_validation_error,
+    raise_internal_error,
+)
 
 from apps.pptx_generator.backend.api.data import data_files_db
 from apps.pptx_generator.backend.api.projects import projects_db
@@ -44,19 +53,13 @@ async def get_slide_preview(
         Preview information including slide content summary.
     """
     if project_id not in projects_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {project_id} not found",
-        )
+        raise_not_found("Project", str(project_id))
 
     project = projects_db[project_id]
 
     # Check for template
     if not project.template_id or project.template_id not in templates_db:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Template not found. Please upload a template first.",
-        )
+        raise_validation_error("Template not found. Please upload a template first.", field="template_id")
 
     template = templates_db[project.template_id]
 
@@ -64,15 +67,12 @@ async def get_slide_preview(
     try:
         prs = Presentation(template.file_path)
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to load template: {str(e)}",
-        ) from e
+        raise_internal_error(f"Failed to load template: {str(e)}", e)
 
     if slide_index >= len(prs.slides):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Slide index {slide_index} out of range. Template has {len(prs.slides)} slides.",
+        raise_validation_error(
+            f"Slide index {slide_index} out of range. Template has {len(prs.slides)} slides.",
+            field="slide_index",
         )
 
     slide = prs.slides[slide_index]
@@ -147,18 +147,12 @@ async def get_slide_preview_image(
         PNG image of the slide preview.
     """
     if project_id not in projects_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {project_id} not found",
-        )
+        raise_not_found("Project", str(project_id))
 
     project = projects_db[project_id]
 
     if not project.template_id or project.template_id not in templates_db:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Template not found.",
-        )
+        raise_validation_error("Template not found.", field="template_id")
 
     # Check cache first
     cache_key = f"{project_id}_{slide_index}"
@@ -173,9 +167,8 @@ async def get_slide_preview_image(
     # In production, you would use subprocess to call LibreOffice:
     # soffice --headless --convert-to png --outdir /tmp slide.pptx
 
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Image preview requires LibreOffice or similar tool. Use /preview endpoint for shape information.",
+    raise_validation_error(
+        "Image preview requires LibreOffice or similar tool. Use /preview endpoint for shape information."
     )
 
 
@@ -190,10 +183,7 @@ async def get_generation_summary(project_id: UUID) -> dict[str, Any]:
         Summary of generation including slides, shapes, and data.
     """
     if project_id not in projects_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {project_id} not found",
-        )
+        raise_not_found("Project", str(project_id))
 
     project = projects_db[project_id]
 

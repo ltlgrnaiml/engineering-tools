@@ -2,7 +2,7 @@
 
 > **Master Reference for AI-Assisted Development on Engineering Tools Platform**
 > 
-> Generated: 2024-12-27 | Updated: 2024-12-27 | Based on Full 29-ADR Analysis
+> Generated: 2024-12-27 | Updated: 2025-12-28 | Based on Full 31-ADR Analysis
 
 ---
 
@@ -19,13 +19,13 @@
 
 ## 1. ADR Summary & Key Principles
 
-### 1.1 Complete ADR Inventory (29 Total)
+### 1.1 Complete ADR Inventory (31 Total)
 
 The `.adrs/` folder is organized by domain:
 
 ```
 .adrs/
-├── core/           (13 ADRs - platform-wide decisions)
+├── core/           (15 ADRs - platform-wide decisions)
 ├── dat/            (8 ADRs - Data Aggregator tool)
 ├── pptx/           (4 ADRs - PowerPoint Generator)
 ├── sov/            (3 ADRs - SOV Analyzer)
@@ -33,7 +33,7 @@ The `.adrs/` folder is organized by domain:
 └── devtools/       (1 ADR - developer utilities)
 ```
 
-#### Core ADRs (13)
+#### Core ADRs (15)
 
 | ADR ID | Title | Status | Key Decision |
 |--------|-------|--------|--------------|
@@ -48,6 +48,12 @@ The `.adrs/` folder is organized by domain:
 | ADR-0016 | Hybrid Semver Contract Versioning | Accepted | v0.x.x = relaxed; v1.x.x+ = strict semver; manual graduation |
 | ADR-0017 | Cross-Cutting Guardrails | Accepted | path-safety, concurrency, message-catalogs, contract-versioning, tier-boundaries, cancel-behavior |
 | ADR-0025 | DataSet Lineage Tracking | Accepted | parent_ref + source_tool in manifests; gateway /lineage endpoint |
+| ADR-0026 | Pipeline Error Handling | Accepted | Unified error handling patterns across pipeline stages |
+| ADR-0028 | Unified Rendering Engine | Accepted | Shared visualization, charting, and rendering for all tools |
+| ADR-0029 | API Versioning and Endpoint Naming | Accepted | Two-tier versioning: /api/v1/{resource} for gateway, /api/{tool}/v1/{resource} for tools |
+| ADR-0030 | Documentation Lifecycle Management | Accepted | 5-category doc classification, archival policy, CHANGELOG, ADR mutability during dev |
+| **ADR-0031** | **HTTP Error Response Contracts** | **Accepted** | **Standardized ErrorResponse schema for all HTTP 4xx/5xx responses** |
+| **ADR-0032** | **HTTP Request Idempotency Semantics** | **Accepted** | **Idempotency keys and retry-safe API design patterns** |
 | ADR-0026 | Pipeline Error Handling | Accepted | Fail-fast semantics; preserve partial results; explicit resume |
 | ADR-0028 | Unified Rendering Engine | Accepted | Shared RenderSpec contracts; output adapters (web, PNG, PPTX) |
 
@@ -512,20 +518,27 @@ Gateway: POST /api/v1/pipelines/execute
 - JSON Schema generation not automated in CI
 - CI tier boundary validation not fully implemented
 
-#### 6.3.2 API Design (14/20)
+#### 6.3.2 API Design (18/20) 🟢
 
 | Criterion | Status | Notes |
-|-----------|--------|-------|
-| /vN versioned routing | ⚠️ | PPTX has /api/v1/, others inconsistent |
+|-----------|--------|---------|
+| /vN versioned routing | ✅ | Fixed: PPTX now uses /v1/ internally per ADR-0029 |
 | Pydantic response models | ✅ | FastAPI enforces |
-| Standard error schema | ⚠️ | Not standardized across tools |
+| Standard error schema | ✅ | **FIXED**: ErrorResponse contract implemented via ADR-0031 + SPEC-0035 |
 | Path safety enforcement | ✅ | `shared/contracts/core/path_safety.py` exists |
 | Health endpoints | ✅ | All tools have /health |
 | CORS configuration | ✅ | Configured for dev |
+| Idempotency support | ⚠️ | ADR-0032 + SPEC-0036 defined, implementation pending |
+| Error response consistency | ✅ | **NEW**: All PPTX APIs updated, helper modules created |
 
-**Gaps:**
-- Gateway datasets/pipelines use /v1/ but tool routes inconsistent
-- Missing standardized error response contract across all tools
+**Recent Improvements:**
+- ✅ **COMPLETED**: Standardized ErrorResponse contract (ADR-0031)
+- ✅ **COMPLETED**: Fixed PPTX route mounting (/api/v1/ → /v1/ per ADR-0029)
+- ✅ **COMPLETED**: Created errors.py helper modules with raise_error(), raise_not_found(), etc.
+- ✅ **COMPLETED**: Updated all 13 PPTX API files to use ErrorResponse
+
+**Remaining Gaps:**
+- Idempotency implementation (X-Idempotency-Key middleware) - documented in ADR-0032
 
 #### 6.3.3 Testing (10/15)
 
@@ -547,7 +560,7 @@ Gateway: POST /api/v1/pipelines/execute
 
 | Criterion | Status | Notes |
 |-----------|--------|-------|
-| ADRs follow schema | ✅ | All 29 ADRs in JSON format with consistent schema |
+| ADRs follow schema | ✅ | All 31 ADRs in JSON format with consistent schema |
 | 3-tier separation | ✅ | Tiers defined (Contracts → ADRs → Specs → Guides) |
 | Quick Start in README | ✅ | Present |
 | OpenAPI docs accessible | ✅ | /docs endpoint works |
@@ -590,13 +603,15 @@ Gateway: POST /api/v1/pipelines/execute
 
 ### 6.4 Priority Remediation Roadmap
 
-| Priority | Item | Effort | Impact |
-|----------|------|--------|--------|
-| P0 | Implement path safety utilities | Low | High |
-| P0 | Add contract __version__ to all contracts | Low | Medium |
-| P0 | Standardize error response contract | Medium | High |
-| P0 | Create tool-specific ADRs (PPTX-0018-0021) | Medium | High |
-| P1 | Implement JSON Schema generation tooling | Medium | Medium |
+| Priority | Item | Status | Effort | Impact |
+|----------|------|--------|--------|---------|
+| ~~P0~~ | ~~Standardize error response contract~~ | ✅ **COMPLETED** | ~~Medium~~ | ~~High~~ |
+| ~~P0~~ | ~~Create tool-specific ADRs (PPTX-0018-0021)~~ | ✅ **COMPLETED** | ~~Medium~~ | ~~High~~ |
+| P0 | Implement path safety utilities | Pending | Low | High |
+| P0 | Add contract __version__ to all contracts | Pending | Low | Medium |
+| P1 | Implement idempotency middleware | **NEW** | Medium | High |
+| P1 | Implement JSON Schema generation tooling | Pending | Medium | Medium |
+| P1 | Extend error response to DAT/SOV tools | **NEW** | Low | Medium |
 | P1 | Add artifact preservation tests | Medium | High |
 | P1 | Implement SOV DataSet integration | High | High |
 | P1 | Add lineage tracking to DataSetManifest | Medium | Medium |

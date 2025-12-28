@@ -1,12 +1,21 @@
-"""API endpoints for data operations (derive, join, concat, preview)."""
+"""API endpoints for data operations (derive, join, concat, preview).
+
+Per ADR-0031: All errors use ErrorResponse contract via errors.py helper.
+"""
 
 import logging
 from typing import Any
 from uuid import UUID
 
 import pandas as pd
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, status
 from pydantic import BaseModel, Field
+
+from apps.pptx_generator.backend.api.errors import (
+    raise_not_found,
+    raise_validation_error,
+    raise_internal_error,
+)
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -108,31 +117,19 @@ async def derive_column(project_id: UUID, request: DeriveColumnRequest) -> dict[
             break
 
     if not project_file:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No data file found for project {project_id}",
-        )
+        raise_not_found("DataFile", f"No data file found for project {project_id}")
 
     df = project_file.get("dataframe")
     if df is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Data file has no dataframe loaded",
-        )
+        raise_validation_error("Data file has no dataframe loaded", field="dataframe")
 
     if request.source_column not in df.columns:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Source column '{request.source_column}' not found",
-        )
+        raise_validation_error(f"Source column '{request.source_column}' not found", field="source_column")
 
     try:
         if request.derivation_type == "regex":
             if not request.pattern:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Pattern required for regex derivation",
-                )
+                raise_validation_error("Pattern required for regex derivation", field="pattern")
             # Extract using regex
             df[request.new_column_name] = (
                 df[request.source_column].astype(str).str.extract(request.pattern, expand=False)
@@ -140,24 +137,15 @@ async def derive_column(project_id: UUID, request: DeriveColumnRequest) -> dict[
 
         elif request.derivation_type == "lookup":
             if not request.lookup_table:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Lookup table required for lookup derivation",
-                )
+                raise_validation_error("Lookup table required for lookup derivation", field="lookup_table")
             df[request.new_column_name] = df[request.source_column].map(request.lookup_table)
 
         elif request.derivation_type == "expression":
             # For safety, only allow simple expressions
-            raise HTTPException(
-                status_code=status.HTTP_501_NOT_IMPLEMENTED,
-                detail="Expression derivation not yet implemented for security reasons",
-            )
+            raise_validation_error("Expression derivation not yet implemented for security reasons", field="derivation_type")
 
         else:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Unknown derivation type: {request.derivation_type}",
-            )
+            raise_validation_error(f"Unknown derivation type: {request.derivation_type}", field="derivation_type")
 
         # Update columns list
         if request.new_column_name not in project_file.get("columns", []):
@@ -177,10 +165,7 @@ async def derive_column(project_id: UUID, request: DeriveColumnRequest) -> dict[
 
     except Exception as e:
         logger.error(f"Failed to derive column: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to derive column: {str(e)}",
-        ) from e
+        raise_internal_error(f"Failed to derive column: {str(e)}", e)
 
 
 @router.post("/data/{project_id}/join")
@@ -200,16 +185,10 @@ async def join_files(project_id: UUID, request: JoinFilesRequest) -> dict[str, A
     secondary_file = global_data_files_db.get(request.secondary_file_id)
 
     if not primary_file or not isinstance(primary_file, dict):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Primary file {request.primary_file_id} not found",
-        )
+        raise_not_found("DataFile", f"Primary file {request.primary_file_id} not found")
 
     if not secondary_file or not isinstance(secondary_file, dict):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Secondary file {request.secondary_file_id} not found",
-        )
+        raise_not_found("DataFile", f"Secondary file {request.secondary_file_id} not found")
 
     df_primary = primary_file.get("dataframe")
     df_secondary = secondary_file.get("dataframe")
@@ -220,10 +199,7 @@ async def join_files(project_id: UUID, request: JoinFilesRequest) -> dict[str, A
         or not isinstance(df_primary, pd.DataFrame)
         or not isinstance(df_secondary, pd.DataFrame)
     ):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="One or both files have no dataframe loaded",
-        )
+        raise_validation_error("One or both files have no dataframe loaded", field="dataframe")
 
     try:
         # Select columns from secondary
@@ -265,10 +241,7 @@ async def join_files(project_id: UUID, request: JoinFilesRequest) -> dict[str, A
 
     except Exception as e:
         logger.error(f"Failed to join files: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to join files: {str(e)}",
-        ) from e
+        raise_internal_error(f"Failed to join files: {str(e)}", e)
 
 
 @router.post("/data/{project_id}/concat")
@@ -285,25 +258,16 @@ async def concat_files(project_id: UUID, request: ConcatFilesRequest) -> dict[st
     from apps.pptx_generator.backend.api.data import data_files_db as global_data_files_db
 
     if len(request.file_ids) < 2:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="At least 2 files required for concatenation",
-        )
+        raise_validation_error("At least 2 files required for concatenation", field="file_ids")
 
     dataframes: list[pd.DataFrame] = []
     for file_id in request.file_ids:
         file_data = global_data_files_db.get(file_id)
         if not file_data or not isinstance(file_data, dict):
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"File {file_id} not found",
-            )
+            raise_not_found("DataFile", f"File {file_id} not found")
         df = file_data.get("dataframe")
         if df is None or not isinstance(df, pd.DataFrame):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"File {file_id} has no dataframe loaded",
-            )
+            raise_validation_error(f"File {file_id} has no dataframe loaded", field="dataframe")
         dataframes.append(df)
 
     try:
@@ -328,10 +292,7 @@ async def concat_files(project_id: UUID, request: ConcatFilesRequest) -> dict[st
 
     except Exception as e:
         logger.error(f"Failed to concat files: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to concat files: {str(e)}",
-        ) from e
+        raise_internal_error(f"Failed to concat files: {str(e)}", e)
 
 
 @router.get("/data/{project_id}/preview")
@@ -358,17 +319,11 @@ async def preview_data(
             break
 
     if not project_file:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No data file found for project {project_id}",
-        )
+        raise_not_found("DataFile", f"No data file found for project {project_id}")
 
     df = project_file.get("dataframe")
     if df is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Data file has no dataframe loaded",
-        )
+        raise_validation_error("Data file has no dataframe loaded", field="dataframe")
 
     # Select columns if specified
     if columns:
@@ -406,23 +361,14 @@ async def get_column_stats(project_id: UUID, column_name: str) -> ColumnStatsRes
             break
 
     if not project_file:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No data file found for project {project_id}",
-        )
+        raise_not_found("DataFile", f"No data file found for project {project_id}")
 
     df = project_file.get("dataframe")
     if df is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Data file has no dataframe loaded",
-        )
+        raise_validation_error("Data file has no dataframe loaded", field="dataframe")
 
     if column_name not in df.columns:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Column '{column_name}' not found",
-        )
+        raise_not_found("Column", f"Column '{column_name}' not found")
 
     col = df[column_name]
     stats = ColumnStatsResponse(
