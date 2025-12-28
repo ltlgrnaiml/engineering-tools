@@ -45,17 +45,29 @@ else
     echo "⚠️  No pyproject.toml or requirements.txt found"
 fi
 
-# Install frontend dependencies
-if [ -d "apps/homepage/frontend" ]; then
+# Install frontend dependencies for all apps
+FRONTEND_APPS=(
+    "apps/homepage/frontend:Homepage"
+    "apps/data_aggregator/frontend:Data Aggregator"
+    "apps/pptx_generator/frontend:PPTX Generator"
+    "apps/sov_analyzer/frontend:SOV Analyzer"
+)
+
+if command -v npm &> /dev/null; then
     echo "🎨 Installing frontend dependencies..."
-    cd apps/homepage/frontend
-    if command -v npm &> /dev/null; then
-        npm install --silent
-        echo "✓ Frontend dependencies installed"
-    else
-        echo "⚠️  npm not found, skipping frontend setup"
-    fi
-    cd ../../..
+    for app_entry in "${FRONTEND_APPS[@]}"; do
+        app_path="${app_entry%%:*}"
+        app_name="${app_entry##*:}"
+        if [ -d "$app_path" ]; then
+            echo "  Installing $app_name dependencies..."
+            cd "$app_path"
+            npm install --silent 2>/dev/null
+            cd - > /dev/null
+        fi
+    done
+    echo "✓ All frontend dependencies installed"
+else
+    echo "⚠️  npm not found, skipping frontend setup"
 fi
 
 # Create workspace directories

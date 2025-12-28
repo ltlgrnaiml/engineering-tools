@@ -94,7 +94,7 @@ function LogEntry({ entry }: { entry: DebugLogEntry }) {
   )
 }
 
-function APICallRow({ call }: { call: APICallEntry }) {
+function APICallRow({ call }: { call: APICallEntry & { requestBody?: any; responseBody?: any } }) {
   const [expanded, setExpanded] = useState(false)
   
   const statusColor = call.pending ? 'text-yellow-400' :
@@ -141,7 +141,7 @@ function APICallRow({ call }: { call: APICallEntry }) {
       
       {expanded && (
         <div className="px-3 pb-3 space-y-2">
-          {call.requestBody && (
+          {call.requestBody && typeof call.requestBody !== 'undefined' && (
             <div>
               <div className="text-xs font-medium text-slate-400 mb-1">Request Body:</div>
               <pre className="p-2 bg-slate-800 rounded text-xs overflow-x-auto max-h-32 overflow-y-auto text-slate-300">
@@ -149,7 +149,7 @@ function APICallRow({ call }: { call: APICallEntry }) {
               </pre>
             </div>
           )}
-          {call.responseBody && (
+          {call.responseBody && typeof call.responseBody !== 'undefined' && (
             <div>
               <div className="text-xs font-medium text-slate-400 mb-1">Response Body:</div>
               <pre className="p-2 bg-slate-800 rounded text-xs overflow-x-auto max-h-32 overflow-y-auto text-slate-300">
@@ -169,7 +169,7 @@ function APICallRow({ call }: { call: APICallEntry }) {
   )
 }
 
-function StateTransitionRow({ transition }: { transition: StateTransition }) {
+function StateTransitionRow({ transition }: { transition: StateTransition & { payload?: any } }) {
   return (
     <div className="px-3 py-2 border-b border-slate-700 hover:bg-slate-800/50">
       <div className="flex items-center gap-2">
@@ -179,7 +179,7 @@ function StateTransitionRow({ transition }: { transition: StateTransition }) {
         <span className="px-2 py-0.5 bg-emerald-900 rounded text-xs text-emerald-300">{transition.to}</span>
         <span className="text-xs text-slate-400 italic">({transition.trigger})</span>
       </div>
-      {transition.payload && <JSONViewer data={transition.payload} />}
+      {transition.payload && typeof transition.payload !== 'undefined' && <JSONViewer data={transition.payload} />}
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { AlertCircle, CheckCircle, AlertTriangle } from 'lucide-react'
+import { AlertCircle, CheckCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface ADRFormEditorProps {
@@ -15,7 +15,7 @@ interface FieldError {
 
 const API_BASE = 'http://localhost:8000/api/v1/devtools'
 
-export function ADRFormEditor({ adr, isNewAdr = false, onSave, onValidate }: ADRFormEditorProps) {
+export function ADRFormEditor({ adr, isNewAdr = false, onSave }: ADRFormEditorProps) {
   const [formData, setFormData] = useState<Record<string, any>>({})
   const [fieldErrors, setFieldErrors] = useState<FieldError>({})
   const [isSaving, setIsSaving] = useState(false)

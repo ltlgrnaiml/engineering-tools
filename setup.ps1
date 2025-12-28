@@ -43,17 +43,27 @@ if (Test-Path "pyproject.toml") {
     Write-Host "Warning: No pyproject.toml or requirements.txt found" -ForegroundColor Yellow
 }
 
-# Install frontend dependencies
-if (Test-Path "apps/homepage/frontend") {
+# Install frontend dependencies for all apps
+$frontendApps = @(
+    @{ Name = "Homepage"; Path = "apps/homepage/frontend" },
+    @{ Name = "Data Aggregator"; Path = "apps/data_aggregator/frontend" },
+    @{ Name = "PPTX Generator"; Path = "apps/pptx_generator/frontend" },
+    @{ Name = "SOV Analyzer"; Path = "apps/sov_analyzer/frontend" }
+)
+
+if (Get-Command npm -ErrorAction SilentlyContinue) {
     Write-Host "Installing frontend dependencies..." -ForegroundColor Yellow
-    Push-Location apps/homepage/frontend
-    if (Get-Command npm -ErrorAction SilentlyContinue) {
-        npm install --silent
-        Write-Host "[OK] Frontend dependencies installed" -ForegroundColor Green
-    } else {
-        Write-Host "Warning: npm not found, skipping frontend setup" -ForegroundColor Yellow
+    foreach ($app in $frontendApps) {
+        if (Test-Path $app.Path) {
+            Write-Host "  Installing $($app.Name) dependencies..." -ForegroundColor Gray
+            Push-Location $app.Path
+            npm install --silent 2>&1 | Out-Null
+            Pop-Location
+        }
     }
-    Pop-Location
+    Write-Host "[OK] All frontend dependencies installed" -ForegroundColor Green
+} else {
+    Write-Host "Warning: npm not found, skipping frontend setup" -ForegroundColor Yellow
 }
 
 # Create workspace directories

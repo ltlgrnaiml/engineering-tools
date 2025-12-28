@@ -17,28 +17,8 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ADRFormEditor } from '@/components/ADRFormEditor'
-
-interface ADRSummary {
-  id: string
-  title: string
-  status: string
-  date: string
-  scope: string
-  filename: string
-  folder: string
-}
-
-interface ADRContent {
-  filename: string
-  content: Record<string, unknown>
-  raw_json: string
-}
-
-interface ValidationResult {
-  valid: boolean
-  errors: string[]
-  warnings: string[]
-}
+// Per ADR-0009: Import typed contracts from shared types
+import type { ADRSummary, ADRContent } from '@shared/types/contracts'
 
 const API_BASE = 'http://localhost:8000/api/v1/devtools'
 
@@ -165,7 +145,7 @@ export function DevToolsPage() {
     }
   }
 
-  const renderReaderContent = () => {
+  const renderReaderContent = (): JSX.Element => {
     if (!selectedAdr) {
       return (
         <div className="flex items-center justify-center h-full text-slate-400">
@@ -177,7 +157,8 @@ export function DevToolsPage() {
       )
     }
 
-    const content = selectedAdr.content as Record<string, unknown>
+    // Per ADR-0009: Use properly typed content from shared contracts
+    const content = selectedAdr.content
 
     return (
       <div className="p-6 overflow-auto h-full">
@@ -185,90 +166,94 @@ export function DevToolsPage() {
           {/* Header */}
           <div className="border-b border-slate-200 pb-4">
             <div className="flex items-center gap-2 mb-2">
-              <span className={cn('px-2 py-1 rounded-full text-xs font-medium', getStatusColor(content.status as string))}>
-                {(content.status as string)?.toUpperCase()}
+              <span className={cn('px-2 py-1 rounded-full text-xs font-medium', getStatusColor(content.status))}>
+                {content.status.toUpperCase()}
               </span>
-              <span className="text-xs text-slate-500">{content.scope as string}</span>
+              <span className="text-xs text-slate-500">{content.scope}</span>
             </div>
-            <h1 className="text-2xl font-bold text-slate-900">{content.title as string}</h1>
+            <h1 className="text-2xl font-bold text-slate-900">{content.title}</h1>
             <p className="text-sm text-slate-500 mt-1">
-              {content.id as string} • {content.date as string}
+              {content.id} • {content.date}
             </p>
           </div>
 
           {/* Context */}
-          <section>
-            <h2 className="text-lg font-semibold text-slate-900 mb-2">Context</h2>
-            <p className="text-slate-700 leading-relaxed">{String(content.context || '')}</p>
-          </section>
+          {content.context ? (
+            <section>
+              <h2 className="text-lg font-semibold text-slate-900 mb-2">Context</h2>
+              <p className="text-slate-700 leading-relaxed">{content.context}</p>
+            </section>
+          ) : null}
 
           {/* Decision */}
-          <section>
-            <h2 className="text-lg font-semibold text-slate-900 mb-2">Decision</h2>
-            <p className="text-slate-700 leading-relaxed">{String(content.decision_primary || '')}</p>
-          </section>
+          {content.decision_primary ? (
+            <section>
+              <h2 className="text-lg font-semibold text-slate-900 mb-2">Decision</h2>
+              <p className="text-slate-700 leading-relaxed">{content.decision_primary}</p>
+            </section>
+          ) : null}
 
           {/* Decision Details */}
-          {content.decision_details && typeof content.decision_details === 'object' && (
+          {content.decision_details ? (
             <section>
               <h2 className="text-lg font-semibold text-slate-900 mb-2">Details</h2>
               <div className="bg-slate-50 rounded-lg p-4">
-                {(content.decision_details as Record<string, unknown>).constraints && (
+                {content.decision_details.constraints && content.decision_details.constraints.length > 0 ? (
                   <div className="mb-4">
                     <h3 className="font-medium text-slate-800 mb-2">Constraints</h3>
                     <ul className="list-disc list-inside space-y-1 text-sm text-slate-700">
-                      {((content.decision_details as Record<string, unknown>).constraints as string[]).map((c, i) => (
+                      {content.decision_details.constraints.map((c, i) => (
                         <li key={i}>{c}</li>
                       ))}
                     </ul>
                   </div>
-                )}
+                ) : null}
               </div>
             </section>
-          )}
+          ) : null}
 
           {/* Consequences */}
-          {Array.isArray(content.consequences) && content.consequences.length > 0 && (
+          {content.consequences && content.consequences.length > 0 ? (
             <section>
               <h2 className="text-lg font-semibold text-slate-900 mb-2">Consequences</h2>
               <ul className="list-disc list-inside space-y-1 text-slate-700">
-                {(content.consequences as string[]).map((c, i) => (
+                {content.consequences.map((c, i) => (
                   <li key={i}>{c}</li>
                 ))}
               </ul>
             </section>
-          )}
+          ) : null}
 
           {/* Guardrails */}
-          {Array.isArray(content.guardrails) && content.guardrails.length > 0 && (
+          {content.guardrails && content.guardrails.length > 0 ? (
             <section>
               <h2 className="text-lg font-semibold text-slate-900 mb-2">Guardrails</h2>
               <div className="space-y-3">
-                {(content.guardrails as Array<Record<string, unknown>>).map((g, i) => (
+                {content.guardrails.map((g, i) => (
                   <div key={i} className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                    <p className="font-medium text-amber-900">{g.rule as string}</p>
+                    <p className="font-medium text-amber-900">{g.rule}</p>
                     <p className="text-sm text-amber-700 mt-1">
-                      <span className="font-medium">Enforcement:</span> {g.enforcement as string}
+                      <span className="font-medium">Enforcement:</span> {g.enforcement}
                     </p>
                   </div>
                 ))}
               </div>
             </section>
-          )}
+          ) : null}
 
           {/* Tags */}
-          {Array.isArray(content.tags) && content.tags.length > 0 && (
+          {content.tags && content.tags.length > 0 ? (
             <section>
               <h2 className="text-lg font-semibold text-slate-900 mb-2">Tags</h2>
               <div className="flex flex-wrap gap-2">
-                {(content.tags as string[]).map((tag, i) => (
+                {content.tags.map((tag, i) => (
                   <span key={i} className="px-2 py-1 bg-slate-100 rounded text-sm text-slate-700">
                     {tag}
                   </span>
                 ))}
               </div>
             </section>
-          )}
+          ) : null}
         </div>
       </div>
     )
