@@ -89,7 +89,7 @@ When running through the gateway, PPTX Generator APIs are available at:
 | `POST /api/pptx/api/v1/templates/{id}/upload` | Upload template |
 | `POST /api/pptx/api/v1/generation` | Generate presentation |
 
-See [API Documentation](reference/API.md) for complete reference.
+See the interactive API documentation at `/api/pptx/docs` when running the gateway.
 
 ---
 

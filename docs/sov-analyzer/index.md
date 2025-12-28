@@ -159,14 +159,16 @@ For nested designs:
 
 ## Status
 
-🔄 **In Development** - Core functionality is being implemented.
+✅ **Core Complete** - ANOVA pipeline with visualization contracts implemented.
 
 ### Roadmap
 
-- [x] Basic ANOVA (one-way, two-way)
+- [x] Basic ANOVA (one-way, two-way, n-way)
 - [x] Box plot visualization
-- [ ] Nested ANOVA
-- [ ] Regression analysis
-- [ ] Control charts
-- [ ] Automated recommendations
-- [ ] PDF report generation
+- [x] Variance bar charts
+- [x] DataSet integration with lineage
+- [x] Visualization contracts (ADR-0024)
+- [ ] Nested ANOVA (future)
+- [ ] Regression analysis (future)
+- [ ] Control charts (future)
+- [ ] PDF report generation (future)

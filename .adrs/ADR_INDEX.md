@@ -35,6 +35,7 @@ These ADRs define patterns that ALL tools (DAT, PPTX, SOV) MUST follow:
 | ADR-0026 | Pipeline Error Handling | core | Unified error handling patterns |
 | **ADR-0028** | **Unified Rendering Engine** | **cross-cutting** | **Shared visualization, charting, and rendering for all tools** |
 | **ADR-0029** | **API Versioning and Endpoint Naming** | **core** | **Two-tier versioning: /api/v1/{resource} for gateway, /api/{tool}/v1/{resource} for tools** |
+| **ADR-0030** | **Documentation Lifecycle Management** | **core** | **5-category doc classification, archival policy, CHANGELOG, ADR mutability during dev** |
 
 ## Tool-Specific ADRs
 
@@ -99,5 +100,6 @@ Each ADR addresses a distinct concern:
 See `.adrs/TODO_CODE_VALIDATION.md` for the validation checklist.
 
 ---
-*Last Updated: 2025-12-27*
+
+*Last Updated: 2025-12-28*
 *Maintainer: Mycahya Eggleston*

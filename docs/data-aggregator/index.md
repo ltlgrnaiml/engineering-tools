@@ -126,13 +126,15 @@ When running through the gateway:
 
 ## Status
 
-🔄 **In Development** - Core functionality is being implemented.
+✅ **Core Complete** - 8-stage pipeline with FSM orchestration implemented.
 
 ### Roadmap
 
-- [x] Basic file import (CSV, Excel)
+- [x] Basic file import (CSV, Excel, Parquet, JSON)
 - [x] Core transformations (filter, join, aggregate)
-- [ ] Database connectors
-- [ ] API connectors
-- [ ] Advanced transformations
-- [ ] Scheduled aggregation jobs
+- [x] Profile-driven extraction system
+- [x] Cancellation with checkpoint preservation
+- [x] DataSet export with lineage tracking
+- [ ] Database connectors (future)
+- [ ] API connectors (future)
+- [ ] Scheduled aggregation jobs (future)
