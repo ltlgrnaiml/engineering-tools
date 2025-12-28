@@ -1,0 +1,173 @@
+{
+  "schema_type": "spec",
+  "id": "SPEC-0044_Stage-Completion-Semantics",
+  "title": "Stage Completion Semantics for Guided Workflows",
+  "version": "1.0.0",
+  "status": "accepted",
+  "date": "2025-12-28",
+  "author": "Mycahya Eggleston",
+  "implements_adr": [
+    "ADR-0001_Guided-Workflow-FSM-Orchestration"
+  ],
+  "tier_0_contracts": [
+    {
+      "module": "shared.contracts.core.pipeline",
+      "classes": ["PipelineStepState"]
+    },
+    {
+      "module": "shared.contracts.dat.stage",
+      "classes": ["DATStageState"]
+    }
+  ],
+  "purpose": "Define the semantics for stage completion in guided workflows that use the lockable_with_acknowledgment model. This spec clarifies the distinction between LOCKED (data-ready) and COMPLETED (user-acknowledged) states, and establishes clear frontend-backend responsibility boundaries.",
+  "scope": "core",
+  "problem_statement": {
+    "description": "In guided workflows, stages often require backend processing (locking) followed by user review before advancing. The original two-state model (UNLOCKED/LOCKED) conflated 'processing complete' with 'ready to advance', causing race conditions where the frontend tried to manage navigation state independently of the backend.",
+    "symptoms": [
+      "Frontend activeStage state fighting with backend current_stage",
+      "Query invalidation causing state resets before React state updates committed",
+      "Auto-advancement when user wanted to review stage results",
+      "Inconsistent behavior between 'Continue' buttons and wizard 'Next' button"
+    ],
+    "root_cause": "No explicit distinction between 'stage has produced data' and 'user has acknowledged data and wants to advance'"
+  },
+  "solution": {
+    "three_state_model": {
+      "UNLOCKED": "Stage is mutable. User can modify inputs. No committed data.",
+      "LOCKED": "Stage has committed data. User can review results. NOT ready to advance.",
+      "COMPLETED": "User has acknowledged results. Ready to advance to next stage."
+    },
+    "state_transitions": [
+      {"from": "UNLOCKED", "to": "LOCKED", "trigger": "POST /stages/{stage}/lock", "description": "Stage computation complete, data ready for review"},
+      {"from": "LOCKED", "to": "COMPLETED", "trigger": "POST /stages/{stage}/complete", "description": "User acknowledges results, signals ready to advance"},
+      {"from": "LOCKED", "to": "UNLOCKED", "trigger": "POST /stages/{stage}/unlock", "description": "User wants to revise inputs"},
+      {"from": "COMPLETED", "to": "UNLOCKED", "trigger": "POST /stages/{stage}/unlock", "description": "User wants to revise inputs (cascades to downstream)"}
+    ],
+    "current_stage_computation": {
+      "algorithm": "Iterate through stages in order. For each stage: if COMPLETED, advance to next. If LOCKED but not COMPLETED, stay on this stage. If UNLOCKED, stay on this stage.",
+      "pseudocode": "for stage in stage_order:\n  if stage.state == LOCKED and stage.completed:\n    current_stage = next_stage\n  elif stage.state == LOCKED and not stage.completed:\n    current_stage = stage; break\n  elif stage.state == UNLOCKED:\n    current_stage = stage; break"
+    }
+  },
+  "completion_semantics": {
+    "auto_complete": {
+      "description": "Stages where locking implies completion. No user review needed.",
+      "behavior": "Lock endpoint returns completed=true. Wizard advances immediately.",
+      "applicable_stages": ["Selection", "Context", "TableAvailability", "TableSelection", "Parse"],
+      "implementation": "Execute function returns {'completed': true}"
+    },
+    "manual_complete": {
+      "description": "Stages requiring user acknowledgment before advancing.",
+      "behavior": "Lock endpoint returns completed=false. User must click 'Continue' which calls /complete endpoint.",
+      "applicable_stages": ["Preview", "Export"],
+      "implementation": "Execute function returns {'completed': false}. Frontend provides explicit 'Continue' button that calls /complete."
+    },
+    "skip_complete": {
+      "description": "Optional stages that user chooses to skip entirely.",
+      "behavior": "Lock with completed=true to skip. Or don't lock at all (for truly optional stages).",
+      "applicable_stages": ["Context (optional)", "Preview (optional)"],
+      "implementation": "Skip button calls lock with {'skip': true} which sets completed=true"
+    }
+  },
+  "api_contract": {
+    "lock_endpoint": {
+      "method": "POST",
+      "path": "/api/dat/v1/runs/{run_id}/stages/{stage}/lock",
+      "description": "Lock stage with computed data. Returns completed status based on stage type.",
+      "request_body": "Stage-specific configuration",
+      "response": {"status": "locked", "stage_id": "string", "completed": "boolean"},
+      "completed_default": "false (changed from true to prevent auto-advancement)"
+    },
+    "complete_endpoint": {
+      "method": "POST",
+      "path": "/api/dat/v1/runs/{run_id}/stages/{stage}/complete",
+      "description": "Mark locked stage as completed. Advances wizard to next stage.",
+      "precondition": "Stage must be in LOCKED state",
+      "response": {"status": "completed", "stage": "string"},
+      "effect": "Sets stage.completed=true. Backend current_stage advances on next query."
+    },
+    "unlock_endpoint": {
+      "method": "POST",
+      "path": "/api/dat/v1/runs/{run_id}/stages/{stage}/unlock",
+      "description": "Unlock stage for revision. Cascades per ADR-0002.",
+      "response": {"status": "unlocked", "stage": "string", "cascade_unlocked": "boolean"},
+      "effect": "Sets stage.state=UNLOCKED. Downstream stages also unlocked."
+    }
+  },
+  "responsibility_matrix": {
+    "backend": [
+      "Own the FSM state machine for all stages",
+      "Compute current_stage from stage statuses",
+      "Enforce forward gating (cannot lock without upstream dependencies)",
+      "Enforce backward cascades (unlock cascades to downstream)",
+      "Persist stage state across sessions",
+      "Provide lock/complete/unlock endpoints"
+    ],
+    "frontend": [
+      "Follow backend current_stage for navigation (no local activeStage)",
+      "Render appropriate panel based on current_stage",
+      "Call lock endpoint when user commits stage",
+      "Call complete endpoint when user acknowledges and wants to advance",
+      "Call unlock endpoint (via confirmation dialog) for backward navigation",
+      "Display stage states from backend (completed/active/locked icons)"
+    ],
+    "forbidden_patterns": [
+      "Frontend maintaining separate activeStage state that differs from backend",
+      "Frontend advancing navigation without calling complete endpoint",
+      "Backend auto-completing stages that require user acknowledgment",
+      "Invalidating queries and setting state in same callback (race condition)"
+    ]
+  },
+  "dat_stage_completion_table": {
+    "description": "Completion semantics for each DAT stage",
+    "stages": [
+      {"stage": "Selection", "type": "auto_complete", "reason": "User has explicitly selected files, no review needed"},
+      {"stage": "Context", "type": "auto_complete", "reason": "Optional configuration, user chose settings"},
+      {"stage": "TableAvailability", "type": "auto_complete", "reason": "Automatic scan, results shown inline"},
+      {"stage": "TableSelection", "type": "auto_complete", "reason": "User has explicitly selected tables"},
+      {"stage": "Preview", "type": "manual_complete", "reason": "User should review preview data before parsing"},
+      {"stage": "Parse", "type": "auto_complete", "reason": "Long-running with progress; completion is success"},
+      {"stage": "Export", "type": "manual_complete", "reason": "User should download/verify before finishing"}
+    ]
+  },
+  "implementation_checklist": [
+    "Backend: Change state_machine.py default from completed=True to completed=False",
+    "Backend: Add /complete endpoint to mark locked stage as completed",
+    "Backend: Preview lock explicitly returns completed=False",
+    "Backend: Auto-complete stages explicitly return completed=True in execute function",
+    "Frontend: Remove activeStage state, use backend current_stage only",
+    "Frontend: Preview 'Continue to Parse' button calls /complete endpoint",
+    "Frontend: All panels just call lock; auto-complete stages advance automatically"
+  ],
+  "requirements": [
+    {
+      "id": "REQ-COMP-001",
+      "description": "Backend MUST be single source of truth for stage state",
+      "reference": "ADR-0001"
+    },
+    {
+      "id": "REQ-COMP-002",
+      "description": "Stages with manual_complete MUST NOT advance until /complete is called",
+      "reference": "ADR-0001#lockable_with_acknowledgment"
+    },
+    {
+      "id": "REQ-COMP-003",
+      "description": "Frontend MUST NOT maintain local navigation state separate from backend",
+      "reference": "ADR-0001#lockable_with_acknowledgment"
+    },
+    {
+      "id": "REQ-COMP-004",
+      "description": "Lock endpoint MUST default to completed=false",
+      "reference": "SPEC-0044"
+    },
+    {
+      "id": "REQ-COMP-005",
+      "description": "Auto-complete stages MUST explicitly return completed=true in execute function",
+      "reference": "SPEC-0044"
+    }
+  ],
+  "references": [
+    "ADR-0001_Guided-Workflow-FSM-Orchestration: Core FSM pattern with lockable_with_acknowledgment model",
+    "ADR-0002_Artifact-Preservation-on-Unlock: Unlock cascade policy",
+    "SPEC-DAT-0001_Stage-Graph: DAT-specific stage configuration"
+  ]
+}

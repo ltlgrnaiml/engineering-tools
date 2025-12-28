@@ -9,7 +9,7 @@ import { ParsePanel } from './components/stages/ParsePanel'
 import { ExportPanel } from './components/stages/ExportPanel'
 import { useRun, useStageAction } from './hooks/useRun'
 import { DebugProvider, DebugPanel } from './components/debug'
-import { DATWizard, StageConfig, StageState } from './components/wizard'
+import { DATWizard, StageConfig, StageState, UnlockConfirmDialog } from './components/wizard'
 
 type Stage = 'selection' | 'context' | 'table_availability' | 'table_selection' | 'preview' | 'parse' | 'export'
 
@@ -61,16 +61,30 @@ function App() {
   const [runId, setRunId] = useState<string | null>(null)
   const { run, isLoading, createRun } = useRun(runId)
   const { unlockStage } = useStageAction(runId || '')
+  
+  // State for unlock confirmation dialog
+  const [unlockDialog, setUnlockDialog] = useState<{
+    isOpen: boolean
+    targetStageId: string
+    targetStageName: string
+    affectedStages: string[]
+  }>({
+    isOpen: false,
+    targetStageId: '',
+    targetStageName: '',
+    affectedStages: [],
+  })
 
   const handleCreateRun = async () => {
     const newRun = await createRun()
     setRunId(newRun.run_id)
   }
 
+  // Current stage from backend - this drives the wizard
   const currentStage = (run?.current_stage || 'selection') as Stage
   const stageIndex = STAGES.findIndex(s => s.id === currentStage)
 
-  // Compute stage states for the wizard
+  // Compute stage states based on current stage
   const stageStates = useMemo<Record<string, StageState>>(() => {
     const states: Record<string, StageState> = {}
     STAGES.forEach((stage, idx) => {
@@ -85,20 +99,46 @@ function App() {
     return states
   }, [stageIndex])
 
-  // Handle navigating back to a previous stage (per ADR-0001: backward cascade)
-  const handleStageClick = async (targetStageId: string) => {
+  // Get affected stages for unlock cascade
+  const getAffectedStages = (targetIndex: number): string[] => {
+    return STAGES.slice(targetIndex + 1, stageIndex + 1).map(s => s.label)
+  }
+
+  // Handle navigating back to a previous stage - shows confirmation dialog
+  const handleStageClick = (targetStageId: string) => {
     const targetIndex = STAGES.findIndex(s => s.id === targetStageId)
     if (targetIndex < stageIndex && runId) {
-      // Unlock the target stage (cascades downstream per ADR-0001-DAT)
-      try {
-        await unlockStage.mutateAsync(targetStageId)
-      } catch (error) {
-        console.error('Failed to navigate back:', error)
-      }
+      const targetStage = STAGES[targetIndex]
+      const affected = getAffectedStages(targetIndex)
+      
+      // Show confirmation dialog
+      setUnlockDialog({
+        isOpen: true,
+        targetStageId,
+        targetStageName: targetStage.label,
+        affectedStages: affected,
+      })
     }
   }
 
-  // Handle going back one step
+  // Confirm unlock - actually perform the unlock
+  const confirmUnlock = async () => {
+    if (!runId) return
+    try {
+      await unlockStage.mutateAsync(unlockDialog.targetStageId)
+    } catch (error) {
+      console.error('Failed to navigate back:', error)
+    } finally {
+      setUnlockDialog(prev => ({ ...prev, isOpen: false }))
+    }
+  }
+
+  // Cancel unlock dialog
+  const cancelUnlock = () => {
+    setUnlockDialog(prev => ({ ...prev, isOpen: false }))
+  }
+
+  // Handle going back one step - shows confirmation dialog
   const handleBack = () => {
     if (stageIndex > 0) {
       const prevStage = STAGES[stageIndex - 1]
@@ -183,6 +223,16 @@ function App() {
         )}
 
         <DebugPanel />
+        
+        {/* Unlock Confirmation Dialog */}
+        <UnlockConfirmDialog
+          isOpen={unlockDialog.isOpen}
+          stageName={unlockDialog.targetStageName}
+          affectedStages={unlockDialog.affectedStages}
+          onConfirm={confirmUnlock}
+          onCancel={cancelUnlock}
+          isLoading={unlockStage.isPending}
+        />
       </div>
     </DebugProvider>
   )

@@ -154,17 +154,24 @@ class DATStateMachine:
             state=StageState.LOCKED,
             stage_id=stage_id,
             locked_at=datetime.now(timezone.utc),
-            completed=result.get("completed", True),
+            completed=result.get("completed", False),
             artifact_path=artifact_path,
         )
         await self.store.set_stage_status(self.run_id, stage, status)
         
         return status
     
-    async def unlock_stage(self, stage: Stage) -> list[StageStatus]:
-        """Unlock a stage and cascade to downstream stages.
+    async def unlock_stage(self, stage: Stage, cascade: bool = True) -> list[StageStatus]:
+        """Unlock a stage and optionally cascade to downstream stages.
         
         Per ADR-0002: Artifacts are preserved (never deleted).
+        
+        Args:
+            stage: The stage to unlock.
+            cascade: If True, also unlock downstream stages per CASCADE_TARGETS.
+            
+        Returns:
+            List of StageStatus for all unlocked stages.
         """
         now = datetime.now(timezone.utc)
         unlocked: list[StageStatus] = []
@@ -178,17 +185,18 @@ class DATStateMachine:
         await self.store.set_stage_status(self.run_id, stage, status)
         unlocked.append(status)
         
-        # Cascade to downstream stages
-        for target in CASCADE_TARGETS.get(stage, []):
-            current = await self.store.get_stage_status(self.run_id, target)
-            if current.state == StageState.LOCKED:
-                target_status = StageStatus(
-                    stage=target,
-                    state=StageState.UNLOCKED,
-                    unlocked_at=now,
-                )
-                await self.store.set_stage_status(self.run_id, target, target_status)
-                unlocked.append(target_status)
+        # Cascade to downstream stages if requested
+        if cascade:
+            for target in CASCADE_TARGETS.get(stage, []):
+                current = await self.store.get_stage_status(self.run_id, target)
+                if current.state == StageState.LOCKED:
+                    target_status = StageStatus(
+                        stage=target,
+                        state=StageState.UNLOCKED,
+                        unlocked_at=now,
+                    )
+                    await self.store.set_stage_status(self.run_id, target, target_status)
+                    unlocked.append(target_status)
         
         return unlocked
     

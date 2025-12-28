@@ -40,7 +40,7 @@ class PreviewResult:
     table_previews: list[TablePreview]
     total_rows: int
     total_columns: int
-    completed: bool = True
+    completed: bool = False  # Per SPEC-0044: manual_complete - user must acknowledge
 
 
 async def execute_preview(

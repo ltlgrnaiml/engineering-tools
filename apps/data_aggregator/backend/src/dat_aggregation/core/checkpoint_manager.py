@@ -277,7 +277,7 @@ class CheckpointManager:
             discarded_partial_data=discarded_count > 0,
             discarded_items_count=discarded_count,
             cleanup_state=CleanupState.PENDING,
-            requested_at=self._operation.cancel_request_at if self._operation else now,
+            requested_at=(self._operation.cancel_request_at if self._operation and self._operation.cancel_request_at else now),
             completed_at=now,
             message=f"Cancellation completed. {len(preserved_checkpoints)} checkpoints preserved.",
         )

@@ -136,6 +136,7 @@ except Exception as e:
     logging.error(f"PPTX Generator mount failed: {e}", exc_info=True)
 
 try:
+    # Force fresh import of DAT app
     from apps.data_aggregator.backend.main import app as dat_app
     app.mount("/api/dat", dat_app)
 except ImportError as e:

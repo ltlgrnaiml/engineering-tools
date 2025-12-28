@@ -5,7 +5,6 @@ import { useDebugFetch } from '../debug'
 
 interface ContextPanelProps {
   runId: string
-  onSkip?: () => void
 }
 
 interface Profile {
@@ -134,8 +133,26 @@ export function ContextPanel({ runId }: ContextPanelProps) {
         )}
       </div>
 
+      {/* Optional Stage Notice */}
+      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm">
+        <p className="text-amber-800">
+          <strong>Optional Step:</strong> You can skip this configuration and use default settings, 
+          or customize the extraction profile and aggregation levels.
+        </p>
+      </div>
+
       {/* Actions */}
       <div className="flex justify-end gap-3">
+        <button
+          onClick={() => {
+            // Skip with defaults - lock without profile selection
+            lockMutation.mutate()
+          }}
+          disabled={lockMutation.isPending}
+          className="px-6 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg font-medium transition-colors disabled:opacity-50"
+        >
+          Skip with Defaults →
+        </button>
         <button
           onClick={() => lockMutation.mutate()}
           disabled={!selectedProfile || lockMutation.isPending}
@@ -144,7 +161,7 @@ export function ContextPanel({ runId }: ContextPanelProps) {
           {lockMutation.isPending ? (
             <Loader2 className="w-5 h-5 animate-spin" />
           ) : (
-            'Continue'
+            'Continue with Selection'
           )}
         </button>
       </div>

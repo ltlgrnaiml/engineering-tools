@@ -51,8 +51,7 @@ def _raise_error(
     status_code: int,
     message: str,
     category: ErrorCategory = ErrorCategory.VALIDATION,
-    error_code: str | None = None,
-    details: dict | None = None,
+    details: list | None = None,
 ) -> None:
     """Raise HTTPException with standardized ErrorResponse per API-003.
 
@@ -60,14 +59,14 @@ def _raise_error(
         status_code: HTTP status code.
         message: Error message.
         category: Error category.
-        error_code: Optional error code.
         details: Optional additional details.
     """
     error = create_error_response(
+        status_code=status_code,
         message=message,
         category=category,
-        error_code=error_code or f"DAT_{status_code}",
         details=details,
+        tool="dat",
     )
     raise HTTPException(
         status_code=status_code,
@@ -106,8 +105,6 @@ async def get_run(run_id: str):
             status_code=404,
             message=f"Run not found: {run_id}",
             category=ErrorCategory.NOT_FOUND,
-            error_code="DAT_RUN_NOT_FOUND",
-            details={"run_id": run_id},
         )
     
     # Get all stage statuses
@@ -732,6 +729,40 @@ async def get_table_selection_tables(run_id: str):
     return discovered_tables
 
 
+# Complete stage endpoint - marks a locked stage as completed (per SPEC-0044)
+@router.post("/runs/{run_id}/stages/{stage}/complete")
+async def complete_stage(run_id: str, stage: str):
+    """Mark a locked stage as completed to advance the wizard."""
+    try:
+        stage_enum = Stage(stage)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid stage: {stage}")
+    
+    sm = run_manager.get_state_machine(run_id)
+    
+    # Get current status
+    status = await sm.store.get_stage_status(run_id, stage_enum)
+    if status.state != StageState.LOCKED:
+        raise HTTPException(status_code=400, detail=f"Stage {stage} must be locked first")
+    
+    if status.completed:
+        return {"status": "already_completed", "stage": stage}
+    
+    # Update status to completed
+    from datetime import datetime, timezone
+    updated_status = StageStatus(
+        stage=stage_enum,
+        state=StageState.LOCKED,
+        stage_id=status.stage_id,
+        locked_at=status.locked_at,
+        completed=True,
+        artifact_path=status.artifact_path,
+    )
+    await sm.store.set_stage_status(run_id, stage_enum, updated_status)
+    
+    return {"status": "completed", "stage": stage}
+
+
 # Unlock endpoints per ADR-0002: Artifact Preservation on Unlock
 @router.post("/runs/{run_id}/stages/{stage}/unlock")
 async def unlock_stage(run_id: str, stage: str):
@@ -745,12 +776,13 @@ async def unlock_stage(run_id: str, stage: str):
     
     try:
         # Unlock with cascade - preserves artifacts per ADR-0002
-        status = await sm.unlock_stage(stage_enum, cascade=True)
+        unlocked = await sm.unlock_stage(stage_enum, cascade=True)
+        primary_status = unlocked[0] if unlocked else None
         return {
             "status": "unlocked", 
             "stage": stage,
-            "unlocked_at": status.unlocked_at.isoformat() if status.unlocked_at else None,
-            "cascade_unlocked": True
+            "unlocked_at": primary_status.unlocked_at.isoformat() if primary_status and primary_status.unlocked_at else None,
+            "cascade_unlocked": len(unlocked) > 1
         }
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -818,7 +850,7 @@ async def lock_preview(run_id: str):
                 "row_count": min(len(all_rows), 100),
                 "total_rows": len(all_rows)
             },
-            "completed": True
+            "completed": False  # User should stay on Preview to see data before advancing
         }
     
     try:

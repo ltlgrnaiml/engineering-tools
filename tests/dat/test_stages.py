@@ -22,6 +22,7 @@ from apps.data_aggregator.backend.src.dat_aggregation.stages import (
     execute_parse,
 )
 from apps.data_aggregator.backend.src.dat_aggregation.stages.context import ColumnOverride
+from shared.contracts.dat.cancellation import CancellationState
 
 
 EXAMPLES_DIR = Path(__file__).parent.parent.parent / "apps" / "data_aggregator" / "backend" / "src" / "dat_aggregation" / "profiles" / "examples"
@@ -376,7 +377,7 @@ class TestParseStage:
             cancel_token=cancel_token,
         )
         
-        assert not result.completed
+        assert result.state == CancellationState.COMPLETED  # Cancellation completed, not parse
     
     def test_cancellation_token(self):
         """Test CancellationToken functionality."""

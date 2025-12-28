@@ -50,6 +50,7 @@ Tier 1: ADRs (WHY)
 | **SPEC-0041** | **Development Environment Setup** | **ADR-0037** | - (scripts) |
 | **SPEC-0042** | **CI/CD Pipeline Implementation** | **ADR-0038** | - (workflows) |
 | **SPEC-0043** | **Deployment Infrastructure** | **ADR-0039** | - (Pulumi) |
+| **SPEC-0044** | **Stage Completion Semantics** | **ADR-0001** | `shared/contracts/core/pipeline.py` |
 
 ### DAT SPECs (Data Aggregation Tool)
 
@@ -162,6 +163,10 @@ Tier 1: ADRs (WHY)
 - **SPEC-0041**: Development Environment Setup (implements ADR-0037)
 - **SPEC-0042**: CI/CD Pipeline Implementation (implements ADR-0038)
 - **SPEC-0043**: Deployment Infrastructure (implements ADR-0039)
+
+### New SPECs (2025-12-28)
+
+- **SPEC-0044**: Stage Completion Semantics (implements ADR-0001 lockable_with_acknowledgment model)
 
 ### Updated SPECs
 

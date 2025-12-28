@@ -1,12 +1,15 @@
 """DAT Stage contracts - pipeline stage state machine and configuration.
 
-Per ADR-0004: Stage IDs are deterministic (hash of inputs + config).
+Per ADR-0001-DAT: 8-stage pipeline with lockable artifacts.
+Per ADR-0003: Context and Preview are optional stages.
+Per ADR-0004-DAT: Stage IDs are deterministic (hash of inputs + config).
 Per ADR-0008: All timestamps are ISO-8601 UTC (no microseconds).
-Per ADR-0014: Cancellation preserves partial artifacts.
+Per ADR-0013: Cancellation preserves completed/checkpointed artifacts.
 Per ADR-0006: Table availability tracked per stage.
 
-This module defines the state machine for DAT's three-stage pipeline:
-  Parse → Aggregate → Export
+This module defines the state machine for DAT's 8-stage pipeline:
+  Discovery → Selection → Context → Table Availability →
+  Table Selection → Preview → Parse → Export
 
 Each stage is idempotent: re-running with same inputs produces same outputs.
 Domain-specific logic is injected via ExtractionProfile, not hardcoded here.
@@ -18,15 +21,58 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
 
 
 class DATStageType(str, Enum):
-    """The three stages of the DAT pipeline."""
+    """The eight stages of the DAT pipeline.
 
+    Per ADR-0001-DAT: 8-stage pipeline with lockable artifacts.
+    Per ADR-0003: Context and Preview are optional stages.
+
+    Stage order:
+        1. DISCOVERY - Automatic file system scan (implicit)
+        2. SELECTION - User selects files to include
+        3. CONTEXT - Optional context hints and metadata
+        4. TABLE_AVAILABILITY - Detect available tables in files
+        5. TABLE_SELECTION - User selects tables to extract
+        6. PREVIEW - Optional preview of extraction results
+        7. PARSE - Execute full extraction
+        8. EXPORT - Generate deliverables from parse artifacts
+    """
+
+    DISCOVERY = "discovery"
+    SELECTION = "selection"
+    CONTEXT = "context"
+    TABLE_AVAILABILITY = "table_availability"
+    TABLE_SELECTION = "table_selection"
+    PREVIEW = "preview"
     PARSE = "parse"
-    AGGREGATE = "aggregate"
     EXPORT = "export"
+
+    @classmethod
+    def optional_stages(cls) -> set["DATStageType"]:
+        """Return stages that can be skipped per ADR-0003."""
+        return {cls.CONTEXT, cls.PREVIEW}
+
+    @classmethod
+    def is_optional(cls, stage: "DATStageType") -> bool:
+        """Check if a stage is optional."""
+        return stage in cls.optional_stages()
+
+    @classmethod
+    def get_order(cls) -> list["DATStageType"]:
+        """Return stages in pipeline order."""
+        return [
+            cls.DISCOVERY,
+            cls.SELECTION,
+            cls.CONTEXT,
+            cls.TABLE_AVAILABILITY,
+            cls.TABLE_SELECTION,
+            cls.PREVIEW,
+            cls.PARSE,
+            cls.EXPORT,
+        ]
 
 
 class DATStageState(str, Enum):
@@ -118,59 +164,176 @@ class ParseStageConfig(BaseModel):
         return v
 
 
-class AggregateStageConfig(BaseModel):
-    """Configuration for the Aggregate stage.
+class DiscoveryStageConfig(BaseModel):
+    """Configuration for the Discovery stage.
 
-    The Aggregate stage combines parsed data according to aggregation rules
-    defined in the ExtractionProfile. This config specifies which parsed
-    outputs to aggregate and any runtime overrides.
+    Per ADR-0001-DAT: Discovery is the first stage, performing file system scan.
+    Automatically discovers files matching patterns in the specified paths.
     """
 
-    profile_id: str = Field(
+    root_paths: list[str] = Field(
         ...,
-        description="ExtractionProfile ID defining aggregation rules",
+        min_length=1,
+        description="Relative paths to scan for files",
     )
-    input_stage_id: str = Field(
-        ...,
-        description="Stage ID of completed Parse stage to aggregate",
+    recursive: bool = Field(
+        True,
+        description="Recursively search directories",
     )
-    aggregation_levels: list[str] | None = Field(
+    include_patterns: list[str] = Field(
+        default_factory=lambda: ["*"],
+        description="Glob patterns for files to include",
+    )
+    exclude_patterns: list[str] = Field(
+        default_factory=list,
+        description="Glob patterns for files to exclude",
+    )
+    max_files: int | None = Field(
         None,
-        description="Override profile's default aggregation hierarchy",
-    )
-    include_columns: list[str] | None = Field(
-        None,
-        description="Whitelist of columns to include (None = all)",
-    )
-    exclude_columns: list[str] | None = Field(
-        None,
-        description="Blacklist of columns to exclude",
-    )
-    deterministic_seed: int = Field(
-        42,
-        description="Seed for any randomized operations (per ADR-0004)",
+        ge=1,
+        description="Maximum files to discover (None = no limit)",
     )
 
-    @model_validator(mode="after")
-    def validate_column_filters(self) -> "AggregateStageConfig":
-        """Ensure include and exclude lists don't overlap."""
-        if self.include_columns and self.exclude_columns:
-            overlap = set(self.include_columns) & set(self.exclude_columns)
-            if overlap:
-                raise ValueError(f"Columns in both include and exclude: {overlap}")
-        return self
+    @field_validator("root_paths")
+    @classmethod
+    def validate_relative_paths(cls, v: list[str]) -> list[str]:
+        """Ensure all paths are relative (per ADR-0017 path-safety)."""
+        for path in v:
+            if path.startswith("/") or (len(path) > 1 and path[1] == ":"):
+                raise ValueError(f"Absolute paths not allowed: {path}")
+            if ".." in path.split("/"):
+                raise ValueError(f"Path traversal not allowed: {path}")
+        return v
+
+
+class SelectionStageConfig(BaseModel):
+    """Configuration for the Selection stage.
+
+    Per ADR-0001-DAT: User selects which discovered files to include.
+    """
+
+    discovery_stage_id: str = Field(
+        ...,
+        description="Stage ID of completed Discovery stage",
+    )
+    selected_files: list[str] = Field(
+        ...,
+        min_length=1,
+        description="Relative paths of files selected for processing",
+    )
+    deselected_files: list[str] = Field(
+        default_factory=list,
+        description="Files explicitly excluded by user",
+    )
+
+
+class ContextStageConfig(BaseModel):
+    """Configuration for the Context stage.
+
+    Per ADR-0003: Context is optional, providing hints and metadata.
+    Skipping uses lazy initialization with defaults.
+    """
+
+    selection_stage_id: str = Field(
+        ...,
+        description="Stage ID of completed Selection stage",
+    )
+    context_hints: dict[str, Any] = Field(
+        default_factory=dict,
+        description="User-provided context hints for extraction",
+    )
+    metadata_overrides: dict[str, str] = Field(
+        default_factory=dict,
+        description="Override auto-detected metadata values",
+    )
+    profile_id: str | None = Field(
+        None,
+        description="Optional profile ID to use (None = auto-detect)",
+    )
+
+
+class TableAvailabilityStageConfig(BaseModel):
+    """Configuration for the Table Availability stage.
+
+    Per ADR-0006: Probes files to detect available tables.
+    Status check must complete in < 1 second per table.
+    """
+
+    selection_stage_id: str = Field(
+        ...,
+        description="Stage ID of completed Selection stage",
+    )
+    profile_id: str = Field(
+        ...,
+        description="Profile defining expected table structures",
+    )
+    probe_row_limit: int = Field(
+        1000,
+        ge=1,
+        le=10000,
+        description="Max rows to probe for schema detection",
+    )
+    timeout_ms: int = Field(
+        5000,
+        ge=100,
+        description="Timeout per file probe in milliseconds",
+    )
+
+
+class TableSelectionStageConfig(BaseModel):
+    """Configuration for the Table Selection stage.
+
+    Per ADR-0001-DAT: User selects which detected tables to extract.
+    """
+
+    table_availability_stage_id: str = Field(
+        ...,
+        description="Stage ID of completed Table Availability stage",
+    )
+    selected_tables: list[str] = Field(
+        ...,
+        min_length=1,
+        description="Table identifiers selected for extraction",
+    )
+    column_selections: dict[str, list[str]] = Field(
+        default_factory=dict,
+        description="Per-table column selections (empty = all columns)",
+    )
+
+
+class PreviewStageConfig(BaseModel):
+    """Configuration for the Preview stage.
+
+    Per ADR-0003: Preview is optional, showing sample extraction results.
+    Per ADR-0040: Uses sampled preview for large files.
+    """
+
+    table_selection_stage_id: str = Field(
+        ...,
+        description="Stage ID of completed Table Selection stage",
+    )
+    preview_row_limit: int = Field(
+        100,
+        ge=1,
+        le=1000,
+        description="Max rows to preview per table",
+    )
+    include_statistics: bool = Field(
+        True,
+        description="Include column statistics in preview",
+    )
 
 
 class ExportStageConfig(BaseModel):
     """Configuration for the Export stage.
 
-    The Export stage writes aggregated data to output formats.
+    Per ADR-0014: Export writes parsed data to user-selected formats.
     Supports multiple output formats in a single export.
     """
 
-    input_stage_id: str = Field(
+    parse_stage_id: str = Field(
         ...,
-        description="Stage ID of completed Aggregate stage to export",
+        description="Stage ID of completed Parse stage to export",
     )
     output_formats: list[Literal["parquet", "csv", "excel", "json"]] = Field(
         default=["parquet"],
@@ -214,20 +377,30 @@ class ExportStageConfig(BaseModel):
 class DATStageConfig(BaseModel):
     """Union config for any DAT stage type.
 
-    Exactly one of parse_config, aggregate_config, or export_config must be set.
+    Per ADR-0001-DAT: Exactly one stage-specific config must be set.
     """
 
     stage_type: DATStageType
+    discovery_config: DiscoveryStageConfig | None = None
+    selection_config: SelectionStageConfig | None = None
+    context_config: ContextStageConfig | None = None
+    table_availability_config: TableAvailabilityStageConfig | None = None
+    table_selection_config: TableSelectionStageConfig | None = None
+    preview_config: PreviewStageConfig | None = None
     parse_config: ParseStageConfig | None = None
-    aggregate_config: AggregateStageConfig | None = None
     export_config: ExportStageConfig | None = None
 
     @model_validator(mode="after")
     def validate_config_matches_type(self) -> "DATStageConfig":
         """Ensure the config matches the stage type."""
         config_map = {
+            DATStageType.DISCOVERY: self.discovery_config,
+            DATStageType.SELECTION: self.selection_config,
+            DATStageType.CONTEXT: self.context_config,
+            DATStageType.TABLE_AVAILABILITY: self.table_availability_config,
+            DATStageType.TABLE_SELECTION: self.table_selection_config,
+            DATStageType.PREVIEW: self.preview_config,
             DATStageType.PARSE: self.parse_config,
-            DATStageType.AGGREGATE: self.aggregate_config,
             DATStageType.EXPORT: self.export_config,
         }
         expected_config = config_map[self.stage_type]

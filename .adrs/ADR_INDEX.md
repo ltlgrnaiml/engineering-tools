@@ -115,7 +115,7 @@ Each ADR addresses a distinct concern (no overlaps):
 
 | Concern | Core ADR | Tool Extensions |
 |---------|----------|-----------------|
-| Workflow Orchestration | ADR-0001 | ADR-0001-DAT, ADR-0019, ADR-0022, ADR-0027 |
+| Workflow Orchestration | ADR-0001 *(updated 2025-12-28: lockable_with_acknowledgment model)* | ADR-0001-DAT, ADR-0019, ADR-0022, ADR-0027 |
 | Artifact Preservation | ADR-0002 | ADR-0013 |
 | Deterministic IDs | ADR-0004 | ADR-0004-DAT |
 | API Contracts | ADR-0005, ADR-0009, ADR-0029 | ADR-0024 |
@@ -154,6 +154,7 @@ Each ADR addresses a distinct concern (no overlaps):
 
 ### Extended ADRs
 
+- **ADR-0001**: Added `lockable_with_acknowledgment` stage state model (UNLOCKED → LOCKED → COMPLETED) with clear frontend-backend responsibility split
 - **ADR-0025**: Added version_id (SHA-256) and parent_version_id for data versioning
 
 ## Validation TODO

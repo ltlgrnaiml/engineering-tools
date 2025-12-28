@@ -22,6 +22,11 @@
       "at": "2024-12-27",
       "by": "Mycahya Eggleston",
       "note": "Promoted to CORE scope as unified pattern for all guided workflows across DAT, PPTX, and SOV tools"
+    },
+    {
+      "at": "2025-12-28",
+      "by": "Mycahya Eggleston",
+      "note": "Added lockable_with_acknowledgment model to distinguish data-ready (LOCKED) from user-acknowledged (COMPLETED) states. Clarifies frontend-backend responsibility split."
     }
   ],
   "context": "All engineering tools (DAT, PPTX Generator, SOV Analyzer) implement guided workflows where users progress through a series of stages/steps to complete complex tasks. Each tool has similar needs: enforce stage dependencies (forward gating), handle backward navigation (cascade effects), support optional stages, preserve user work on state changes, and maintain deterministic reproducibility. Without a unified pattern, each tool would implement its own FSM logic, leading to inconsistent UX, duplicated code, and divergent mental models. A CORE FSM pattern enables shared implementation in shared/contracts, consistent AI-assisted code generation, and predictable user experience across the platform.",
@@ -53,6 +58,23 @@
         "states": ["PENDING", "ACTIVE", "LOCKED", "UNLOCKED"],
         "description": "Combines linear progression with lockable artifacts. Stages progress PENDING → ACTIVE → LOCKED, can be unlocked for revision.",
         "transitions": ["PENDING → ACTIVE (dependencies satisfied)", "ACTIVE → LOCKED (user commits)", "LOCKED → UNLOCKED (user unlocks)", "UNLOCKED → LOCKED (user re-locks)"]
+      },
+      "lockable_with_acknowledgment": {
+        "states": ["UNLOCKED", "LOCKED", "COMPLETED"],
+        "description": "For stages where user must acknowledge results before advancing (e.g., Preview). Distinguishes data-ready (LOCKED) from user-acknowledged (COMPLETED). Backend controls current_stage based on COMPLETED status.",
+        "transitions": ["UNLOCKED → LOCKED (stage computation done, data ready for review)", "LOCKED → COMPLETED (user acknowledges, ready to advance)", "LOCKED → UNLOCKED (user unlocks for revision)", "COMPLETED → UNLOCKED (user unlocks for revision)"],
+        "completion_semantics": {
+          "auto_complete": "Stages where lock implies completion (no user review needed). Lock operation returns completed=true.",
+          "manual_complete": "Stages requiring user acknowledgment. Lock returns completed=false. Separate /complete endpoint marks stage done.",
+          "skip_complete": "Optional stages that are skipped. Lock with completed=true to advance immediately."
+        },
+        "api_endpoints": {
+          "lock": "POST /stages/{stage}/lock - Locks stage, sets data-ready state",
+          "complete": "POST /stages/{stage}/complete - Marks locked stage as completed, advances wizard",
+          "unlock": "POST /stages/{stage}/unlock - Unlocks stage with cascade per ADR-0002"
+        },
+        "frontend_responsibility": "Follow backend current_stage for navigation. Call lock/complete/unlock endpoints. No local stage state.",
+        "backend_responsibility": "Own stage state machine. Compute current_stage from stage statuses. Enforce forward gating and backward cascades."
       }
     },
     "cascade_policies": {
@@ -62,7 +84,8 @@
     },
     "implementation_specs": [
       "SPEC-0001_Stage-Orchestration-State-Machine",
-      "SPEC-0028_Core-FSM-Interface-Spec"
+      "SPEC-0028_Core-FSM-Interface-Spec",
+      "SPEC-0044_Stage-Completion-Semantics"
     ],
     "shared_implementation": {
       "location": "shared/workflows/fsm_orchestrator.py",
@@ -79,7 +102,8 @@
     "Debuggable: Centralized orchestrator enables consistent logging and state inspection",
     "Complexity: Adds abstraction layer; simple tools may feel over-engineered (mitigated by simple_linear model)",
     "Learning curve: Developers must understand FSM concepts (mitigated by clear documentation)",
-    "Coordination: Frontend and backend must agree on stage graph (mitigated by shared configuration)"
+    "Coordination: Frontend and backend must agree on stage graph (mitigated by shared configuration)",
+    "Clarity: lockable_with_acknowledgment model explicitly separates data-ready from user-acknowledged states, eliminating race conditions"
   ],
   "alternatives_considered": [
     {
@@ -138,6 +162,12 @@
       "enforcement": "StageGraphConfig validates DAG property at configuration load time; raises error if cycle detected",
       "scope": "core",
       "id": "core-fsm-dag-validation"
+    },
+    {
+      "rule": "Completion Acknowledgment: Stages using lockable_with_acknowledgment MUST distinguish LOCKED (data-ready) from COMPLETED (user-acknowledged)",
+      "enforcement": "Backend current_stage only advances when stage is COMPLETED, not just LOCKED. Frontend cannot advance without calling /complete endpoint.",
+      "scope": "core",
+      "id": "core-fsm-completion-acknowledgment"
     }
   ],
   "cross_cutting_guardrails": [

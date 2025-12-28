@@ -222,12 +222,9 @@ class TestIdempotentRecomputation:
         """Re-locking same inputs must produce identical artifact ID (determinism)."""
         from shared.utils.stage_id import compute_dataset_id
 
-        # Same inputs should produce same ID
-        inputs1 = {"source_file": "data.csv", "profile": "default"}
-        inputs2 = {"source_file": "data.csv", "profile": "default"}
-
-        id1 = compute_dataset_id(inputs1)
-        id2 = compute_dataset_id(inputs2)
+        # Same inputs should produce same ID (using keyword arguments per API)
+        id1 = compute_dataset_id(run_id="test-run", columns=["a", "b"], row_count=100)
+        id2 = compute_dataset_id(run_id="test-run", columns=["a", "b"], row_count=100)
 
         assert id1 == id2, "Same inputs must produce same dataset ID"
 
@@ -237,15 +234,13 @@ class TestIdempotentRecomputation:
         """Unlock then re-lock with same inputs preserves artifact ID."""
         from shared.utils.stage_id import compute_dataset_id
 
-        inputs = {"source_file": "test.csv", "config": "v1"}
-        
-        # First computation
-        original_id = compute_dataset_id(inputs)
+        # First computation (using keyword arguments per API)
+        original_id = compute_dataset_id(run_id="test-run", columns=["x", "y"])
         
         # Simulate unlock (metadata change only)
         # ... unlock logic ...
         
         # Re-lock with same inputs
-        recomputed_id = compute_dataset_id(inputs)
+        recomputed_id = compute_dataset_id(run_id="test-run", columns=["x", "y"])
         
         assert original_id == recomputed_id, "Re-lock must preserve artifact ID"

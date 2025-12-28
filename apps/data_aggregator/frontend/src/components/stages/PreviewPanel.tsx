@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react'
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Eye, Loader2, AlertCircle, RefreshCw } from 'lucide-react'
 import { useDebugFetch } from '../debug'
@@ -17,13 +17,11 @@ interface PreviewData {
 export function PreviewPanel({ runId }: PreviewPanelProps) {
   const queryClient = useQueryClient()
   const debugFetch = useDebugFetch()
+  const [hasLoadedPreview, setHasLoadedPreview] = useState(false)
 
-  // Track if we've already attempted auto-lock to prevent infinite loops
-  const autoLockAttempted = useRef(false)
-
-  // First, lock the Preview stage to generate preview data from selected tables
+  // Lock the Preview stage and optionally load preview data
   const lockMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (loadData: boolean = false) => {
       console.log('[PreviewPanel] Locking preview stage...')
       const response = await debugFetch(`/api/dat/v1/runs/${runId}/stages/preview/lock`, {
         method: 'POST',
@@ -35,19 +33,26 @@ export function PreviewPanel({ runId }: PreviewPanelProps) {
       }
       const result = await response.json()
       console.log('[PreviewPanel] Lock success:', result)
-      return result
+      return { result, loadData }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dat-preview', runId] })
-      queryClient.invalidateQueries({ queryKey: ['dat-run', runId] })
+    onSuccess: ({ loadData }) => {
+      queryClient.invalidateQueries({ queryKey: ['dat-preview-status', runId] })
+      if (loadData) {
+        // Now that stage is locked, fetch the preview data
+        setHasLoadedPreview(true)
+        queryClient.invalidateQueries({ queryKey: ['dat-preview', runId] })
+      } else {
+        // Skip mode - just refresh run status
+        queryClient.invalidateQueries({ queryKey: ['dat-run', runId] })
+      }
     },
     onError: (error) => {
       console.error('[PreviewPanel] Lock mutation error:', error)
     },
   })
 
-  // Get stage status to determine if we need to auto-lock
-  const { data: stageStatus, isLoading: statusLoading, error: statusError } = useQuery({
+  // Get stage status
+  const { data: stageStatus, isLoading: statusLoading } = useQuery({
     queryKey: ['dat-preview-status', runId],
     queryFn: async () => {
       console.log('[PreviewPanel] Fetching stage status...')
@@ -62,21 +67,7 @@ export function PreviewPanel({ runId }: PreviewPanelProps) {
     },
   })
 
-  // Auto-lock callback
-  const attemptAutoLock = useCallback(() => {
-    if (stageStatus?.state === 'unlocked' && !autoLockAttempted.current && !lockMutation.isPending) {
-      console.log('[PreviewPanel] Auto-locking preview stage')
-      autoLockAttempted.current = true
-      lockMutation.mutate()
-    }
-  }, [stageStatus?.state, lockMutation])
-
-  // Auto-lock Preview stage on mount if not already locked
-  useEffect(() => {
-    attemptAutoLock()
-  }, [attemptAutoLock])
-
-  // Fetch preview data
+  // Fetch preview data (only when user clicks "Load Preview")
   const { data: preview, isLoading: previewLoading, error: previewError } = useQuery({
     queryKey: ['dat-preview', runId],
     queryFn: async (): Promise<PreviewData> => {
@@ -91,15 +82,20 @@ export function PreviewPanel({ runId }: PreviewPanelProps) {
       console.log('[PreviewPanel] Preview data:', result)
       return result
     },
-    enabled: stageStatus?.state === 'locked' || lockMutation.isSuccess,
+    enabled: hasLoadedPreview || stageStatus?.state === 'locked',
     retry: 1,
   })
 
-  // Combined loading state
-  const isLoading = statusLoading || previewLoading || lockMutation.isPending
+  // Handle loading preview - lock first, then data will load automatically
+  const handleLoadPreview = () => {
+    lockMutation.mutate(true)  // true = load data after lock
+  }
 
-  // Combined error state
-  const error = statusError || previewError || lockMutation.error
+  // Combined loading state
+  const isLoading = statusLoading || (hasLoadedPreview && previewLoading) || lockMutation.isPending
+
+  // Combined error state  
+  const error = previewError || lockMutation.error
 
   return (
     <div className="space-y-6">
@@ -107,6 +103,39 @@ export function PreviewPanel({ runId }: PreviewPanelProps) {
         <h2 className="text-xl font-semibold text-slate-900">Data Preview</h2>
         <p className="text-slate-600 mt-1">Review a sample of the data before parsing.</p>
       </div>
+
+      {/* Initial Choice - Load Preview or Skip */}
+      {!hasLoadedPreview && !preview && stageStatus?.state !== 'locked' && (
+        <div className="bg-white rounded-lg border border-slate-200 p-8 text-center">
+          <Eye className="w-12 h-12 mx-auto mb-4 text-slate-300" />
+          <h3 className="text-lg font-medium text-slate-900 mb-2">Preview Your Data</h3>
+          <p className="text-slate-600 mb-6 max-w-md mx-auto">
+            This optional step lets you review a sample of your data before parsing. 
+            You can skip this step if you're confident in your table selections.
+          </p>
+          <div className="flex justify-center gap-4">
+            <button
+              onClick={() => lockMutation.mutate(false)}
+              disabled={lockMutation.isPending}
+              className="px-6 py-3 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg font-medium transition-colors"
+            >
+              Skip Preview →
+            </button>
+            <button
+              onClick={handleLoadPreview}
+              disabled={previewLoading}
+              className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+            >
+              {previewLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <Eye className="w-5 h-5" />
+              )}
+              Load Preview
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Error State */}
       {error && (
@@ -119,7 +148,7 @@ export function PreviewPanel({ runId }: PreviewPanelProps) {
             </p>
             <button
               onClick={() => {
-                autoLockAttempted.current = false
+                setHasLoadedPreview(false)
                 queryClient.invalidateQueries({ queryKey: ['dat-preview-status', runId] })
               }}
               className="mt-2 flex items-center gap-2 text-sm text-red-700 hover:text-red-800 font-medium"
@@ -131,86 +160,98 @@ export function PreviewPanel({ runId }: PreviewPanelProps) {
         </div>
       )}
 
-      {/* Stats */}
-      {preview && !error && (
-        <div className="flex items-center gap-6 text-sm">
-          <div>
-            <span className="text-slate-500">Total Rows:</span>{' '}
-            <span className="font-medium text-slate-900">{preview.total_rows.toLocaleString()}</span>
-          </div>
-          <div>
-            <span className="text-slate-500">Columns:</span>{' '}
-            <span className="font-medium text-slate-900">{preview.columns.length}</span>
-          </div>
-          {preview.rows.length < preview.total_rows && (
-            <div className="text-amber-600">
-              <Eye className="w-4 h-4 inline mr-1" />
-              Showing sample of {preview.rows.length} rows
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Data Table */}
-      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-        {isLoading ? (
+      {/* Loading State */}
+      {isLoading && hasLoadedPreview && (
+        <div className="bg-white rounded-lg border border-slate-200 p-8">
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
             <span className="ml-2 text-slate-500">Loading preview...</span>
           </div>
-        ) : error ? (
-          <div className="text-center py-12 text-slate-500">
-            Unable to load preview data
-          </div>
-        ) : preview ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 border-b border-slate-200">
-                <tr>
-                  {preview.columns.map((col) => (
-                    <th 
-                      key={col} 
-                      className="text-left px-3 py-2 font-medium text-slate-600 whitespace-nowrap"
-                    >
-                      {col}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {preview.rows.map((row, idx) => (
-                  <tr key={idx} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                    {preview.columns.map((col) => (
-                      <td key={col} className="px-3 py-2 text-slate-700 whitespace-nowrap">
-                        {String(row[col] ?? '')}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="text-center py-12 text-slate-500">
-            No preview data available
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Actions */}
-      <div className="flex justify-end gap-3">
-        <button
-          onClick={() => lockMutation.mutate()}
-          disabled={!preview || lockMutation.isPending}
-          className="px-6 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
-        >
-          {lockMutation.isPending ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
-          ) : (
-            'Continue to Parse'
+      {/* Preview Data */}
+      {(preview || stageStatus?.state === 'locked') && !isLoading && !error && (
+        <>
+          {/* Stats */}
+          {preview && (
+            <div className="flex items-center gap-6 text-sm">
+              <div>
+                <span className="text-slate-500">Total Rows:</span>{' '}
+                <span className="font-medium text-slate-900">{preview.total_rows.toLocaleString()}</span>
+              </div>
+              <div>
+                <span className="text-slate-500">Columns:</span>{' '}
+                <span className="font-medium text-slate-900">{preview.columns.length}</span>
+              </div>
+              {preview.rows.length < preview.total_rows && (
+                <div className="text-amber-600">
+                  <Eye className="w-4 h-4 inline mr-1" />
+                  Showing sample of {preview.rows.length} rows
+                </div>
+              )}
+            </div>
           )}
-        </button>
-      </div>
+
+          {/* Data Table */}
+          <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+            {preview ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                      {preview.columns.map((col) => (
+                        <th 
+                          key={col} 
+                          className="text-left px-3 py-2 font-medium text-slate-600 whitespace-nowrap"
+                        >
+                          {col}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {preview.rows.map((row, idx) => (
+                      <tr key={idx} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                        {preview.columns.map((col) => (
+                          <td key={col} className="px-3 py-2 text-slate-700 whitespace-nowrap">
+                            {String(row[col] ?? '')}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-center py-12 text-slate-500">
+                No preview data available
+              </div>
+            )}
+          </div>
+
+          {/* Actions - mark preview complete to advance to Parse */}
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={async () => {
+                try {
+                  const response = await debugFetch(`/api/dat/v1/runs/${runId}/stages/preview/complete`, {
+                    method: 'POST',
+                  })
+                  if (response.ok) {
+                    queryClient.invalidateQueries({ queryKey: ['dat-run', runId] })
+                  }
+                } catch (error) {
+                  console.error('Failed to complete preview:', error)
+                }
+              }}
+              className="px-6 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-medium transition-colors"
+            >
+              Continue to Parse
+            </button>
+          </div>
+        </>
+      )}
     </div>
   )
 }

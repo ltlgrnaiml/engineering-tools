@@ -138,7 +138,7 @@ class TestStageEndpoints:
         
         assert response.status_code == 200
         data = response.json()
-        assert "unlocked" in data
+        assert data["status"] == "unlocked"
     
     def test_unlock_invalid_stage(self, client, run_id):
         """Test unlocking invalid stage returns 400."""
@@ -151,12 +151,6 @@ class TestSelectionEndpoint:
     """Test selection stage endpoint."""
     
     @pytest.fixture
-    def run_id(self, client):
-        """Create a run and return its ID."""
-        response = client.post("/v1/runs", json={"name": "Test Run"})
-        return response.json()["run_id"]
-    
-    @pytest.fixture
     def temp_files(self):
         """Create temporary test files."""
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -166,14 +160,38 @@ class TestSelectionEndpoint:
             json_file = tmpdir / "test_data.json"
             json.dump([{"id": 1, "value": 100}], open(json_file, "w"))
             
+            # Create CSV file
+            csv_file = tmpdir / "test_data.csv"
+            csv_file.write_text("id,value\n1,100\n2,200")
+            
             yield tmpdir
     
-    def test_lock_selection_with_directory(self, client, run_id, temp_files):
+    @pytest.fixture
+    def run_with_discovery(self, client, temp_files):
+        """Create run and lock discovery stage first (required before selection)."""
+        # Create run
+        response = client.post("/v1/runs", json={"name": "Test Run"})
+        run_id = response.json()["run_id"]
+        
+        # Lock discovery first (per ADR-0001-DAT stage dependencies)
+        client.post(
+            f"/v1/runs/{run_id}/stages/discovery/lock",
+            json={"folder_path": str(temp_files), "recursive": True}
+        )
+        
+        return run_id
+    
+    def test_lock_selection_with_directory(self, client, run_with_discovery, temp_files):
         """Test locking selection stage with directory path."""
+        run_id = run_with_discovery
+        json_file = temp_files / "test_data.json"
+        csv_file = temp_files / "test_data.csv"
+        
         response = client.post(
             f"/v1/runs/{run_id}/stages/selection/lock",
             json={
                 "source_paths": [str(temp_files)],
+                "selected_files": [str(json_file), str(csv_file)],
                 "recursive": True,
             }
         )
@@ -183,21 +201,25 @@ class TestSelectionEndpoint:
         assert "discovered_files" in data
         assert "selected_files" in data
     
-    def test_lock_selection_with_specific_file(self, client, run_id, temp_files):
+    def test_lock_selection_with_specific_file(self, client, run_with_discovery, temp_files):
         """Test locking selection with specific file."""
+        run_id = run_with_discovery
         json_file = temp_files / "test_data.json"
         
         response = client.post(
             f"/v1/runs/{run_id}/stages/selection/lock",
             json={
-                "source_paths": [str(json_file)],
+                "selected_files": [str(json_file)],
             }
         )
         
         assert response.status_code == 200
         data = response.json()
-        assert len(data["discovered_files"]) == 1
-        assert data["discovered_files"][0]["extension"] == ".json"
+        # Discovery found all files in the directory, selection filters to just the one we chose
+        assert len(data["selected_files"]) == 1
+        # Check the selected file is in discovered files
+        json_files = [f for f in data["discovered_files"] if f["extension"] == ".json"]
+        assert len(json_files) >= 1
 
 
 class TestTableSelectionEndpoint:
@@ -243,14 +265,16 @@ class TestTableSelectionEndpoint:
 class TestPreviewEndpoint:
     """Test preview endpoint."""
     
-    def test_preview_without_parse(self, client):
-        """Test preview fails without parse stage locked."""
+    def test_preview_without_table_selection(self, client):
+        """Test preview fails without table selection stage locked."""
         # Create run
         run_response = client.post("/v1/runs", json={"name": "Test Run"})
         run_id = run_response.json()["run_id"]
         
-        response = client.get(f"/v1/runs/{run_id}/preview")
+        # Preview endpoint requires table_selection to be locked first
+        response = client.get(f"/v1/runs/{run_id}/stages/preview/data")
         
+        # Should fail because table_selection is not locked
         assert response.status_code == 400
 
 

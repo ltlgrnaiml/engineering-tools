@@ -2,7 +2,7 @@
 
 > **Master Reference for Solo-Dev, AI-First Development on Engineering Tools Platform**
 > 
-> Updated: 2025-12-28 | **42 ADRs** | **34 SPECs** | **Solo-Dev Ethos**
+> Updated: 2025-12-28 | **42 ADRs** | **35 SPECs** | **Solo-Dev Ethos**
 
 ---
 
@@ -65,7 +65,7 @@ The `.adrs/` folder is organized by domain:
 
 | ADR ID | Title | Status | Key Decision |
 |--------|-------|--------|--------------|
-| ADR-0001 | Guided Workflow FSM Orchestration | Accepted | Hybrid FSM: per-stage states + global orchestrator; forward gating, backward cascades |
+| ADR-0001 | Guided Workflow FSM Orchestration | Accepted | Hybrid FSM: per-stage states + global orchestrator; forward gating, backward cascades; **lockable_with_acknowledgment model (UNLOCKED→LOCKED→COMPLETED)** |
 | ADR-0004 | Deterministic Content-Addressed IDs | Accepted | SHA-256 hash of inputs + seed=42, 8-char prefix; enables artifact reuse |
 | ADR-0008 | Audit Trail Timestamps | Accepted | ISO-8601 UTC (no microseconds) for all lifecycle events |
 | ADR-0012 | Cross-Platform Concurrency | Accepted | Spawn-safe API only; no raw multiprocessing; supports Windows/macOS/Linux |
