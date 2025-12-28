@@ -1,0 +1,265 @@
+{
+  "schema_type": "adr",
+  "id": "ADR-0029",
+  "title": "API Versioning and Endpoint Naming Specification",
+  "status": "accepted",
+  "date": "2025-12-28",
+  "review_date": "2026-06-28",
+  "deciders": "CDU-DAT Core Engineering Team",
+  "scope": "core",
+  "provenance": [
+    {
+      "at": "2025-12-28",
+      "by": "Mycahya Eggleston",
+      "note": "Initial draft to resolve API versioning inconsistencies across tools"
+    }
+  ],
+  "context": "The engineering-tools platform consists of multiple tools (DAT, PPTX, SOV) accessed through a unified API Gateway. Currently, there is significant inconsistency in how API endpoints are versioned and named:\n\n1. **Gateway-level routes** use `/api/{resource}` without version (e.g., `/api/datasets`)\n2. **DAT routes.py** has conflicting comments: docstring says 'Per API-001: All routes use versioned /v1/ prefix' but router comment says 'Router without versioning per project decision'\n3. **PPTX routes** use `/api/{resource}` without version (e.g., `/api/projects`)\n4. **SOV routes** inconsistently use `/v1/` in some places\n5. **Tests** have mixed patterns causing 404 errors\n\nThis inconsistency causes:\n- Developer confusion about correct URL patterns\n- Test failures from incorrect route assumptions\n- Difficulty maintaining backward compatibility\n- Poor API discoverability\n\nADR-0005 (Swagger-Driven E2E Validation) states 'All endpoints must use handles-first payloads and /vN routing' but provides no concrete specification for where and how versioning should be applied.",
+  "decision_primary": "Adopt a two-tier versioning strategy: Gateway-level cross-tool APIs are versioned at the gateway mount point (`/api/v1/{resource}`), while tool-specific APIs are versioned within their routers (`/v1/{resource}`). When accessed through the gateway, tool routes become `/api/{tool}/v1/{resource}`. This provides version isolation per API surface while maintaining clean, predictable URLs.",
+  "decision_details": {
+    "approach": "Hierarchical versioning with gateway-level and tool-level version prefixes",
+    "url_anatomy": {
+      "pattern": "/{api_prefix}/{version}/{tool_or_resource}/{action}",
+      "components": {
+        "api_prefix": "Always '/api' for gateway-served routes",
+        "version": "'/v1', '/v2', etc. - major version only",
+        "tool_or_resource": "Tool name (dat, sov, pptx) or cross-tool resource (datasets, pipelines)",
+        "action": "Resource-specific path (e.g., /runs, /analyses, /projects)"
+      }
+    },
+    "route_categories": {
+      "gateway_cross_tool": {
+        "description": "APIs that span multiple tools, served directly by gateway",
+        "pattern": "/api/v1/{resource}",
+        "examples": [
+          "/api/v1/datasets - Cross-tool DataSet discovery",
+          "/api/v1/datasets/{id} - Get any DataSet by ID",
+          "/api/v1/datasets/{id}/preview - Preview DataSet contents",
+          "/api/v1/pipelines - Multi-tool workflow orchestration",
+          "/api/v1/pipelines/{id}/execute - Execute pipeline",
+          "/api/v1/devtools - Developer tooling APIs"
+        ],
+        "implementation": "Gateway mounts router at prefix='/api/v1/{resource}'"
+      },
+      "tool_specific": {
+        "description": "APIs specific to a single tool, mounted under /api/{tool}",
+        "pattern": "/api/{tool}/v1/{resource}",
+        "examples": [
+          "/api/dat/v1/runs - DAT run management",
+          "/api/dat/v1/runs/{id}/stages/{stage} - DAT stage operations",
+          "/api/sov/v1/analyses - SOV analysis management",
+          "/api/sov/v1/analyses/{id}/anova - Run ANOVA",
+          "/api/pptx/v1/projects - PPTX project management",
+          "/api/pptx/v1/templates - Template operations"
+        ],
+        "implementation": "Tool router uses prefix='/v1', gateway mounts at '/api/{tool}'"
+      },
+      "health_checks": {
+        "description": "Health and readiness endpoints (unversioned)",
+        "pattern": "/health or /api/{tool}/health",
+        "examples": [
+          "/health - Gateway health",
+          "/api/dat/health - DAT tool health",
+          "/api/sov/health - SOV tool health"
+        ],
+        "rationale": "Health checks are infrastructure-level, not API contracts"
+      }
+    },
+    "implementation_specs": [
+      "SPEC-0008_Contract-Discipline-Api-Spec"
+    ],
+    "constraints": [
+      "All API routes (except health) MUST include version in path",
+      "Version format MUST be 'v{MAJOR}' (e.g., v1, v2) - no minor/patch",
+      "Gateway cross-tool routes MUST use '/api/v1/{resource}' pattern",
+      "Tool-specific routes MUST use '/v1/{resource}' in router, yielding '/api/{tool}/v1/{resource}' when mounted",
+      "Health endpoints MUST NOT be versioned (infrastructure concern)",
+      "OpenAPI specs MUST reflect actual versioned paths",
+      "Breaking changes MUST increment major version (v1 → v2)",
+      "Old versions MUST be maintained for at least 2 release cycles before removal"
+    ],
+    "naming_conventions": {
+      "resources": {
+        "rule": "Use plural nouns for collections, singular for singletons",
+        "examples": {
+          "correct": ["/v1/runs", "/v1/analyses", "/v1/datasets", "/v1/templates"],
+          "incorrect": ["/v1/run", "/v1/analysis", "/v1/dataset"]
+        }
+      },
+      "actions": {
+        "rule": "Use HTTP verbs for CRUD, verb paths for non-CRUD actions",
+        "examples": {
+          "crud": {
+            "create": "POST /v1/runs",
+            "read": "GET /v1/runs/{id}",
+            "update": "PUT /v1/runs/{id}",
+            "delete": "DELETE /v1/runs/{id}",
+            "list": "GET /v1/runs"
+          },
+          "non_crud": {
+            "execute": "POST /v1/pipelines/{id}/execute",
+            "cancel": "POST /v1/runs/{id}/cancel",
+            "lock": "POST /v1/runs/{id}/stages/{stage}/lock",
+            "unlock": "POST /v1/runs/{id}/stages/{stage}/unlock",
+            "preview": "GET /v1/runs/{id}/preview"
+          }
+        }
+      },
+      "path_parameters": {
+        "rule": "Use snake_case for path parameters, descriptive names",
+        "examples": {
+          "correct": ["{run_id}", "{dataset_id}", "{stage_name}"],
+          "incorrect": ["{id}", "{runId}", "{STAGE}"]
+        }
+      },
+      "query_parameters": {
+        "rule": "Use snake_case, provide sensible defaults",
+        "examples": ["?limit=50", "?source_tool=dat", "?include_metadata=true"]
+      }
+    },
+    "version_lifecycle": {
+      "introduction": "New version introduced when breaking changes required",
+      "parallel_support": "Old and new versions run in parallel during transition",
+      "deprecation": "Old version marked deprecated with Sunset header",
+      "removal": "Old version removed after 2 release cycles minimum",
+      "headers": {
+        "deprecation": "Deprecation: true",
+        "sunset": "Sunset: Sat, 01 Jan 2027 00:00:00 GMT",
+        "link": "Link: </api/v2/runs>; rel=\"successor-version\""
+      }
+    }
+  },
+  "consequences": [
+    "✅ POSITIVE: Clear, predictable URL patterns across all tools",
+    "✅ POSITIVE: Version isolation allows independent evolution of APIs",
+    "✅ POSITIVE: Backward compatibility through parallel version support",
+    "✅ POSITIVE: Consistent developer experience and documentation",
+    "✅ POSITIVE: Tests can reliably target correct endpoints",
+    "✅ POSITIVE: OpenAPI specs accurately reflect versioned paths",
+    "❌ NEGATIVE: Requires updating existing routes to conform",
+    "❌ NEGATIVE: Slightly longer URLs than unversioned alternatives",
+    "❌ NEGATIVE: Must maintain multiple versions during transitions",
+    "⚠️ NEUTRAL: Health checks remain unversioned (acceptable for infrastructure)"
+  ],
+  "alternatives_considered": [
+    {
+      "name": "Header-Based Versioning (Accept header)",
+      "pros": "Clean URLs, version hidden from path, supports content negotiation",
+      "cons": "Harder to test (requires headers), not visible in browser, poor cache behavior, harder to debug",
+      "rejected_reason": "URL path versioning is more explicit, testable, and cache-friendly. Header versioning adds complexity without sufficient benefit for internal tooling."
+    },
+    {
+      "name": "Query Parameter Versioning (?version=1)",
+      "pros": "URLs remain clean, version is explicit, easy to override",
+      "cons": "Mixes versioning with query concerns, caching complications, not RESTful",
+      "rejected_reason": "Query parameters should be for filtering/pagination, not fundamental API versioning. Violates separation of concerns."
+    },
+    {
+      "name": "No Versioning (evolve in place)",
+      "pros": "Simplest approach, no version management overhead",
+      "cons": "Breaking changes affect all consumers, no migration path, poor API stability",
+      "rejected_reason": "As tools mature, breaking changes are inevitable. No versioning provides no backward compatibility guarantees."
+    },
+    {
+      "name": "Subdomain Versioning (v1.api.example.com)",
+      "pros": "Clean paths, complete isolation between versions",
+      "cons": "Requires DNS/infrastructure changes, overkill for internal tools, complicates local development",
+      "rejected_reason": "Infrastructure overhead not justified for internal tooling platform."
+    },
+    {
+      "name": "Version at Gateway Only (/api/v1/{tool}/{resource})",
+      "pros": "Single version point, simpler tool routers",
+      "cons": "Tools can't independently version, gateway becomes version bottleneck",
+      "rejected_reason": "Tools may need to version independently. Two-tier approach provides flexibility while maintaining consistency."
+    }
+  ],
+  "tradeoffs": "We trade URL brevity for explicit versioning and flexibility. The two-tier approach (gateway + tool) adds some complexity but allows tools to evolve independently while maintaining a consistent external interface. The requirement to maintain multiple versions adds maintenance burden but ensures backward compatibility for consumers.",
+  "rollout_plan": [
+    "1. Update gateway/main.py to mount cross-tool routes at '/api/v1/{resource}'",
+    "2. Update gateway/services/dataset_service.py routes (already correct pattern)",
+    "3. Update gateway/services/pipeline_service.py routes (already correct pattern)",
+    "4. Update DAT router to use prefix='/v1' consistently",
+    "5. Update SOV router to use prefix='/v1' consistently",
+    "6. Update PPTX routers to use prefix='/v1' consistently",
+    "7. Update all tests to use versioned paths",
+    "8. Regenerate OpenAPI specs and validate",
+    "9. Update API documentation with versioning guide",
+    "10. Remove conflicting comments from route files"
+  ],
+  "rollback_plan": "If versioned routing causes issues: (1) Revert router prefix changes, (2) Revert gateway mount changes, (3) Revert test URL changes, (4) Document decision to use unversioned routes. Low risk since changes are additive (old routes can be aliased).",
+  "metrics_to_watch": [
+    "Number of 404 errors in API calls (should decrease after standardization)",
+    "Test pass rate (should improve with consistent URLs)",
+    "Developer questions about correct URL patterns (should decrease)",
+    "Time to onboard new API consumers (should decrease)",
+    "Number of breaking changes requiring version bumps"
+  ],
+  "guardrails": [
+    {
+      "id": "api-versioning-required",
+      "rule": "All API routes (except /health) MUST include version prefix (e.g., /v1/)",
+      "enforcement": "OpenAPI validation in CI; code review checklist",
+      "scope": "core"
+    },
+    {
+      "id": "api-version-format",
+      "rule": "API version MUST be 'v{MAJOR}' format (v1, v2) - no minor/patch in URL",
+      "enforcement": "Linting rule for route definitions; OpenAPI schema validation",
+      "scope": "core"
+    },
+    {
+      "id": "api-resource-naming",
+      "rule": "Resource paths MUST use plural nouns (e.g., /runs not /run)",
+      "enforcement": "Code review; naming convention linter",
+      "scope": "core"
+    },
+    {
+      "id": "api-breaking-change-version-bump",
+      "rule": "Breaking API changes MUST increment major version and maintain old version",
+      "enforcement": "Code review; API diff tooling in CI",
+      "scope": "core"
+    },
+    {
+      "id": "api-deprecation-headers",
+      "rule": "Deprecated API versions MUST return Deprecation and Sunset headers",
+      "enforcement": "Integration tests; OpenAPI response validation",
+      "scope": "core"
+    }
+  ],
+  "cross_cutting_guardrails": [
+    "ADR-0017#contract-versioning: Pydantic contract versions must align with API versions",
+    "ADR-0005#api-endpoints-defined-openapi-specs: All endpoints must be in OpenAPI specs"
+  ],
+  "references": [
+    "ADR-0005_Swagger-Driven-E2E-Validation: Requires /vN routing",
+    "ADR-0016_Hybrid-Semver-Contract-Versioning: Contract versioning strategy",
+    "ADR-0017_Cross-Cutting-Guardrails: contract-versioning guardrail",
+    "gateway/main.py: Gateway routing configuration",
+    "apps/*/backend/main.py: Tool-specific routing",
+    "RFC 7231: HTTP Semantics (resource naming)",
+    "Microsoft REST API Guidelines: https://github.com/microsoft/api-guidelines",
+    "Google Cloud API Design Guide: https://cloud.google.com/apis/design"
+  ],
+  "tags": [
+    "api",
+    "versioning",
+    "routing",
+    "rest",
+    "gateway",
+    "naming-convention",
+    "url-design"
+  ],
+  "affected_components": [
+    "gateway/main.py",
+    "gateway/services/dataset_service.py",
+    "gateway/services/pipeline_service.py",
+    "gateway/services/devtools_service.py",
+    "apps/data_aggregator/backend/main.py",
+    "apps/data_aggregator/backend/src/dat_aggregation/api/routes.py",
+    "apps/sov_analyzer/backend/main.py",
+    "apps/sov_analyzer/backend/src/sov_analyzer/api/routes.py",
+    "apps/pptx_generator/backend/main.py",
+    "apps/pptx_generator/backend/api/*.py",
+    "tests/**/*.py (URL patterns)"
+  ]
+}

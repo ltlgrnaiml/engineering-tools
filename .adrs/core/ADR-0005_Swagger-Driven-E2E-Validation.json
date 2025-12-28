@@ -82,6 +82,7 @@
   "references": [
     "ADR-0009_Type-Safety-Contract-Discipline: Pydantic contracts validated via OpenAPI",
     "ADR-0017_Cross-Cutting-Guardrails: Contract versioning guardrails",
+    "ADR-0029_API-Versioning-and-Endpoint-Naming: Defines /vN routing patterns",
     "gateway/: FastAPI routers with OpenAPI spec generation for all tools"
   ],
   "tags": [

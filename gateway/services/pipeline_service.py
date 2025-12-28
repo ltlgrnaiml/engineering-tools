@@ -28,10 +28,11 @@ from shared.utils.stage_id import compute_pipeline_id
 logger = logging.getLogger(__name__)
 
 # Tool API base URLs (internal routing via gateway mounts)
+# Per ADR-0029: Tool-specific APIs use /api/{tool}/v1/ pattern
 TOOL_BASE_URLS = {
-    "dat": "http://localhost:8000/api/dat",
-    "sov": "http://localhost:8000/api/sov",
-    "pptx": "http://localhost:8000/api/pptx",
+    "dat": "http://localhost:8000/api/dat/v1",
+    "sov": "http://localhost:8000/api/sov/v1",
+    "pptx": "http://localhost:8000/api/pptx/v1",
 }
 
 # Timeout for tool API calls (seconds)
@@ -290,7 +291,7 @@ async def _dispatch_dat_aggregate(
     }
 
     response = await client.post(
-        f"{base_url}/api/v1/runs",
+        f"{base_url}/runs",
         json=payload,
     )
     response.raise_for_status()
@@ -318,7 +319,7 @@ async def _dispatch_dat_export(
     }
 
     response = await client.post(
-        f"{base_url}/api/v1/runs/{run_id}/export",
+        f"{base_url}/runs/{run_id}/export",
         json=payload,
     )
     response.raise_for_status()
@@ -344,7 +345,7 @@ async def _dispatch_sov_anova(
     }
 
     create_response = await client.post(
-        f"{base_url}/api/v1/analyses",
+        f"{base_url}/analyses",
         json=create_payload,
     )
     create_response.raise_for_status()
@@ -360,7 +361,7 @@ async def _dispatch_sov_anova(
     }
 
     run_response = await client.post(
-        f"{base_url}/api/v1/analyses/{analysis_id}/run",
+        f"{base_url}/analyses/{analysis_id}/run",
         json=run_payload,
     )
     run_response.raise_for_status()
@@ -371,7 +372,7 @@ async def _dispatch_sov_anova(
     }
 
     export_response = await client.post(
-        f"{base_url}/api/v1/analyses/{analysis_id}/export",
+        f"{base_url}/analyses/{analysis_id}/export",
         json=export_payload,
     )
     export_response.raise_for_status()
@@ -410,7 +411,7 @@ async def _dispatch_pptx_generate(
     }
 
     project_response = await client.post(
-        f"{base_url}/api/v1/projects",
+        f"{base_url}/projects",
         json=project_payload,
     )
     project_response.raise_for_status()
@@ -423,7 +424,7 @@ async def _dispatch_pptx_generate(
             "dataset_id": input_dataset_ids[0],
         }
         await client.post(
-            f"{base_url}/api/v1/projects/{project_id}/from-dataset",
+            f"{base_url}/projects/{project_id}/from-dataset",
             json=dataset_payload,
         )
 
@@ -436,7 +437,7 @@ async def _dispatch_pptx_generate(
         }
 
         generate_response = await client.post(
-            f"{base_url}/api/v1/projects/{project_id}/generate",
+            f"{base_url}/projects/{project_id}/generate",
             json=generate_payload,
         )
         generate_response.raise_for_status()
@@ -467,7 +468,7 @@ async def _dispatch_pptx_render(
     }
 
     response = await client.post(
-        f"{base_url}/api/v1/projects/{project_id}/render",
+        f"{base_url}/projects/{project_id}/render",
         json=render_payload,
     )
     response.raise_for_status()

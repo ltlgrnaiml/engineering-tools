@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Eye, Loader2 } from 'lucide-react'
 import { useDebugFetch } from '../debug'
@@ -17,26 +18,54 @@ export function PreviewPanel({ runId }: PreviewPanelProps) {
   const queryClient = useQueryClient()
   const debugFetch = useDebugFetch()
 
-  const { data: preview, isLoading } = useQuery({
-    queryKey: ['dat-preview', runId],
-    queryFn: async (): Promise<PreviewData> => {
-      const response = await debugFetch(`/api/dat/runs/${runId}/stages/preview/data?limit=50`)
-      if (!response.ok) throw new Error('Failed to fetch preview')
+  // First, lock the Preview stage to generate preview data from selected tables
+  const lockMutation = useMutation({
+    mutationFn: async () => {
+      const response = await debugFetch(`/api/dat/v1/runs/${runId}/stages/preview/lock`, {
+        method: 'POST',
+      })
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ detail: 'Failed to lock stage' }))
+        throw new Error(error.detail || 'Failed to lock stage')
+      }
+      return response.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dat-preview', runId] })
+      queryClient.invalidateQueries({ queryKey: ['dat-run', runId] })
+    },
+  })
+
+  // Auto-lock Preview stage on mount if not already locked
+  const { data: stageStatus } = useQuery({
+    queryKey: ['dat-preview-status', runId],
+    queryFn: async () => {
+      const response = await debugFetch(`/api/dat/v1/runs/${runId}/stages/preview`)
+      if (!response.ok) return { state: 'unlocked' }
       return response.json()
     },
   })
 
-  const lockMutation = useMutation({
-    mutationFn: async () => {
-      const response = await debugFetch(`/api/dat/runs/${runId}/stages/preview/lock`, {
-        method: 'POST',
-      })
-      if (!response.ok) throw new Error('Failed to lock stage')
+  // Track if we've already attempted auto-lock to prevent infinite loops
+  const autoLockAttempted = useRef(false)
+
+  // Auto-lock Preview stage on mount if not already locked
+  useEffect(() => {
+    if (stageStatus?.state === 'unlocked' && !autoLockAttempted.current && !lockMutation.isPending) {
+      autoLockAttempted.current = true
+      lockMutation.mutate()
+    }
+  }, [stageStatus?.state, lockMutation.isPending])
+
+  const { data: preview, isLoading } = useQuery({
+    queryKey: ['dat-preview', runId],
+    queryFn: async (): Promise<PreviewData> => {
+      const response = await debugFetch(`/api/dat/v1/runs/${runId}/stages/preview/data?limit=50`)
+      if (!response.ok) throw new Error('Failed to fetch preview')
       return response.json()
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dat-run', runId] })
-    },
+    enabled: stageStatus?.state === 'locked' || lockMutation.isSuccess,
+    retry: 1,
   })
 
   return (

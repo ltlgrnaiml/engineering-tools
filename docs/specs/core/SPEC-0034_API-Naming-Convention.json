@@ -1,0 +1,181 @@
+{
+  "schema_type": "spec",
+  "id": "SPEC-0034",
+  "title": "API Naming Convention Specification",
+  "version": "0.1.0",
+  "status": "active",
+  "implements": "ADR-0029",
+  "date": "2025-12-28",
+  "scope": "core",
+  "summary": "Technical specification for API endpoint naming, versioning patterns, and URL structure across the Engineering Tools Platform.",
+  "url_patterns": {
+    "gateway_cross_tool_apis": {
+      "base_pattern": "/api/v1/{resource}",
+      "endpoints": {
+        "datasets": {
+          "list": "GET /api/v1/datasets",
+          "get": "GET /api/v1/datasets/{dataset_id}",
+          "preview": "GET /api/v1/datasets/{dataset_id}/preview",
+          "lineage": "GET /api/v1/datasets/{dataset_id}/lineage"
+        },
+        "pipelines": {
+          "list": "GET /api/v1/pipelines",
+          "get": "GET /api/v1/pipelines/{pipeline_id}",
+          "create": "POST /api/v1/pipelines",
+          "execute": "POST /api/v1/pipelines/{pipeline_id}/execute",
+          "cancel": "POST /api/v1/pipelines/{pipeline_id}/cancel"
+        },
+        "devtools": {
+          "adrs_list": "GET /api/v1/devtools/adrs",
+          "adr_get": "GET /api/v1/devtools/adrs/{folder}/{filename}",
+          "adr_create": "POST /api/v1/devtools/adrs",
+          "adr_update": "PUT /api/v1/devtools/adrs/{folder}/{filename}"
+        }
+      }
+    },
+    "tool_specific_apis": {
+      "dat": {
+        "base_pattern": "/api/dat/v1/{resource}",
+        "router_config": "APIRouter(prefix='/v1')",
+        "gateway_mount": "app.mount('/api/dat', dat_app)",
+        "endpoints": {
+          "runs": {
+            "list": "GET /api/dat/v1/runs",
+            "get": "GET /api/dat/v1/runs/{run_id}",
+            "create": "POST /api/dat/v1/runs"
+          },
+          "stages": {
+            "get_status": "GET /api/dat/v1/runs/{run_id}/stages/{stage}",
+            "lock": "POST /api/dat/v1/runs/{run_id}/stages/{stage}/lock",
+            "unlock": "POST /api/dat/v1/runs/{run_id}/stages/{stage}/unlock",
+            "scan": "POST /api/dat/v1/runs/{run_id}/stages/selection/scan"
+          },
+          "export": {
+            "create": "POST /api/dat/v1/runs/{run_id}/export"
+          },
+          "profiles": {
+            "list": "GET /api/dat/v1/profiles"
+          }
+        }
+      },
+      "sov": {
+        "base_pattern": "/api/sov/v1/{resource}",
+        "router_config": "APIRouter(prefix='/v1')",
+        "gateway_mount": "app.mount('/api/sov', sov_app)",
+        "endpoints": {
+          "analyses": {
+            "list": "GET /api/sov/v1/analyses",
+            "get": "GET /api/sov/v1/analyses/{analysis_id}",
+            "create": "POST /api/sov/v1/analyses",
+            "run": "POST /api/sov/v1/analyses/{analysis_id}/run",
+            "export": "POST /api/sov/v1/analyses/{analysis_id}/export"
+          }
+        }
+      },
+      "pptx": {
+        "base_pattern": "/api/pptx/v1/{resource}",
+        "router_config": "Individual routers mounted with prefix='/api/v1/{resource}'",
+        "gateway_mount": "app.mount('/api/pptx', pptx_app)",
+        "endpoints": {
+          "projects": {
+            "list": "GET /api/pptx/v1/projects",
+            "get": "GET /api/pptx/v1/projects/{project_id}",
+            "create": "POST /api/pptx/v1/projects",
+            "from_dataset": "POST /api/pptx/v1/projects/{project_id}/from-dataset",
+            "generate": "POST /api/pptx/v1/projects/{project_id}/generate",
+            "render": "POST /api/pptx/v1/projects/{project_id}/render"
+          },
+          "templates": {
+            "list": "GET /api/pptx/v1/templates",
+            "get": "GET /api/pptx/v1/templates/{template_id}"
+          },
+          "data": {
+            "upload": "POST /api/pptx/v1/data/upload"
+          },
+          "preview": {
+            "get": "GET /api/pptx/v1/preview/{project_id}"
+          }
+        }
+      }
+    },
+    "health_endpoints": {
+      "note": "Health endpoints are UNVERSIONED per ADR-0029",
+      "endpoints": {
+        "gateway_health": "GET /health OR GET /api/health",
+        "dat_health": "GET /api/dat/health",
+        "sov_health": "GET /api/sov/health",
+        "pptx_health": "GET /api/pptx/health"
+      }
+    }
+  },
+  "frontend_api_constants": {
+    "note": "Frontend applications should use these base paths for API calls",
+    "dat_frontend": {
+      "base": "/api/dat/v1",
+      "examples": [
+        "fetch(`/api/dat/v1/runs`)",
+        "fetch(`/api/dat/v1/runs/${runId}`)",
+        "fetch(`/api/dat/v1/runs/${runId}/stages/${stage}/lock`)"
+      ]
+    },
+    "sov_frontend": {
+      "base": "/api/sov/v1",
+      "examples": [
+        "fetch(`/api/sov/v1/analyses`)",
+        "fetch(`/api/sov/v1/analyses/${analysisId}`)"
+      ]
+    },
+    "homepage_frontend": {
+      "datasets_base": "/api/v1/datasets",
+      "pipelines_base": "/api/v1/pipelines",
+      "examples": [
+        "fetch(`/api/v1/datasets`)",
+        "fetch(`/api/v1/pipelines/${pipelineId}/execute`)"
+      ]
+    }
+  },
+  "implementation_checklist": {
+    "backend": [
+      "DAT: router = APIRouter(prefix='/v1') - routes use /runs, /profiles, etc.",
+      "SOV: router = APIRouter(prefix='/v1') - routes use /analyses (NO duplicate /v1/)",
+      "PPTX: Each router mounted at /api/v1/{resource}",
+      "Gateway: Cross-tool routes at /api/v1/datasets, /api/v1/pipelines"
+    ],
+    "frontend": [
+      "DAT frontend: All fetch calls use /api/dat/v1/... pattern",
+      "SOV frontend: All fetch calls use /api/sov/v1/... pattern",
+      "Homepage: Dataset calls use /api/v1/datasets/...",
+      "Homepage: Pipeline calls use /api/v1/pipelines/..."
+    ],
+    "tests": [
+      "All test API calls must use versioned paths",
+      "Integration tests verify actual route accessibility"
+    ]
+  },
+  "validation_commands": {
+    "verify_dat_routes": "curl http://localhost:8000/api/dat/v1/runs",
+    "verify_sov_routes": "curl http://localhost:8000/api/sov/v1/analyses",
+    "verify_pptx_routes": "curl http://localhost:8000/api/pptx/v1/projects",
+    "verify_datasets": "curl http://localhost:8000/api/v1/datasets",
+    "verify_pipelines": "curl http://localhost:8000/api/v1/pipelines",
+    "verify_health": "curl http://localhost:8000/health"
+  },
+  "common_mistakes": [
+    {
+      "mistake": "Double /v1/ in route decorator when router already has prefix",
+      "wrong": "router = APIRouter(prefix='/v1'); @router.get('/v1/analyses')",
+      "correct": "router = APIRouter(prefix='/v1'); @router.get('/analyses')"
+    },
+    {
+      "mistake": "Missing /v1/ in frontend API calls",
+      "wrong": "fetch('/api/dat/runs')",
+      "correct": "fetch('/api/dat/v1/runs')"
+    },
+    {
+      "mistake": "Inconsistent cross-tool API paths",
+      "wrong": "fetch('/api/datasets/v1/') or fetch('/api/v1/dataset/')",
+      "correct": "fetch('/api/v1/datasets')"
+    }
+  ],
+  "tags": ["api", "naming", "versioning", "specification", "url-patterns"]
+}

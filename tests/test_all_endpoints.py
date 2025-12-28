@@ -45,7 +45,7 @@ class TestPPTXEndpoints:
     
     def test_pptx_list_projects(self):
         """Test listing PPTX projects"""
-        response = requests.get(f"{BASE_URL}/api/pptx/api/v1/projects", timeout=TIMEOUT)
+        response = requests.get(f"{BASE_URL}/api/pptx/v1/projects", timeout=TIMEOUT)
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
@@ -57,7 +57,7 @@ class TestPPTXEndpoints:
             "description": "Automated test project"
         }
         response = requests.post(
-            f"{BASE_URL}/api/pptx/api/v1/projects",
+            f"{BASE_URL}/api/pptx/v1/projects",
             json=payload,
             timeout=TIMEOUT
         )
@@ -86,7 +86,7 @@ class TestDATEndpoints:
     
     def test_dat_list_runs(self):
         """Test listing DAT runs"""
-        response = requests.get(f"{BASE_URL}/api/dat/api/v1/runs", timeout=TIMEOUT)
+        response = requests.get(f"{BASE_URL}/api/dat/v1/runs", timeout=TIMEOUT)
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
@@ -94,7 +94,7 @@ class TestDATEndpoints:
     def test_dat_create_run(self):
         """Test creating a DAT run"""
         response = requests.post(
-            f"{BASE_URL}/api/dat/api/v1/runs",
+            f"{BASE_URL}/api/dat/v1/runs",
             timeout=TIMEOUT
         )
         assert response.status_code == 200
@@ -122,7 +122,7 @@ class TestSOVEndpoints:
     
     def test_sov_list_analyses(self):
         """Test listing SOV analyses"""
-        response = requests.get(f"{BASE_URL}/api/sov/api/v1/analyses", timeout=TIMEOUT)
+        response = requests.get(f"{BASE_URL}/api/sov/v1/analyses", timeout=TIMEOUT)
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
@@ -169,7 +169,7 @@ class TestErrorHandling:
     def test_invalid_project_id(self):
         """Test accessing non-existent PPTX project"""
         response = requests.get(
-            f"{BASE_URL}/api/pptx/api/v1/projects/nonexistent-id",
+            f"{BASE_URL}/api/pptx/v1/projects/nonexistent-id",
             timeout=TIMEOUT
         )
         assert response.status_code == 404
@@ -177,7 +177,7 @@ class TestErrorHandling:
     def test_invalid_run_id(self):
         """Test accessing non-existent DAT run"""
         response = requests.get(
-            f"{BASE_URL}/api/dat/api/v1/runs/nonexistent-id",
+            f"{BASE_URL}/api/dat/v1/runs/nonexistent-id",
             timeout=TIMEOUT
         )
         assert response.status_code == 404

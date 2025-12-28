@@ -25,7 +25,7 @@ export function ParsePanel({ runId }: ParsePanelProps) {
   const { data: progress, refetch } = useQuery({
     queryKey: ['dat-parse-progress', runId],
     queryFn: async (): Promise<ParseProgress> => {
-      const response = await debugFetch(`/api/dat/runs/${runId}/stages/parse/progress`)
+      const response = await debugFetch(`/api/dat/v1/runs/${runId}/stages/parse/progress`)
       if (!response.ok) throw new Error('Failed to fetch progress')
       return response.json()
     },
@@ -42,7 +42,7 @@ export function ParsePanel({ runId }: ParsePanelProps) {
 
   const startMutation = useMutation({
     mutationFn: async () => {
-      const response = await debugFetch(`/api/dat/runs/${runId}/stages/parse/start`, {
+      const response = await debugFetch(`/api/dat/v1/runs/${runId}/stages/parse/start`, {
         method: 'POST',
       })
       if (!response.ok) throw new Error('Failed to start parse')
@@ -56,7 +56,7 @@ export function ParsePanel({ runId }: ParsePanelProps) {
 
   const cancelMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/dat/runs/${runId}/stages/parse/cancel`, {
+      const response = await fetch(`/api/dat/v1/runs/${runId}/stages/parse/cancel`, {
         method: 'POST',
       })
       if (!response.ok) throw new Error('Failed to cancel parse')
@@ -69,7 +69,7 @@ export function ParsePanel({ runId }: ParsePanelProps) {
 
   const lockMutation = useMutation({
     mutationFn: async () => {
-      const response = await debugFetch(`/api/dat/runs/${runId}/stages/parse/lock`, {
+      const response = await debugFetch(`/api/dat/v1/runs/${runId}/stages/parse/lock`, {
         method: 'POST',
       })
       if (!response.ok) throw new Error('Failed to lock stage')

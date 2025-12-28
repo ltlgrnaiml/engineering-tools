@@ -23,13 +23,13 @@ interface ANOVAConfig {
 }
 
 async function fetchDatasetManifest(id: string): Promise<DataSetManifest> {
-  const response = await fetch(`/api/datasets/${id}`)
+  const response = await fetch(`/api/v1/datasets/${id}`)
   if (!response.ok) throw new Error('Failed to fetch dataset')
   return response.json()
 }
 
 async function runAnalysis(datasetId: string, config: ANOVAConfig): Promise<{ analysis_id: string }> {
-  const response = await fetch('/api/sov/analysis', {
+  const response = await fetch('/api/sov/v1/analyses', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ dataset_id: datasetId, config }),

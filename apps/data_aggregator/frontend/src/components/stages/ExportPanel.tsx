@@ -23,7 +23,7 @@ export function ExportPanel({ runId }: ExportPanelProps) {
   const { data: summary, isLoading } = useQuery({
     queryKey: ['dat-export-summary', runId],
     queryFn: async (): Promise<ExportSummary> => {
-      const response = await debugFetch(`/api/dat/runs/${runId}/stages/export/summary`)
+      const response = await debugFetch(`/api/dat/v1/runs/${runId}/stages/export/summary`)
       if (!response.ok) throw new Error('Failed to fetch summary')
       return response.json()
     },
@@ -31,7 +31,7 @@ export function ExportPanel({ runId }: ExportPanelProps) {
 
   const exportMutation = useMutation({
     mutationFn: async () => {
-      const response = await debugFetch(`/api/dat/runs/${runId}/stages/export/lock`, {
+      const response = await debugFetch(`/api/dat/v1/runs/${runId}/stages/export/lock`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: datasetName || `DAT Export ${new Date().toISOString().split('T')[0]}` }),

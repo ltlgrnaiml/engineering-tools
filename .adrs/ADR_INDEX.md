@@ -34,6 +34,7 @@ These ADRs define patterns that ALL tools (DAT, PPTX, SOV) MUST follow:
 | ADR-0025 | DataSet Lineage Tracking | core | Cross-tool data lineage |
 | ADR-0026 | Pipeline Error Handling | core | Unified error handling patterns |
 | **ADR-0028** | **Unified Rendering Engine** | **cross-cutting** | **Shared visualization, charting, and rendering for all tools** |
+| **ADR-0029** | **API Versioning and Endpoint Naming** | **core** | **Two-tier versioning: /api/v1/{resource} for gateway, /api/{tool}/v1/{resource} for tools** |
 
 ## Tool-Specific ADRs
 

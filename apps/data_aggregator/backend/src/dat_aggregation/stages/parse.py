@@ -163,11 +163,17 @@ async def execute_parse(
     source_files: list[str] = []
     completed_tables: list[str] = []
     total_files = len(config.selected_files)
-    total_tables = sum(
-        len(config.selected_tables.get(str(f), []) or [1])
-        for f in config.selected_files
-    )
     tables_processed = 0
+    
+    # Pre-calculate actual tables to process for accurate progress tracking
+    file_tables_map: dict[Path, list[str]] = {}
+    for file_path in config.selected_files:
+        tables = config.selected_tables.get(str(file_path), [])
+        if not tables:
+            tables = AdapterFactory.get_tables(file_path)
+        file_tables_map[file_path] = tables
+    
+    total_tables = sum(len(tables) for tables in file_tables_map.values())
 
     for i, file_path in enumerate(config.selected_files):
         # Check cancellation before each file (safe point per ADR-0013)
@@ -182,10 +188,7 @@ async def execute_parse(
             progress_pct = (i / total_files) * 100
             progress_callback(progress_pct, f"Processing {file_path.name}...")
 
-        tables = config.selected_tables.get(str(file_path), [])
-        if not tables:
-            # If no tables specified, read all tables
-            tables = AdapterFactory.get_tables(file_path)
+        tables = file_tables_map[file_path]
 
         for table in tables:
             # Check cancellation before each table (safe point per ADR-0013)
@@ -196,8 +199,8 @@ async def execute_parse(
                     discarded_count=total_tables - tables_processed,
                 )
 
-            # Read table
-            df = AdapterFactory.read_file(file_path, sheet=table)
+            # Read table - use 'table' parameter for cross-adapter compatibility
+            df = AdapterFactory.read_file(file_path, table=table)
 
             # Apply column mappings if provided
             if config.column_mappings:

@@ -40,7 +40,7 @@ export function SelectionPanel({ runId }: SelectionPanelProps) {
 
   const scanMutation = useMutation({
     mutationFn: async (path: string) => {
-      const response = await debugFetch(`/api/dat/runs/${runId}/stages/selection/scan`, {
+      const response = await debugFetch(`/api/dat/v1/runs/${runId}/stages/selection/scan`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ folder_path: path }),
@@ -65,10 +65,25 @@ export function SelectionPanel({ runId }: SelectionPanelProps) {
     },
   })
 
+  const discoveryMutation = useMutation({
+    mutationFn: async (path: string) => {
+      const response = await debugFetch(`/api/dat/v1/runs/${runId}/stages/discovery/lock`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folder_path: path }),
+      })
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`Failed to lock discovery: ${response.status} - ${errorText}`)
+      }
+      return response.json()
+    },
+  })
+
   const lockMutation = useMutation({
     mutationFn: async () => {
       const filesToLock = Array.from(selectedFiles)
-      const response = await debugFetch(`/api/dat/runs/${runId}/stages/selection/lock`, {
+      const response = await debugFetch(`/api/dat/v1/runs/${runId}/stages/selection/lock`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ selected_files: filesToLock }),
@@ -87,6 +102,19 @@ export function SelectionPanel({ runId }: SelectionPanelProps) {
   const handleScan = () => {
     if (folderPath.trim()) {
       scanMutation.mutate(folderPath)
+    }
+  }
+
+  const handleContinue = async () => {
+    if (selectedFiles.size === 0) return
+    
+    try {
+      // Per ADR-0001-DAT: Discovery must be locked before Selection
+      await discoveryMutation.mutateAsync(folderPath)
+      // After discovery succeeds, lock selection
+      lockMutation.mutate()
+    } catch (error) {
+      console.error('Failed to lock discovery:', error)
     }
   }
 
@@ -260,11 +288,11 @@ export function SelectionPanel({ runId }: SelectionPanelProps) {
           )}
         </div>
         <button
-          onClick={() => lockMutation.mutate()}
-          disabled={selectedFiles.size === 0 || lockMutation.isPending}
+          onClick={handleContinue}
+          disabled={selectedFiles.size === 0 || lockMutation.isPending || discoveryMutation.isPending}
           className="px-6 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
         >
-          {lockMutation.isPending ? (
+          {lockMutation.isPending || discoveryMutation.isPending ? (
             <Loader2 className="w-5 h-5 animate-spin" />
           ) : (
             'Continue'

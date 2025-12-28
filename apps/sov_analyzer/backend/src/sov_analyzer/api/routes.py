@@ -1,5 +1,6 @@
 """SOV API routes.
 
+Per ADR-0029: All routes use versioned /v1/ prefix.
 Per API-003: Error responses MUST use standard error schema.
 """
 from fastapi import APIRouter, HTTPException, Request
@@ -25,7 +26,8 @@ from .schemas import (
     ExportRequest,
 )
 
-router = APIRouter()
+# Per ADR-0029: Tool-specific routes use /v1/ prefix
+router = APIRouter(prefix="/v1")
 manager = AnalysisManager()
 
 TOOL_NAME = "sov"
@@ -58,7 +60,7 @@ def _raise_error(
     )
 
 
-@router.post("/v1/analyses", response_model=CreateAnalysisResponse)
+@router.post("/analyses", response_model=CreateAnalysisResponse)
 async def create_analysis(request: CreateAnalysisRequest):
     """Create a new SOV analysis."""
     analysis = await manager.create_analysis(
@@ -74,7 +76,7 @@ async def create_analysis(request: CreateAnalysisRequest):
     )
 
 
-@router.get("/v1/analyses")
+@router.get("/analyses")
 async def list_analyses(
     limit: int = 50,
     cursor: str | None = None,
@@ -115,7 +117,7 @@ async def list_analyses(
     }
 
 
-@router.get("/v1/analyses/{analysis_id}")
+@router.get("/analyses/{analysis_id}")
 async def get_analysis(analysis_id: str):
     """Get SOV analysis details."""
     analysis = await manager.get_analysis(analysis_id)
@@ -150,7 +152,7 @@ async def get_analysis(analysis_id: str):
     )
 
 
-@router.post("/v1/analyses/{analysis_id}/run")
+@router.post("/analyses/{analysis_id}/run")
 async def run_analysis(analysis_id: str, request: RunAnalysisRequest):
     """Run ANOVA analysis."""
     analysis = await manager.get_analysis(analysis_id)
@@ -209,7 +211,7 @@ async def run_analysis(analysis_id: str, request: RunAnalysisRequest):
         )
 
 
-@router.post("/v1/analyses/{analysis_id}/export")
+@router.post("/analyses/{analysis_id}/export")
 async def export_dataset(analysis_id: str, request: ExportRequest):
     """Export analysis results as DataSet."""
     try:

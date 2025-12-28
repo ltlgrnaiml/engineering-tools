@@ -15,7 +15,8 @@ class ExcelAdapter:
     
     @staticmethod
     def read(path: Path, **options) -> pl.DataFrame:
-        sheet = options.get("sheet", 0)
+        # Support both "table" (from routes) and "sheet" parameter names
+        sheet = options.get("table") or options.get("sheet", 0)
         return pl.read_excel(path, sheet_name=sheet)
     
     @staticmethod

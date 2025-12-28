@@ -12,14 +12,14 @@ export interface DATRun {
 }
 
 async function fetchRun(runId: string): Promise<DATRun> {
-  const response = await fetch(`/api/dat/runs/${runId}`)
+  const response = await fetch(`/api/dat/v1/runs/${runId}`)
   if (!response.ok) throw new Error('Failed to fetch run')
   return response.json()
 }
 
 async function createNewRun(): Promise<DATRun> {
   console.log('Creating new run...')
-  const response = await fetch('/api/dat/runs', {
+  const response = await fetch('/api/dat/v1/runs', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({}),
@@ -64,7 +64,7 @@ export function useStageAction(runId: string) {
 
   const lockStage = useMutation({
     mutationFn: async ({ stage, data }: { stage: string; data: unknown }) => {
-      const response = await fetch(`/api/dat/runs/${runId}/stages/${stage}/lock`, {
+      const response = await fetch(`/api/dat/v1/runs/${runId}/stages/${stage}/lock`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -79,7 +79,7 @@ export function useStageAction(runId: string) {
 
   const unlockStage = useMutation({
     mutationFn: async (stage: string) => {
-      const response = await fetch(`/api/dat/runs/${runId}/stages/${stage}/unlock`, {
+      const response = await fetch(`/api/dat/v1/runs/${runId}/stages/${stage}/unlock`, {
         method: 'POST',
       })
       if (!response.ok) throw new Error('Failed to unlock stage')

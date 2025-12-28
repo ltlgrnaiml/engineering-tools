@@ -1,6 +1,6 @@
 """DAT API routes.
 
-Per API-001: All routes use versioned /v1/ prefix.
+Per ADR-0029: All routes use versioned /v1/ prefix.
 Per ADR-0013: Cancellation events are logged for audit.
 """
 from datetime import datetime, timezone
@@ -39,8 +39,8 @@ from .schemas import (
     PreviewResponse,
 )
 
-# Router without versioning per project decision
-router = APIRouter()
+# Per ADR-0029: Tool-specific routes use /v1/ prefix
+router = APIRouter(prefix="/v1")
 run_manager = RunManager()
 
 # Track active cancellation tokens
@@ -178,6 +178,82 @@ async def get_stage_status(run_id: str, stage: str):
         completed=status.completed,
         error=status.error,
     )
+
+
+@router.post("/runs/{run_id}/stages/discovery/lock")
+async def lock_discovery(run_id: str, request: ScanRequest):
+    """Lock discovery stage - scan for files in a folder.
+    
+    Per ADR-0001-DAT: Discovery is the first stage and must be locked before Selection.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    # Verify run exists
+    run = await run_manager.get_run(run_id)
+    if not run:
+        raise HTTPException(status_code=404, detail="Run not found")
+    
+    sm = run_manager.get_state_machine(run_id)
+    
+    # Handle both Windows and Unix paths
+    folder_path = request.folder_path.strip().replace('\\', '/')
+    source_path = Path(folder_path)
+    
+    if not source_path.exists():
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Path does not exist: {folder_path}"
+        )
+    
+    if not source_path.is_dir():
+        raise HTTPException(
+            status_code=400,
+            detail=f"Path is not a directory: {folder_path}"
+        )
+    
+    # Discover files
+    from ..stages.discovery import execute_discovery
+    from ..stages.discovery import DiscoveryConfig
+    
+    try:
+        config = DiscoveryConfig(root_path=source_path)
+        
+        async def execute():
+            result = await execute_discovery(run_id, config)
+            return {
+                "discovery_id": result.discovery_id,
+                "root_path": result.root_path,
+                "files": [
+                    {
+                        "path": str(f.path),
+                        "name": f.name,
+                        "extension": f.extension,
+                        "size_bytes": f.size_bytes,
+                    }
+                    for f in result.files
+                ],
+                "total_files": result.total_files,
+                "supported_files": result.supported_files,
+                "completed": result.completed,
+            }
+        
+        inputs = {"root_path": str(source_path)}
+        status = await sm.lock_stage(Stage.DISCOVERY, inputs=inputs, execute_fn=execute)
+        
+        artifact = await sm.store.get_artifact(run_id, Stage.DISCOVERY, status.stage_id)
+        return {
+            "discovery_id": artifact.get("discovery_id"),
+            "root_path": artifact.get("root_path"),
+            "files": artifact.get("files", []),
+            "total_files": artifact.get("total_files", 0),
+            "supported_files": artifact.get("supported_files", 0),
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error locking discovery: {e}")
+        raise HTTPException(status_code=400, detail=f"Error scanning directory: {str(e)}")
 
 
 @router.post("/runs/{run_id}/stages/selection/scan")
@@ -527,7 +603,13 @@ async def list_profiles():
 
 @router.get("/runs/{run_id}/stages/table_availability/scan")
 async def scan_table_availability(run_id: str):
-    """Scan for available tables from selected files."""
+    """Scan for available tables from selected files.
+    
+    Per ADR-0006: Table availability must show actual row/column counts.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     sm = run_manager.get_state_machine(run_id)
     
     # Get selection result
@@ -538,29 +620,49 @@ async def scan_table_availability(run_id: str):
     selection_artifact = await sm.store.get_artifact(run_id, Stage.SELECTION, selection_status.stage_id)
     selected_files = selection_artifact.get("selected_files", [])
     
-    # Get tables from selected files
+    # Get tables from selected files with actual row/column counts
     from ..adapters.factory import AdapterFactory
     tables = []
     for file_path in selected_files:
         try:
             file_tables = AdapterFactory.get_tables(Path(file_path))
             for table in file_tables:
+                # Get actual row and column counts from preview
+                try:
+                    preview_df = AdapterFactory.get_preview(Path(file_path), table=table, rows=1)
+                    # For row count, we need to read full table metadata
+                    # Use adapter to get shape info without loading all data
+                    adapter = AdapterFactory.get_adapter(Path(file_path))
+                    full_df = adapter.read(Path(file_path), table=table)
+                    row_count = len(full_df)
+                    column_count = len(full_df.columns)
+                except Exception as e:
+                    logger.warning(f"Could not get counts for table {table} in {file_path}: {e}")
+                    row_count = 0
+                    column_count = 0
+                
                 tables.append({
                     "name": table,
                     "file": file_path,
-                    "available": True,
-                    "row_count": 0,
-                    "column_count": 0,
+                    "available": row_count > 0 or column_count > 0,
+                    "row_count": row_count,
+                    "column_count": column_count,
                 })
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Could not get tables from {file_path}: {e}")
     
     return tables
 
 
 @router.post("/runs/{run_id}/stages/table_availability/lock")
 async def lock_table_availability(run_id: str):
-    """Lock table availability stage with discovered tables."""
+    """Lock table availability stage with discovered tables.
+    
+    Per ADR-0006: Table availability must show actual row/column counts.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     sm = run_manager.get_state_machine(run_id)
     
     # Get selection result
@@ -571,22 +673,33 @@ async def lock_table_availability(run_id: str):
     selection_artifact = await sm.store.get_artifact(run_id, Stage.SELECTION, selection_status.stage_id)
     selected_files = selection_artifact.get("selected_files", [])
     
-    # Discover tables from selected files
+    # Discover tables from selected files with actual row/column counts
     from ..adapters.factory import AdapterFactory
     tables = []
     for file_path in selected_files:
         try:
             file_tables = AdapterFactory.get_tables(Path(file_path))
             for table in file_tables:
+                # Get actual row and column counts
+                try:
+                    adapter = AdapterFactory.get_adapter(Path(file_path))
+                    full_df = adapter.read(Path(file_path), table=table)
+                    row_count = len(full_df)
+                    column_count = len(full_df.columns)
+                except Exception as e:
+                    logger.warning(f"Could not get counts for table {table}: {e}")
+                    row_count = 0
+                    column_count = 0
+                
                 tables.append({
                     "name": table,
                     "file": file_path,
-                    "available": True,
-                    "row_count": 0,
-                    "column_count": 0,
+                    "available": row_count > 0 or column_count > 0,
+                    "row_count": row_count,
+                    "column_count": column_count,
                 })
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Could not get tables from {file_path}: {e}")
     
     async def execute():
         return {
@@ -645,39 +758,71 @@ async def unlock_stage(run_id: str, stage: str):
 
 @router.post("/runs/{run_id}/stages/preview/lock")
 async def lock_preview(run_id: str):
-    """Lock preview stage with generated preview data."""
+    """Lock preview stage with generated preview data from selected tables.
+    
+    Per ADR-0001-DAT: Preview is an optional stage BEFORE Parse.
+    It shows a preview of selected tables to verify data before parsing.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     sm = run_manager.get_state_machine(run_id)
     
-    # Get parse result for preview generation
-    parse_status = await sm.store.get_stage_status(run_id, Stage.PARSE)
-    if parse_status.state != StageState.LOCKED:
-        raise HTTPException(status_code=400, detail="Parse stage must be locked first")
+    # Get table selection result (Preview comes AFTER Table Selection, BEFORE Parse)
+    table_sel_status = await sm.store.get_stage_status(run_id, Stage.TABLE_SELECTION)
+    if table_sel_status.state != StageState.LOCKED:
+        raise HTTPException(status_code=400, detail="Table Selection stage must be locked first")
     
-    parse_artifact = await sm.store.get_artifact(run_id, Stage.PARSE, parse_status.stage_id)
-    if not parse_artifact:
-        raise HTTPException(status_code=400, detail="Parse artifact not found")
+    table_sel_artifact = await sm.store.get_artifact(run_id, Stage.TABLE_SELECTION, table_sel_status.stage_id)
+    if not table_sel_artifact:
+        raise HTTPException(status_code=400, detail="Table Selection artifact not found")
     
     async def execute():
-        # Generate preview data from parse results
+        # Generate preview data from selected tables
+        from ..adapters.factory import AdapterFactory
         import polars as pl
-        output_path = Path(parse_artifact["output_path"])
-        data = pl.read_parquet(output_path)
         
-        preview_rows = 100
-        preview_data = data.head(preview_rows)
+        selected_tables = table_sel_artifact.get("selected_tables", {})
+        all_rows = []
+        all_columns = set()
+        
+        preview_rows_per_table = 20  # Limit per table
+        
+        for file_path, tables in selected_tables.items():
+            for table_name in tables[:5]:  # Limit tables per file
+                try:
+                    adapter = AdapterFactory.get_adapter(Path(file_path))
+                    df = adapter.read(Path(file_path), table=table_name)
+                    
+                    if len(df) > 0:
+                        preview_df = df.head(preview_rows_per_table)
+                        rows = preview_df.to_dicts()
+                        
+                        # Add source info to each row
+                        for row in rows:
+                            row["_source_table"] = table_name
+                            row["_source_file"] = Path(file_path).name
+                        
+                        all_rows.extend(rows)
+                        all_columns.update(preview_df.columns)
+                except Exception as e:
+                    logger.warning(f"Could not preview {table_name} from {file_path}: {e}")
+        
+        # Ensure consistent column order
+        columns = ["_source_file", "_source_table"] + sorted(all_columns - {"_source_file", "_source_table"})
         
         return {
             "preview_data": {
-                "columns": preview_data.columns,
-                "rows": preview_data.to_dicts(),
-                "row_count": len(preview_data),
-                "total_rows": len(data)
+                "columns": columns,
+                "rows": all_rows[:100],  # Total limit
+                "row_count": min(len(all_rows), 100),
+                "total_rows": len(all_rows)
             },
             "completed": True
         }
     
     try:
-        inputs = {"parse_artifact_id": parse_status.stage_id}
+        inputs = {"table_selection_id": table_sel_status.stage_id}
         status = await sm.lock_stage(Stage.PREVIEW, inputs=inputs, execute_fn=execute)
         return {"status": "locked", "stage_id": status.stage_id}
     except ValueError as e:

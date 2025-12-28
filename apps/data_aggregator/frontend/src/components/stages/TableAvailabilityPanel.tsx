@@ -21,7 +21,7 @@ export function TableAvailabilityPanel({ runId }: TableAvailabilityPanelProps) {
   const { data: tables, isLoading } = useQuery({
     queryKey: ['dat-tables', runId],
     queryFn: async (): Promise<TableInfo[]> => {
-      const response = await debugFetch(`/api/dat/runs/${runId}/stages/table_availability/scan`)
+      const response = await debugFetch(`/api/dat/v1/runs/${runId}/stages/table_availability/scan`)
       if (!response.ok) throw new Error('Failed to scan tables')
       return response.json()
     },
@@ -29,7 +29,7 @@ export function TableAvailabilityPanel({ runId }: TableAvailabilityPanelProps) {
 
   const lockMutation = useMutation({
     mutationFn: async () => {
-      const response = await debugFetch(`/api/dat/runs/${runId}/stages/table_availability/lock`, {
+      const response = await debugFetch(`/api/dat/v1/runs/${runId}/stages/table_availability/lock`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       })

@@ -21,7 +21,7 @@ async function fetchDatasets(options?: UseDataSetsOptions): Promise<DataSetRef[]
   if (options?.tool) params.set('tool', options.tool)
   if (options?.limit) params.set('limit', String(options.limit))
 
-  const response = await fetch(`/api/datasets/v1/?${params}`)
+  const response = await fetch(`/api/v1/datasets?${params}`)
   if (!response.ok) throw new Error('Failed to fetch datasets')
   return response.json()
 }
@@ -38,7 +38,7 @@ export function useDataSetPreview(datasetId: string, rows: number = 100) {
   return useQuery({
     queryKey: ['dataset-preview', datasetId, rows],
     queryFn: async () => {
-      const response = await fetch(`/api/datasets/v1/${datasetId}/preview?rows=${rows}`)
+      const response = await fetch(`/api/v1/datasets/${datasetId}/preview?rows=${rows}`)
       if (!response.ok) throw new Error('Failed to fetch preview')
       return response.json()
     },

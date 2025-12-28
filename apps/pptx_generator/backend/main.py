@@ -71,18 +71,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Per ADR-0029: Health endpoints are unversioned
 app.include_router(health.router, tags=["health"])
 app.include_router(health.router, prefix="/api", tags=["health"])
-app.include_router(projects.router, prefix="/api/projects", tags=["projects"])
-app.include_router(templates.router, prefix="/api/templates", tags=["templates"])
-app.include_router(data.router, prefix="/api/data", tags=["data"])
-app.include_router(dataset_input.router, prefix="/api/data", tags=["dataset-input"])
-app.include_router(generation.router, prefix="/api/generation", tags=["generation"])
-app.include_router(requirements.router, prefix="/api/requirements", tags=["requirements"])
-app.include_router(config.router, prefix="/api/config", tags=["config"])
-app.include_router(config_defaults.router, prefix="/api", tags=["config"])
-app.include_router(data_operations.router, prefix="/api", tags=["data-operations"])
-app.include_router(preview.router, prefix="/api/preview", tags=["preview"])
+# Per ADR-0029: All other routes use /v1/ prefix
+app.include_router(projects.router, prefix="/api/v1/projects", tags=["projects"])
+app.include_router(templates.router, prefix="/api/v1/templates", tags=["templates"])
+app.include_router(data.router, prefix="/api/v1/data", tags=["data"])
+app.include_router(dataset_input.router, prefix="/api/v1/data", tags=["dataset-input"])
+app.include_router(generation.router, prefix="/api/v1/generation", tags=["generation"])
+app.include_router(requirements.router, prefix="/api/v1/requirements", tags=["requirements"])
+app.include_router(config.router, prefix="/api/v1/config", tags=["config"])
+app.include_router(config_defaults.router, prefix="/api/v1", tags=["config"])
+app.include_router(data_operations.router, prefix="/api/v1", tags=["data-operations"])
+app.include_router(preview.router, prefix="/api/v1/preview", tags=["preview"])
 
 
 logger = logging.getLogger(__name__)

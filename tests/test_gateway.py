@@ -50,7 +50,7 @@ class TestHealthEndpoint:
 
 
 class TestDataSetEndpoints:
-    """Tests for /api/datasets endpoints."""
+    """Tests for /api/v1/datasets/ endpoints."""
 
     @pytest.fixture
     def client(self):
@@ -85,7 +85,7 @@ class TestDataSetEndpoints:
 
 
 class TestPipelineEndpoints:
-    """Tests for /api/pipelines endpoints."""
+    """Tests for /api/v1/pipelines endpoints."""
 
     @pytest.fixture
     def client(self):

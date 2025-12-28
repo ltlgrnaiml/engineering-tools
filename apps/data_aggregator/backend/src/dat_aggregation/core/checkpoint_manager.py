@@ -145,7 +145,7 @@ class CheckpointManager:
         now = datetime.now(timezone.utc)
         progress_pct = None
         if items_total and items_total > 0:
-            progress_pct = (items_completed / items_total) * 100
+            progress_pct = min((items_completed / items_total) * 100, 100.0)  # Cap at 100%
 
         data_hash = self._compute_data_hash(data_for_hash) if data_for_hash else ""
 

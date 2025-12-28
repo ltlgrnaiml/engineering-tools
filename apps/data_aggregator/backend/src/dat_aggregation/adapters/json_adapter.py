@@ -32,7 +32,8 @@ class JSONAdapter:
         with open(path, encoding="utf-8") as f:
             data = json.load(f)
         
-        json_path = options.get("json_path")
+        # Support both "table" (from routes) and "json_path" parameter names
+        json_path = options.get("table") or options.get("json_path")
         headers_key = options.get("headers_key")
         data_key = options.get("data_key")
         
@@ -40,16 +41,11 @@ class JSONAdapter:
             data = JSONAdapter._extract_path(data, json_path)
         
         if headers_key and data_key:
-            # Headers + data format (2D array)
+            # Headers + data format (2D array) - explicit keys provided
             return JSONAdapter._from_headers_data(data, headers_key, data_key)
-        elif isinstance(data, list):
-            # List of objects
-            return pl.DataFrame(data)
-        elif isinstance(data, dict):
-            # Single object - wrap as list
-            return pl.DataFrame([data])
-        else:
-            return pl.DataFrame()
+        
+        # Auto-detect common data patterns
+        return JSONAdapter._auto_parse_structure(data)
     
     @staticmethod
     def get_tables(path: Path) -> list[str]:
@@ -134,6 +130,75 @@ class JSONAdapter:
         
         # Build DataFrame from 2D array
         return pl.DataFrame(rows, schema=headers, orient="row")
+    
+    @staticmethod
+    def _auto_parse_structure(data: Any) -> pl.DataFrame:
+        """Auto-detect and parse common JSON data patterns.
+        
+        Supports:
+        - {columns: [...], values: [...]} - column names + 2D array
+        - {columns: [...], data: [...]} - same pattern
+        - {headers: [...], bins: [...]} - histogram format
+        - {headers: [...], rows: [...]} - row-based format
+        - [{headers: [...], bins: [...]}] - array of histogram objects
+        - [obj1, obj2, ...] - array of flat objects
+        - {key: value, ...} - single flat object
+        """
+        if isinstance(data, dict):
+            # Check for columns + values/data pattern
+            if "columns" in data:
+                for data_key in ["values", "data", "rows"]:
+                    if data_key in data:
+                        return JSONAdapter._from_headers_data(data, "columns", data_key)
+            
+            # Check for headers + various data patterns
+            if "headers" in data:
+                for data_key in ["bins", "rows", "values", "data", "items"]:
+                    if data_key in data:
+                        return JSONAdapter._from_headers_data(data, "headers", data_key)
+            
+            # Single flat object - convert to single-row DataFrame
+            return pl.DataFrame([data])
+        
+        elif isinstance(data, list) and data:
+            first = data[0]
+            
+            # Array of objects with headers+data structure
+            if isinstance(first, dict):
+                # Check if items have headers+data pattern
+                if "headers" in first:
+                    for data_key in ["bins", "rows", "values", "data", "items"]:
+                        if data_key in first:
+                            return JSONAdapter._from_headers_data(data, "headers", data_key)
+                
+                if "columns" in first:
+                    for data_key in ["values", "data", "rows"]:
+                        if data_key in first:
+                            return JSONAdapter._from_headers_data(data, "columns", data_key)
+                
+                # Plain array of objects - try to flatten, handle mixed types gracefully
+                try:
+                    # Filter to only include simple scalar values
+                    flat_data = []
+                    for item in data:
+                        flat_item = {
+                            k: v for k, v in item.items()
+                            if not isinstance(v, (dict, list))
+                        }
+                        if flat_item:
+                            flat_data.append(flat_item)
+                    
+                    if flat_data:
+                        return pl.DataFrame(flat_data)
+                except Exception:
+                    pass
+                
+                return pl.DataFrame()
+            
+            # Array of primitives or arrays
+            return pl.DataFrame({"value": data})
+        
+        return pl.DataFrame()
     
     @staticmethod
     def _find_tables(data: Any, path: str, tables: list[str], depth: int = 0) -> None:

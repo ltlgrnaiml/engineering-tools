@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FileSpreadsheet, ChevronRight, Loader2 } from 'lucide-react'
+import { FileSpreadsheet, ChevronRight, Loader2, ArrowLeft } from 'lucide-react'
 import { SelectionPanel } from './components/stages/SelectionPanel'
 import { ContextPanel } from './components/stages/ContextPanel'
 import { TableAvailabilityPanel } from './components/stages/TableAvailabilityPanel'
@@ -7,17 +7,17 @@ import { TableSelectionPanel } from './components/stages/TableSelectionPanel'
 import { PreviewPanel } from './components/stages/PreviewPanel'
 import { ParsePanel } from './components/stages/ParsePanel'
 import { ExportPanel } from './components/stages/ExportPanel'
-import { useRun } from './hooks/useRun'
+import { useRun, useStageAction } from './hooks/useRun'
 import { DebugProvider, DebugPanel } from './components/debug'
 
 type Stage = 'selection' | 'context' | 'table_availability' | 'table_selection' | 'preview' | 'parse' | 'export'
 
-const stages: { id: Stage; label: string }[] = [
+const stages: { id: Stage; label: string; optional?: boolean }[] = [
   { id: 'selection', label: 'File Selection' },
-  { id: 'context', label: 'Context' },
+  { id: 'context', label: 'Context', optional: true },
   { id: 'table_availability', label: 'Table Availability' },
   { id: 'table_selection', label: 'Table Selection' },
-  { id: 'preview', label: 'Preview' },
+  { id: 'preview', label: 'Preview', optional: true },
   { id: 'parse', label: 'Parse' },
   { id: 'export', label: 'Export' },
 ]
@@ -25,6 +25,7 @@ const stages: { id: Stage; label: string }[] = [
 function App() {
   const [runId, setRunId] = useState<string | null>(null)
   const { run, isLoading, createRun } = useRun(runId)
+  const { unlockStage } = useStageAction(runId || '')
 
   const handleCreateRun = async () => {
     const newRun = await createRun()
@@ -33,6 +34,27 @@ function App() {
 
   const currentStage = run?.current_stage || 'selection'
   const stageIndex = stages.findIndex(s => s.id === currentStage)
+
+  // Handle navigating back to a previous stage (per ADR-0001: backward cascade)
+  const handleNavigateToStage = async (targetStageId: Stage) => {
+    const targetIndex = stages.findIndex(s => s.id === targetStageId)
+    if (targetIndex < stageIndex && runId) {
+      // Unlock the target stage (cascades downstream per ADR-0001-DAT)
+      try {
+        await unlockStage.mutateAsync(targetStageId)
+      } catch (error) {
+        console.error('Failed to navigate back:', error)
+      }
+    }
+  }
+
+  // Handle going back one step
+  const handleBack = () => {
+    if (stageIndex > 0) {
+      const prevStage = stages[stageIndex - 1]
+      handleNavigateToStage(prevStage.id)
+    }
+  }
 
   return (
     <DebugProvider>
@@ -58,16 +80,22 @@ function App() {
               const isActive = stage.id === currentStage
               const isCompleted = idx < stageIndex
               const isLocked = idx > stageIndex
+              const canNavigate = isCompleted && runId
 
               return (
-                <div
+                <button
                   key={stage.id}
+                  onClick={() => canNavigate && handleNavigateToStage(stage.id)}
+                  disabled={!canNavigate && !isActive}
                   className={`
-                    flex items-center gap-3 px-3 py-2 rounded-lg text-sm
+                    w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-left
                     ${isActive ? 'bg-emerald-50 text-emerald-700 font-medium' : ''}
-                    ${isCompleted ? 'text-slate-700' : ''}
-                    ${isLocked ? 'text-slate-400' : ''}
+                    ${isCompleted ? 'text-slate-700 hover:bg-slate-50 cursor-pointer' : ''}
+                    ${isLocked ? 'text-slate-400 cursor-not-allowed' : ''}
+                    ${canNavigate ? 'hover:bg-emerald-50' : ''}
+                    transition-colors
                   `}
+                  title={canNavigate ? `Go back to ${stage.label}` : undefined}
                 >
                   <div className={`
                     w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium
@@ -77,9 +105,12 @@ function App() {
                   `}>
                     {isCompleted ? '✓' : idx + 1}
                   </div>
-                  <span>{stage.label}</span>
-                  {isActive && <ChevronRight className="w-4 h-4 ml-auto" />}
-                </div>
+                  <span className="flex-1">{stage.label}</span>
+                  {stage.optional && (
+                    <span className="text-xs text-slate-400">(optional)</span>
+                  )}
+                  {isActive && <ChevronRight className="w-4 h-4" />}
+                </button>
               )
             })}
           </nav>
@@ -107,6 +138,17 @@ function App() {
             </div>
           ) : (
             <div className="max-w-4xl">
+              {/* Back Button - shown for all stages except first */}
+              {stageIndex > 0 && (
+                <button
+                  onClick={handleBack}
+                  className="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-4 transition-colors"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>Back to {stages[stageIndex - 1]?.label}</span>
+                </button>
+              )}
+              
               {currentStage === 'selection' && <SelectionPanel runId={runId} />}
               {currentStage === 'context' && <ContextPanel runId={runId} />}
               {currentStage === 'table_availability' && <TableAvailabilityPanel runId={runId} />}
