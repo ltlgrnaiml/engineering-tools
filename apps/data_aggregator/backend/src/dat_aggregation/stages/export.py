@@ -1,8 +1,10 @@
 """Export stage - create DataSet from parsed data.
 
 Per ADR-0014: Output as Parquet with JSON manifest.
+Multi-format export support: Parquet (default), CSV, Excel.
 """
 from datetime import datetime, timezone
+from enum import Enum
 from pathlib import Path
 
 import polars as pl
@@ -14,6 +16,13 @@ from shared.utils.stage_id import compute_dataset_id
 from .parse import ParseResult
 
 
+class ExportFormat(str, Enum):
+    """Supported export formats per ADR-0014."""
+    PARQUET = "parquet"  # Default, best for data pipelines
+    CSV = "csv"          # Universal compatibility
+    EXCEL = "excel"      # .xlsx for business users
+
+
 async def execute_export(
     run_id: str,
     parse_result: ParseResult,
@@ -21,19 +30,25 @@ async def execute_export(
     description: str | None = None,
     aggregation_levels: list[str] | None = None,
     profile_id: str | None = None,
+    export_format: ExportFormat = ExportFormat.PARQUET,
+    additional_formats: list[ExportFormat] | None = None,
 ) -> DataSetManifest:
     """Export parsed data as a shareable DataSet.
-    
+
+    Per ADR-0014: Default is Parquet, with optional CSV and Excel.
+
     Args:
-        run_id: DAT run ID
-        parse_result: Result from parse stage
-        name: Optional name for the DataSet
-        description: Optional description
-        aggregation_levels: Optional levels used for aggregation
-        profile_id: Optional extraction profile ID
-        
+        run_id: DAT run ID.
+        parse_result: Result from parse stage.
+        name: Optional name for the DataSet.
+        description: Optional description.
+        aggregation_levels: Optional levels used for aggregation.
+        profile_id: Optional extraction profile ID.
+        export_format: Primary export format (default: Parquet).
+        additional_formats: Optional additional formats to export.
+
     Returns:
-        DataSetManifest for the created DataSet
+        DataSetManifest for the created DataSet.
     """
     data = parse_result.data
     
@@ -91,5 +106,31 @@ async def execute_export(
     # Write to shared storage
     store = ArtifactStore()
     await store.write_dataset(dataset_id, data, manifest)
-    
+
+    # Export additional formats if requested
+    all_formats = [export_format]
+    if additional_formats:
+        all_formats.extend(additional_formats)
+
+    export_paths: dict[str, str] = {}
+    base_path = store.get_dataset_path(dataset_id)
+
+    for fmt in all_formats:
+        if fmt == ExportFormat.PARQUET:
+            # Already written by store.write_dataset
+            export_paths["parquet"] = str(base_path / f"{dataset_id}.parquet")
+        elif fmt == ExportFormat.CSV:
+            csv_path = base_path / f"{dataset_id}.csv"
+            data.write_csv(csv_path)
+            export_paths["csv"] = str(csv_path)
+        elif fmt == ExportFormat.EXCEL:
+            xlsx_path = base_path / f"{dataset_id}.xlsx"
+            data.write_excel(xlsx_path)
+            export_paths["xlsx"] = str(xlsx_path)
+
+    # Add export paths to manifest metadata
+    manifest.metadata = manifest.metadata or {}
+    manifest.metadata["export_paths"] = export_paths
+    manifest.metadata["export_formats"] = [f.value for f in all_formats]
+
     return manifest

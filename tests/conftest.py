@@ -31,7 +31,7 @@ def temp_workspace() -> Generator[Path, None, None]:
 @pytest.fixture
 def artifact_store(temp_workspace: Path) -> ArtifactStore:
     """Create an ArtifactStore with a temporary workspace."""
-    return ArtifactStore(workspace_root=temp_workspace)
+    return ArtifactStore(workspace_path=temp_workspace)
 
 
 @pytest_asyncio.fixture

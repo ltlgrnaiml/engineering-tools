@@ -5,16 +5,25 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, status
 
 from apps.pptx_generator.backend.models.project import Project, ProjectCreate, ProjectStatus
+from apps.pptx_generator.backend.core.workflow_fsm import (
+    WorkflowState,
+    WorkflowFSM,
+    WorkflowStep,
+    create_workflow_state,
+)
 
 router = APIRouter()
 
 projects_db: dict[UUID, Project] = {}
+workflow_states_db: dict[UUID, WorkflowState] = {}
 
 
 @router.post("", response_model=Project, status_code=status.HTTP_201_CREATED)
 async def create_project(project_data: ProjectCreate) -> Project:
     """
     Create a new PowerPoint generation project.
+
+    Per ADR-0019: Creates workflow state for 7-step guided workflow.
 
     Args:
         project_data: Project creation data.
@@ -27,18 +36,32 @@ async def create_project(project_data: ProjectCreate) -> Project:
         description=project_data.description,
     )
     projects_db[project.id] = project
+
+    # Initialize workflow state per ADR-0019
+    workflow_states_db[project.id] = create_workflow_state(project.id)
+
     return project
 
 
 @router.get("", response_model=list[Project])
-async def list_projects() -> list[Project]:
+async def list_projects(
+    limit: int = 50,
+    offset: int = 0,
+) -> list[Project]:
     """
-    List all projects.
+    List all projects with pagination.
+
+    Args:
+        limit: Maximum number of projects to return (default 50).
+        offset: Number of projects to skip (default 0).
 
     Returns:
-        List[Project]: List of all projects.
+        List[Project]: List of projects.
     """
-    return list(projects_db.values())
+    projects = list(projects_db.values())
+    # Sort by created_at descending
+    projects.sort(key=lambda p: p.created_at, reverse=True)
+    return projects[offset:offset + limit]
 
 
 @router.get("/{project_id}", response_model=Project)
@@ -209,4 +232,60 @@ async def clear_project_state(project_id: UUID, step_name: str) -> dict:
         "cleared_from": step_name,
         "artifacts_cleared": cleared,
         "new_status": project.status,
+    }
+
+
+@router.get("/{project_id}/workflow-state")
+async def get_workflow_state(project_id: UUID) -> dict:
+    """Get workflow FSM state for a project per ADR-0019.
+
+    Returns the backend workflow state for frontend consumption.
+
+    Args:
+        project_id: Unique project identifier.
+
+    Returns:
+        Workflow state including current step, step statuses, and generation readiness.
+
+    Raises:
+        HTTPException: If project not found (404).
+    """
+    if project_id not in projects_db:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Project {project_id} not found",
+        )
+
+    from apps.pptx_generator.backend.core.workflow_fsm import check_generate_allowed
+
+    # Get workflow state if exists, otherwise create fresh state
+    if project_id in workflow_states_db:
+        state = workflow_states_db[project_id]
+    else:
+        state = create_workflow_state(project_id)
+        workflow_states_db[project_id] = state
+
+    # Convert step statuses to dict
+    step_statuses = {
+        step.value: status.value
+        for step, status in state.step_statuses.items()
+    }
+
+    # Check if generation is allowed
+    can_generate, validation_msg = check_generate_allowed(state)
+    validation_errors = [validation_msg] if validation_msg else []
+
+    # Determine current step (first incomplete step)
+    current_step = "generate"
+    for step in WorkflowStep:
+        if state.step_statuses.get(step) != "completed":
+            current_step = step.value
+            break
+
+    return {
+        "project_id": str(project_id),
+        "current_step": current_step,
+        "step_statuses": step_statuses,
+        "can_generate": can_generate,
+        "validation_errors": validation_errors,
     }

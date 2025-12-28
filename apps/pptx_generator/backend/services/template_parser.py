@@ -6,6 +6,13 @@ from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE
 
 from apps.pptx_generator.backend.core.shape_name_parser import ValidationError, parse_shape_name
+from apps.pptx_generator.backend.core.shape_discovery import (
+    ShapeDiscoveryResult,
+    discover_shapes,
+    is_valid_shape_name,
+    parse_shape_name_adr0018,
+    ShapeNamingError,
+)
 from apps.pptx_generator.backend.models.drm import DerivedRequirementsManifest
 from apps.pptx_generator.backend.models.template import ShapeInfo, ShapeMap
 from apps.pptx_generator.backend.services.drm_extractor import DRMExtractorService
@@ -153,6 +160,49 @@ class TemplateParserService:
         """
         shape_map = await self.parse_template(template_path)
         return [shape.name for shape in shape_map.shapes]
+
+    async def discover_shapes_adr0018(
+        self,
+        template_path: Path,
+        required_shapes: list[str] | None = None,
+    ) -> ShapeDiscoveryResult:
+        """Discover shapes using ADR-0018 naming convention.
+
+        Per ADR-0018: Uses {category}_{identifier}[_{variant}] convention.
+        Regex: ^(text|chart|table|image|metric|dimension)_([a-zA-Z0-9]+)(?:_([a-zA-Z0-9]+))?$
+
+        Args:
+            template_path: Path to the PowerPoint template file.
+            required_shapes: Optional list of required shape names to validate.
+
+        Returns:
+            ShapeDiscoveryResult with discovered shapes, errors, and warnings.
+
+        Raises:
+            FileNotFoundError: If template file doesn't exist.
+            ValueError: If template file is invalid.
+        """
+        if not template_path.exists():
+            raise FileNotFoundError(f"Template file not found: {template_path}")
+
+        try:
+            prs = Presentation(str(template_path))
+        except Exception as e:
+            raise ValueError(f"Invalid PowerPoint template: {str(e)}") from e
+
+        # Use the ADR-0018 compliant shape discovery
+        result = discover_shapes(list(prs.slides))
+
+        # Validate required shapes if provided
+        if required_shapes:
+            from apps.pptx_generator.backend.core.shape_discovery import validate_required_shapes
+            missing, _ = validate_required_shapes(result, required_shapes)
+            if missing:
+                result.errors.extend([
+                    f"Missing required shape: {name}" for name in missing
+                ])
+
+        return result
 
     async def parse_template_v2(
         self, template_path: Path

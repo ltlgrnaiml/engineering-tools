@@ -1,8 +1,12 @@
-"""Plot renderer for generating and inserting visualizations."""
+"""Plot renderer for generating and inserting visualizations.
+
+Per ADR-0028: Renderers consume shared RenderSpec contracts.
+"""
 
 import io
 import logging
 from typing import Any
+from uuid import uuid4
 
 import matplotlib
 
@@ -10,6 +14,13 @@ matplotlib.use("Agg")  # Non-interactive backend
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+
+from shared.contracts.core.rendering import (
+    ChartSpec,
+    ChartType,
+    DataSeries,
+    HeatmapData,
+)
 
 from apps.pptx_generator.backend.core.shape_name_parser import ParsedShapeNameV2
 from apps.pptx_generator.backend.renderers.base import BaseRenderer, RenderContext
@@ -464,3 +475,76 @@ class PlotRenderer(BaseRenderer):
 
         except Exception as e:
             self.logger.error(f"[PLOT_INSERT] CRITICAL: Failed to insert image: {e}", exc_info=True)
+
+    def build_chart_spec(
+        self,
+        data: pd.DataFrame,
+        name: str,
+        chart_type: str,
+        metrics: list[str],
+        title: str | None = None,
+    ) -> ChartSpec:
+        """Build a ChartSpec from DataFrame per ADR-0028.
+
+        This method bridges the PPTX renderer with the shared rendering contract.
+
+        Args:
+            data: DataFrame containing data.
+            name: Spec name/identifier.
+            chart_type: Type of chart (contour, box, scatter, etc.).
+            metrics: Metric columns to plot.
+            title: Optional chart title.
+
+        Returns:
+            ChartSpec conforming to shared rendering contract.
+        """
+        # Map renderer type to ChartType enum
+        type_mapping = {
+            "contour": ChartType.CONTOUR,
+            "box": ChartType.BOX,
+            "scatter": ChartType.SCATTER,
+            "line": ChartType.LINE,
+            "bar": ChartType.BAR,
+            "hist": ChartType.HISTOGRAM,
+            "heatmap": ChartType.HEATMAP,
+            "stacked": ChartType.STACKED_BAR,
+        }
+        chart_type_enum = type_mapping.get(chart_type, ChartType.LINE)
+
+        # Build series from data
+        series: list[DataSeries] = []
+        for metric in metrics:
+            if metric in data.columns:
+                values = data[metric].dropna().tolist()
+                series.append(DataSeries(
+                    name=metric,
+                    values=values,
+                ))
+
+        # Handle heatmap data specially
+        heatmap_data = None
+        if chart_type_enum in [ChartType.HEATMAP, ChartType.CONTOUR]:
+            if len(metrics) >= 1 and metrics[0] in data.columns:
+                # Pivot data for heatmap
+                try:
+                    pivot = data.pivot_table(
+                        values=metrics[0],
+                        aggfunc="mean",
+                    )
+                    heatmap_data = HeatmapData(
+                        values=pivot.values.tolist(),
+                        row_labels=[str(r) for r in pivot.index.tolist()],
+                        column_labels=[str(c) for c in pivot.columns.tolist()],
+                    )
+                except Exception:
+                    pass
+
+        return ChartSpec(
+            spec_id=f"chart_{uuid4().hex[:8]}",
+            name=name,
+            title=title,
+            chart_type=chart_type_enum,
+            series=series,
+            heatmap_data=heatmap_data,
+            source_tool="pptx",
+        )

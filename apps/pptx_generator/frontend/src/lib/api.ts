@@ -575,6 +575,23 @@ export const previewApi = {
     return response.data
   },
 
+  // Per ADR-0019: Fetch backend workflow FSM state
+  getWorkflowState: async (projectId: string): Promise<{
+    project_id: string
+    current_step: string
+    step_statuses: Record<string, string>
+    can_generate: boolean
+    validation_errors: string[]
+  } | null> => {
+    try {
+      const response = await apiClient.get(`/projects/${projectId}/workflow-state`)
+      return response.data
+    } catch (error) {
+      console.warn('Workflow state not available:', error)
+      return null
+    }
+  },
+
   getGenerationSummary: async (projectId: string): Promise<{
     project_id: string
     project_name: string

@@ -72,6 +72,15 @@ class GenerationResponse(BaseModel):
     output_file_path: str | None = Field(None, description="Output file path")
     output_filename: str | None = Field(None, description="Output filename")
     error_message: str | None = Field(None, description="Error message if failed")
+    # Per ADR-0025: Lineage tracking
+    source_dataset_id: str | None = Field(
+        None,
+        description="Source DataSet ID for lineage tracking (per ADR-0025)",
+    )
+    template_id: str | None = Field(
+        None,
+        description="Template ID used for generation",
+    )
     started_at: datetime = Field(
         default_factory=datetime.utcnow,
         description="Start timestamp",

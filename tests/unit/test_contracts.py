@@ -82,9 +82,11 @@ class TestDataSetRef:
             name="Test Dataset",
             created_by_tool="dat",
             row_count=100,
+            column_count=5,
             created_at=datetime.now(timezone.utc),
         )
         assert ref.dataset_id == "ds_test123"
+        assert ref.column_count == 5
 
 
 class TestPipeline:
@@ -97,28 +99,28 @@ class TestPipeline:
             name="Test Pipeline",
             steps=[
                 PipelineStep(
-                    step_id="step_1",
-                    step_type=PipelineStepType.DAT,
+                    step_index=0,
+                    step_type=PipelineStepType.DAT_AGGREGATE,
                     config={"files": ["test.csv"]},
                 ),
                 PipelineStep(
-                    step_id="step_2",
-                    step_type=PipelineStepType.SOV,
+                    step_index=1,
+                    step_type=PipelineStepType.SOV_ANOVA,
                     config={"factors": ["tool"]},
-                    input_dataset_id="$step_1.output",
+                    input_dataset_ids=["$step_0_output"],
                 ),
             ],
             created_at=datetime.now(timezone.utc),
         )
         assert pipeline.pipeline_id == "pipe_test123"
         assert len(pipeline.steps) == 2
-        assert pipeline.steps[0].step_type == PipelineStepType.DAT
+        assert pipeline.steps[0].step_type == PipelineStepType.DAT_AGGREGATE
 
     def test_pipeline_step_states(self):
         """Test pipeline step state transitions."""
         step = PipelineStep(
-            step_id="step_1",
-            step_type=PipelineStepType.PPTX,
+            step_index=0,
+            step_type=PipelineStepType.PPTX_GENERATE,
             config={},
             state=PipelineStepState.PENDING,
         )

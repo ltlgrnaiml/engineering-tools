@@ -1,16 +1,33 @@
-"""Presentation generation endpoints."""
+"""Presentation generation endpoints.
+
+Per ADR-0017: Uses ErrorResponse contract for standardized errors.
+Per ADR-0018/0019: Uses RenderRequest/RenderResult contracts for generation tracking.
+"""
 
 import logging
+from datetime import datetime
 from pathlib import Path
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, HTTPException, status
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
+
+from shared.contracts.core.error_response import ErrorResponse
+from shared.contracts.pptx.template import (
+    RenderResult,
+    RenderStageState,
+    SlideRenderResult,
+)
 
 from apps.pptx_generator.backend.api.data import asset_mappings_db, data_files_db
-from apps.pptx_generator.backend.api.projects import projects_db
+from apps.pptx_generator.backend.api.projects import projects_db, workflow_states_db
 from apps.pptx_generator.backend.api.requirements import mapping_manifests_db
 from apps.pptx_generator.backend.api.templates import templates_db
+from apps.pptx_generator.backend.core.workflow_fsm import (
+    WorkflowFSM,
+    WorkflowState,
+    check_generate_allowed,
+)
 from apps.pptx_generator.backend.models.drm import MappingSourceType
 from apps.pptx_generator.backend.models.generation import GenerationRequest, GenerationResponse, GenerationStatus
 from apps.pptx_generator.backend.models.project import ProjectStatus
@@ -20,9 +37,38 @@ from apps.pptx_generator.backend.services.storage import StorageService
 
 logger = logging.getLogger(__name__)
 
+
+def _create_error_response(
+    status_code: int,
+    message: str,
+    code: str,
+    details: dict | None = None,
+) -> JSONResponse:
+    """Create standardized error response per ADR-0017.
+
+    Args:
+        status_code: HTTP status code.
+        message: Error message.
+        code: Error code (e.g., 'PPTX_PROJECT_NOT_FOUND').
+        details: Optional additional details.
+
+    Returns:
+        JSONResponse with ErrorResponse body.
+    """
+    error = ErrorResponse(
+        code=code,
+        message=message,
+        details=details or {},
+    )
+    return JSONResponse(
+        status_code=status_code,
+        content=error.model_dump(),
+    )
+
 router = APIRouter()
 
 generations_db: dict[UUID, GenerationResponse] = {}
+render_results_db: dict[str, RenderResult] = {}  # Per ADR-0018: Track render metrics
 
 storage_service = StorageService()
 data_processor = DataProcessorService()
@@ -53,12 +99,22 @@ async def generate_presentation(request: GenerationRequest) -> GenerationRespons
 
     project = projects_db[project_id]
 
-    # Accept both READY_TO_GENERATE (legacy) and PLAN_FROZEN (TOM v2)
-    if project.status not in [ProjectStatus.READY_TO_GENERATE, ProjectStatus.PLAN_FROZEN]:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Project not ready for generation. Current status: {project.status}",
-        )
+    # Per ADR-0019: Check workflow state for validation gating
+    if project_id in workflow_states_db:
+        workflow_state = workflow_states_db[project_id]
+        allowed, error_msg = check_generate_allowed(workflow_state)
+        if not allowed:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Generation blocked per ADR-0019: {error_msg}",
+            )
+    else:
+        # Legacy check: Accept both READY_TO_GENERATE and PLAN_FROZEN
+        if project.status not in [ProjectStatus.READY_TO_GENERATE, ProjectStatus.PLAN_FROZEN]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Project not ready for generation. Current status: {project.status}",
+            )
 
     # Check for required components (support both old and new workflow)
     has_mappings = project.asset_mapping_id or (
@@ -76,18 +132,36 @@ async def generate_presentation(request: GenerationRequest) -> GenerationRespons
             detail="Project missing required components (template, data, or mapping)",
         )
 
-    generation = GenerationResponse(project_id=project_id)
+    # Per ADR-0025: Capture lineage information
+    source_dataset_id = getattr(project, 'source_dataset_id', None)
+    template_id_str = str(project.template_id) if project.template_id else None
+
+    generation = GenerationResponse(
+        project_id=project_id,
+        source_dataset_id=source_dataset_id,
+        template_id=template_id_str,
+    )
     generations_db[generation.id] = generation
 
+    # Per ADR-0018: Create RenderResult for tracking
+    render_id = f"render_{uuid4().hex[:12]}"
+    render_result = RenderResult(
+        template_id=str(project.template_id) if project.template_id else "unknown",
+        render_id=render_id,
+        job_id=str(generation.id),
+        state=RenderStageState.PENDING,
+        started_at=datetime.utcnow(),
+    )
+    render_results_db[render_id] = render_result
+
     project.status = ProjectStatus.GENERATING
-
-    from datetime import datetime
-
     project.updated_at = datetime.utcnow()
 
     try:
         logger.info(f"[GENERATION] Starting generation for project {project_id}")
         generation.status = GenerationStatus.PROCESSING
+        render_result.state = RenderStageState.LOADING_DATA
+        render_result.progress_message = "Loading data and template"
 
         logger.info(f"[GENERATION] Retrieving template {project.template_id}")
         if project.template_id is None:
@@ -201,12 +275,29 @@ async def generate_presentation(request: GenerationRequest) -> GenerationRespons
         logger.info(f"[GENERATION] Output path: {output_path}")
 
         logger.info("[GENERATION] Calling presentation generator")
+        render_result.state = RenderStageState.RENDERING
+        render_result.progress_message = "Rendering presentation"
+        render_result.progress_pct = 50.0
+
         await presentation_generator.generate_presentation(
             Path(template.file_path),
             prepared_data,
             output_path,
         )
         logger.info("[GENERATION] Presentation generated successfully")
+
+        # Update render result with success metrics
+        render_result.state = RenderStageState.COMPLETED
+        render_result.completed_at = datetime.utcnow()
+        render_result.output_path = str(output_path)
+        render_result.progress_pct = 100.0
+        render_result.progress_message = "Complete"
+        if output_path.exists():
+            render_result.output_size_bytes = output_path.stat().st_size
+        render_result.render_duration_ms = (
+            (render_result.completed_at - render_result.started_at).total_seconds() * 1000
+            if render_result.started_at else 0.0
+        )
 
         generation.status = GenerationStatus.COMPLETED
         generation.output_file_path = str(output_path)
@@ -223,6 +314,12 @@ async def generate_presentation(request: GenerationRequest) -> GenerationRespons
         generation.status = GenerationStatus.FAILED
         generation.error_message = str(e)
         generation.completed_at = datetime.utcnow()
+
+        # Update render result with failure
+        render_result.state = RenderStageState.FAILED
+        render_result.completed_at = datetime.utcnow()
+        render_result.errors.append(str(e))
+        render_result.progress_message = f"Failed: {str(e)}"
 
         project.status = ProjectStatus.FAILED
         project.updated_at = datetime.utcnow()

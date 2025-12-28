@@ -45,7 +45,9 @@ app.add_middleware(
 )
 
 # Include API routes
-app.include_router(router, prefix="/api", tags=["sov"])
+# Note: No /api prefix here - gateway mounts this at /api/sov/
+# Routes will be /api/sov/v1/analyses, etc.
+app.include_router(router, tags=["sov"])
 
 
 @app.get("/health")

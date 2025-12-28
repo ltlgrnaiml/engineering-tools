@@ -115,6 +115,27 @@ class ArtifactStore:
             raise FileNotFoundError(f"DataSet not found: {dataset_id}")
         return pl.read_parquet(data_path)
     
+    async def read_dataset_with_manifest(
+        self,
+        dataset_id: str,
+    ) -> tuple[pl.DataFrame, DataSetManifest | None]:
+        """Read a DataSet's data and manifest together.
+        
+        Per ADR-0023: Provides access to column metadata for preservation.
+        
+        Args:
+            dataset_id: Dataset identifier.
+            
+        Returns:
+            Tuple of (DataFrame, manifest) where manifest may be None if not found.
+        """
+        data = await self.read_dataset(dataset_id)
+        try:
+            manifest = await self.get_manifest(dataset_id)
+        except FileNotFoundError:
+            manifest = None
+        return data, manifest
+    
     async def get_manifest(self, dataset_id: str) -> DataSetManifest:
         """Get a DataSet's manifest."""
         manifest_path = self.workspace / "datasets" / dataset_id / "manifest.json"

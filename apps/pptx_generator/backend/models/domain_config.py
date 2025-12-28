@@ -114,10 +114,45 @@ class TemplateConfig(BaseModel):
 
 
 class MetricsConfig(BaseModel):
-    """Metrics configuration."""
+    """Metrics configuration.
+
+    Per ADR-0020: Metrics support canonical names with alias resolution.
+    """
 
     canonical: list[str] = Field(default_factory=list, description="Canonical metric names")
     rename_map: dict[str, str] = Field(default_factory=dict, description="Column rename mappings")
+
+    def resolve_alias(self, alias: str) -> str | None:
+        """Resolve metric alias to canonical name.
+
+        Per ADR-0020: Alias resolution maps user-provided names to canonical.
+
+        Args:
+            alias: Alias or canonical metric name.
+
+        Returns:
+            Canonical metric name if found, None otherwise.
+        """
+        # Check if it's already canonical
+        if alias in self.canonical:
+            return alias
+        # Check rename_map for alias
+        resolved = self.rename_map.get(alias)
+        if resolved and resolved in self.canonical:
+            return resolved
+        return None
+
+    def get_all_aliases(self) -> dict[str, list[str]]:
+        """Get all aliases grouped by canonical name.
+
+        Returns:
+            Dict mapping canonical name to list of aliases.
+        """
+        result: dict[str, list[str]] = {name: [] for name in self.canonical}
+        for alias, canonical in self.rename_map.items():
+            if canonical in result and alias != canonical:
+                result[canonical].append(alias)
+        return result
 
 
 class DataConfig(BaseModel):

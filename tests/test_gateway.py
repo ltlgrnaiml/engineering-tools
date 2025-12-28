@@ -59,28 +59,28 @@ class TestDataSetEndpoints:
 
     def test_list_datasets_returns_200(self, client):
         """Test that listing datasets returns 200."""
-        response = client.get("/api/datasets/v1/")
+        response = client.get("/api/v1/datasets/")
         assert response.status_code == 200
 
     def test_list_datasets_returns_list(self, client):
         """Test that listing datasets returns a list."""
-        response = client.get("/api/datasets/v1/")
+        response = client.get("/api/v1/datasets/")
         data = response.json()
         assert isinstance(data, list)
 
     def test_list_datasets_with_tool_filter(self, client):
         """Test filtering datasets by tool."""
-        response = client.get("/api/datasets/v1/?tool=dat")
+        response = client.get("/api/v1/datasets/?tool=dat")
         assert response.status_code == 200
 
     def test_list_datasets_with_limit(self, client):
         """Test limiting dataset results."""
-        response = client.get("/api/datasets/v1/?limit=5")
+        response = client.get("/api/v1/datasets/?limit=5")
         assert response.status_code == 200
 
     def test_get_nonexistent_dataset_returns_404(self, client):
         """Test that getting nonexistent dataset returns 404."""
-        response = client.get("/api/datasets/v1/nonexistent_id")
+        response = client.get("/api/v1/datasets/nonexistent_id")
         assert response.status_code == 404
 
 
@@ -94,19 +94,19 @@ class TestPipelineEndpoints:
 
     def test_list_pipelines_returns_200(self, client):
         """Test that listing pipelines returns 200."""
-        response = client.get("/api/pipelines/v1/")
+        response = client.get("/api/v1/pipelines/")
         assert response.status_code == 200
 
     def test_list_pipelines_returns_list(self, client):
         """Test that listing pipelines returns a list."""
-        response = client.get("/api/pipelines/v1/")
+        response = client.get("/api/v1/pipelines/")
         data = response.json()
         assert isinstance(data, list)
 
     def test_create_pipeline(self, client):
         """Test creating a pipeline."""
         response = client.post(
-            "/api/pipelines/v1/",
+            "/api/v1/pipelines/",
             json={
                 "name": "Test Pipeline",
                 "description": "A test pipeline",
@@ -128,7 +128,7 @@ class TestPipelineEndpoints:
         """Test getting a created pipeline."""
         # Create a pipeline first
         create_response = client.post(
-            "/api/pipelines/v1/",
+            "/api/v1/pipelines/",
             json={
                 "name": "Get Test Pipeline",
                 "steps": [
@@ -143,13 +143,13 @@ class TestPipelineEndpoints:
         pipeline_id = create_response.json()["pipeline_id"]
         
         # Get it
-        response = client.get(f"/api/pipelines/v1/{pipeline_id}")
+        response = client.get(f"/api/v1/pipelines/{pipeline_id}")
         assert response.status_code == 200
         assert response.json()["pipeline_id"] == pipeline_id
 
     def test_get_nonexistent_pipeline_returns_404(self, client):
         """Test that getting nonexistent pipeline returns 404."""
-        response = client.get("/api/pipelines/v1/nonexistent_id")
+        response = client.get("/api/v1/pipelines/nonexistent_id")
         assert response.status_code == 404
 
 
@@ -162,13 +162,13 @@ class TestOpenAPIDocs:
         return TestClient(app)
 
     def test_openapi_docs_available(self, client):
-        """Test that /api/docs is available."""
-        response = client.get("/api/docs")
+        """Test that /docs is available."""
+        response = client.get("/docs")
         assert response.status_code == 200
 
     def test_openapi_json_available(self, client):
-        """Test that /api/openapi.json is available."""
-        response = client.get("/api/openapi.json")
+        """Test that /openapi.json is available."""
+        response = client.get("/openapi.json")
         assert response.status_code == 200
         data = response.json()
         assert "openapi" in data

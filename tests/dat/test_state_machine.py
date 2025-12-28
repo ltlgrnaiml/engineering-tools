@@ -20,9 +20,9 @@ class TestStageEnum:
     """Test Stage and StageState enums."""
     
     def test_all_stages_defined(self):
-        """Test all expected stages are defined."""
+        """Test all expected stages are defined per ADR-0001-DAT."""
         expected_stages = [
-            "selection", "context", "table_availability",
+            "discovery", "selection", "context", "table_availability",
             "table_selection", "preview", "parse", "export"
         ]
         
@@ -38,10 +38,16 @@ class TestStageEnum:
 class TestForwardGating:
     """Test forward gating rules."""
     
-    def test_selection_has_no_gates(self):
-        """Test selection stage has no forward gates."""
-        gates = FORWARD_GATES.get(Stage.SELECTION, [])
+    def test_discovery_has_no_gates(self):
+        """Test discovery stage has no forward gates (first stage)."""
+        gates = FORWARD_GATES.get(Stage.DISCOVERY, [])
         assert len(gates) == 0
+    
+    def test_selection_requires_discovery(self):
+        """Test selection stage requires discovery."""
+        gates = FORWARD_GATES.get(Stage.SELECTION, [])
+        required_stages = [g[0] for g in gates]
+        assert Stage.DISCOVERY in required_stages
     
     def test_context_requires_selection(self):
         """Test context stage requires selection."""
@@ -70,8 +76,19 @@ class TestForwardGating:
 class TestCascadeUnlock:
     """Test cascade unlock rules."""
     
-    def test_selection_cascades_to_all_downstream(self):
-        """Test selection unlock cascades to all downstream stages."""
+    def test_discovery_cascades_to_all_downstream(self):
+        """Test discovery unlock cascades to all downstream stages."""
+        targets = CASCADE_TARGETS.get(Stage.DISCOVERY, [])
+        
+        assert Stage.SELECTION in targets
+        assert Stage.CONTEXT in targets
+        assert Stage.TABLE_AVAILABILITY in targets
+        assert Stage.TABLE_SELECTION in targets
+        assert Stage.PARSE in targets
+        assert Stage.EXPORT in targets
+    
+    def test_selection_cascades_to_downstream(self):
+        """Test selection unlock cascades to downstream stages."""
         targets = CASCADE_TARGETS.get(Stage.SELECTION, [])
         
         assert Stage.CONTEXT in targets
@@ -233,10 +250,27 @@ class TestDATStateMachine:
         return DATStateMachine("test-run-123", run_store)
     
     @pytest.mark.asyncio
-    async def test_can_lock_selection(self, state_machine):
-        """Test selection can always be locked (no gates)."""
-        can_lock, reason = await state_machine.can_lock(Stage.SELECTION)
+    async def test_can_lock_discovery(self, state_machine):
+        """Test discovery can always be locked (first stage, no gates)."""
+        can_lock, reason = await state_machine.can_lock(Stage.DISCOVERY)
         
+        assert can_lock is True
+        assert reason is None
+    
+    @pytest.mark.asyncio
+    async def test_can_lock_selection_after_discovery(self, state_machine):
+        """Test selection can be locked after discovery."""
+        async def execute():
+            return {"completed": True}
+        
+        # First lock discovery
+        await state_machine.lock_stage(
+            Stage.DISCOVERY,
+            inputs={"path": "/test"},
+            execute_fn=execute,
+        )
+        
+        can_lock, reason = await state_machine.can_lock(Stage.SELECTION)
         assert can_lock is True
         assert reason is None
     
@@ -249,14 +283,14 @@ class TestDATStateMachine:
         assert "table_selection" in reason.lower()
     
     @pytest.mark.asyncio
-    async def test_lock_selection_stage(self, state_machine):
-        """Test locking selection stage."""
+    async def test_lock_discovery_stage(self, state_machine):
+        """Test locking discovery stage (first stage)."""
         async def execute():
             return {"files": ["test.json"], "completed": True}
         
         status = await state_machine.lock_stage(
-            Stage.SELECTION,
-            inputs={"paths": ["/test"]},
+            Stage.DISCOVERY,
+            inputs={"path": "/test"},
             execute_fn=execute,
         )
         
@@ -270,16 +304,16 @@ class TestDATStateMachine:
         async def execute():
             return {"files": ["test.json"], "completed": True}
         
-        inputs = {"paths": ["/test"]}
+        inputs = {"path": "/test"}
         
         status1 = await state_machine.lock_stage(
-            Stage.SELECTION,
+            Stage.DISCOVERY,
             inputs=inputs,
             execute_fn=execute,
         )
         
         status2 = await state_machine.lock_stage(
-            Stage.SELECTION,
+            Stage.DISCOVERY,
             inputs=inputs,
             execute_fn=execute,
         )
@@ -290,49 +324,49 @@ class TestDATStateMachine:
     @pytest.mark.asyncio
     async def test_unlock_stage(self, state_machine):
         """Test unlocking a stage."""
-        # First lock selection
+        # First lock discovery
         async def execute():
             return {"completed": True}
         
         await state_machine.lock_stage(
-            Stage.SELECTION,
-            inputs={"paths": ["/test"]},
+            Stage.DISCOVERY,
+            inputs={"path": "/test"},
             execute_fn=execute,
         )
         
         # Now unlock
-        unlocked = await state_machine.unlock_stage(Stage.SELECTION)
+        unlocked = await state_machine.unlock_stage(Stage.DISCOVERY)
         
         assert len(unlocked) >= 1
-        assert unlocked[0].stage == Stage.SELECTION
+        assert unlocked[0].stage == Stage.DISCOVERY
         assert unlocked[0].state == StageState.UNLOCKED
     
     @pytest.mark.asyncio
     async def test_unlock_cascades(self, state_machine):
         """Test that unlock cascades to downstream stages."""
-        # Lock selection
         async def execute():
             return {"completed": True}
         
+        # Lock discovery first
+        await state_machine.lock_stage(
+            Stage.DISCOVERY,
+            inputs={"path": "/test"},
+            execute_fn=execute,
+        )
+        
+        # Lock selection
         await state_machine.lock_stage(
             Stage.SELECTION,
             inputs={"paths": ["/test"]},
             execute_fn=execute,
         )
         
-        # Lock table_availability (which depends on selection)
-        await state_machine.lock_stage(
-            Stage.TABLE_AVAILABILITY,
-            inputs={"run_id": "test"},
-            execute_fn=execute,
-        )
-        
-        # Unlock selection - should cascade to table_availability
-        unlocked = await state_machine.unlock_stage(Stage.SELECTION)
+        # Unlock discovery - should cascade to selection
+        unlocked = await state_machine.unlock_stage(Stage.DISCOVERY)
         
         unlocked_stages = {s.stage for s in unlocked}
+        assert Stage.DISCOVERY in unlocked_stages
         assert Stage.SELECTION in unlocked_stages
-        assert Stage.TABLE_AVAILABILITY in unlocked_stages
     
     @pytest.mark.asyncio
     async def test_get_all_statuses(self, state_machine):
@@ -342,6 +376,241 @@ class TestDATStateMachine:
         assert len(statuses) == len(Stage)
         for stage in Stage:
             assert stage in statuses
+
+
+class TestFSMTransitionValidation:
+    """Test FSM transition validation per ADR-0001.
+
+    These tests verify that the state machine correctly enforces:
+    - Forward gating rules (can't proceed without prerequisites)
+    - Cascade unlock behavior (changes propagate downstream)
+    - Idempotent re-locking with same inputs
+    """
+
+    @pytest.fixture
+    def temp_workspace(self):
+        """Create temporary workspace."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            yield Path(tmpdir)
+
+    @pytest.fixture
+    def run_store(self, temp_workspace):
+        """Create run store with temp workspace."""
+        return RunStore(workspace_path=temp_workspace)
+
+    @pytest.fixture
+    async def state_machine(self, run_store):
+        """Create state machine for a test run."""
+        await run_store.create_run("test-run-fsm")
+        return DATStateMachine("test-run-fsm", run_store)
+
+    @pytest.mark.asyncio
+    async def test_cannot_lock_export_without_completed_parse(self, state_machine):
+        """Test export requires COMPLETED parse (not just locked)."""
+        async def execute():
+            return {"completed": False}  # Parse not completed
+
+        # Lock prerequisite stages including discovery
+        await state_machine.lock_stage(
+            Stage.DISCOVERY,
+            inputs={"path": "/test"},
+            execute_fn=execute,
+        )
+        await state_machine.lock_stage(
+            Stage.SELECTION,
+            inputs={"paths": ["/test"]},
+            execute_fn=execute,
+        )
+        await state_machine.lock_stage(
+            Stage.TABLE_AVAILABILITY,
+            inputs={"run_id": "test"},
+            execute_fn=execute,
+        )
+        await state_machine.lock_stage(
+            Stage.TABLE_SELECTION,
+            inputs={"run_id": "test"},
+            execute_fn=execute,
+        )
+        # Lock parse but NOT completed
+        await state_machine.lock_stage(
+            Stage.PARSE,
+            inputs={"run_id": "test"},
+            execute_fn=execute,
+        )
+
+        # Export should fail because parse is not completed
+        can_lock, reason = await state_machine.can_lock(Stage.EXPORT)
+        assert can_lock is False
+        assert "completed" in reason.lower() or "parse" in reason.lower()
+
+    @pytest.mark.asyncio
+    async def test_can_lock_export_with_completed_parse(self, state_machine):
+        """Test export can proceed when parse is completed."""
+        async def execute_complete():
+            return {"completed": True}
+
+        # Lock all prerequisite stages with completed=True, starting with discovery
+        await state_machine.lock_stage(
+            Stage.DISCOVERY,
+            inputs={"path": "/test"},
+            execute_fn=execute_complete,
+        )
+        await state_machine.lock_stage(
+            Stage.SELECTION,
+            inputs={"paths": ["/test"]},
+            execute_fn=execute_complete,
+        )
+        await state_machine.lock_stage(
+            Stage.TABLE_AVAILABILITY,
+            inputs={"run_id": "test"},
+            execute_fn=execute_complete,
+        )
+        await state_machine.lock_stage(
+            Stage.TABLE_SELECTION,
+            inputs={"run_id": "test"},
+            execute_fn=execute_complete,
+        )
+        await state_machine.lock_stage(
+            Stage.PARSE,
+            inputs={"run_id": "test"},
+            execute_fn=execute_complete,
+        )
+
+        # Export should succeed
+        can_lock, reason = await state_machine.can_lock(Stage.EXPORT)
+        assert can_lock is True
+        assert reason is None
+
+    @pytest.mark.asyncio
+    async def test_full_pipeline_lock_sequence(self, state_machine):
+        """Test locking stages in correct order through entire pipeline."""
+        async def execute_complete():
+            return {"completed": True}
+
+        stages_in_order = [
+            Stage.DISCOVERY,
+            Stage.SELECTION,
+            Stage.TABLE_AVAILABILITY,
+            Stage.TABLE_SELECTION,
+            Stage.PARSE,
+            Stage.EXPORT,
+        ]
+
+        for stage in stages_in_order:
+            status = await state_machine.lock_stage(
+                stage,
+                inputs={"run_id": "test", "stage": stage.value},
+                execute_fn=execute_complete,
+            )
+            assert status.state == StageState.LOCKED
+            assert status.completed is True
+
+    @pytest.mark.asyncio
+    async def test_context_and_preview_are_optional(self, state_machine):
+        """Test that context and preview stages are optional per ADR-0003."""
+        async def execute_complete():
+            return {"completed": True}
+
+        # Lock discovery and selection first
+        await state_machine.lock_stage(
+            Stage.DISCOVERY,
+            inputs={"path": "/test"},
+            execute_fn=execute_complete,
+        )
+        await state_machine.lock_stage(
+            Stage.SELECTION,
+            inputs={"paths": ["/test"]},
+            execute_fn=execute_complete,
+        )
+
+        # Skip context, lock table_availability directly
+        can_lock, reason = await state_machine.can_lock(Stage.TABLE_AVAILABILITY)
+        assert can_lock is True
+
+        await state_machine.lock_stage(
+            Stage.TABLE_AVAILABILITY,
+            inputs={"run_id": "test"},
+            execute_fn=execute_complete,
+        )
+        await state_machine.lock_stage(
+            Stage.TABLE_SELECTION,
+            inputs={"run_id": "test"},
+            execute_fn=execute_complete,
+        )
+
+        # Skip preview, lock parse directly
+        can_lock, reason = await state_machine.can_lock(Stage.PARSE)
+        assert can_lock is True
+
+    @pytest.mark.asyncio
+    async def test_cascade_unlock_preserves_artifacts(self, run_store, state_machine):
+        """Test that cascade unlock preserves artifacts per ADR-0002."""
+        async def execute_complete():
+            return {"completed": True, "data": "important"}
+
+        # Lock stages, starting with discovery
+        await state_machine.lock_stage(
+            Stage.DISCOVERY,
+            inputs={"path": "/test"},
+            execute_fn=execute_complete,
+        )
+        await state_machine.lock_stage(
+            Stage.SELECTION,
+            inputs={"paths": ["/test"]},
+            execute_fn=execute_complete,
+        )
+
+        # Get artifact ID before unlock
+        statuses = await state_machine.get_all_statuses()
+        sel_stage_id = statuses[Stage.SELECTION].stage_id
+
+        # Unlock discovery (should cascade to selection)
+        await state_machine.unlock_stage(Stage.DISCOVERY)
+
+        # Artifact should still exist (preserved per ADR-0002)
+        artifact = await run_store.get_artifact(
+            "test-run-fsm", Stage.SELECTION, sel_stage_id
+        )
+        assert artifact is not None
+
+    @pytest.mark.asyncio
+    async def test_context_unlock_does_not_cascade(self, state_machine):
+        """Test that unlocking context does not cascade per ADR-0003."""
+        async def execute_complete():
+            return {"completed": True}
+
+        # Lock discovery, selection, context and table_availability
+        await state_machine.lock_stage(
+            Stage.DISCOVERY,
+            inputs={"path": "/test"},
+            execute_fn=execute_complete,
+        )
+        await state_machine.lock_stage(
+            Stage.SELECTION,
+            inputs={"paths": ["/test"]},
+            execute_fn=execute_complete,
+        )
+        await state_machine.lock_stage(
+            Stage.CONTEXT,
+            inputs={"run_id": "test"},
+            execute_fn=execute_complete,
+        )
+        await state_machine.lock_stage(
+            Stage.TABLE_AVAILABILITY,
+            inputs={"run_id": "test"},
+            execute_fn=execute_complete,
+        )
+
+        # Unlock context - should NOT cascade to table_availability
+        unlocked = await state_machine.unlock_stage(Stage.CONTEXT)
+
+        unlocked_stages = {s.stage for s in unlocked}
+        assert Stage.CONTEXT in unlocked_stages
+        assert Stage.TABLE_AVAILABILITY not in unlocked_stages
+
+        # table_availability should still be locked
+        statuses = await state_machine.get_all_statuses()
+        assert statuses[Stage.TABLE_AVAILABILITY].state == StageState.LOCKED
 
 
 class TestRunManager:

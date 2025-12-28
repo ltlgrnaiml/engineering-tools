@@ -44,7 +44,7 @@ class TestRunEndpoints:
     def test_create_run(self, client):
         """Test creating a new run."""
         response = client.post(
-            "/runs",
+            "/v1/runs",
             json={"name": "Test Run"}
         )
         
@@ -57,7 +57,7 @@ class TestRunEndpoints:
     def test_create_run_with_profile(self, client):
         """Test creating a run with profile ID."""
         response = client.post(
-            "/runs",
+            "/v1/runs",
             json={"name": "Test Run", "profile_id": "cdsem-metrology-v1"}
         )
         
@@ -67,7 +67,7 @@ class TestRunEndpoints:
     
     def test_create_run_without_name(self, client):
         """Test creating a run without name uses default."""
-        response = client.post("/runs", json={})
+        response = client.post("/v1/runs", json={})
         
         assert response.status_code == 200
         data = response.json()
@@ -78,10 +78,10 @@ class TestRunEndpoints:
     def test_list_runs(self, client):
         """Test listing runs."""
         # Create a couple runs first
-        client.post("/runs", json={"name": "Run 1"})
-        client.post("/runs", json={"name": "Run 2"})
+        client.post("/v1/runs", json={"name": "Run 1"})
+        client.post("/v1/runs", json={"name": "Run 2"})
         
-        response = client.get("/runs")
+        response = client.get("/v1/runs")
         
         assert response.status_code == 200
         data = response.json()
@@ -90,10 +90,10 @@ class TestRunEndpoints:
     def test_get_run(self, client):
         """Test getting a specific run."""
         # Create run first
-        create_response = client.post("/runs", json={"name": "Test Run"})
+        create_response = client.post("/v1/runs", json={"name": "Test Run"})
         run_id = create_response.json()["run_id"]
         
-        response = client.get(f"/runs/{run_id}")
+        response = client.get(f"/v1/runs/{run_id}")
         
         assert response.status_code == 200
         data = response.json()
@@ -103,7 +103,7 @@ class TestRunEndpoints:
     
     def test_get_nonexistent_run(self, client):
         """Test getting a nonexistent run returns 404."""
-        response = client.get("/runs/nonexistent-run-id")
+        response = client.get("/v1/runs/nonexistent-run-id")
         
         assert response.status_code == 404
 
@@ -114,12 +114,12 @@ class TestStageEndpoints:
     @pytest.fixture
     def run_id(self, client):
         """Create a run and return its ID."""
-        response = client.post("/runs", json={"name": "Test Run"})
+        response = client.post("/v1/runs", json={"name": "Test Run"})
         return response.json()["run_id"]
     
     def test_get_stage_status(self, client, run_id):
         """Test getting stage status."""
-        response = client.get(f"/runs/{run_id}/stages/selection")
+        response = client.get(f"/v1/runs/{run_id}/stages/selection")
         
         assert response.status_code == 200
         data = response.json()
@@ -128,13 +128,13 @@ class TestStageEndpoints:
     
     def test_get_invalid_stage(self, client, run_id):
         """Test getting invalid stage returns 400."""
-        response = client.get(f"/runs/{run_id}/stages/invalid_stage")
+        response = client.get(f"/v1/runs/{run_id}/stages/invalid_stage")
         
         assert response.status_code == 400
     
     def test_unlock_stage(self, client, run_id):
         """Test unlocking a stage."""
-        response = client.post(f"/runs/{run_id}/stages/selection/unlock")
+        response = client.post(f"/v1/runs/{run_id}/stages/selection/unlock")
         
         assert response.status_code == 200
         data = response.json()
@@ -142,7 +142,7 @@ class TestStageEndpoints:
     
     def test_unlock_invalid_stage(self, client, run_id):
         """Test unlocking invalid stage returns 400."""
-        response = client.post(f"/runs/{run_id}/stages/invalid_stage/unlock")
+        response = client.post(f"/v1/runs/{run_id}/stages/invalid_stage/unlock")
         
         assert response.status_code == 400
 
@@ -153,7 +153,7 @@ class TestSelectionEndpoint:
     @pytest.fixture
     def run_id(self, client):
         """Create a run and return its ID."""
-        response = client.post("/runs", json={"name": "Test Run"})
+        response = client.post("/v1/runs", json={"name": "Test Run"})
         return response.json()["run_id"]
     
     @pytest.fixture
@@ -171,7 +171,7 @@ class TestSelectionEndpoint:
     def test_lock_selection_with_directory(self, client, run_id, temp_files):
         """Test locking selection stage with directory path."""
         response = client.post(
-            f"/runs/{run_id}/stages/selection/lock",
+            f"/v1/runs/{run_id}/stages/selection/lock",
             json={
                 "source_paths": [str(temp_files)],
                 "recursive": True,
@@ -188,7 +188,7 @@ class TestSelectionEndpoint:
         json_file = temp_files / "test_data.json"
         
         response = client.post(
-            f"/runs/{run_id}/stages/selection/lock",
+            f"/v1/runs/{run_id}/stages/selection/lock",
             json={
                 "source_paths": [str(json_file)],
             }
@@ -207,7 +207,7 @@ class TestTableSelectionEndpoint:
     def run_with_selection(self, client):
         """Create run with selection stage locked."""
         # Create run
-        run_response = client.post("/runs", json={"name": "Test Run"})
+        run_response = client.post("/v1/runs", json={"name": "Test Run"})
         run_id = run_response.json()["run_id"]
         
         # Create temp file
@@ -217,7 +217,7 @@ class TestTableSelectionEndpoint:
             
             # Lock selection
             client.post(
-                f"/runs/{run_id}/stages/selection/lock",
+                f"/v1/runs/{run_id}/stages/selection/lock",
                 json={"source_paths": [f.name]}
             )
         
@@ -229,7 +229,7 @@ class TestTableSelectionEndpoint:
         
         # Try to lock table_selection without table_availability locked
         response = client.post(
-            f"/runs/{run_id}/stages/table_selection/lock",
+            f"/v1/runs/{run_id}/stages/table_selection/lock",
             json={
                 "selected_tables": {"file1.json": ["table1", "table2"]}
             }
@@ -246,10 +246,10 @@ class TestPreviewEndpoint:
     def test_preview_without_parse(self, client):
         """Test preview fails without parse stage locked."""
         # Create run
-        run_response = client.post("/runs", json={"name": "Test Run"})
+        run_response = client.post("/v1/runs", json={"name": "Test Run"})
         run_id = run_response.json()["run_id"]
         
-        response = client.get(f"/runs/{run_id}/preview")
+        response = client.get(f"/v1/runs/{run_id}/preview")
         
         assert response.status_code == 400
 
@@ -260,17 +260,17 @@ class TestAPISchemas:
     def test_create_run_request_validation(self, client):
         """Test that invalid create run request is handled."""
         # Empty request should work (all fields optional)
-        response = client.post("/runs", json={})
+        response = client.post("/v1/runs", json={})
         assert response.status_code == 200
     
     def test_selection_request_requires_source_paths(self, client):
         """Test selection request requires source_paths."""
-        run_response = client.post("/runs", json={})
+        run_response = client.post("/v1/runs", json={})
         run_id = run_response.json()["run_id"]
         
         # Missing source_paths should fail validation
         response = client.post(
-            f"/runs/{run_id}/stages/selection/lock",
+            f"/v1/runs/{run_id}/stages/selection/lock",
             json={}
         )
         

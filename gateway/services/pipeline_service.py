@@ -4,10 +4,15 @@ Provides gateway-level APIs for:
 - Creating multi-tool pipelines
 - Executing pipeline steps across tools
 - Tracking pipeline state and progress
+
+Per ADR-0026: Pipeline error handling with fail-fast semantics.
 """
 
+import logging
 from datetime import datetime, timezone
+from typing import Any
 
+import httpx
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 
 from shared.contracts.core.pipeline import (
@@ -16,8 +21,21 @@ from shared.contracts.core.pipeline import (
     PipelineRef,
     PipelineStep,
     PipelineStepState,
+    PipelineStepType,
 )
 from shared.utils.stage_id import compute_pipeline_id
+
+logger = logging.getLogger(__name__)
+
+# Tool API base URLs (internal routing via gateway mounts)
+TOOL_BASE_URLS = {
+    "dat": "http://localhost:8000/api/dat",
+    "sov": "http://localhost:8000/api/sov",
+    "pptx": "http://localhost:8000/api/pptx",
+}
+
+# Timeout for tool API calls (seconds)
+TOOL_API_TIMEOUT = 300.0
 
 router = APIRouter()
 
@@ -209,28 +227,250 @@ def _resolve_step_inputs(pipeline: Pipeline, step: PipelineStep) -> list[str]:
 
 async def _dispatch_step(step: PipelineStep, input_dataset_ids: list[str]) -> str:
     """Dispatch a step to the appropriate tool and return output dataset ID.
-    
-    TODO: Implement actual tool dispatch when tools are integrated.
+
+    Per ADR-0026: Fail-fast semantics with explicit error handling.
+
+    Args:
+        step: Pipeline step to execute.
+        input_dataset_ids: Resolved input dataset IDs.
+
+    Returns:
+        Output dataset ID from the step execution.
+
+    Raises:
+        ValueError: If step type is unknown.
+        httpx.HTTPError: If tool API call fails.
     """
-    # Placeholder implementation
-    # In production, this will call the appropriate tool's API
-    
     step_type = step.step_type.value
-    
-    if step_type.startswith("dat:"):
-        # Call Data Aggregator API
-        # return await dat_client.execute(step.config, input_dataset_ids)
-        raise NotImplementedError("DAT tool not yet integrated")
-    
-    elif step_type.startswith("sov:"):
-        # Call SOV Analyzer API
-        # return await sov_client.execute(step.config, input_dataset_ids)
-        raise NotImplementedError("SOV tool not yet integrated")
-    
-    elif step_type.startswith("pptx:"):
-        # Call PowerPoint Generator API
-        # return await pptx_client.execute(step.config, input_dataset_ids)
-        raise NotImplementedError("PPTX tool not yet integrated")
-    
-    else:
-        raise ValueError(f"Unknown step type: {step_type}")
+    tool_name = step_type.split(":")[0]
+    action = step_type.split(":")[1] if ":" in step_type else ""
+
+    base_url = TOOL_BASE_URLS.get(tool_name)
+    if not base_url:
+        raise ValueError(f"Unknown tool: {tool_name}")
+
+    async with httpx.AsyncClient(timeout=TOOL_API_TIMEOUT) as client:
+        if step_type == PipelineStepType.DAT_AGGREGATE.value:
+            return await _dispatch_dat_aggregate(client, base_url, step, input_dataset_ids)
+
+        elif step_type == PipelineStepType.DAT_EXPORT.value:
+            return await _dispatch_dat_export(client, base_url, step, input_dataset_ids)
+
+        elif step_type == PipelineStepType.SOV_ANOVA.value:
+            return await _dispatch_sov_anova(client, base_url, step, input_dataset_ids)
+
+        elif step_type == PipelineStepType.SOV_VARIANCE_COMPONENTS.value:
+            return await _dispatch_sov_variance(client, base_url, step, input_dataset_ids)
+
+        elif step_type == PipelineStepType.PPTX_GENERATE.value:
+            return await _dispatch_pptx_generate(client, base_url, step, input_dataset_ids)
+
+        elif step_type == PipelineStepType.PPTX_RENDER.value:
+            return await _dispatch_pptx_render(client, base_url, step, input_dataset_ids)
+
+        else:
+            raise ValueError(f"Unknown step type: {step_type}")
+
+
+async def _dispatch_dat_aggregate(
+    client: httpx.AsyncClient,
+    base_url: str,
+    step: PipelineStep,
+    input_dataset_ids: list[str],
+) -> str:
+    """Dispatch DAT aggregate step."""
+    logger.info(f"Dispatching DAT aggregate step: {step.name or step.step_index}")
+
+    # DAT aggregation typically uses profile-based extraction
+    payload = {
+        "profile_id": step.config.get("profile_id"),
+        "source_files": step.config.get("source_files", []),
+        "output_name": step.config.get("output_name", f"pipeline_step_{step.step_index}"),
+        **step.config,
+    }
+
+    response = await client.post(
+        f"{base_url}/api/v1/runs",
+        json=payload,
+    )
+    response.raise_for_status()
+
+    result = response.json()
+    return result.get("dataset_id", result.get("run_id", ""))
+
+
+async def _dispatch_dat_export(
+    client: httpx.AsyncClient,
+    base_url: str,
+    step: PipelineStep,
+    input_dataset_ids: list[str],
+) -> str:
+    """Dispatch DAT export step."""
+    logger.info(f"Dispatching DAT export step: {step.name or step.step_index}")
+
+    run_id = input_dataset_ids[0] if input_dataset_ids else step.config.get("run_id")
+    if not run_id:
+        raise ValueError("DAT export requires input run_id")
+
+    payload = {
+        "format": step.config.get("format", "parquet"),
+        "output_name": step.config.get("output_name"),
+    }
+
+    response = await client.post(
+        f"{base_url}/api/v1/runs/{run_id}/export",
+        json=payload,
+    )
+    response.raise_for_status()
+
+    result = response.json()
+    return result.get("dataset_id", "")
+
+
+async def _dispatch_sov_anova(
+    client: httpx.AsyncClient,
+    base_url: str,
+    step: PipelineStep,
+    input_dataset_ids: list[str],
+) -> str:
+    """Dispatch SOV ANOVA analysis step."""
+    logger.info(f"Dispatching SOV ANOVA step: {step.name or step.step_index}")
+
+    # Create analysis
+    dataset_id = input_dataset_ids[0] if input_dataset_ids else None
+    create_payload = {
+        "name": step.config.get("name", f"Pipeline ANOVA {step.step_index}"),
+        "dataset_id": dataset_id,
+    }
+
+    create_response = await client.post(
+        f"{base_url}/api/v1/analyses",
+        json=create_payload,
+    )
+    create_response.raise_for_status()
+    analysis = create_response.json()
+    analysis_id = analysis["analysis_id"]
+
+    # Run ANOVA
+    run_payload = {
+        "factors": step.config.get("factors", []),
+        "response_columns": step.config.get("response_columns", []),
+        "alpha": step.config.get("alpha", 0.05),
+        "anova_type": step.config.get("anova_type", "one-way"),
+    }
+
+    run_response = await client.post(
+        f"{base_url}/api/v1/analyses/{analysis_id}/run",
+        json=run_payload,
+    )
+    run_response.raise_for_status()
+
+    # Export as dataset
+    export_payload = {
+        "name": step.config.get("output_name", f"SOV Results {analysis_id[:8]}"),
+    }
+
+    export_response = await client.post(
+        f"{base_url}/api/v1/analyses/{analysis_id}/export",
+        json=export_payload,
+    )
+    export_response.raise_for_status()
+
+    result = export_response.json()
+    return result.get("dataset_id", analysis_id)
+
+
+async def _dispatch_sov_variance(
+    client: httpx.AsyncClient,
+    base_url: str,
+    step: PipelineStep,
+    input_dataset_ids: list[str],
+) -> str:
+    """Dispatch SOV variance components step."""
+    logger.info(f"Dispatching SOV variance components step: {step.name or step.step_index}")
+
+    # Similar to ANOVA but with variance components analysis type
+    step.config["anova_type"] = "n-way"
+    return await _dispatch_sov_anova(client, base_url, step, input_dataset_ids)
+
+
+async def _dispatch_pptx_generate(
+    client: httpx.AsyncClient,
+    base_url: str,
+    step: PipelineStep,
+    input_dataset_ids: list[str],
+) -> str:
+    """Dispatch PPTX generation step."""
+    logger.info(f"Dispatching PPTX generate step: {step.name or step.step_index}")
+
+    # Create project
+    project_payload = {
+        "name": step.config.get("project_name", f"Pipeline Report {step.step_index}"),
+        "description": step.config.get("description", "Generated by pipeline"),
+    }
+
+    project_response = await client.post(
+        f"{base_url}/api/v1/projects",
+        json=project_payload,
+    )
+    project_response.raise_for_status()
+    project = project_response.json()
+    project_id = project["id"]
+
+    # Load dataset if provided
+    if input_dataset_ids:
+        dataset_payload = {
+            "dataset_id": input_dataset_ids[0],
+        }
+        await client.post(
+            f"{base_url}/api/v1/projects/{project_id}/from-dataset",
+            json=dataset_payload,
+        )
+
+    # Generate PPTX
+    template_id = step.config.get("template_id")
+    if template_id:
+        generate_payload = {
+            "template_id": template_id,
+            "output_filename": step.config.get("output_filename", "report.pptx"),
+        }
+
+        generate_response = await client.post(
+            f"{base_url}/api/v1/projects/{project_id}/generate",
+            json=generate_payload,
+        )
+        generate_response.raise_for_status()
+
+    return project_id
+
+
+async def _dispatch_pptx_render(
+    client: httpx.AsyncClient,
+    base_url: str,
+    step: PipelineStep,
+    input_dataset_ids: list[str],
+) -> str:
+    """Dispatch PPTX render step."""
+    logger.info(f"Dispatching PPTX render step: {step.name or step.step_index}")
+
+    # Render is similar to generate but for existing projects
+    project_id = step.config.get("project_id")
+    if not project_id and input_dataset_ids:
+        project_id = input_dataset_ids[0]
+
+    if not project_id:
+        raise ValueError("PPTX render requires project_id")
+
+    render_payload = {
+        "output_path": step.config.get("output_path", "output.pptx"),
+        "overwrite_existing": step.config.get("overwrite_existing", True),
+    }
+
+    response = await client.post(
+        f"{base_url}/api/v1/projects/{project_id}/render",
+        json=render_payload,
+    )
+    response.raise_for_status()
+
+    result = response.json()
+    return result.get("render_id", project_id)

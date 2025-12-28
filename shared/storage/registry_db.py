@@ -58,6 +58,17 @@ CREATE INDEX IF NOT EXISTS idx_artifacts_type ON artifacts(artifact_type);
 CREATE INDEX IF NOT EXISTS idx_artifacts_tool ON artifacts(created_by_tool);
 CREATE INDEX IF NOT EXISTS idx_artifacts_state ON artifacts(state);
 CREATE INDEX IF NOT EXISTS idx_artifacts_created_at ON artifacts(created_at);
+
+-- Reverse index for efficient lineage children lookup (per ADR-0025)
+CREATE TABLE IF NOT EXISTS lineage_edges (
+    parent_id TEXT NOT NULL,
+    child_id TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (parent_id, child_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_lineage_parent ON lineage_edges(parent_id);
+CREATE INDEX IF NOT EXISTS idx_lineage_child ON lineage_edges(child_id);
 """
 
 
@@ -247,6 +258,50 @@ class RegistryDB:
                 await db.execute(
                     "UPDATE artifacts SET state = ?, updated_at = ? WHERE artifact_id = ?",
                     (state.value, now, artifact_id)
+                )
+            await db.commit()
+    
+    async def get_children(self, parent_id: str) -> list[str]:
+        """Get child artifact IDs efficiently using reverse index (per ADR-0025).
+        
+        This uses O(1) index lookup instead of O(n) full scan.
+        """
+        async with self._connection() as db:
+            cursor = await db.execute(
+                "SELECT child_id FROM lineage_edges WHERE parent_id = ?",
+                (parent_id,)
+            )
+            rows = await cursor.fetchall()
+            return [row[0] for row in rows]
+    
+    async def get_parents(self, child_id: str) -> list[str]:
+        """Get parent artifact IDs efficiently using reverse index."""
+        async with self._connection() as db:
+            cursor = await db.execute(
+                "SELECT parent_id FROM lineage_edges WHERE child_id = ?",
+                (child_id,)
+            )
+            rows = await cursor.fetchall()
+            return [row[0] for row in rows]
+    
+    async def _update_lineage_edges(
+        self,
+        artifact_id: str,
+        parent_ids: list[str],
+    ) -> None:
+        """Update lineage edges for an artifact."""
+        now = datetime.now(timezone.utc).isoformat()
+        async with self._connection() as db:
+            # Remove old edges
+            await db.execute(
+                "DELETE FROM lineage_edges WHERE child_id = ?",
+                (artifact_id,)
+            )
+            # Add new edges
+            for parent_id in parent_ids:
+                await db.execute(
+                    "INSERT OR IGNORE INTO lineage_edges (parent_id, child_id, created_at) VALUES (?, ?, ?)",
+                    (parent_id, artifact_id, now)
                 )
             await db.commit()
     

@@ -119,7 +119,8 @@ class TestArtifactStore:
         """Test path conversion utilities."""
         abs_path = store.workspace / "datasets" / "test"
         rel_path = store.get_relative_path(abs_path)
-        assert rel_path == "datasets/test"
+        # Normalize path separators for cross-platform compatibility
+        assert rel_path.replace("\\", "/") == "datasets/test"
         
         back_to_abs = store.get_absolute_path(rel_path)
         assert back_to_abs == abs_path

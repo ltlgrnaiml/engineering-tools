@@ -94,6 +94,12 @@ class DataSetManifest(BaseModel):
         description="Response columns analyzed",
     )
 
+    # Visualization contracts (per ADR-0024)
+    visualization_specs: list[dict] | None = Field(
+        None,
+        description="Visualization specifications for downstream rendering (PPTX, frontend)",
+    )
+
 
 class DataSetRef(BaseModel):
     """Lightweight reference to a DataSet for API list responses.

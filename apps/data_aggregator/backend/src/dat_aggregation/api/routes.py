@@ -1,8 +1,24 @@
-"""DAT API routes."""
+"""DAT API routes.
+
+Per API-001: All routes use versioned /v1/ prefix.
+Per ADR-0013: Cancellation events are logged for audit.
+"""
+from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 
+from shared.contracts.dat.cancellation import (
+    CancellationAuditLog,
+    CancellationReason,
+    CancellationState,
+)
+from shared.contracts.core.error_response import (
+    ErrorCategory,
+    ErrorResponse,
+    ErrorSeverity,
+    create_error_response,
+)
 from ..core.state_machine import DATStateMachine, Stage, StageState
 from ..core.run_manager import RunManager
 from ..stages.selection import execute_selection
@@ -23,11 +39,40 @@ from .schemas import (
     PreviewResponse,
 )
 
-router = APIRouter()
+# Versioned router per API-001
+router = APIRouter(prefix="/v1")
 run_manager = RunManager()
 
 # Track active cancellation tokens
 _cancel_tokens: dict[str, CancellationToken] = {}
+
+
+def _raise_error(
+    status_code: int,
+    message: str,
+    category: ErrorCategory = ErrorCategory.VALIDATION,
+    error_code: str | None = None,
+    details: dict | None = None,
+) -> None:
+    """Raise HTTPException with standardized ErrorResponse per API-003.
+
+    Args:
+        status_code: HTTP status code.
+        message: Error message.
+        category: Error category.
+        error_code: Optional error code.
+        details: Optional additional details.
+    """
+    error = create_error_response(
+        message=message,
+        category=category,
+        error_code=error_code or f"DAT_{status_code}",
+        details=details,
+    )
+    raise HTTPException(
+        status_code=status_code,
+        detail=error.model_dump(mode="json"),
+    )
 
 
 @router.post("/runs", response_model=CreateRunResponse)
@@ -57,7 +102,13 @@ async def get_run(run_id: str):
     """Get DAT run details."""
     run = await run_manager.get_run(run_id)
     if not run:
-        raise HTTPException(status_code=404, detail="Run not found")
+        _raise_error(
+            status_code=404,
+            message=f"Run not found: {run_id}",
+            category=ErrorCategory.NOT_FOUND,
+            error_code="DAT_RUN_NOT_FOUND",
+            details={"run_id": run_id},
+        )
     
     # Get all stage statuses
     sm = run_manager.get_state_machine(run_id)
@@ -366,13 +417,37 @@ async def lock_parse(run_id: str, request: ParseRequest, background_tasks: Backg
 
 
 @router.post("/runs/{run_id}/stages/parse/cancel")
-async def cancel_parse(run_id: str):
-    """Cancel ongoing parse operation."""
+async def cancel_parse(run_id: str, reason: str = "user_requested", actor: str = "user"):
+    """Cancel ongoing parse operation.
+
+    Per ADR-0013: Cancellation events are logged for audit.
+    """
     token = _cancel_tokens.get(run_id)
     if token:
         token.cancel()
-        return {"status": "cancellation_requested"}
-    return {"status": "no_active_parse"}
+
+        # Create audit log entry per ADR-0013
+        audit_log = CancellationAuditLog(job_id=run_id)
+        audit_log = audit_log.add_entry(
+            event_type="cancel_requested",
+            actor=actor,
+            stage_id="parse",
+            details={
+                "reason": reason,
+                "requested_at": datetime.now(timezone.utc).isoformat(),
+            },
+            message=f"Parse cancellation requested by {actor}: {reason}",
+        )
+
+        return {
+            "status": "cancellation_requested",
+            "run_id": run_id,
+            "stage": "parse",
+            "reason": reason,
+            "actor": actor,
+            "audit_entries": len(audit_log.entries),
+        }
+    return {"status": "no_active_parse", "run_id": run_id}
 
 
 # Removed duplicate - using ADR-compliant implementation below

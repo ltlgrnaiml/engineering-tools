@@ -82,6 +82,7 @@ class TestCancellationResult:
         """Per ADR-0013: Completed artifacts must be preserved."""
         result = CancellationResult(
             job_id="job_1",
+            stage_id=None,
             state=CancellationState.COMPLETED,
             reason=CancellationReason.USER_REQUESTED,
             preserved_artifacts=["table_1", "table_2", "table_3"],

@@ -1,12 +1,18 @@
-"""Table renderer for populating PowerPoint tables with data."""
+"""Table renderer for populating PowerPoint tables with data.
+
+Per ADR-0028: Renderers consume shared RenderSpec contracts.
+"""
 
 import logging
 from typing import Any
+from uuid import uuid4
 
 import pandas as pd
 from pptx.dml.color import RGBColor
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.util import Inches, Pt
+
+from shared.contracts.core.rendering import TableSpec, TableData
 
 from apps.pptx_generator.backend.core.domain_config_service import get_domain_config
 from apps.pptx_generator.backend.core.shape_name_parser import ParsedShapeNameV2
@@ -397,3 +403,76 @@ class TableRenderer(BaseRenderer):
                     paragraph.alignment = PP_ALIGN.RIGHT
         except Exception as e:
             self.logger.debug(f"Could not format cell alignment: {e}")
+
+    def build_table_spec(
+        self,
+        data: pd.DataFrame,
+        name: str,
+        title: str | None = None,
+    ) -> TableSpec:
+        """Build a TableSpec from DataFrame per ADR-0028.
+
+        This method bridges the PPTX renderer with the shared rendering contract.
+
+        Args:
+            data: DataFrame to convert.
+            name: Spec name/identifier.
+            title: Optional table title.
+
+        Returns:
+            TableSpec conforming to shared rendering contract.
+        """
+        # Convert DataFrame to TableData
+        headers = list(data.columns)
+        rows = data.values.tolist()
+
+        table_data = TableData(
+            headers=headers,
+            rows=rows,
+            column_alignments=self._infer_column_alignments(data),
+        )
+
+        # Build spec with styling from config defaults
+        defaults = self.defaults
+        header_rgb = defaults.header_fill_rgb
+        header_hex = f"#{header_rgb[0]:02X}{header_rgb[1]:02X}{header_rgb[2]:02X}"
+        header_font_rgb = defaults.header_font_rgb
+        header_font_hex = f"#{header_font_rgb[0]:02X}{header_font_rgb[1]:02X}{header_font_rgb[2]:02X}"
+        body_font_rgb = defaults.body_font_rgb
+        body_font_hex = f"#{body_font_rgb[0]:02X}{body_font_rgb[1]:02X}{body_font_rgb[2]:02X}"
+        alt_row_rgb = defaults.row_stripe_rgb
+        alt_row_hex = f"#{alt_row_rgb[0]:02X}{alt_row_rgb[1]:02X}{alt_row_rgb[2]:02X}"
+
+        return TableSpec(
+            spec_id=f"table_{uuid4().hex[:8]}",
+            name=name,
+            title=title,
+            data=table_data,
+            header_background=header_hex,
+            header_font_color=header_font_hex,
+            body_font_color=body_font_hex,
+            alternate_row_color=alt_row_hex,
+            border_width=defaults.grid.body_line_pt,
+            source_tool="pptx",
+        )
+
+    def _infer_column_alignments(
+        self,
+        data: pd.DataFrame,
+    ) -> list[str]:
+        """Infer column alignments from data types.
+
+        Args:
+            data: DataFrame to analyze.
+
+        Returns:
+            List of alignment strings ('left', 'center', 'right').
+        """
+        alignments = []
+        for col in data.columns:
+            dtype = data[col].dtype
+            if pd.api.types.is_numeric_dtype(dtype):
+                alignments.append("right")
+            else:
+                alignments.append("left")
+        return alignments

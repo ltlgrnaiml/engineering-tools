@@ -13,7 +13,11 @@ if TYPE_CHECKING:
 
 
 class Stage(str, Enum):
-    """DAT pipeline stages."""
+    """DAT pipeline stages.
+
+    Per ADR-0001-DAT: 8-stage pipeline with Discovery as first stage.
+    """
+    DISCOVERY = "discovery"  # Implicit file scan made explicit
     SELECTION = "selection"
     CONTEXT = "context"
     TABLE_AVAILABILITY = "table_availability"
@@ -42,9 +46,11 @@ class StageStatus:
     artifact_path: str | None = None
 
 
-# Forward gating rules (per ADR-0001)
+# Forward gating rules (per ADR-0001-DAT)
 FORWARD_GATES: dict[Stage, list[tuple[Stage, bool]]] = {
     # Stage: [(required_stage, must_be_completed), ...]
+    # Discovery has no gates - it's the first stage
+    Stage.SELECTION: [(Stage.DISCOVERY, False)],
     Stage.CONTEXT: [(Stage.SELECTION, False)],
     Stage.TABLE_AVAILABILITY: [(Stage.SELECTION, False)],
     Stage.TABLE_SELECTION: [(Stage.TABLE_AVAILABILITY, False)],
@@ -53,8 +59,12 @@ FORWARD_GATES: dict[Stage, list[tuple[Stage, bool]]] = {
     Stage.EXPORT: [(Stage.PARSE, True)],  # Must be completed
 }
 
-# Cascade unlock rules (per ADR-0001)
+# Cascade unlock rules (per ADR-0001-DAT)
 CASCADE_TARGETS: dict[Stage, list[Stage]] = {
+    Stage.DISCOVERY: [
+        Stage.SELECTION, Stage.CONTEXT, Stage.TABLE_AVAILABILITY,
+        Stage.TABLE_SELECTION, Stage.PREVIEW, Stage.PARSE, Stage.EXPORT
+    ],
     Stage.SELECTION: [
         Stage.CONTEXT, Stage.TABLE_AVAILABILITY, Stage.TABLE_SELECTION,
         Stage.PREVIEW, Stage.PARSE, Stage.EXPORT

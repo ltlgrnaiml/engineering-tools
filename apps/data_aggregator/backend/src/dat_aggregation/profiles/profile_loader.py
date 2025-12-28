@@ -11,6 +11,8 @@ from typing import Any
 
 import yaml
 
+from shared.contracts.dat.profile import ProfileValidationResult
+
 
 @dataclass
 class RegexPattern:
@@ -342,3 +344,119 @@ def get_profile_by_id(profile_id: str) -> DATProfile | None:
     if profile_id in profiles:
         return load_profile(profiles[profile_id])
     return None
+
+
+def validate_profile(
+    profile: DATProfile,
+    source_columns: list[str] | None = None,
+    source_files: list[Path] | None = None,
+) -> ProfileValidationResult:
+    """Validate a profile against schema and optionally source data.
+
+    Per ADR-0011: Profiles are validated before use to ensure consistency.
+
+    Args:
+        profile: DATProfile to validate.
+        source_columns: Optional list of actual source column names for matching.
+        source_files: Optional list of source files to match against patterns.
+
+    Returns:
+        ProfileValidationResult with validation status and details.
+    """
+    errors: list[str] = []
+    warnings: list[str] = []
+    matched_files = 0
+    matched_columns = 0
+    unmapped_columns: list[str] = []
+
+    # Validate required profile fields
+    if not profile.profile_id:
+        errors.append("Profile must have a profile_id")
+
+    if not profile.title:
+        errors.append("Profile must have a title")
+
+    # Validate levels and tables
+    if not profile.levels:
+        warnings.append("Profile has no levels defined")
+    else:
+        for level in profile.levels:
+            if not level.tables:
+                warnings.append(f"Level '{level.name}' has no tables defined")
+            for table in level.tables:
+                if not table.id:
+                    errors.append(f"Table in level '{level.name}' has no id")
+                if table.select and not table.select.path:
+                    errors.append(
+                        f"Table '{table.id}' in level '{level.name}' has no select path"
+                    )
+
+    # Validate context defaults
+    if profile.context_defaults:
+        for pattern in profile.context_defaults.regex_patterns:
+            if pattern.required and not pattern.pattern:
+                errors.append(
+                    f"Required regex pattern '{pattern.field}' has no pattern defined"
+                )
+            # Validate regex compiles
+            if pattern.pattern:
+                try:
+                    re.compile(pattern.pattern)
+                except re.error as e:
+                    errors.append(
+                        f"Invalid regex pattern for '{pattern.field}': {e}"
+                    )
+
+    # Validate contexts
+    for ctx in profile.contexts:
+        if not ctx.name:
+            errors.append("Context configuration has no name")
+        if not ctx.level:
+            warnings.append(f"Context '{ctx.name}' has no level specified")
+
+    # Validate outputs
+    if not profile.default_outputs and not profile.optional_outputs:
+        warnings.append("Profile has no outputs defined")
+
+    for output in profile.default_outputs:
+        if not output.from_level:
+            errors.append(f"Output '{output.id}' has no from_level specified")
+        # Check that from_level exists
+        level_names = [level.name for level in profile.levels]
+        if output.from_level and output.from_level not in level_names:
+            errors.append(
+                f"Output '{output.id}' references unknown level '{output.from_level}'"
+            )
+
+    # Validate against source files if provided
+    if source_files:
+        for file_path in source_files:
+            # Check if filename matches any context extraction pattern
+            extracted = profile.extract_context_from_filename(file_path.name)
+            if extracted:
+                matched_files += 1
+
+    # Validate against source columns if provided
+    if source_columns:
+        # Check for columns that might not be mapped
+        # This is a basic check - full mapping validation would need column mappings
+        for col in source_columns:
+            # Check if column appears in any context key_map
+            is_mapped = False
+            for ctx in profile.contexts:
+                if col in ctx.key_map.values():
+                    is_mapped = True
+                    matched_columns += 1
+                    break
+            if not is_mapped:
+                unmapped_columns.append(col)
+
+    return ProfileValidationResult(
+        profile_id=profile.profile_id,
+        valid=len(errors) == 0,
+        errors=errors,
+        warnings=warnings,
+        matched_files=matched_files,
+        matched_columns=matched_columns,
+        unmapped_columns=unmapped_columns,
+    )

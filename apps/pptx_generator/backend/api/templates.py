@@ -1,12 +1,28 @@
-"""Template management endpoints."""
+"""Template management endpoints.
 
+Per ADR-0018: Uses ShapeDiscoveryResult contract for shape discovery.
+Per ADR-0020: Uses TemplateValidationResult for template validation.
+"""
+
+import time
+from datetime import datetime
 from pathlib import Path
 from uuid import UUID
 
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
+from pptx import Presentation
+
+from shared.contracts.pptx.template import (
+    TemplateValidationResult,
+    TemplateValidationError,
+)
 
 from apps.pptx_generator.backend.api.projects import projects_db
 from apps.pptx_generator.backend.core.config import settings
+from apps.pptx_generator.backend.core.shape_discovery import (
+    discover_shapes,
+    ShapeDiscoveryResult,
+)
 from apps.pptx_generator.backend.models.project import ProjectStatus
 from apps.pptx_generator.backend.models.template import ShapeMap, Template
 from apps.pptx_generator.backend.services.drm_extractor import DRMExtractorService
@@ -287,3 +303,178 @@ async def get_shape_map(project_id: UUID) -> ShapeMap:
         )
 
     return shape_maps_db[project.shape_map_id]
+
+
+@router.post("/{project_id}/discover-shapes")
+async def discover_template_shapes(project_id: UUID) -> dict:
+    """Discover shapes in template per ADR-0018.
+
+    Uses the ShapeDiscoveryResult contract for comprehensive shape analysis.
+
+    Args:
+        project_id: Unique project identifier.
+
+    Returns:
+        Dict containing ShapeDiscoveryResult data:
+            - shapes: List of discovered shapes with parsed names.
+            - errors: Validation errors (invalid patterns, duplicates).
+            - warnings: Validation warnings.
+            - slide_count: Total slides in template.
+            - is_valid: True if no errors.
+
+    Raises:
+        HTTPException: If project or template not found (404).
+    """
+    if project_id not in projects_db:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Project {project_id} not found",
+        )
+
+    project = projects_db[project_id]
+    if not project.template_id or project.template_id not in templates_db:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No template uploaded for this project",
+        )
+
+    template = templates_db[project.template_id]
+    template_path = Path(template.file_path)
+
+    try:
+        prs = Presentation(str(template_path))
+        discovery_result = discover_shapes(list(prs.slides))
+
+        return {
+            "shapes": [
+                {
+                    "slide_index": s.slide_index,
+                    "shape_id": s.shape_id,
+                    "category": s.parsed_name.category,
+                    "identifier": s.parsed_name.identifier,
+                    "variant": s.parsed_name.variant,
+                    "raw_name": s.parsed_name.raw_name,
+                    "canonical_name": s.parsed_name.canonical_name,
+                    "shape_type": s.shape_type,
+                    "has_text": s.has_text,
+                    "has_chart": s.has_chart,
+                    "has_table": s.has_table,
+                }
+                for s in discovery_result.shapes
+            ],
+            "errors": discovery_result.errors,
+            "warnings": discovery_result.warnings,
+            "slide_count": discovery_result.slide_count,
+            "is_valid": discovery_result.is_valid,
+            "shapes_by_category": {
+                cat: len(shapes)
+                for cat, shapes in discovery_result.shapes_by_category.items()
+            },
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to discover shapes: {str(e)}",
+        ) from e
+
+
+@router.post("/{project_id}/validate")
+async def validate_template(project_id: UUID) -> dict:
+    """Validate a template per ADR-0018/0020.
+
+    Uses the TemplateValidationResult contract for comprehensive validation.
+
+    Args:
+        project_id: Unique project identifier.
+
+    Returns:
+        TemplateValidationResult with validation status and errors.
+
+    Raises:
+        HTTPException: If project or template not found (404).
+    """
+    start_time = time.time()
+
+    if project_id not in projects_db:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Project {project_id} not found",
+        )
+
+    project = projects_db[project_id]
+    if not project.template_id or project.template_id not in templates_db:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No template uploaded for this project",
+        )
+
+    template = templates_db[project.template_id]
+    template_path = Path(template.file_path)
+
+    errors: list[TemplateValidationError] = []
+    warnings: list[TemplateValidationError] = []
+    layouts_found = 0
+    placeholders_found = 0
+    shapes_found = 0
+
+    try:
+        prs = Presentation(str(template_path))
+
+        # Count layouts
+        layouts_found = len(prs.slide_layouts)
+
+        # Discover and validate shapes
+        discovery_result = discover_shapes(list(prs.slides))
+        shapes_found = len(discovery_result.shapes)
+
+        # Convert discovery errors to validation errors
+        for err in discovery_result.errors:
+            errors.append(TemplateValidationError(
+                error_code="SHAPE_DISCOVERY_ERROR",
+                message=err,
+                severity="error",
+            ))
+
+        for warn in discovery_result.warnings:
+            warnings.append(TemplateValidationError(
+                error_code="SHAPE_DISCOVERY_WARNING",
+                message=warn,
+                severity="warning",
+            ))
+
+        # Count placeholders
+        for slide in prs.slides:
+            for shape in slide.shapes:
+                if shape.is_placeholder:
+                    placeholders_found += 1
+
+        # Check for required shapes
+        if shapes_found == 0:
+            warnings.append(TemplateValidationError(
+                error_code="NO_MAPPABLE_SHAPES",
+                message="No shapes with ADR-0018 compliant names found",
+                severity="warning",
+            ))
+
+    except Exception as e:
+        errors.append(TemplateValidationError(
+            error_code="TEMPLATE_PARSE_ERROR",
+            message=f"Failed to parse template: {str(e)}",
+            severity="error",
+        ))
+
+    validation_duration_ms = (time.time() - start_time) * 1000
+
+    result = TemplateValidationResult(
+        template_id=str(template.id),
+        valid=len(errors) == 0,
+        errors=errors,
+        warnings=warnings,
+        layouts_found=layouts_found,
+        placeholders_found=placeholders_found,
+        shapes_found=shapes_found,
+        validation_duration_ms=validation_duration_ms,
+    )
+
+    return result.model_dump()

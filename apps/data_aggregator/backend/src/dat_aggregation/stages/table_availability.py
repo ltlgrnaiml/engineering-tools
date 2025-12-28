@@ -33,6 +33,7 @@ class TableInfo:
     row_count: int | None = None
     column_count: int | None = None
     columns: list[str] = field(default_factory=list)
+    missing_columns: list[str] = field(default_factory=list)
     error_message: str | None = None
 
 
@@ -50,44 +51,63 @@ class TableAvailabilityResult:
 async def execute_table_availability(
     run_id: str,
     selected_files: list[Path],
+    expected_columns: list[str] | None = None,
 ) -> TableAvailabilityResult:
     """Probe available tables from selected files.
-    
+
     Per ADR-0006: Uses deterministic probe logic to identify tables.
-    
+    Tables with missing expected columns are marked as PARTIAL.
+
     Args:
-        run_id: DAT run ID
-        selected_files: List of file paths to probe
-        
+        run_id: DAT run ID.
+        selected_files: List of file paths to probe.
+        expected_columns: Optional list of expected column names.
+            If provided, tables missing any of these columns will be
+            marked as PARTIAL status per ADR-0006.
+
     Returns:
-        TableAvailabilityResult with discovered tables
+        TableAvailabilityResult with discovered tables.
     """
     from dat_aggregation.adapters.factory import AdapterFactory
-    
+
     tables: list[TableInfo] = []
-    
+
     for file_path in selected_files:
         try:
             adapter = AdapterFactory.get_adapter(file_path)
             table_names = adapter.get_tables(file_path)
-            
+
             for table_name in table_names:
                 try:
                     # Try to read a sample to get metadata
                     df = adapter.read(file_path, sheet=table_name)
-                    
+
+                    # Determine status per ADR-0006
                     if len(df) == 0:
                         status = TableStatus.EMPTY
+                        missing_cols: list[str] = []
+                    elif expected_columns:
+                        # Check for missing expected columns per ADR-0006
+                        actual_cols = set(df.columns)
+                        missing_cols = [
+                            col for col in expected_columns if col not in actual_cols
+                        ]
+                        if missing_cols:
+                            status = TableStatus.PARTIAL
+                        else:
+                            status = TableStatus.AVAILABLE
                     else:
                         status = TableStatus.AVAILABLE
-                    
+                        missing_cols = []
+
                     tables.append(TableInfo(
                         file_path=str(file_path),
                         table_name=table_name,
                         status=status,
                         row_count=len(df),
                         column_count=len(df.columns),
-                        columns=df.columns,
+                        columns=list(df.columns),
+                        missing_columns=missing_cols,
                     ))
                 except Exception as e:
                     tables.append(TableInfo(
