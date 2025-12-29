@@ -21,29 +21,91 @@
       "at": "2025-12-28",
       "by": "Mycahya Eggleston",
       "note": "Added concrete adapter interface contract reference (shared/contracts/dat/adapter.py)"
+    },
+    {
+      "at": "2025-12-29",
+      "by": "Mycahya Eggleston",
+      "note": "Major update: Added comprehensive profile schema architecture with 10-section YAML structure, 6 extraction strategies, and three-layer architecture (Profile→Adapter→Dataset)"
     }
   ],
-  "context": "Supporting extensible, deterministic, and user-customizable data extraction across multiple formats is critical for operational excellence and auditability. Hardcoded extraction logic and ad-hoc scripts lead to code drift, poor provenance, and limited extensibility. A profile-driven approach, with versioned profiles as the single source of truth and an AdapterFactory pattern for format extensibility, ensures that extraction logic is governed, reproducible, and easily extended. Context mapping, stable column policies, and diagnostic messaging must be profile-driven and standardized.",
-  "decision_primary": "All data extraction and context mapping are governed by versioned, provenance-tracked profiles (system/user). Adapters are selected via an AdapterFactory pattern, supporting multi-format extensibility. Extraction is deterministic, path-safe, and honors stable column subset/warn policies. Diagnostic messages are catalog-driven. No bulk data is returned to FE. All provenance (hashes, timestamps, seed) is recorded per ADR-0008.",
+  "context": "Supporting extensible, deterministic, and user-customizable data extraction across multiple formats is critical for operational excellence and auditability. Hardcoded extraction logic and ad-hoc scripts lead to code drift, poor provenance, and limited extensibility. A profile-driven approach, with versioned profiles as the single source of truth and an AdapterFactory pattern for format extensibility, ensures that extraction logic is governed, reproducible, and easily extended. Context mapping, stable column policies, and diagnostic messaging must be profile-driven and standardized. Research into industry patterns (dbt, Singer, Great Expectations) informed the comprehensive profile schema design.",
+  "decision_primary": "All data extraction and context mapping are governed by versioned, provenance-tracked profiles (system/user). Profiles define WHAT to extract via a comprehensive 10-section YAML schema. Adapters implement HOW to extract via an AdapterFactory pattern supporting multi-format extensibility. The ProfileExecutor interprets profiles and produces flat, tabular DataFrames. Extraction is deterministic, path-safe, and honors stable column subset/warn policies.",
   "decision_details": {
-    "approach": "Profiles are the single source of truth for extraction logic, context mapping, and normalization. AdapterFactory selects the appropriate adapter based on profile format handle. Adapters enforce deterministic traversal, path safety, and stable column projection. Diagnostic messages are standardized via a catalog. Provenance and determinism are enforced via content hashes, ISO-8601 UTC timestamps, and seed logging.",
+    "approach": "Three-Layer Architecture: (1) PROFILE LAYER (SSoT) defines what to extract, transform, validate, and present; (2) ADAPTER LAYER handles format-specific I/O and JSONPath execution; (3) DATASET LAYER produces flat tabular DataFrames with provenance. Profiles are declarative YAML configurations that encode domain knowledge, enabling data-source and user-intent agnostic extraction.",
+    "three_layer_architecture": {
+      "profile_layer": {
+        "description": "Single Source of Truth for extraction logic",
+        "responsibilities": ["What to extract (tables, columns, paths)", "How to transform (strategies, mappings, normalization)", "What to validate (stable columns, constraints)", "How to present (outputs, UI hints)"]
+      },
+      "adapter_layer": {
+        "description": "Format-specific I/O implementations",
+        "responsibilities": ["Format-specific I/O (JSON, CSV, Excel, Parquet)", "Streaming for large files", "Schema probing", "JSONPath/JMESPath execution"]
+      },
+      "dataset_layer": {
+        "description": "Output contract",
+        "responsibilities": ["Flat, tabular DataFrames", "Manifest with provenance", "Cross-tool compatibility via DataSetManifest"]
+      }
+    },
+    "profile_schema_sections": {
+      "description": "Comprehensive 10-section YAML profile schema",
+      "sections": [
+        {"id": 1, "name": "meta", "purpose": "Versioning, governance, ownership, domain tags"},
+        {"id": 2, "name": "datasource", "purpose": "File matching predicates, format-specific options"},
+        {"id": 3, "name": "population", "purpose": "Sampling strategies (all, valid_only, outliers_excluded, sample)"},
+        {"id": 4, "name": "context_defaults", "purpose": "Multi-level context extraction (defaults → regex → content → user override)"},
+        {"id": 5, "name": "levels", "purpose": "Table definitions with extraction strategies"},
+        {"id": 6, "name": "transformations", "purpose": "Column renames, type coercion, calculated columns, row filters"},
+        {"id": 7, "name": "validation", "purpose": "Schema rules, value constraints, aggregate rules"},
+        {"id": 8, "name": "outputs", "purpose": "Default/optional exports, aggregations, file naming"},
+        {"id": 9, "name": "ui", "purpose": "Presentation hints for discovery, preview, export stages"},
+        {"id": 10, "name": "governance", "purpose": "Access control, limits, override policies"}
+      ]
+    },
+    "extraction_strategies": {
+      "description": "Six extraction strategies for table definition",
+      "strategies": [
+        {"id": "flat_object", "description": "Extract flat JSON object as single-row DataFrame", "use_case": "Summary statistics, metadata"},
+        {"id": "headers_data", "description": "Extract headers + data arrays as DataFrame", "use_case": "Tabular data with explicit column headers"},
+        {"id": "array_of_objects", "description": "Extract array of objects as DataFrame", "use_case": "List of records"},
+        {"id": "repeat_over", "description": "Extract with iteration over array elements", "use_case": "Per-site or per-image data"},
+        {"id": "unpivot", "description": "Pivot wide data to long form", "use_case": "Parameter columns to rows"},
+        {"id": "join", "description": "Join multiple JSONPath results", "use_case": "Enriching data from multiple sources"}
+      ]
+    },
+    "context_extraction_priority": {
+      "description": "Four-level priority for context value resolution",
+      "levels": [
+        {"priority": 1, "source": "user_override", "description": "User-provided values in UI (highest priority)"},
+        {"priority": 2, "source": "content_patterns", "description": "JSONPath extraction from file content"},
+        {"priority": 3, "source": "regex_patterns", "description": "Regex extraction from filename/path"},
+        {"priority": 4, "source": "defaults", "description": "Static default values (lowest priority)"}
+      ]
+    },
+    "jsonpath_engine_decision": {
+      "decision": "Support both jsonpath-ng and jmespath",
+      "rationale": "JMESPath for complex queries, JSONPath for simple paths",
+      "configuration": "Profile specifies engine in datasource.options.json.jsonpath_engine"
+    },
+    "profile_storage_decision": {
+      "decision": "Hybrid storage: builtin profiles in repo, custom profiles in DB",
+      "rationale": "Builtin profiles versioned with code, user profiles support runtime customization",
+      "builtin_location": "apps/data_aggregator/backend/src/dat_aggregation/profiles/"
+    },
     "constraints": [
       "All extraction logic must be defined in versioned profiles.",
       "AdapterFactory must support multi-format extensibility (handles-first).",
       "Adapters must enforce path safety, deterministic traversal, and stable column policies.",
       "Diagnostic messages must be catalog-driven.",
       "No bulk data is returned to FE; row/limit policies are enforced.",
-      "Provenance (hashes, timestamps, seed) must be recorded per ADR-0008."
+      "Provenance (hashes, timestamps, seed) must be recorded per ADR-0008.",
+      "Profiles must be forward-compatible (ignore unknown fields with validation warnings)."
     ],
     "implementation_specs": [
+      "SPEC-DAT-0002_Profile-Extraction",
       "SPEC-DAT-0003_Adapter-Interface-Registry",
       "SPEC-DAT-0005_Profile-File-Management",
-      "SPEC-0015_Cancellation-Cleanup-Spec",
-      "SPEC-0002_Profile-Context-Orchestration",
-      "SPEC-0007_Stable-Columns-Policy-Spec",
-      "SPEC-0016_Path-Safety-And-Normalization-Spec",
-      "SPEC-0005_Message-Catalog-Spec",
-      "SPEC-0011_Profile-Driven-Extraction"
+      "SPEC-DAT-0011_Profile-Schema",
+      "SPEC-DAT-0012_Extraction-Strategies"
     ],
     "tier_0_contracts": [
       "shared.contracts.dat.adapter.BaseFileAdapter",
@@ -52,21 +114,40 @@
       "shared.contracts.dat.adapter.SchemaProbeResult",
       "shared.contracts.dat.adapter.ReadOptions",
       "shared.contracts.dat.adapter.StreamOptions",
-      "shared.contracts.dat.profile.ExtractionProfile"
+      "shared.contracts.dat.profile.DATProfile",
+      "shared.contracts.dat.profile.TableConfig",
+      "shared.contracts.dat.profile.SelectConfig",
+      "shared.contracts.dat.profile.ContextConfig"
     ],
     "builtin_adapters": [
       {"adapter_id": "csv", "file_extensions": [".csv", ".tsv"], "status": "planned"},
       {"adapter_id": "excel", "file_extensions": [".xlsx", ".xls"], "status": "planned"},
-      {"adapter_id": "json", "file_extensions": [".json", ".jsonl", ".ndjson"], "status": "planned"},
+      {"adapter_id": "json", "file_extensions": [".json", ".jsonl", ".ndjson"], "status": "implemented"},
+      {"adapter_id": "parquet", "file_extensions": [".parquet"], "status": "planned"},
       {"adapter_id": "sql", "file_extensions": [], "status": "future"}
-    ]
+    ],
+    "pipeline_integration": {
+      "description": "Profile usage across DAT pipeline stages",
+      "stages": {
+        "discovery": "datasource.filters (file matching predicates)",
+        "selection": "datasource.options (format hints)",
+        "context": "context_defaults, contexts (auto-extraction)",
+        "table_selection": "levels[].tables, ui.table_selection",
+        "preview": "ui.preview, population.sample",
+        "parse": "FULL PROFILE EXECUTION via ProfileExecutor",
+        "export": "outputs, governance.limits"
+      }
+    }
   },
   "consequences": [
     "Extraction logic is extensible, deterministic, and auditable.",
     "Adapters can be extended to new formats without core code changes.",
     "Stable column policies and diagnostics are standardized.",
+    "Power users can create domain-specific profiles with full YAML control.",
+    "End users get curated experiences via profile-defined defaults and UI hints.",
+    "Corporate governance enforced via profile limits and validation rules.",
     "Some up-front discipline required for profile/schema governance.",
-    "Legacy code may require refactoring to align with profile-driven approach."
+    "Legacy code requires refactoring to use ProfileExecutor."
   ],
   "alternatives_considered": [
     {
@@ -86,55 +167,81 @@
       "pros": "Maximum flexibility.",
       "cons": "Risks breaking determinism and provenance.",
       "rejected_reason": "Incompatible with audit and reproducibility requirements."
+    },
+    {
+      "name": "JSONPath Only",
+      "pros": "Single query language to learn.",
+      "cons": "JSONPath lacks some powerful features (projections, filters).",
+      "rejected_reason": "JMESPath support needed for complex extraction scenarios."
     }
   ],
-  "tradeoffs": "Requires discipline in profile/schema governance and diagnostic catalog management, but delivers extensibility, auditability, and operational excellence.",
+  "tradeoffs": "Requires discipline in profile/schema governance and diagnostic catalog management, but delivers extensibility, auditability, and operational excellence. Profile complexity inversely proportional to end-user configuration burden.",
   "rollout_plan": [
-    "Audit all existing extraction logic and migrate to profile-driven approach.",
-    "Implement AdapterFactory with multi-format registry.",
-    "Standardize stable column policy and diagnostics via catalog.",
-    "Refactor legacy code to align with new profiles and adapters.",
-    "Train contributors on profile-driven workflow."
+    "M1: Implement ProfileExecutor core with flat_object and headers_data strategies",
+    "M2: Implement context auto-extraction (regex from filename, JSONPath from content)",
+    "M3: Integrate validation engine (stable columns, value constraints)",
+    "M4: Add transform pipeline (renames, calculated columns, type coercion)",
+    "M5: UI integration (preview from profile, table selection from profile)",
+    "M6: Aggregation and join outputs"
   ],
-  "rollback_plan": "Revert to previous hardcoded or ad-hoc extraction logic (not recommended).",
+  "rollback_plan": "Revert to previous hardcoded or ad-hoc extraction logic (not recommended). Profile YAML files remain as documentation even if code reverts.",
   "metrics_to_watch": [
-    "Percentage of extraction logic governed by profiles.",
+    "Percentage of extraction logic governed by profiles (target: 100%).",
     "Number of supported formats in AdapterFactory registry.",
-    "Incidents of non-deterministic or path-unsafe extraction.",
+    "Profile execution time (parse stage latency).",
+    "Context auto-extraction success rate.",
+    "Validation rule coverage.",
     "Diagnostic message coverage in catalog."
   ],
   "guardrails": [
     {
-      "rule": "All extraction logic must be profile-driven and adapters must be selected via handles-first registry.",
-      "enforcement": "CI blocks merges if extraction logic is not governed by profiles or adapters are not registry-selected.",
+      "rule": "All extraction logic must be profile-driven; no hardcoded JSONPath in stage code.",
+      "enforcement": "CI blocks merges if extraction logic bypasses ProfileExecutor.",
+      "scope": "core"
+    },
+    {
+      "rule": "Profiles must pass schema validation before use.",
+      "enforcement": "ProfileLoader validates against SPEC-DAT-0011 schema.",
+      "scope": "core"
+    },
+    {
+      "rule": "Profile changes must update revision and modified_at.",
+      "enforcement": "Profile hash computed at load time; mismatch triggers warning.",
       "scope": "core"
     }
   ],
   "cross_cutting_guardrails": [
     "Path Safety: All file paths must be relative (see ADR-0017#path-safety)",
-    "Deterministic Artifacts: All outputs must be reproducible given the same inputs (see ADR-0017_Cross-Cutting-Guardrails#deterministic-artifacts)",
-    "No Bulk Data: Adapters must not return bulk data to FE (see ADR-0017_Cross-Cutting-Guardrails#no-bulk-data)"
+    "Deterministic Artifacts: All outputs must be reproducible given the same inputs (see ADR-0017#deterministic-artifacts)",
+    "No Bulk Data: Adapters must not return bulk data to FE (see ADR-0017#no-bulk-data)"
   ],
   "references": [
     "ADR-0001_Guided-Workflow-FSM-Orchestration: Core FSM pattern for stage transitions",
+    "ADR-0001-DAT_Stage-Graph-Configuration: 8-stage DAT pipeline",
     "ADR-0009_Type-Safety-Contract-Discipline: Profile schemas as Pydantic contracts",
-    "ADR-0017_Cross-Cutting-Guardrails: Platform-wide guardrails"
+    "ADR-0017_Cross-Cutting-Guardrails: Platform-wide guardrails",
+    "ADR-0040_Large-File-Streaming-Strategy: Streaming mode for large files",
+    "Industry patterns: dbt (declarative config), Singer (composable pipelines), Great Expectations (validation)"
   ],
   "tags": [
     "profile-driven",
     "adapter-factory",
     "determinism",
     "extensibility",
-    "path-safety"
+    "path-safety",
+    "ssot",
+    "etl",
+    "jsonpath",
+    "jmespath"
   ],
   "affected_components": [
     "shared/contracts/dat/adapter.py",
     "shared/contracts/dat/profile.py",
-    "apps/data_aggregator/backend/adapters/registry.py",
-    "apps/data_aggregator/backend/adapters/csv_adapter.py",
-    "apps/data_aggregator/backend/adapters/excel_adapter.py",
-    "apps/data_aggregator/backend/adapters/json_adapter.py",
-    "apps/data_aggregator/config/profiles/"
+    "apps/data_aggregator/backend/src/dat_aggregation/profiles/",
+    "apps/data_aggregator/backend/src/dat_aggregation/profiles/profile_loader.py",
+    "apps/data_aggregator/backend/src/dat_aggregation/profiles/profile_executor.py",
+    "apps/data_aggregator/backend/src/dat_aggregation/adapters/",
+    "apps/data_aggregator/backend/src/dat_aggregation/stages/parse.py"
   ],
   "review_date": "2026-05-22"
 }

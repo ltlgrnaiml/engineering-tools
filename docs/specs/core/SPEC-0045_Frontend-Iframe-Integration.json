@@ -1,0 +1,112 @@
+{
+  "id": "SPEC-0045",
+  "title": "Frontend Iframe Integration Implementation",
+  "implements_adr": "ADR-0042",
+  "tier0_contracts": [],
+  "status": "accepted",
+  "created": "2025-12-29",
+  "updated": "2025-12-29",
+  "purpose": "Specifies the implementation details for the iframe-based tool integration pattern in the Homepage frontend.",
+  "scope": "Homepage frontend tool page components and their iframe configurations.",
+  "implementation": {
+    "port_assignments": {
+      "homepage": {
+        "port": 3000,
+        "description": "Main entry point SPA",
+        "vite_config": "apps/homepage/frontend/vite.config.ts"
+      },
+      "dat_frontend": {
+        "port": 5173,
+        "description": "Data Aggregator standalone frontend",
+        "vite_config": "apps/data_aggregator/frontend/vite.config.ts"
+      },
+      "sov_frontend": {
+        "port": 5174,
+        "description": "SOV Analyzer standalone frontend",
+        "vite_config": "apps/sov_analyzer/frontend/vite.config.ts"
+      },
+      "pptx_frontend": {
+        "port": 5175,
+        "description": "PPTX Generator standalone frontend",
+        "vite_config": "apps/pptx_generator/frontend/vite.config.ts"
+      }
+    },
+    "homepage_routing": {
+      "native_routes": [
+        { "path": "/", "component": "HomePage", "description": "Landing page" },
+        { "path": "/datasets", "component": "DatasetsPage", "description": "Cross-tool DataSet browser" },
+        { "path": "/datasets/:id", "component": "DataSetDetailsPage", "description": "DataSet details" },
+        { "path": "/pipelines", "component": "PipelinesPage", "description": "Cross-tool Pipeline browser" },
+        { "path": "/pipelines/new", "component": "PipelineBuilderPage", "description": "Pipeline builder" },
+        { "path": "/pipelines/:id", "component": "PipelineDetailsPage", "description": "Pipeline details" },
+        { "path": "/devtools", "component": "DevToolsPage", "description": "ADR/SPEC browser" }
+      ],
+      "iframe_routes": [
+        { "path": "/tools/dat", "component": "DataAggregatorPage", "iframe_src": "localhost:5173" },
+        { "path": "/tools/sov", "component": "SOVAnalyzerPage", "iframe_src": "localhost:5174" },
+        { "path": "/tools/pptx", "component": "PPTXGeneratorPage", "iframe_src": "localhost:5175" }
+      ]
+    },
+    "tool_page_components": {
+      "pattern": "Each tool page component follows the same pattern",
+      "example": {
+        "file": "apps/homepage/frontend/src/pages/DataAggregatorPage.tsx",
+        "structure": [
+          "1. Detect if running in development (localhost)",
+          "2. Set iframe URL based on environment (dev: localhost:PORT, prod: /tool-app)",
+          "3. Render full-screen iframe with tool frontend"
+        ]
+      },
+      "required_props": {
+        "src": "Tool frontend URL (port-based in dev, path-based in prod)",
+        "className": "w-full h-full border-0",
+        "title": "Tool name for accessibility",
+        "allow": "same-origin"
+      }
+    },
+    "environment_detection": {
+      "development": {
+        "condition": "window.location.hostname === 'localhost'",
+        "url_pattern": "http://localhost:{PORT}"
+      },
+      "production": {
+        "condition": "NOT localhost",
+        "url_pattern": "/{tool}-app (served by reverse proxy)"
+      }
+    }
+  },
+  "dependencies": {
+    "start_script": {
+      "description": "start.ps1 / start.sh must start ALL tool frontends by default",
+      "reference": "ADR-0037, SPEC-0041"
+    },
+    "vite_proxy": {
+      "description": "Each frontend's vite.config.ts must proxy /api to backend gateway",
+      "backend_target": "http://localhost:8000"
+    }
+  },
+  "verification": {
+    "manual_tests": [
+      "Navigate to http://localhost:3000/tools/dat - should show DAT UI",
+      "Navigate to http://localhost:3000/tools/sov - should show SOV UI",
+      "Navigate to http://localhost:3000/tools/pptx - should show PPTX UI",
+      "Native routes (/datasets, /pipelines, /devtools) should work without iframes"
+    ],
+    "automated_tests": {
+      "status": "TODO",
+      "description": "E2E tests with Playwright to verify iframe loading"
+    }
+  },
+  "files_affected": [
+    "apps/homepage/frontend/src/App.tsx",
+    "apps/homepage/frontend/src/pages/DataAggregatorPage.tsx",
+    "apps/homepage/frontend/src/pages/SOVAnalyzerPage.tsx",
+    "apps/homepage/frontend/src/pages/PPTXGeneratorPage.tsx",
+    "apps/homepage/frontend/vite.config.ts",
+    "apps/data_aggregator/frontend/vite.config.ts",
+    "apps/sov_analyzer/frontend/vite.config.ts",
+    "apps/pptx_generator/frontend/vite.config.ts",
+    "start.ps1",
+    "start.sh"
+  ]
+}

@@ -152,6 +152,7 @@ function StageStep({
   return (
     <>
       <button
+        type="button"
         onClick={() => canClick && onClick?.()}
         disabled={!canClick}
         className={`
@@ -220,6 +221,8 @@ export function DATWizard({
   const currentStage = stages[currentIndex];
   const isFirstStage = currentIndex === 0;
   const isLastStage = currentIndex === stages.length - 1;
+  const hasNext = typeof onNext === 'function';
+  const hasSkip = typeof onSkip === 'function';
 
   return (
     <div className="flex flex-col min-h-full">
@@ -268,6 +271,7 @@ export function DATWizard({
             <div>
               {!isFirstStage && (
                 <button
+                  type="button"
                   onClick={onBack}
                   disabled={isLoading}
                   className="
@@ -282,8 +286,9 @@ export function DATWizard({
             </div>
 
             <div className="flex gap-3">
-              {currentStage?.optional && (
+              {hasSkip && currentStage?.optional && (
                 <button
+                  type="button"
                   onClick={() => onSkip?.(currentStageId)}
                   disabled={isLoading}
                   className="
@@ -296,8 +301,9 @@ export function DATWizard({
                 </button>
               )}
 
-              {!isLastStage && (
+              {hasNext && !isLastStage && (
                 <button
+                  type="button"
                   onClick={onNext}
                   disabled={nextDisabled || isLoading}
                   className="
@@ -321,8 +327,9 @@ export function DATWizard({
                 </button>
               )}
 
-              {isLastStage && (
+              {hasNext && isLastStage && (
                 <button
+                  type="button"
                   onClick={onNext}
                   disabled={nextDisabled || isLoading}
                   className="

@@ -23,7 +23,7 @@ from shared.contracts.core.error_response import (
     ErrorCategory,
     create_error_response,
 )
-from ..core.state_machine import Stage, StageState
+from ..core.state_machine import Stage, StageState, StageStatus
 from ..core.run_manager import RunManager
 from ..stages.selection import execute_selection
 from ..stages.parse import execute_parse, ParseConfig, CancellationToken
@@ -427,7 +427,7 @@ async def lock_table_selection(run_id: str, request: TableSelectionRequest):
 
 
 @router.post("/runs/{run_id}/stages/parse/lock")
-async def lock_parse(run_id: str, request: ParseRequest, background_tasks: BackgroundTasks):
+async def lock_parse(run_id: str, request: ParseRequest | None = None, background_tasks: BackgroundTasks = None):
     """Lock parse stage - start data extraction."""
     sm = run_manager.get_state_machine(run_id)
 
@@ -445,10 +445,13 @@ async def lock_parse(run_id: str, request: ParseRequest, background_tasks: Backg
         table_artifact = await sm.store.get_artifact(run_id, Stage.TABLE_SELECTION, table_status.stage_id)
         selected_tables = table_artifact.get("selected_tables", {})
 
+    # Handle optional request body
+    column_mappings = request.column_mappings if request else None
+
     config = ParseConfig(
         selected_files=[Path(p) for p in selection_artifact.get("selected_files", [])],
         selected_tables=selected_tables,
-        column_mappings=request.column_mappings,
+        column_mappings=column_mappings,
     )
 
     # Create cancellation token
@@ -475,7 +478,7 @@ async def lock_parse(run_id: str, request: ParseRequest, background_tasks: Backg
         inputs = {
             "files": selection_artifact.get("selected_files", []),
             "tables": selected_tables,
-            "mappings": request.column_mappings,
+            "mappings": column_mappings,
         }
         status = await sm.lock_stage(Stage.PARSE, inputs=inputs, execute_fn=execute)
 
@@ -598,10 +601,156 @@ async def list_profiles():
         if profile:
             result.append({
                 "id": profile_id,
-                "name": profile.title if hasattr(profile, 'title') else profile_id
+                "name": profile.title if hasattr(profile, 'title') else profile_id,
+                "description": profile.description if hasattr(profile, 'description') else "",
+                "table_count": len(profile.get_all_tables()) if hasattr(profile, 'get_all_tables') else 0,
             })
 
     return result
+
+
+@router.get("/profiles/{profile_id}/tables")
+async def get_profile_tables(profile_id: str):
+    """Get tables defined in a profile per ADR-0011.
+    
+    Returns all table definitions from the profile YAML for UI display.
+    Tables are grouped by level (run, image, etc.) per ui.table_selection config.
+    """
+    from ..profiles.profile_loader import get_profile_by_id
+
+    profile = get_profile_by_id(profile_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail=f"Profile not found: {profile_id}")
+
+    tables_by_level = {}
+    for level_name, table_config in profile.get_all_tables():
+        if level_name not in tables_by_level:
+            tables_by_level[level_name] = []
+        
+        tables_by_level[level_name].append({
+            "id": table_config.id,
+            "label": table_config.label,
+            "description": table_config.description,
+            "strategy": table_config.select.strategy if table_config.select else None,
+            "stable_columns": table_config.stable_columns,
+        })
+
+    # Per DESIGN §9: Include UI hints in response
+    ui_config = None
+    if profile.ui:
+        ui_config = {
+            "show_file_preview": profile.ui.show_file_preview,
+            "max_preview_files": profile.ui.max_preview_files,
+            "highlight_matching": profile.ui.highlight_matching,
+            "show_regex_matches": profile.ui.show_regex_matches,
+            "editable_fields": profile.ui.editable_fields,
+            "readonly_fields": profile.ui.readonly_fields,
+            "default_name_template": profile.ui.default_name_template,
+            "formats": profile.ui.formats,
+        }
+        if profile.ui.table_selection:
+            ui_config["table_selection"] = {
+                "group_by_level": profile.ui.table_selection.group_by_level,
+                "default_selected": profile.ui.table_selection.default_selected,
+                "collapsed_by_default": profile.ui.table_selection.collapsed_by_default,
+            }
+        if profile.ui.preview:
+            ui_config["preview"] = {
+                "max_rows": profile.ui.preview.max_rows,
+                "max_columns": profile.ui.preview.max_columns,
+                "number_format": profile.ui.preview.number_format,
+                "null_display": profile.ui.preview.null_display,
+            }
+
+    return {
+        "profile_id": profile_id,
+        "profile_name": profile.title,
+        "levels": tables_by_level,
+        "total_tables": len(profile.get_all_tables()),
+        "ui": ui_config,
+    }
+
+
+@router.post("/runs/{run_id}/stages/parse/profile-extract")
+async def execute_profile_extraction(run_id: str, request: ParseRequest):
+    """Execute profile-driven extraction per ADR-0011.
+    
+    Uses ProfileExecutor to extract tables defined in the profile YAML.
+    Returns extraction results with validation summary.
+    """
+    from ..profiles.profile_loader import get_profile_by_id
+    from ..profiles.profile_executor import ProfileExecutor
+    from ..profiles.context_extractor import ContextExtractor
+    from ..profiles.validation_engine import ValidationEngine
+    from ..profiles.transform_pipeline import TransformPipeline
+
+    sm = run_manager.get_state_machine(run_id)
+    run_state = await sm.store.get_run(run_id)
+    profile_id = run_state.get("profile_id")
+
+    if not profile_id:
+        raise HTTPException(status_code=400, detail="Run has no profile_id set")
+
+    profile = get_profile_by_id(profile_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail=f"Profile not found: {profile_id}")
+
+    # Get selected files from selection stage
+    selection_status = await sm.store.get_stage_status(run_id, Stage.SELECTION)
+    if selection_status.state != StageState.LOCKED:
+        raise HTTPException(status_code=400, detail="Selection stage must be locked first")
+
+    selection_artifact = await sm.store.get_artifact(run_id, Stage.SELECTION, selection_status.stage_id)
+    selected_files = [Path(f) for f in selection_artifact.get("selected_files", [])]
+
+    if not selected_files:
+        raise HTTPException(status_code=400, detail="No files selected")
+
+    # Extract context
+    context_extractor = ContextExtractor()
+    context = {}
+    for file_path in selected_files:
+        file_context = context_extractor.extract(profile=profile, file_path=file_path)
+        context.update(file_context)
+
+    # Execute profile extraction
+    executor = ProfileExecutor()
+    extracted_tables = await executor.execute(
+        profile=profile,
+        files=selected_files,
+        context=context,
+        selected_tables=request.selected_tables if hasattr(request, 'selected_tables') else None,
+    )
+
+    # Validate extraction
+    validation_engine = ValidationEngine()
+    validation_summary = validation_engine.validate_extraction(extracted_tables, profile)
+
+    # Apply transforms
+    transform_pipeline = TransformPipeline()
+    for table_id, df in extracted_tables.items():
+        extracted_tables[table_id] = transform_pipeline.apply_normalization(df, profile)
+
+    # Return results summary
+    return {
+        "run_id": run_id,
+        "profile_id": profile_id,
+        "tables_extracted": len(extracted_tables),
+        "table_details": {
+            table_id: {
+                "row_count": len(df),
+                "column_count": len(df.columns),
+                "columns": df.columns,
+            }
+            for table_id, df in extracted_tables.items()
+        },
+        "validation": {
+            "valid": validation_summary.valid,
+            "error_count": validation_summary.error_count,
+            "warning_count": validation_summary.warning_count,
+        },
+        "context": context,
+    }
 
 
 @router.get("/runs/{run_id}/stages/table_availability/scan")
@@ -852,6 +1001,26 @@ async def lock_preview(run_id: str):
 
                     if len(df) > 0:
                         preview_df = df.head(preview_rows_per_table)
+                        
+                        # Per DESIGN §10: Apply PII masking in preview
+                        context_status = await sm.store.get_stage_status(run_id, Stage.CONTEXT)
+                        if context_status.stage_id:
+                            ctx_artifact = await sm.store.get_artifact(
+                                run_id, Stage.CONTEXT, context_status.stage_id
+                            )
+                            if ctx_artifact and ctx_artifact.get("profile_id"):
+                                from ..profiles.profile_loader import get_profile_by_id
+                                from ..profiles.transform_pipeline import TransformPipeline
+                                profile = get_profile_by_id(ctx_artifact["profile_id"])
+                                if profile and profile.governance and profile.governance.compliance:
+                                    pii_cols = profile.governance.compliance.pii_columns
+                                    mask_cols = profile.governance.compliance.mask_in_preview
+                                    if pii_cols or mask_cols:
+                                        pipeline = TransformPipeline()
+                                        preview_df = pipeline.apply_pii_masking(
+                                            preview_df, pii_cols, mask_cols
+                                        )
+                        
                         rows = preview_df.to_dicts()
 
                         # Add source info to each row
@@ -929,52 +1098,64 @@ async def get_preview(run_id: str, rows: int = 100):
 @router.post("/runs/{run_id}/stages/export/lock")
 async def lock_export(run_id: str, request: ExportRequest):
     """Lock export stage with dataset generation."""
-    sm = run_manager.get_state_machine(run_id)
-
-    # Get parse result
-    parse_status = await sm.store.get_stage_status(run_id, Stage.PARSE)
-    if parse_status.state != StageState.LOCKED or not parse_status.completed:
-        raise HTTPException(status_code=400, detail="Parse stage must be completed first")
-
-    parse_artifact = await sm.store.get_artifact(run_id, Stage.PARSE, parse_status.stage_id)
-    if not parse_artifact:
-        raise HTTPException(status_code=400, detail="Parse artifact not found")
-
-    async def execute():
-        # Load the parsed data
-        import polars as pl
-        output_path = Path(parse_artifact["output_path"])
-        data = pl.read_parquet(output_path)
-
-        # Create a ParseResult-like object for export
-        from ..stages.parse import ParseResult
-        parse_result = ParseResult(
-            data=data,
-            row_count=parse_artifact["row_count"],
-            column_count=parse_artifact["column_count"],
-            source_files=parse_artifact["source_files"],
-            completed=True,
-            parse_id=parse_artifact["parse_id"],
-            output_path=str(output_path),
-        )
-
-        manifest = await execute_export(
-            run_id=run_id,
-            parse_result=parse_result,
-            name=request.name,
-            description=request.description,
-            aggregation_levels=request.aggregation_levels,
-        )
-
-        return {
-            "dataset_id": manifest.dataset_id,
-            "name": manifest.name,
-            "row_count": manifest.row_count,
-            "completed": True,
-            "manifest": manifest.model_dump()
-        }
+    import logging
+    import traceback
+    
+    logger = logging.getLogger(__name__)
 
     try:
+        sm = run_manager.get_state_machine(run_id)
+
+        # Get parse result
+        parse_status = await sm.store.get_stage_status(run_id, Stage.PARSE)
+        if parse_status.state != StageState.LOCKED or not parse_status.completed:
+            raise HTTPException(status_code=400, detail="Parse stage must be completed first")
+
+        parse_artifact = await sm.store.get_artifact(run_id, Stage.PARSE, parse_status.stage_id)
+        if not parse_artifact:
+            raise HTTPException(status_code=400, detail="Parse artifact not found")
+
+        logger.info(f"Export lock: parse_artifact keys = {list(parse_artifact.keys())}")
+        logger.info(f"Export lock: output_path = {parse_artifact.get('output_path')}")
+
+        async def execute():
+            # Load the parsed data
+            import polars as pl
+            output_path = Path(parse_artifact["output_path"])
+            logger.info(f"Loading parquet from: {output_path}")
+            data = pl.read_parquet(output_path)
+            logger.info(f"Loaded data: {len(data)} rows, {len(data.columns)} columns")
+
+            # Create a ParseResult-like object for export
+            from ..stages.parse import ParseResult
+            parse_result = ParseResult(
+                data=data,
+                row_count=parse_artifact["row_count"],
+                column_count=parse_artifact["column_count"],
+                source_files=parse_artifact["source_files"],
+                completed=True,
+                parse_id=parse_artifact["parse_id"],
+                output_path=str(output_path),
+            )
+
+            logger.info(f"Calling execute_export with name={request.name}")
+            manifest = await execute_export(
+                run_id=run_id,
+                parse_result=parse_result,
+                name=request.name,
+                description=request.description,
+                aggregation_levels=request.aggregation_levels,
+            )
+            logger.info(f"Export completed: dataset_id={manifest.dataset_id}")
+
+            return {
+                "dataset_id": manifest.dataset_id,
+                "name": manifest.name,
+                "row_count": manifest.row_count,
+                "completed": True,
+                "manifest": manifest.model_dump()
+            }
+
         inputs = {
             "name": request.name,
             "description": request.description,
@@ -990,8 +1171,18 @@ async def lock_export(run_id: str, request: ExportRequest):
             "dataset_id": artifact.get("dataset_id"),
             "manifest": artifact.get("manifest")
         }
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions as-is
+    except FileNotFoundError as e:
+        logger.error(f"Run not found in export lock: {e}")
+        raise HTTPException(status_code=404, detail=str(e))
     except ValueError as e:
+        logger.error(f"ValueError in export lock: {e}")
         raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Unexpected error in export lock: {type(e).__name__}: {e}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {str(e)}")
 
 
 @router.get("/runs/{run_id}/stages/export/summary")
@@ -1008,9 +1199,33 @@ async def get_export_summary(run_id: str):
     if not parse_artifact:
         raise HTTPException(status_code=400, detail="Parse artifact not found")
 
+    # Get columns from parsed data if available
+    columns: list[str] = []
+    output_path = parse_artifact.get("output_path")
+    if output_path:
+        try:
+            import polars as pl
+            df = pl.read_parquet(output_path)
+            columns = df.columns
+        except Exception:
+            pass
+
+    # Get aggregation levels from context stage if available
+    aggregation_levels: list[str] = []
+    try:
+        context_status = await sm.store.get_stage_status(run_id, Stage.CONTEXT)
+        if context_status.state == StageState.LOCKED and context_status.stage_id:
+            context_artifact = await sm.store.get_artifact(run_id, Stage.CONTEXT, context_status.stage_id)
+            if context_artifact:
+                aggregation_levels = context_artifact.get("aggregation_levels", [])
+    except Exception:
+        pass
+
     return {
         "row_count": parse_artifact.get("row_count", 0),
         "column_count": parse_artifact.get("column_count", 0),
+        "columns": columns,
+        "aggregation_levels": aggregation_levels,
         "source_files": parse_artifact.get("source_files", []),
         "ready": parse_artifact.get("completed", False),
     }
@@ -1081,12 +1296,37 @@ async def get_parse_progress(run_id: str):
 
     parse_status = await sm.store.get_stage_status(run_id, Stage.PARSE)
 
-    # Return progress info
-    return {
-        "status": "idle" if parse_status.state == StageState.UNLOCKED else "running" if not parse_status.completed else "completed",
+    # Determine status
+    if parse_status.state == StageState.UNLOCKED:
+        status = "idle"
+    elif not parse_status.completed:
+        status = "running"
+    else:
+        status = "completed"
+
+    # Base response
+    response = {
+        "status": status,
         "completed": parse_status.completed,
         "error": parse_status.error,
+        "progress": 0,
+        "processed_files": 0,
+        "total_files": 0,
+        "processed_rows": 0,
     }
+
+    # If completed, get artifact data for counts
+    if parse_status.completed and parse_status.stage_id:
+        try:
+            artifact = await sm.store.get_artifact(run_id, Stage.PARSE, parse_status.stage_id)
+            response["processed_rows"] = artifact.get("row_count", 0)
+            response["processed_files"] = len(artifact.get("source_files", []))
+            response["total_files"] = response["processed_files"]
+            response["progress"] = 100
+        except Exception:
+            pass
+
+    return response
 
 
 @router.post("/runs/{run_id}/stages/parse/start")

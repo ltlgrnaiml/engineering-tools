@@ -51,6 +51,7 @@ Tier 1: ADRs (WHY)
 | **SPEC-0042** | **CI/CD Pipeline Implementation** | **ADR-0038** | - (workflows) |
 | **SPEC-0043** | **Deployment Infrastructure** | **ADR-0039** | - (Pulumi) |
 | **SPEC-0044** | **Stage Completion Semantics** | **ADR-0001** | `shared/contracts/core/pipeline.py` |
+| **SPEC-0045** | **Frontend Iframe Integration** | **ADR-0042** | - (frontend components) |
 
 ### DAT SPECs (Data Aggregation Tool)
 

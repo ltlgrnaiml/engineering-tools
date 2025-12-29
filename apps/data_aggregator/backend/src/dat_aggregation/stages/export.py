@@ -88,7 +88,6 @@ async def execute_export(
     manifest = DataSetManifest(
         dataset_id=dataset_id,
         name=default_name,
-        description=description or f"Exported from DAT run {run_id}",
         created_at=now,
         created_by_tool="dat",
         columns=[
@@ -104,7 +103,7 @@ async def execute_export(
         aggregation_levels=aggregation_levels,
         source_files=parse_result.source_files,
         profile_id=profile_id,
-        parent_ids=[],  # Could link to input datasets if applicable
+        parent_dataset_ids=[],
     )
 
     # Write to shared storage
@@ -131,10 +130,5 @@ async def execute_export(
             xlsx_path = base_path / f"{dataset_id}.xlsx"
             data.write_excel(xlsx_path)
             export_paths["xlsx"] = str(xlsx_path)
-
-    # Add export paths to manifest metadata
-    manifest.metadata = manifest.metadata or {}
-    manifest.metadata["export_paths"] = export_paths
-    manifest.metadata["export_formats"] = [f.value for f in all_formats]
 
     return manifest

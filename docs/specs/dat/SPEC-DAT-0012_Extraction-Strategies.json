@@ -1,0 +1,322 @@
+{
+  "schema_type": "spec",
+  "id": "SPEC-DAT-0012_Extraction-Strategies",
+  "title": "DAT Extraction Strategies Specification",
+  "version": "1.0.0",
+  "status": "accepted",
+  "date": "2025-12-29",
+  "author": "Mycahya Eggleston",
+  "implements_adr": [
+    "ADR-0011_Profile-Driven-Extraction-and-Adapters"
+  ],
+  "tier_0_contracts": [
+    {
+      "module": "shared.contracts.dat.profile",
+      "classes": ["SelectConfig", "RepeatOverConfig"]
+    },
+    {
+      "module": "apps.data_aggregator.backend.src.dat_aggregation.profiles.strategies",
+      "classes": ["ExtractionStrategy", "FlatObjectStrategy", "HeadersDataStrategy", "ArrayOfObjectsStrategy", "RepeatOverStrategy", "UnpivotStrategy", "JoinStrategy"]
+    }
+  ],
+  "purpose": "Define the six extraction strategies available for table definitions in DAT profiles. Each strategy specifies how to transform nested JSON/data structures into flat, tabular DataFrames suitable for analysis and export.",
+  "scope": "subsystem:DAT",
+  "strategies": [
+    {
+      "id": "flat_object",
+      "name": "Flat Object Strategy",
+      "description": "Extract a flat JSON object as a single-row DataFrame. Object keys become column names, values become the single row.",
+      "use_cases": ["Summary statistics", "Metadata extraction", "Configuration objects"],
+      "input": "JSON object at specified path",
+      "output": "Single-row DataFrame",
+      "config_fields": {
+        "strategy": {"value": "flat_object", "required": true},
+        "path": {"type": "JSONPath", "required": true, "description": "Path to the object"},
+        "flatten_nested": {"type": "boolean", "default": false, "description": "Recursively flatten nested objects"},
+        "flatten_separator": {"type": "string", "default": "_", "description": "Separator for nested key names"}
+      },
+      "example_input": {
+        "$.summary": {
+          "total_images": 50,
+          "mean_cd": 45.2,
+          "sigma_cd": 1.3
+        }
+      },
+      "example_output": {
+        "columns": ["total_images", "mean_cd", "sigma_cd"],
+        "rows": [[50, 45.2, 1.3]]
+      },
+      "edge_cases": [
+        {"case": "Nested objects with flatten_nested=false", "behavior": "Nested object stored as JSON string"},
+        {"case": "Nested objects with flatten_nested=true", "behavior": "Keys flattened: parent_child_grandchild"},
+        {"case": "Arrays in object", "behavior": "Array stored as JSON string"},
+        {"case": "Empty object", "behavior": "Empty DataFrame with no rows"}
+      ]
+    },
+    {
+      "id": "headers_data",
+      "name": "Headers + Data Strategy",
+      "description": "Extract tabular data where headers are in one array and data rows are in another. Common pattern in many data formats.",
+      "use_cases": ["Statistics tables", "Measurement data with explicit headers", "Report tables"],
+      "input": "Object with headers array and data array at specified path",
+      "output": "Multi-row DataFrame with typed columns",
+      "config_fields": {
+        "strategy": {"value": "headers_data", "required": true},
+        "path": {"type": "JSONPath", "required": true, "description": "Path to parent object"},
+        "headers_key": {"type": "string", "required": true, "description": "Key containing column headers array"},
+        "data_key": {"type": "string", "required": true, "description": "Key containing data rows array"},
+        "infer_headers": {"type": "boolean", "default": false, "description": "Infer headers if missing"},
+        "default_headers": {"type": "array[string]", "required": false, "description": "Fallback headers if not found"}
+      },
+      "example_input": {
+        "$.statistics": {
+          "columns": ["parameter", "mean", "std_dev"],
+          "values": [
+            ["cd_left", 45.2, 1.1],
+            ["cd_right", 45.8, 1.2]
+          ]
+        }
+      },
+      "example_output": {
+        "columns": ["parameter", "mean", "std_dev"],
+        "rows": [
+          ["cd_left", 45.2, 1.1],
+          ["cd_right", 45.8, 1.2]
+        ]
+      },
+      "edge_cases": [
+        {"case": "Mismatched header/data lengths", "behavior": "Truncate or pad with null"},
+        {"case": "Missing headers_key", "behavior": "Use default_headers or raise error"},
+        {"case": "Empty data array", "behavior": "DataFrame with columns but no rows"}
+      ]
+    },
+    {
+      "id": "array_of_objects",
+      "name": "Array of Objects Strategy",
+      "description": "Extract an array of JSON objects as a DataFrame. Each object becomes a row, object keys become columns.",
+      "use_cases": ["List of measurements", "Record collections", "Event logs"],
+      "input": "JSON array of objects at specified path",
+      "output": "Multi-row DataFrame",
+      "config_fields": {
+        "strategy": {"value": "array_of_objects", "required": true},
+        "path": {"type": "JSONPath", "required": true, "description": "Path to array (use [*] for iteration)"},
+        "fields": {"type": "array[string]", "required": false, "description": "Specific fields to extract (default: all)"}
+      },
+      "example_input": {
+        "$.measurements[*]": [
+          {"id": "M001", "value": 45.2, "status": "valid"},
+          {"id": "M002", "value": 45.8, "status": "valid"}
+        ]
+      },
+      "example_output": {
+        "columns": ["id", "value", "status"],
+        "rows": [
+          ["M001", 45.2, "valid"],
+          ["M002", 45.8, "valid"]
+        ]
+      },
+      "edge_cases": [
+        {"case": "Objects with different keys", "behavior": "Union of all keys, null for missing"},
+        {"case": "Nested objects in array", "behavior": "Stored as JSON string unless flatten_nested=true"},
+        {"case": "Empty array", "behavior": "Empty DataFrame"}
+      ]
+    },
+    {
+      "id": "repeat_over",
+      "name": "Repeat Over Strategy",
+      "description": "Extract data by iterating over an array and applying headers_data or flat_object to each element. Produces a combined DataFrame with injected context from parent.",
+      "use_cases": ["Per-site measurements", "Per-image data", "Multi-level hierarchical data"],
+      "input": "Array to iterate over, with nested data at each element",
+      "output": "Combined DataFrame from all iterations with injected context columns",
+      "config_fields": {
+        "strategy": {"value": "headers_data", "note": "Base strategy to apply at each iteration"},
+        "path": {"type": "JSONPath", "required": true, "description": "Path with {index_var} placeholder"},
+        "headers_key": {"type": "string", "required": true},
+        "data_key": {"type": "string", "required": true},
+        "repeat_over": {
+          "path": {"type": "JSONPath", "required": true, "description": "Array to iterate over"},
+          "as": {"type": "string", "required": true, "description": "Variable name for index"},
+          "inject_fields": {"type": "object", "required": false, "description": "Context fields to inject from parent"}
+        }
+      },
+      "example_config": {
+        "strategy": "headers_data",
+        "path": "$.sites[{site_index}].cd_data",
+        "headers_key": "headers",
+        "data_key": "rows",
+        "repeat_over": {
+          "path": "$.sites",
+          "as": "site_index",
+          "inject_fields": {
+            "site_id": "$.site_id",
+            "site_name": "$.name"
+          }
+        }
+      },
+      "example_input": {
+        "$.sites": [
+          {"site_id": "S01", "name": "Center", "cd_data": {"headers": ["x", "y", "cd"], "rows": [[0, 0, 45.1]]}},
+          {"site_id": "S02", "name": "Edge", "cd_data": {"headers": ["x", "y", "cd"], "rows": [[10, 0, 45.3]]}}
+        ]
+      },
+      "example_output": {
+        "columns": ["site_id", "site_name", "x", "y", "cd"],
+        "rows": [
+          ["S01", "Center", 0, 0, 45.1],
+          ["S02", "Edge", 10, 0, 45.3]
+        ]
+      },
+      "edge_cases": [
+        {"case": "Empty iteration array", "behavior": "Empty DataFrame"},
+        {"case": "Missing nested data at some elements", "behavior": "Skip element or include with nulls based on config"},
+        {"case": "Inconsistent schemas across elements", "behavior": "Union of all columns"}
+      ]
+    },
+    {
+      "id": "unpivot",
+      "name": "Unpivot Strategy",
+      "description": "Transform wide-format data to long-format by unpivoting specified columns. Converts multiple value columns into parameter/value pairs.",
+      "use_cases": ["Parameter tables", "Wide-to-long transformation", "Normalization for analysis"],
+      "input": "Wide-format data with multiple value columns",
+      "output": "Long-format DataFrame with parameter and value columns",
+      "config_fields": {
+        "strategy": {"value": "unpivot", "required": true},
+        "path": {"type": "JSONPath", "required": true, "description": "Path to source data"},
+        "id_vars": {"type": "array[string]", "required": true, "description": "Columns to keep as identifiers"},
+        "value_vars": {"type": "array[string]", "required": true, "description": "Columns to unpivot"},
+        "var_name": {"type": "string", "default": "variable", "description": "Name for parameter column"},
+        "value_name": {"type": "string", "default": "value", "description": "Name for value column"}
+      },
+      "example_input": {
+        "$.parameters": [
+          {"sample_id": "A", "param_a": 1.0, "param_b": 2.0, "param_c": 3.0},
+          {"sample_id": "B", "param_a": 1.1, "param_b": 2.1, "param_c": 3.1}
+        ]
+      },
+      "example_config": {
+        "strategy": "unpivot",
+        "path": "$.parameters",
+        "id_vars": ["sample_id"],
+        "value_vars": ["param_a", "param_b", "param_c"],
+        "var_name": "parameter",
+        "value_name": "value"
+      },
+      "example_output": {
+        "columns": ["sample_id", "parameter", "value"],
+        "rows": [
+          ["A", "param_a", 1.0],
+          ["A", "param_b", 2.0],
+          ["A", "param_c", 3.0],
+          ["B", "param_a", 1.1],
+          ["B", "param_b", 2.1],
+          ["B", "param_c", 3.1]
+        ]
+      },
+      "edge_cases": [
+        {"case": "Missing value_vars columns", "behavior": "Skip missing columns with warning"},
+        {"case": "All null values for a row", "behavior": "Include row with null value"}
+      ]
+    },
+    {
+      "id": "join",
+      "name": "Join Strategy",
+      "description": "Join data from two different JSONPath locations. Useful for enriching data with metadata from another part of the document.",
+      "use_cases": ["Enriching measurements with site metadata", "Combining related tables", "Lookup joins"],
+      "input": "Two data sources at different paths",
+      "output": "Joined DataFrame",
+      "config_fields": {
+        "strategy": {"value": "join", "required": true},
+        "left": {
+          "path": {"type": "JSONPath", "required": true, "description": "Path to left table"},
+          "key": {"type": "string", "required": true, "description": "Join key column"}
+        },
+        "right": {
+          "path": {"type": "JSONPath", "required": true, "description": "Path to right table"},
+          "key": {"type": "string", "required": true, "description": "Join key column"}
+        },
+        "how": {"type": "enum", "values": ["left", "right", "inner", "outer"], "default": "left"}
+      },
+      "example_config": {
+        "strategy": "join",
+        "left": {"path": "$.measurements[*]", "key": "site_id"},
+        "right": {"path": "$.site_metadata[*]", "key": "id"},
+        "how": "left"
+      },
+      "example_input": {
+        "$.measurements[*]": [
+          {"site_id": "S01", "cd": 45.1},
+          {"site_id": "S02", "cd": 45.3}
+        ],
+        "$.site_metadata[*]": [
+          {"id": "S01", "name": "Center", "x": 0, "y": 0},
+          {"id": "S02", "name": "Edge", "x": 10, "y": 0}
+        ]
+      },
+      "example_output": {
+        "columns": ["site_id", "cd", "name", "x", "y"],
+        "rows": [
+          ["S01", 45.1, "Center", 0, 0],
+          ["S02", 45.3, "Edge", 10, 0]
+        ]
+      },
+      "edge_cases": [
+        {"case": "No matching keys", "behavior": "Depends on join type (null for left/right/outer, excluded for inner)"},
+        {"case": "Duplicate keys", "behavior": "Cartesian product of matching rows"},
+        {"case": "Key column name conflicts", "behavior": "Right key column excluded from output"}
+      ]
+    }
+  ],
+  "strategy_selection_guide": {
+    "description": "Guidelines for choosing the appropriate extraction strategy",
+    "decision_tree": [
+      {"condition": "Single object with scalar values", "strategy": "flat_object"},
+      {"condition": "Object with separate headers and data arrays", "strategy": "headers_data"},
+      {"condition": "Array of uniform objects", "strategy": "array_of_objects"},
+      {"condition": "Need to iterate over array and extract nested data", "strategy": "repeat_over"},
+      {"condition": "Wide data needs to become long format", "strategy": "unpivot"},
+      {"condition": "Need to combine data from multiple paths", "strategy": "join"}
+    ]
+  },
+  "implementation_interface": {
+    "description": "Python Protocol for extraction strategies",
+    "protocol": {
+      "name": "ExtractionStrategy",
+      "methods": [
+        {
+          "name": "extract",
+          "signature": "def extract(self, data: Any, config: SelectConfig) -> pl.DataFrame",
+          "description": "Execute extraction and return DataFrame"
+        },
+        {
+          "name": "validate_config",
+          "signature": "def validate_config(self, config: SelectConfig) -> list[str]",
+          "description": "Validate configuration, return list of errors"
+        }
+      ]
+    }
+  },
+  "jsonpath_engines": {
+    "description": "Supported JSONPath engines",
+    "engines": [
+      {
+        "id": "jsonpath-ng",
+        "python_package": "jsonpath-ng",
+        "use_case": "Simple path expressions",
+        "features": ["Standard JSONPath syntax", "Filter expressions", "Recursive descent"]
+      },
+      {
+        "id": "jmespath",
+        "python_package": "jmespath",
+        "use_case": "Complex queries with projections",
+        "features": ["Projections", "Multi-select", "Functions", "Pipe expressions"]
+      }
+    ],
+    "selection": "Profile specifies engine in datasource.options.json.jsonpath_engine"
+  },
+  "references": [
+    "ADR-0011_Profile-Driven-Extraction-and-Adapters: Architecture decisions",
+    "SPEC-DAT-0011_Profile-Schema: Complete profile schema",
+    "SPEC-DAT-0002_Profile-Extraction: Profile extraction flow",
+    "shared/contracts/dat/profile.py: Tier-0 contracts"
+  ]
+}

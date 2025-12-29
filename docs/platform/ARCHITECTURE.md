@@ -169,18 +169,67 @@ engineering-tools/
 
 ---
 
+## Frontend Architecture
+
+### Iframe Integration Pattern
+
+The Homepage frontend embeds tool UIs via **iframes** pointing to standalone tool frontends:
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│  Homepage (localhost:3000)                                   │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │  /tools/dat  →  <iframe src="localhost:5173" />       │  │
+│  │  /tools/sov  →  <iframe src="localhost:5174" />       │  │
+│  │  /tools/pptx →  <iframe src="localhost:5175" />       │  │
+│  └───────────────────────────────────────────────────────┘  │
+│  Native routes: /, /datasets, /pipelines, /devtools         │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**IMPORTANT**: This means ALL tool frontends must be running for the Homepage to function correctly.
+
+| Port | Service | Required For |
+|------|---------|--------------|
+| 3000 | Homepage | Entry point |
+| 5173 | DAT Frontend | /tools/dat |
+| 5174 | SOV Frontend | /tools/sov |
+| 5175 | PPTX Frontend | /tools/pptx |
+| 8000 | Backend Gateway | API calls |
+| 8001 | MkDocs | Documentation |
+
+### Why Iframes?
+
+1. **Tool Independence**: Each tool can be developed/tested in isolation
+2. **Deployment Flexibility**: Tools can be deployed separately
+3. **Technology Freedom**: Tools could use different frameworks if needed
+4. **Clear Boundaries**: No state bleeding between tools
+
+### When to Use Standalone vs Homepage
+
+- **Normal Usage**: Access via Homepage (`localhost:3000/tools/dat`)
+- **Tool Development**: Use standalone (`localhost:5173`) with `--tool dat` flag
+
+---
+
 ## Deployment Modes
 
 ### Development
 
 ```bash
-# Start gateway with all frontends
-./start.ps1 --with-frontend
+# Start everything (default) - required for full Homepage functionality
+./start.ps1
+
+# Start only backend API
+./start.ps1 -BackendOnly
+
+# Isolated tool development (single tool frontend + backend)
+./start.ps1 -Tool dat
 ```
 
 - Gateway: http://localhost:8000
 - Homepage: http://localhost:3000
-- Individual tool UIs on separate ports
+- Tool UIs: localhost:5173 (DAT), localhost:5174 (SOV), localhost:5175 (PPTX)
 
 ### Production
 

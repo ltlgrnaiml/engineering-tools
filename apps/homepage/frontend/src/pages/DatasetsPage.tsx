@@ -282,5 +282,8 @@ function formatCellValue(value: unknown): string {
   if (typeof value === 'number') {
     return Number.isInteger(value) ? value.toString() : value.toFixed(4)
   }
+  if (typeof value === 'object') {
+    return JSON.stringify(value)
+  }
   return String(value)
 }

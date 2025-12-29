@@ -106,29 +106,29 @@ export function ExportPanel({ runId }: ExportPanelProps) {
           <div className="grid grid-cols-3 gap-4">
             <div>
               <div className="text-2xl font-semibold text-slate-900">
-                {summary.row_count.toLocaleString()}
+                {(summary.row_count ?? 0).toLocaleString()}
               </div>
               <div className="text-sm text-slate-600">Total Rows</div>
             </div>
             <div>
               <div className="text-2xl font-semibold text-slate-900">
-                {summary.column_count}
+                {summary.column_count ?? 0}
               </div>
               <div className="text-sm text-slate-600">Columns</div>
             </div>
             <div>
               <div className="text-2xl font-semibold text-slate-900">
-                {summary.aggregation_levels.length}
+                {(summary.aggregation_levels ?? []).length}
               </div>
               <div className="text-sm text-slate-600">Aggregation Levels</div>
             </div>
           </div>
           
-          {summary.aggregation_levels.length > 0 && (
+          {(summary.aggregation_levels ?? []).length > 0 && (
             <div className="mt-4 pt-4 border-t border-slate-100">
               <div className="text-sm text-slate-500 mb-2">Aggregation Levels</div>
               <div className="flex gap-2">
-                {summary.aggregation_levels.map(level => (
+                {(summary.aggregation_levels ?? []).map(level => (
                   <span key={level} className="px-2 py-1 bg-emerald-100 text-emerald-800 text-sm rounded">
                     {level}
                   </span>

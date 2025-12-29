@@ -146,6 +146,11 @@ function App() {
     }
   }
 
+  const handleFinish = () => {
+    console.log('[DAT] Finish clicked - returning to start')
+    setRunId(null)
+  }
+
   // Render the current stage panel
   const renderStagePanel = () => {
     if (!runId) return null
@@ -216,6 +221,7 @@ function App() {
             stageStates={stageStates}
             onStageClick={handleStageClick}
             onBack={handleBack}
+            onNext={currentStage === 'export' ? handleFinish : undefined}
             isLoading={unlockStage.isPending}
           >
             {renderStagePanel()}

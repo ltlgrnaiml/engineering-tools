@@ -215,7 +215,7 @@ export function PreviewPanel({ runId }: PreviewPanelProps) {
                       <tr key={idx} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
                         {preview.columns.map((col) => (
                           <td key={col} className="px-3 py-2 text-slate-700 whitespace-nowrap">
-                            {String(row[col] ?? '')}
+                            {formatCellValue(row[col])}
                           </td>
                         ))}
                       </tr>
@@ -254,4 +254,44 @@ export function PreviewPanel({ runId }: PreviewPanelProps) {
       )}
     </div>
   )
+}
+
+function formatCellValue(value: unknown): string {
+  if (value === null || value === undefined) return ''
+
+  if (typeof value === 'string') return value
+  if (typeof value === 'number') return Number.isFinite(value) ? String(value) : ''
+  if (typeof value === 'boolean') return value ? 'true' : 'false'
+
+  const serialized = stableJsonStringify(value)
+  if (serialized.length > 200) return `${serialized.slice(0, 200)}...`
+  return serialized
+}
+
+function stableJsonStringify(value: unknown): string {
+  const seen = new WeakSet<object>()
+
+  const replacer = (_key: string, val: unknown): unknown => {
+    if (typeof val === 'bigint') return val.toString()
+
+    if (typeof val !== 'object' || val === null) return val
+
+    if (seen.has(val)) return '[Circular]'
+    seen.add(val)
+
+    if (Array.isArray(val)) return val
+
+    const record = val as Record<string, unknown>
+    const sorted: Record<string, unknown> = {}
+    for (const k of Object.keys(record).sort()) {
+      sorted[k] = record[k]
+    }
+    return sorted
+  }
+
+  try {
+    return JSON.stringify(value, replacer)
+  } catch {
+    return String(value)
+  }
 }

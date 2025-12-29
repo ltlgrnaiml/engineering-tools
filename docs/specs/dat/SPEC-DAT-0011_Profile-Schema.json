@@ -1,0 +1,305 @@
+{
+  "schema_type": "spec",
+  "id": "SPEC-DAT-0011_Profile-Schema",
+  "title": "DAT Profile YAML Schema Specification",
+  "version": "1.0.0",
+  "status": "accepted",
+  "date": "2025-12-29",
+  "author": "Mycahya Eggleston",
+  "implements_adr": [
+    "ADR-0011_Profile-Driven-Extraction-and-Adapters"
+  ],
+  "tier_0_contracts": [
+    {
+      "module": "shared.contracts.dat.profile",
+      "classes": ["DATProfile", "TableConfig", "SelectConfig", "LevelConfig", "ContextConfig", "ContextDefaults", "OutputConfig"]
+    }
+  ],
+  "purpose": "Define the comprehensive 10-section YAML schema for DAT extraction profiles. Profiles are the Single Source of Truth (SSoT) for all extraction logic, encoding domain knowledge in a declarative format that enables data-source and user-intent agnostic extraction.",
+  "scope": "subsystem:DAT",
+  "profile_schema": {
+    "description": "Complete YAML profile structure with 10 sections",
+    "sections": [
+      {
+        "id": 1,
+        "name": "schema_version",
+        "type": "string",
+        "required": true,
+        "description": "Profile schema version for migrations (semver format)",
+        "example": "1.0.0"
+      },
+      {
+        "id": 2,
+        "name": "version",
+        "type": "integer",
+        "required": true,
+        "description": "Profile content version (incremented on changes)",
+        "example": 1
+      },
+      {
+        "id": 3,
+        "name": "meta",
+        "type": "object",
+        "required": true,
+        "description": "Profile metadata and governance",
+        "fields": {
+          "profile_id": {"type": "string", "required": true, "description": "Unique identifier (used in lineage)"},
+          "title": {"type": "string", "required": true, "description": "Human-readable title"},
+          "description": {"type": "string", "required": false, "description": "Detailed description"},
+          "created_by": {"type": "string", "required": true, "description": "Author/team"},
+          "created_at": {"type": "datetime", "required": true, "description": "ISO-8601 creation timestamp"},
+          "modified_at": {"type": "datetime", "required": true, "description": "ISO-8601 last modified timestamp"},
+          "revision": {"type": "integer", "required": true, "description": "Revision number"},
+          "hash": {"type": "string", "required": false, "description": "Content hash (computed at runtime)"},
+          "owner": {"type": "string", "required": false, "description": "Owning team email"},
+          "classification": {"type": "enum", "values": ["public", "internal", "confidential"], "required": false},
+          "domain": {"type": "string", "required": false, "description": "Domain tag for filtering"},
+          "tags": {"type": "array[string]", "required": false, "description": "Searchable tags"}
+        }
+      },
+      {
+        "id": 4,
+        "name": "datasource",
+        "type": "object",
+        "required": true,
+        "description": "Data source configuration and file matching",
+        "fields": {
+          "id": {"type": "string", "required": true, "description": "Source identifier"},
+          "label": {"type": "string", "required": true, "description": "Human-readable source name"},
+          "format": {"type": "enum", "values": ["json", "csv", "excel", "parquet", "xml"], "required": true},
+          "filters": {"type": "FilterGroup", "required": false, "description": "Composable file matching predicates"},
+          "options": {"type": "object", "required": false, "description": "Format-specific options"}
+        }
+      },
+      {
+        "id": 5,
+        "name": "population",
+        "type": "object",
+        "required": false,
+        "description": "Population and sampling strategies",
+        "fields": {
+          "default_strategy": {"type": "string", "required": true, "description": "Default strategy name"},
+          "include_populations": {"type": "array[string]", "required": false, "description": "Available population strategies"},
+          "strategies": {"type": "object", "required": false, "description": "Strategy definitions with parameters"}
+        }
+      },
+      {
+        "id": 6,
+        "name": "context_defaults",
+        "type": "object",
+        "required": false,
+        "description": "Context auto-extraction configuration",
+        "fields": {
+          "defaults": {"type": "object", "required": false, "description": "Static default values (priority 4)"},
+          "regex_patterns": {"type": "array[RegexPattern]", "required": false, "description": "Regex extraction from filename/path (priority 3)"},
+          "content_patterns": {"type": "array[ContentPattern]", "required": false, "description": "JSONPath extraction from file content (priority 2)"},
+          "allow_user_override": {"type": "array[string]", "required": false, "description": "Fields user can override in UI (priority 1)"}
+        }
+      },
+      {
+        "id": 7,
+        "name": "contexts",
+        "type": "array[ContextConfig]",
+        "required": false,
+        "description": "Named context definitions for different aggregation levels",
+        "item_fields": {
+          "name": {"type": "string", "required": true, "description": "Context name"},
+          "level": {"type": "string", "required": true, "description": "Aggregation level (run, image, etc.)"},
+          "paths": {"type": "array[string]", "required": true, "description": "JSONPath expressions to context data"},
+          "key_map": {"type": "object", "required": true, "description": "Column name to JSONPath mapping"},
+          "primary_keys": {"type": "array[string]", "required": false, "description": "Primary key columns"},
+          "time_fields": {"type": "object", "required": false, "description": "Earliest/latest timestamp fields"}
+        }
+      },
+      {
+        "id": 8,
+        "name": "levels",
+        "type": "array[LevelConfig]",
+        "required": true,
+        "description": "Aggregation levels with table definitions",
+        "item_fields": {
+          "name": {"type": "string", "required": true, "description": "Level name (run, image, site, etc.)"},
+          "apply_context": {"type": "string", "required": false, "description": "Context to apply to tables"},
+          "tables": {"type": "array[TableConfig]", "required": true, "description": "Table definitions for this level"}
+        }
+      },
+      {
+        "id": 9,
+        "name": "normalization",
+        "type": "object",
+        "required": false,
+        "description": "Data normalization rules",
+        "fields": {
+          "nan_values": {"type": "array[string]", "required": false, "description": "Values to treat as NaN"},
+          "nan_replacement": {"type": "any", "required": false, "description": "Value to replace NaN with"},
+          "numeric_coercion": {"type": "boolean", "required": false, "description": "Attempt numeric type coercion"},
+          "numeric_errors": {"type": "enum", "values": ["coerce", "raise", "ignore"], "required": false},
+          "string_strip": {"type": "boolean", "required": false, "description": "Strip whitespace from strings"},
+          "string_case": {"type": "enum", "values": ["preserve", "upper", "lower", "title"], "required": false},
+          "units_policy": {"type": "enum", "values": ["preserve", "normalize", "strip"], "required": false},
+          "unit_mappings": {"type": "object", "required": false, "description": "Unit conversion mappings"}
+        }
+      },
+      {
+        "id": 10,
+        "name": "outputs",
+        "type": "object",
+        "required": false,
+        "description": "Output configuration",
+        "fields": {
+          "defaults": {"type": "array[OutputConfig]", "required": false, "description": "Default exports (always included)"},
+          "long_form_optional": {"type": "array[OutputConfig]", "required": false, "description": "Optional exports (user selects)"},
+          "aggregations": {"type": "array[AggregationConfig]", "required": false, "description": "Post-extraction aggregations"},
+          "joins": {"type": "array[JoinConfig]", "required": false, "description": "Output table joins"},
+          "ui": {"type": "object", "required": false, "description": "UI presentation hints"}
+        }
+      },
+      {
+        "id": 11,
+        "name": "overrides",
+        "type": "object",
+        "required": false,
+        "description": "Override policies and limits",
+        "fields": {
+          "discovery": {"type": "object", "required": false, "description": "Discovery stage override limits"},
+          "allow": {"type": "object", "required": false, "description": "What users CAN override"},
+          "deny": {"type": "object", "required": false, "description": "What users CANNOT override"},
+          "limits": {"type": "object", "required": false, "description": "Resource and complexity limits"}
+        }
+      }
+    ]
+  },
+  "table_config_schema": {
+    "description": "Schema for individual table definitions within levels",
+    "fields": {
+      "id": {"type": "string", "required": true, "description": "Unique table identifier"},
+      "label": {"type": "string", "required": true, "description": "Human-readable table name"},
+      "description": {"type": "string", "required": false, "description": "Table description"},
+      "select": {"type": "SelectConfig", "required": true, "description": "Extraction strategy configuration"},
+      "stable_columns": {"type": "array[string]", "required": false, "description": "Expected columns for validation"},
+      "stable_columns_mode": {"type": "enum", "values": ["warn", "error", "ignore"], "required": false, "default": "warn"},
+      "stable_columns_subset": {"type": "boolean", "required": false, "default": true, "description": "Allow extra columns beyond stable_columns"},
+      "column_transforms": {"type": "array[ColumnTransform]", "required": false, "description": "Column-level transformations"}
+    }
+  },
+  "select_config_schema": {
+    "description": "Schema for extraction strategy configuration",
+    "fields": {
+      "strategy": {"type": "enum", "values": ["flat_object", "headers_data", "array_of_objects", "repeat_over", "unpivot", "join"], "required": true},
+      "path": {"type": "string", "required": true, "description": "JSONPath expression to data"},
+      "headers_key": {"type": "string", "required": false, "description": "Key containing column headers (headers_data strategy)"},
+      "data_key": {"type": "string", "required": false, "description": "Key containing data rows (headers_data strategy)"},
+      "repeat_over": {"type": "object", "required": false, "description": "Iteration configuration for repeat_over strategy"},
+      "fields": {"type": "array[string]", "required": false, "description": "Specific fields to extract (array_of_objects strategy)"},
+      "flatten_nested": {"type": "boolean", "required": false, "description": "Flatten nested objects"},
+      "flatten_separator": {"type": "string", "required": false, "default": "_", "description": "Separator for flattened key names"}
+    }
+  },
+  "filter_predicate_schema": {
+    "description": "Schema for file matching predicates",
+    "predicate_fields": {
+      "type": {"type": "enum", "values": ["predicate", "group"], "required": true},
+      "field": {"type": "enum", "values": ["filename", "extension", "path", "size", "modified_date"], "required": true, "applies_to": "predicate"},
+      "op": {"type": "enum", "values": ["equals", "contains", "startswith", "endswith", "matches", "gt", "lt", "between"], "required": true},
+      "value": {"type": "any", "required": true, "description": "Value to compare against"},
+      "case": {"type": "enum", "values": ["sensitive", "insensitive"], "required": false, "default": "insensitive"}
+    },
+    "group_fields": {
+      "type": {"type": "literal", "value": "group", "required": true},
+      "op": {"type": "enum", "values": ["AND", "OR", "NOT"], "required": true},
+      "children": {"type": "array[FilterPredicate|FilterGroup]", "required": true}
+    }
+  },
+  "regex_pattern_schema": {
+    "description": "Schema for regex-based context extraction",
+    "fields": {
+      "field": {"type": "string", "required": true, "description": "Target field name"},
+      "pattern": {"type": "string", "required": true, "description": "Regex pattern with named groups"},
+      "scope": {"type": "enum", "values": ["filename", "path", "full_path"], "required": true},
+      "required": {"type": "boolean", "required": false, "default": false},
+      "description": {"type": "string", "required": false},
+      "example": {"type": "string", "required": false},
+      "validation": {"type": "object", "required": false, "description": "Additional validation rules"},
+      "transform": {"type": "string", "required": false, "description": "Built-in transformer (e.g., parse_date)"},
+      "transform_args": {"type": "object", "required": false, "description": "Arguments for transformer"},
+      "on_fail": {"type": "enum", "values": ["warn", "error", "skip_file"], "required": false, "default": "warn"}
+    }
+  },
+  "validation_rules": [
+    {
+      "id": "VAL-001",
+      "description": "schema_version MUST be semver format",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    {
+      "id": "VAL-002",
+      "description": "profile_id MUST be unique and URL-safe",
+      "pattern": "^[a-z0-9][a-z0-9-]*[a-z0-9]$"
+    },
+    {
+      "id": "VAL-003",
+      "description": "Timestamps MUST be ISO-8601 UTC format",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+    },
+    {
+      "id": "VAL-004",
+      "description": "JSONPath expressions MUST start with $",
+      "pattern": "^\\$"
+    },
+    {
+      "id": "VAL-005",
+      "description": "Table IDs MUST be unique within profile",
+      "enforcement": "ProfileLoader validates uniqueness"
+    },
+    {
+      "id": "VAL-006",
+      "description": "Referenced contexts MUST exist in contexts array",
+      "enforcement": "ProfileLoader validates references"
+    }
+  ],
+  "example_profile_snippet": {
+    "schema_version": "1.0.0",
+    "version": 1,
+    "meta": {
+      "profile_id": "cdsem-metrology-v1",
+      "title": "CD-SEM Metrology Data Profile",
+      "created_by": "CDU-DAT Engineering Team",
+      "created_at": "2025-12-27T09:00:00Z",
+      "modified_at": "2025-12-27T09:00:00Z",
+      "revision": 1
+    },
+    "datasource": {
+      "id": "cdsem-json",
+      "label": "CD-SEM JSON Measurement Files",
+      "format": "json",
+      "filters": {
+        "type": "group",
+        "op": "AND",
+        "children": [
+          {"type": "predicate", "field": "filename", "op": "endswith", "value": ".json"}
+        ]
+      }
+    },
+    "levels": [
+      {
+        "name": "run",
+        "tables": [
+          {
+            "id": "run_summary",
+            "label": "Run Summary",
+            "select": {
+              "strategy": "flat_object",
+              "path": "$.summary"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "references": [
+    "ADR-0011_Profile-Driven-Extraction-and-Adapters: WHY profiles exist and architecture decisions",
+    "SPEC-DAT-0012_Extraction-Strategies: Detailed extraction strategy specifications",
+    "SPEC-DAT-0002_Profile-Extraction: Profile extraction flow",
+    "shared/contracts/dat/profile.py: Tier-0 Pydantic contracts"
+  ]
+}

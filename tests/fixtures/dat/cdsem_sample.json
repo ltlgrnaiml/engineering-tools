@@ -1,0 +1,198 @@
+{
+  "metadata": {
+    "lot_id": "LOTABC12345",
+    "wafer_id": "W01",
+    "tool_id": "CDSEM001",
+    "recipe_name": "RCP_STANDARD_v2"
+  },
+  "run_info": {
+    "recipe": {
+      "name": "STANDARD_CD_RECIPE",
+      "version": "2.1"
+    },
+    "tool": {
+      "tool_id": "CDSEM001",
+      "type": "CD-SEM"
+    }
+  },
+  "summary": {
+    "total_images": 50,
+    "valid_images": 48,
+    "mean_cd": 45.2,
+    "sigma_cd": 1.3,
+    "range_cd": 5.8
+  },
+  "statistics": {
+    "columns": ["parameter", "mean", "std_dev", "min", "max", "count"],
+    "values": [
+      ["cd_left", 45.1, 1.2, 42.0, 48.0, 50],
+      ["cd_right", 45.3, 1.1, 43.0, 47.5, 50],
+      ["cd_average", 45.2, 1.15, 42.5, 47.75, 50],
+      ["height", 120.5, 2.3, 115.0, 126.0, 50]
+    ]
+  },
+  "sites": [
+    {
+      "site_id": "S01",
+      "name": "Center",
+      "cd_data": {
+        "headers": ["x_position", "y_position", "cd_value", "cd_3sigma"],
+        "rows": [
+          [0, 0, 45.1, 1.2],
+          [1, 0, 45.2, 1.1],
+          [0, 1, 45.0, 1.3],
+          [1, 1, 45.3, 1.0]
+        ]
+      }
+    },
+    {
+      "site_id": "S02",
+      "name": "Edge-Top",
+      "cd_data": {
+        "headers": ["x_position", "y_position", "cd_value", "cd_3sigma"],
+        "rows": [
+          [10, 0, 45.5, 1.4],
+          [11, 0, 45.6, 1.3],
+          [10, 1, 45.4, 1.5],
+          [11, 1, 45.7, 1.2]
+        ]
+      }
+    },
+    {
+      "site_id": "S03",
+      "name": "Edge-Bottom",
+      "cd_data": {
+        "headers": ["x_position", "y_position", "cd_value", "cd_3sigma"],
+        "rows": [
+          [-10, 0, 44.8, 1.6],
+          [-11, 0, 44.9, 1.5]
+        ]
+      }
+    }
+  ],
+  "uniformity": [
+    {
+      "columns": ["parameter", "mean", "range", "sigma", "percent_uniformity"],
+      "data": [
+        ["cd_average", 45.2, 5.8, 1.15, 2.54]
+      ]
+    }
+  ],
+  "distributions": {
+    "cd_histogram": [
+      {
+        "headers": ["bin_center", "bin_count", "cumulative_percent"],
+        "bins": [
+          [42.0, 2, 4.0],
+          [43.0, 5, 14.0],
+          [44.0, 12, 38.0],
+          [45.0, 18, 74.0],
+          [46.0, 10, 94.0],
+          [47.0, 3, 100.0]
+        ]
+      }
+    ]
+  },
+  "roughness": {
+    "lwr": [
+      {
+        "headers": ["line_id", "lwr_3sigma", "lwr_rms", "correlation_length"],
+        "values": [
+          ["L001", 3.2, 1.1, 25.5],
+          ["L002", 3.4, 1.2, 24.8]
+        ]
+      }
+    ],
+    "swr": [
+      {
+        "headers": ["edge_id", "swr_3sigma", "swr_rms", "alpha"],
+        "values": [
+          ["E001_left", 2.8, 0.93, 0.45],
+          ["E001_right", 2.9, 0.97, 0.44]
+        ]
+      }
+    ]
+  },
+  "psd": {
+    "unbiased": {
+      "columns": ["frequency", "psd_value", "log_frequency", "log_psd"],
+      "data": [
+        [0.01, 100.0, -2.0, 2.0],
+        [0.1, 10.0, -1.0, 1.0],
+        [1.0, 1.0, 0.0, 0.0]
+      ]
+    }
+  },
+  "diagnostics": {
+    "beam_current": 250.5,
+    "focus_score": 0.95,
+    "astigmatism": 0.02,
+    "contamination_level": 0.01
+  },
+  "images": [
+    {
+      "image_id": "IMG001",
+      "metadata": {
+        "image_name": "Site01_Image001",
+        "acquisition_time": "2025-12-27T10:30:00Z"
+      },
+      "measurements": {
+        "columns": ["image_id", "site_id", "cd_left", "cd_right", "cd_average", "height", "sidewall_angle"],
+        "values": [
+          ["IMG001", "S01", 45.0, 45.2, 45.1, 120.0, 88.5]
+        ]
+      },
+      "quality": {
+        "columns": ["image_id", "contrast", "sharpness", "noise_level", "brightness", "edge_detection_score"],
+        "values": [
+          ["IMG001", 0.85, 0.92, 0.05, 128, 0.95]
+        ]
+      }
+    },
+    {
+      "image_id": "IMG002",
+      "metadata": {
+        "image_name": "Site01_Image002",
+        "acquisition_time": "2025-12-27T10:31:00Z"
+      },
+      "measurements": {
+        "columns": ["image_id", "site_id", "cd_left", "cd_right", "cd_average", "height", "sidewall_angle"],
+        "values": [
+          ["IMG002", "S01", 45.1, 45.3, 45.2, 120.5, 88.6]
+        ]
+      },
+      "quality": {
+        "columns": ["image_id", "contrast", "sharpness", "noise_level", "brightness", "edge_detection_score"],
+        "values": [
+          ["IMG002", 0.86, 0.91, 0.04, 130, 0.96]
+        ]
+      }
+    }
+  ],
+  "defects": {
+    "summary": {
+      "columns": ["total_defects", "defect_density", "critical_count", "major_count", "minor_count"],
+      "data": [
+        [15, 0.03, 2, 5, 8]
+      ]
+    },
+    "by_category": [
+      {
+        "headers": ["category", "count", "severity", "area_percent"],
+        "items": [
+          ["particle", 5, "minor", 0.01],
+          ["scratch", 2, "major", 0.02]
+        ]
+      }
+    ],
+    "by_location": [
+      {
+        "headers": ["zone", "defect_count", "density"],
+        "items": [
+          ["center", 3, 0.01],
+          ["edge", 12, 0.05]
+        ]
+      }
+    ]
+  }
+}

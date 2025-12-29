@@ -2,7 +2,7 @@
 
 > **Master Reference for Solo-Dev, AI-First Development on Engineering Tools Platform**
 > 
-> Updated: 2025-12-28 | **42 ADRs** | **35 SPECs** | **Solo-Dev Ethos**
+> Updated: 2025-12-29 | **43 ADRs** | **36 SPECs** | **Solo-Dev Ethos**
 
 ---
 
@@ -119,7 +119,7 @@ The `.adrs/` folder is organized by domain:
 | ADR-0003 | Optional Context/Preview Stages | Accepted | Context/Preview optional; Parse uses profile defaults if missing |
 | ADR-0004-DAT | Stage ID Configuration | Accepted | DAT-specific stage ID inputs per stage type |
 | ADR-0006 | Table Availability | Accepted | Status: available/partial/missing/empty; probe strategies |
-| ADR-0011 | Profile-Driven Extraction | Accepted | Versioned profiles; AdapterFactory pattern; catalog-driven diagnostics |
+| ADR-0011 | **Profile-Driven Extraction** *(major update)* | Accepted | **Three-layer architecture (Profile→Adapter→Dataset); 10-section YAML schema; 6 extraction strategies; ProfileExecutor** |
 | ADR-0013 | Cancellation Semantics | Accepted | Preserve completed artifacts; no partial data; explicit cleanup |
 | ADR-0014 | Parse/Export Artifact Formats | Accepted | Parquet for parse; user-selectable formats for export |
 | **ADR-0040** | **Large File Streaming Strategy** | **Accepted** | **10MB threshold; tiered processing (eager < 10MB, streaming > 10MB)** |
@@ -237,14 +237,14 @@ These ADRs were **simplified from team-coordination patterns** to solo-dev patte
 
 ## 2. SPEC Inventory
 
-### 2.1 Complete SPEC Inventory (34 Total)
+### 2.1 Complete SPEC Inventory (36 Total)
 
 SPECs provide technical implementation details for ADRs. Located in `docs/specs/`:
 
 ```
 docs/specs/
 ├── core/           (21 SPECs - platform-wide implementations)
-├── dat/            (8 SPECs - Data Aggregator implementations)
+├── dat/            (9 SPECs - Data Aggregator implementations)
 ├── pptx/           (3 SPECs - PPTX Generator implementations)
 ├── sov/            (2 SPECs - SOV Analyzer implementations)
 └── devtools/       (1 SPEC - DevTools implementations)
@@ -281,11 +281,13 @@ docs/specs/
 | SPEC ID | Title | Implements ADR |
 |---------|-------|----------------|
 | SPEC-DAT-0001 | Stage Graph | ADR-0001-DAT |
-| SPEC-DAT-0002 | Profile Extraction | ADR-0011 |
+| SPEC-DAT-0002 | Profile Extraction Flow | ADR-0011 |
 | SPEC-DAT-0003 | Adapter Interface Registry | ADR-0011 |
 | **SPEC-DAT-0004** | **Large File Streaming** | **ADR-0040** |
 | SPEC-DAT-0005 | Profile File Management | ADR-0011 |
 | SPEC-DAT-0006 | Table Availability | ADR-0006 |
+| **SPEC-DAT-0011** | **Profile YAML Schema** | **ADR-0011** |
+| **SPEC-DAT-0012** | **Extraction Strategies** | **ADR-0011** |
 | SPEC-DAT-0015 | Cancellation Cleanup | ADR-0013 |
 
 #### PPTX SPECs
@@ -888,4 +890,4 @@ uv run python -m gateway.main
 
 ---
 
-*This document is based on **42 ADRs** and **34 SPECs**. Last updated: 2025-12-28.*
+*This document is based on **43 ADRs** and **36 SPECs**. Last updated: 2025-12-29.*

@@ -4,8 +4,9 @@ from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 import sys
 
@@ -52,6 +53,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Global exception handler to expose all errors for debugging."""
+    import traceback
+    logger.error(f"Unhandled exception: {type(exc).__name__}: {exc}")
+    logger.error(traceback.format_exc())
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": f"{type(exc).__name__}: {str(exc)}",
+            "type": type(exc).__name__,
+            "traceback": traceback.format_exc().split("\n")[-5:],
+        },
+    )
+
+
 # Include API routes (no prefix - gateway mounts at /api/dat)
 app.include_router(router, tags=["dat"])
 app.include_router(jobs_router, tags=["jobs"])
@@ -61,6 +79,12 @@ app.include_router(jobs_router, tags=["jobs"])
 async def health_check():
     """Health check endpoint."""
     return {"status": "healthy", "tool": "dat", "version": "0.1.0"}
+
+
+@app.get("/code-version")
+async def code_version():
+    """Check if fresh code is loaded - returns timestamp of code deployment."""
+    return {"code_loaded_at": "2024-12-29T11:54:00", "has_exception_handler": True}
 
 
 if __name__ == "__main__":

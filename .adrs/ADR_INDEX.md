@@ -69,6 +69,7 @@ These ADRs define patterns that ALL tools (DAT, PPTX, SOV) MUST follow:
 | **ADR-0037** | **Single-Command Development Environment** | core | ./start.ps1 starts everything; uv for deps; Docker Compose option |
 | **ADR-0038** | **CI/CD Pipeline for Data & Code** | core | Pre-commit + PR checks + main deploy; GitHub Actions |
 | **ADR-0039** | **Deployment Automation** | core | Pulumi IaC; environment parity; feature flags |
+| **ADR-0042** | **Frontend Iframe Integration Pattern** | core | Homepage embeds tool UIs via iframes; all frontends required |
 
 ## Tool-Specific ADRs
 
@@ -80,7 +81,7 @@ These ADRs define patterns that ALL tools (DAT, PPTX, SOV) MUST follow:
 | ADR-0003 | Optional Context and Preview Stages | ADR-0001-DAT |
 | ADR-0004-DAT | DAT-Specific Stage ID Configuration | ADR-0004 |
 | ADR-0006 | Table Availability Detection | - |
-| ADR-0011 | Profile-Driven Extraction and Adapters | - |
+| ADR-0011 | **Profile-Driven Extraction and Adapters** *(major update)* | - |
 | ADR-0013 | Cancellation Semantics for Parse and Export | ADR-0002 |
 | ADR-0014 | Parse and Export Artifact Formats | ADR-0008 |
 | **ADR-0040** | **Large File Streaming Strategy (10MB threshold)** | ADR-0011 |
@@ -134,10 +135,28 @@ Each ADR addresses a distinct concern (no overlaps):
 | **Dev Environment** | **ADR-0037** | - |
 | **CI/CD** | **ADR-0038** | - |
 | **Deployment** | **ADR-0039** | - |
+| **Frontend Integration** | **ADR-0042** | - |
 
-## Summary of Changes (2025-12-28)
+## Summary of Changes (2025-12-29)
 
-### New ADRs (Solo-Dev Optimizations)
+### Major Updates
+
+- **ADR-0011**: Profile-Driven Extraction and Adapters - Major architecture update:
+  - Three-layer architecture: Profile Layer (SSoT) → Adapter Layer (HOW) → Dataset Layer (OUTPUT)
+  - Comprehensive 10-section YAML profile schema
+  - Six extraction strategies: flat_object, headers_data, array_of_objects, repeat_over, unpivot, join
+  - 4-level context extraction priority: user_override → content_patterns → regex_patterns → defaults
+  - JSONPath engine decision: support both jsonpath-ng and jmespath
+  - Profile storage decision: hybrid (builtin in repo, custom in DB)
+  - New SPECs: SPEC-DAT-0011 (Profile Schema), SPEC-DAT-0012 (Extraction Strategies)
+
+### New ADRs
+
+- **ADR-0042**: Frontend Iframe Integration Pattern - Documents that Homepage embeds tool UIs via iframes, requiring all tool frontends to run
+
+### Previous Changes (2025-12-28)
+
+#### New ADRs (Solo-Dev Optimizations)
 
 - **ADR-0033**: AI-Assisted Development Patterns
 - **ADR-0034**: Automated Documentation Pipeline
@@ -165,6 +184,7 @@ See `.adrs/TODO_CODE_VALIDATION.md` for the validation checklist.
 
 ---
 
-*Last Updated: 2025-12-28*
+*Last Updated: 2025-12-29*
 *Maintainer: Mycahya Eggleston*
-*Total ADRs: 42 (26 core + 9 DAT + 4 PPTX + 3 SOV)*
+*Total ADRs: 43 (27 core + 9 DAT + 4 PPTX + 3 SOV)*
+*Total SPECs: 36 (21 core + 9 DAT + 3 PPTX + 2 SOV + 1 DevTools)*

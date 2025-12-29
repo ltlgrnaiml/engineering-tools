@@ -16,13 +16,19 @@ from shared.contracts.dat.profile import ProfileValidationResult
 
 @dataclass
 class RegexPattern:
-    """Regex pattern for context extraction."""
+    """Regex pattern for context extraction.
+    
+    Per DESIGN §4: Supports transforms like parse_date, uppercase, etc.
+    """
     field: str
     pattern: str
     scope: str = "filename"
     required: bool = False
     description: str = ""
     example: str = ""
+    transform: str | None = None  # e.g., "parse_date", "uppercase"
+    transform_args: dict[str, Any] = field(default_factory=dict)
+    on_fail: str = "warn"  # warn, error, skip_file
 
 
 @dataclass
@@ -44,7 +50,10 @@ class TableSelect:
 
 @dataclass
 class TableConfig:
-    """Configuration for a single table extraction."""
+    """Configuration for a single table extraction.
+    
+    Per DESIGN §5, §7: Supports stable columns and value constraints.
+    """
     id: str
     label: str
     description: str = ""
@@ -52,6 +61,10 @@ class TableConfig:
     stable_columns: list[str] = field(default_factory=list)
     stable_columns_mode: str = "warn"
     stable_columns_subset: bool = True
+    # Per DESIGN §7: Value validation constraints
+    validation_constraints: list[dict[str, Any]] = field(default_factory=list)
+    # Per DESIGN §6: Column transforms at table level
+    column_transforms: list[dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
@@ -74,12 +87,121 @@ class ContextConfig:
 
 
 @dataclass
+class AggregationConfig:
+    """Aggregation output configuration per DESIGN §8."""
+    id: str
+    from_table: str
+    group_by: list[str] = field(default_factory=list)
+    aggregations: dict[str, str] = field(default_factory=dict)  # column -> agg_func
+    output_table: str = ""
+
+
+@dataclass
+class JoinOutputConfig:
+    """Join output configuration per DESIGN §8."""
+    id: str
+    left_table: str
+    right_table: str
+    on: list[str] = field(default_factory=list)
+    how: str = "left"  # left, right, inner, outer
+
+
+@dataclass
 class OutputConfig:
-    """Output configuration."""
+    """Output configuration per DESIGN §8."""
     id: str
     from_level: str
     from_tables: list[str] = field(default_factory=list)
     include_context: bool = True
+    format: str = "parquet"  # parquet, csv, excel
+
+
+@dataclass
+class GovernanceAccessConfig:
+    """Access control configuration per DESIGN §10."""
+    read: list[str] = field(default_factory=lambda: ["all"])
+    modify: list[str] = field(default_factory=lambda: ["admin"])
+    delete: list[str] = field(default_factory=lambda: ["admin"])
+
+
+@dataclass
+class GovernanceAuditConfig:
+    """Audit trail configuration per DESIGN §10."""
+    log_access: bool = True
+    log_modifications: bool = True
+    retention_days: int = 365
+
+
+@dataclass
+class GovernanceComplianceConfig:
+    """Compliance configuration per DESIGN §10."""
+    data_classification: str = "internal"  # public, internal, confidential
+    pii_columns: list[str] = field(default_factory=list)
+    mask_in_preview: list[str] = field(default_factory=list)
+
+
+@dataclass
+class GovernanceLimitsConfig:
+    """Resource and complexity limits per DESIGN §10."""
+    max_files_per_run: int = 1000
+    max_file_size_mb: int = 500
+    max_total_size_gb: int = 10
+    max_rows_output: int = 10_000_000
+    max_tables_per_level: int = 50
+    max_columns_per_table: int = 500
+    parse_timeout_seconds: int = 3600
+    preview_timeout_seconds: int = 30
+
+
+@dataclass
+class GovernanceConfig:
+    """Governance configuration per DESIGN §10."""
+    access: GovernanceAccessConfig | None = None
+    audit: GovernanceAuditConfig | None = None
+    compliance: GovernanceComplianceConfig | None = None
+    limits: GovernanceLimitsConfig | None = None
+
+
+@dataclass
+class UITableSelectionConfig:
+    """UI table selection hints per DESIGN §9."""
+    group_by_level: bool = True
+    default_selected: dict[str, list[str]] = field(default_factory=dict)
+    collapsed_by_default: list[str] = field(default_factory=list)
+
+
+@dataclass
+class UIPreviewConfig:
+    """UI preview hints per DESIGN §9."""
+    max_rows: int = 100
+    max_columns: int = 50
+    column_width: str = "auto"  # auto, fixed, wrap
+    number_format: str = "0.0000"
+    date_format: str = "YYYY-MM-DD HH:mm:ss"
+    null_display: str = "—"
+
+
+@dataclass
+class UIConfig:
+    """UI hints configuration per DESIGN §9."""
+    # Discovery stage
+    show_file_preview: bool = True
+    max_preview_files: int = 10
+    highlight_matching: bool = True
+    # Table selection
+    table_selection: UITableSelectionConfig | None = None
+    # Preview
+    preview: UIPreviewConfig | None = None
+    # Context stage
+    show_regex_matches: bool = True
+    editable_fields: list[str] = field(default_factory=list)
+    readonly_fields: list[str] = field(default_factory=list)
+    # Export stage
+    default_name_template: str = "{profile_title} - {lot_id}"
+    show_row_count: bool = True
+    show_column_list: bool = True
+    allow_format_selection: bool = True
+    formats: list[str] = field(default_factory=lambda: ["parquet", "csv", "excel"])
 
 
 @dataclass
@@ -120,10 +242,45 @@ class DATProfile:
     nan_values: list[str] = field(default_factory=list)
     units_policy: str = "preserve"
     numeric_coercion: bool = True
+    
+    # Per DESIGN §6: Global transforms
+    column_renames: dict[str, str] = field(default_factory=dict)
+    calculated_columns: list[dict[str, Any]] = field(default_factory=list)
+    type_coercion: list[dict[str, Any]] = field(default_factory=list)
 
     # Outputs
     default_outputs: list[OutputConfig] = field(default_factory=list)
     optional_outputs: list[OutputConfig] = field(default_factory=list)
+    # Per DESIGN §8: Aggregation and join outputs
+    aggregations: list[AggregationConfig] = field(default_factory=list)
+    joins: list[JoinOutputConfig] = field(default_factory=list)
+    
+    # Per DESIGN §9: UI hints
+    ui: UIConfig | None = None
+    
+    # Per DESIGN §6: Row filters at profile level
+    row_filters: list[dict[str, Any]] = field(default_factory=list)
+    
+    # Per DESIGN §7: Advanced validation rules
+    schema_rules: dict[str, Any] = field(default_factory=dict)
+    row_rules: list[dict[str, Any]] = field(default_factory=list)
+    aggregate_rules: list[dict[str, Any]] = field(default_factory=list)
+    on_validation_fail: str = "continue"  # continue, stop, quarantine
+    quarantine_table: str = "validation_failures"
+    
+    # Per DESIGN §8: File naming configuration
+    file_naming_template: str = "{profile_id}_{lot_id}_{timestamp}"
+    file_naming_timestamp_format: str = "%Y%m%d_%H%M%S"
+    file_naming_sanitize: bool = True
+    
+    # Per DESIGN §10: Governance
+    governance: GovernanceConfig | None = None
+    
+    # Per DESIGN §1: Extended metadata
+    owner: str = ""
+    classification: str = "internal"  # public, internal, confidential
+    domain: str = ""
+    tags: list[str] = field(default_factory=list)
 
     def get_level(self, name: str) -> LevelConfig | None:
         """Get level configuration by name."""

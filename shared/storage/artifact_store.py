@@ -196,6 +196,17 @@ class ArtifactStore:
         manifest_path = self.workspace / "datasets" / dataset_id / "manifest.json"
         return manifest_path.exists()
     
+    def get_dataset_path(self, dataset_id: str) -> Path:
+        """Get the absolute path to a dataset directory.
+        
+        Args:
+            dataset_id: Dataset identifier.
+            
+        Returns:
+            Absolute path to the dataset directory.
+        """
+        return self.workspace / "datasets" / dataset_id
+    
     # === Utility Methods ===
     
     def get_relative_path(self, absolute_path: Path) -> str:

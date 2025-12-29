@@ -136,9 +136,18 @@ except Exception as e:
     logging.error(f"PPTX Generator mount failed: {e}", exc_info=True)
 
 try:
-    # Force fresh import of DAT app
+    # Force fresh import of DAT app by clearing module cache
+    import sys
+    import importlib
+    
+    # Clear cached modules to ensure fresh code is loaded
+    modules_to_clear = [k for k in sys.modules.keys() if k.startswith('apps.data_aggregator')]
+    for mod in modules_to_clear:
+        del sys.modules[mod]
+    
     from apps.data_aggregator.backend.main import app as dat_app
     app.mount("/api/dat", dat_app)
+    logging.info("DAT mounted with fresh code")
 except ImportError as e:
     logging.warning(f"Data Aggregator not available: {e}")
 

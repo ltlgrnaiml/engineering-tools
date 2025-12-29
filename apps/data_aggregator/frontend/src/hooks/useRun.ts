@@ -1,14 +1,21 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useDebugFetch } from '../components/debug'
 
+export interface DATStageStatus {
+  state: 'unlocked' | 'locked' | string
+  stage?: string
+  stage_id?: string | null
+  locked_at?: string
+  unlocked_at?: string
+  completed?: boolean
+  error?: string | null
+  data?: unknown
+}
+
 export interface DATRun {
   run_id: string
   current_stage: string
-  stages: Record<string, {
-    state: 'unlocked' | 'locked'
-    locked_at?: string
-    data?: unknown
-  }>
+  stages: Record<string, DATStageStatus>
   created_at: string
 }
 
