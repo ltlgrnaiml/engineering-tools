@@ -14,7 +14,7 @@ interface DataSetSelectorProps {
 }
 
 async function fetchDatasets(): Promise<DataSetRef[]> {
-  const response = await fetch('/api/v1/datasets')
+  const response = await fetch('/api/datasets')
   if (!response.ok) throw new Error('Failed to fetch datasets')
   return response.json()
 }

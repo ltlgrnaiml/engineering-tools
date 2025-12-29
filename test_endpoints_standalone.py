@@ -85,14 +85,14 @@ def test_pptx_docs():
     assert response.status_code == 200, f"Expected 200, got {response.status_code}"
 
 def test_pptx_list_projects():
-    response = requests.get(f"{BASE_URL}/api/pptx/api/v1/projects", timeout=TIMEOUT)
+    response = requests.get(f"{BASE_URL}/api/pptx/api/projects", timeout=TIMEOUT)
     assert response.status_code == 200, f"Expected 200, got {response.status_code}"
     data = response.json()
     assert isinstance(data, list), f"Expected list, got {type(data)}"
 
 def test_pptx_create_project():
     payload = {"name": "Test Project", "description": "Automated test"}
-    response = requests.post(f"{BASE_URL}/api/pptx/api/v1/projects", json=payload, timeout=TIMEOUT)
+    response = requests.post(f"{BASE_URL}/api/pptx/api/projects", json=payload, timeout=TIMEOUT)
     assert response.status_code in [200, 201], f"Expected 200/201, got {response.status_code}: {response.text}"
     data = response.json()
     assert "id" in data, f"No id in response: {data}"
@@ -112,14 +112,14 @@ def test_dat_docs():
     assert response.status_code == 200, f"Expected 200, got {response.status_code}"
 
 def test_dat_list_runs():
-    response = requests.get(f"{BASE_URL}/api/dat/api/v1/runs", timeout=TIMEOUT)
+    response = requests.get(f"{BASE_URL}/api/dat/api/runs", timeout=TIMEOUT)
     assert response.status_code == 200, f"Expected 200, got {response.status_code}"
     data = response.json()
     assert isinstance(data, list), f"Expected list, got {type(data)}"
 
 def test_dat_create_run():
     payload = {}  # Empty dict for POST body
-    response = requests.post(f"{BASE_URL}/api/dat/api/v1/runs", json=payload, timeout=TIMEOUT)
+    response = requests.post(f"{BASE_URL}/api/dat/api/runs", json=payload, timeout=TIMEOUT)
     assert response.status_code in [200, 201], f"Expected 200/201, got {response.status_code}: {response.text}"
     data = response.json()
     assert "run_id" in data, f"No run_id in response: {data}"
@@ -139,7 +139,7 @@ def test_sov_docs():
     assert response.status_code == 200, f"Expected 200, got {response.status_code}"
 
 def test_sov_list_analyses():
-    response = requests.get(f"{BASE_URL}/api/sov/api/v1/analyses", timeout=TIMEOUT)
+    response = requests.get(f"{BASE_URL}/api/sov/api/analyses", timeout=TIMEOUT)
     assert response.status_code == 200, f"Expected 200, got {response.status_code}"
     data = response.json()
     assert isinstance(data, list), f"Expected list, got {type(data)}"
@@ -149,18 +149,18 @@ def test_sov_list_analyses():
 # ============================================================================
 
 def test_list_datasets():
-    response = requests.get(f"{BASE_URL}/api/v1/datasets", timeout=TIMEOUT)
+    response = requests.get(f"{BASE_URL}/api/datasets", timeout=TIMEOUT)
     assert response.status_code == 200, f"Expected 200, got {response.status_code}"
     data = response.json()
     assert isinstance(data, list), f"Expected list, got {type(data)}"
 
 def test_list_datasets_by_tool():
     for tool in ["dat", "sov", "pptx"]:
-        response = requests.get(f"{BASE_URL}/api/v1/datasets", params={"tool": tool}, timeout=TIMEOUT)
+        response = requests.get(f"{BASE_URL}/api/datasets", params={"tool": tool}, timeout=TIMEOUT)
         assert response.status_code == 200, f"Expected 200 for {tool}, got {response.status_code}"
 
 def test_list_pipelines():
-    response = requests.get(f"{BASE_URL}/api/v1/pipelines", timeout=TIMEOUT)
+    response = requests.get(f"{BASE_URL}/api/pipelines", timeout=TIMEOUT)
     assert response.status_code == 200, f"Expected 200, got {response.status_code}"
     data = response.json()
     assert isinstance(data, list), f"Expected list, got {type(data)}"

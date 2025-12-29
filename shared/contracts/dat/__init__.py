@@ -101,6 +101,12 @@ from shared.contracts.dat.cancellation import (
     CancellationAuditEntry,
     CancellationAuditLog,
 )
+from shared.contracts.dat.stage_graph import (
+    CascadeRule,
+    GatingRule,
+    StageDefinition,
+    StageGraphConfig,
+)
 
 __version__ = "1.0.0"
 
@@ -183,4 +189,9 @@ __all__ = [
     "CancellableOperationState",
     "CancellationAuditEntry",
     "CancellationAuditLog",
+    # Stage graph contracts (per ADR-0001-DAT)
+    "CascadeRule",
+    "GatingRule",
+    "StageDefinition",
+    "StageGraphConfig",
 ]

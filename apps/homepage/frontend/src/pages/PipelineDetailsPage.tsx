@@ -45,19 +45,19 @@ interface Pipeline {
 }
 
 async function fetchPipeline(id: string): Promise<Pipeline> {
-  const response = await fetch(`/api/v1/pipelines/${id}`)
+  const response = await fetch(`/api/pipelines/${id}`)
   if (!response.ok) throw new Error('Failed to fetch pipeline')
   return response.json()
 }
 
 async function executePipeline(id: string): Promise<Pipeline> {
-  const response = await fetch(`/api/v1/pipelines/${id}/execute`, { method: 'POST' })
+  const response = await fetch(`/api/pipelines/${id}/execute`, { method: 'POST' })
   if (!response.ok) throw new Error('Failed to execute pipeline')
   return response.json()
 }
 
 async function cancelPipeline(id: string): Promise<Pipeline> {
-  const response = await fetch(`/api/v1/pipelines/${id}/cancel`, { method: 'POST' })
+  const response = await fetch(`/api/pipelines/${id}/cancel`, { method: 'POST' })
   if (!response.ok) throw new Error('Failed to cancel pipeline')
   return response.json()
 }

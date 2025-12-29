@@ -20,7 +20,7 @@ import { ADRFormEditor } from '@/components/ADRFormEditor'
 // Per ADR-0009: Import typed contracts from shared types
 import type { ADRSummary, ADRContent } from '@shared/types/contracts'
 
-const API_BASE = 'http://localhost:8000/api/v1/devtools'
+const API_BASE = 'http://localhost:8000/api/devtools'
 
 export function DevToolsPage() {
   const [adrs, setAdrs] = useState<ADRSummary[]>([])

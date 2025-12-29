@@ -1,8 +1,9 @@
 """Deterministic stage/artifact ID generation.
 
 Per ADR-0004: IDs are computed as SHA-256 hash of stable JSON serialization.
+Per ADR-0004-DAT: Stage IDs use 8-char hex digest.
 - Same inputs always yield same ID (deterministic)
-- IDs are first 16 characters of hex digest
+- IDs are first 8 characters of hex digest
 - Seed is fixed at 42 for reproducibility
 """
 
@@ -21,28 +22,28 @@ def compute_stage_id(
     prefix: str = "",
 ) -> str:
     """Compute a deterministic stage ID from inputs.
-    
+
     Args:
         inputs: Dictionary of inputs to hash
         seed: Random seed for determinism (default: 42)
         prefix: Optional prefix for the ID (e.g., "ds_", "pipe_")
-        
+
     Returns:
-        Deterministic ID string (prefix + 16 hex chars)
-        
+        Deterministic ID string (prefix + 8 hex chars)
+
     Example:
         >>> compute_stage_id({"files": ["a.csv"], "level": "wafer"}, prefix="ds_")
-        'ds_a1b2c3d4e5f67890'
+        'ds_a1b2c3d4'
     """
     # Add seed to inputs for reproducibility
     hashable = {**inputs, "_seed": seed}
-    
+
     # Stable JSON serialization (sorted keys, no whitespace)
     serialized = json.dumps(hashable, sort_keys=True, separators=(",", ":"))
-    
-    # SHA-256 hash, truncated to 16 chars
-    hash_digest = hashlib.sha256(serialized.encode()).hexdigest()[:16]
-    
+
+    # SHA-256 hash, truncated to 8 chars per ADR-0004-DAT
+    hash_digest = hashlib.sha256(serialized.encode()).hexdigest()[:8]
+
     return f"{prefix}{hash_digest}"
 
 
@@ -59,11 +60,11 @@ def compute_dataset_id(
     seed: int = DEFAULT_SEED,
 ) -> str:
     """Compute a deterministic DataSet ID.
-    
+
     Includes only non-None values in the hash computation.
     """
     inputs: dict[str, Any] = {}
-    
+
     if run_id is not None:
         inputs["run_id"] = run_id
     if columns is not None:
@@ -80,7 +81,7 @@ def compute_dataset_id(
         inputs["factors"] = sorted(factors)
     if response_columns is not None:
         inputs["response_columns"] = sorted(response_columns)
-    
+
     return compute_stage_id(inputs, seed=seed, prefix="ds_")
 
 

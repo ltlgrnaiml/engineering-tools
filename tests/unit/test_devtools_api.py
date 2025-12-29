@@ -307,14 +307,14 @@ class TestAPITester:
         """API test request should include method and path."""
         request = APITestRequest(
             method="POST",
-            path="/api/v1/datasets",
+            path="/api/datasets",
             headers={"Content-Type": "application/json"},
             body={"name": "Test Dataset"},
             timeout_seconds=30.0,
         )
 
         assert request.method == "POST"
-        assert request.path == "/api/v1/datasets"
+        assert request.path == "/api/datasets"
         assert request.body is not None
 
     def test_api_test_request_validation(self) -> None:

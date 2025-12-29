@@ -1,7 +1,7 @@
 """Main FastAPI application entry point.
 
-Per ADR-0029: Tool-specific routes use /v1/ prefix internally.
-Gateway mounts this app at /api/pptx, yielding /api/pptx/v1/{resource}.
+Per ADR-0029: Tool-specific routes use no version prefix.
+Gateway mounts this app at /api/pptx, yielding /api/pptx/{resource}.
 Per ADR-0031: All errors use ErrorResponse contract.
 """
 
@@ -83,18 +83,18 @@ app.add_middleware(
 
 # Per ADR-0029: Health endpoints are unversioned (accessible at /health when mounted)
 app.include_router(health.router, tags=["health"])
-# Per ADR-0029: Tool-specific routes use /v1/ prefix internally
-# Gateway mounts at /api/pptx, so routes become /api/pptx/v1/{resource}
-app.include_router(projects.router, prefix="/v1/projects", tags=["projects"])
-app.include_router(templates.router, prefix="/v1/templates", tags=["templates"])
-app.include_router(data.router, prefix="/v1/data", tags=["data"])
-app.include_router(dataset_input.router, prefix="/v1/data", tags=["dataset-input"])
-app.include_router(generation.router, prefix="/v1/generation", tags=["generation"])
-app.include_router(requirements.router, prefix="/v1/requirements", tags=["requirements"])
-app.include_router(config.router, prefix="/v1/config", tags=["config"])
-app.include_router(config_defaults.router, prefix="/v1", tags=["config"])
-app.include_router(data_operations.router, prefix="/v1", tags=["data-operations"])
-app.include_router(preview.router, prefix="/v1/preview", tags=["preview"])
+# Per ADR-0029: Tool-specific routes use no version prefix
+# Gateway mounts at /api/pptx, so routes become /api/pptx/{resource}
+app.include_router(projects.router, prefix="/projects", tags=["projects"])
+app.include_router(templates.router, prefix="/templates", tags=["templates"])
+app.include_router(data.router, prefix="/data", tags=["data"])
+app.include_router(dataset_input.router, prefix="/data", tags=["dataset-input"])
+app.include_router(generation.router, prefix="/generation", tags=["generation"])
+app.include_router(requirements.router, prefix="/requirements", tags=["requirements"])
+app.include_router(config.router, prefix="/config", tags=["config"])
+app.include_router(config_defaults.router, tags=["config"])
+app.include_router(data_operations.router, tags=["data-operations"])
+app.include_router(preview.router, prefix="/preview", tags=["preview"])
 
 
 logger = logging.getLogger(__name__)

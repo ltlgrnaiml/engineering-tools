@@ -41,7 +41,7 @@ async def test_openapi_docs(client: AsyncClient):
 @pytest.mark.anyio
 async def test_datasets_list_empty(client: AsyncClient):
     """Test listing datasets when none exist."""
-    response = await client.get("/api/v1/datasets")
+    response = await client.get("/api/datasets")
     
     assert response.status_code == 200
     data = response.json()
@@ -51,7 +51,7 @@ async def test_datasets_list_empty(client: AsyncClient):
 @pytest.mark.anyio
 async def test_pipelines_list_empty(client: AsyncClient):
     """Test listing pipelines when none exist."""
-    response = await client.get("/api/v1/pipelines")
+    response = await client.get("/api/pipelines")
     
     assert response.status_code == 200
     data = response.json()
@@ -73,7 +73,7 @@ async def test_create_pipeline(client: AsyncClient):
         ],
     }
     
-    response = await client.post("/api/v1/pipelines", json=pipeline_data)
+    response = await client.post("/api/pipelines", json=pipeline_data)
     
     assert response.status_code == 200
     data = response.json()
@@ -84,7 +84,7 @@ async def test_create_pipeline(client: AsyncClient):
 @pytest.mark.anyio
 async def test_get_nonexistent_dataset(client: AsyncClient):
     """Test getting a dataset that doesn't exist."""
-    response = await client.get("/api/v1/datasets/nonexistent123")
+    response = await client.get("/api/datasets/nonexistent123")
     
     assert response.status_code == 404
 
@@ -92,6 +92,6 @@ async def test_get_nonexistent_dataset(client: AsyncClient):
 @pytest.mark.anyio
 async def test_get_nonexistent_pipeline(client: AsyncClient):
     """Test getting a pipeline that doesn't exist."""
-    response = await client.get("/api/v1/pipelines/nonexistent123")
+    response = await client.get("/api/pipelines/nonexistent123")
     
     assert response.status_code == 404

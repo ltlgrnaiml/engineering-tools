@@ -1,6 +1,6 @@
 """SOV API routes.
 
-Per ADR-0029: All routes use versioned /v1/ prefix.
+Per ADR-0029: All routes use versioned / prefix.
 Per API-003: Error responses MUST use standard error schema.
 """
 from fastapi import APIRouter, HTTPException, Request
@@ -26,8 +26,8 @@ from .schemas import (
     ExportRequest,
 )
 
-# Per ADR-0029: Tool-specific routes use /v1/ prefix
-router = APIRouter(prefix="/v1")
+# Per ADR-0029: Tool-specific routes use / prefix
+router = APIRouter(prefix="")
 manager = AnalysisManager()
 
 TOOL_NAME = "sov"

@@ -40,19 +40,19 @@ interface DataSetPreview {
 }
 
 async function fetchDataSetManifest(id: string): Promise<DataSetManifest> {
-  const response = await fetch(`/api/datasets/v1/${id}`)
+  const response = await fetch(`/api/datasets/${id}`)
   if (!response.ok) throw new Error('Failed to fetch dataset')
   return response.json()
 }
 
 async function fetchDataSetPreview(id: string): Promise<DataSetPreview> {
-  const response = await fetch(`/api/datasets/v1/${id}/preview?limit=20`)
+  const response = await fetch(`/api/datasets/${id}/preview?limit=20`)
   if (!response.ok) throw new Error('Failed to fetch preview')
   return response.json()
 }
 
 async function fetchDataSetLineage(id: string): Promise<{ parents: DataSetManifest[], children: DataSetManifest[] }> {
-  const response = await fetch(`/api/datasets/v1/${id}/lineage`)
+  const response = await fetch(`/api/datasets/${id}/lineage`)
   if (!response.ok) throw new Error('Failed to fetch lineage')
   return response.json()
 }

@@ -17,7 +17,7 @@ interface FieldError {
   [key: string]: string | null
 }
 
-const API_BASE = 'http://localhost:8000/api/v1/devtools'
+const API_BASE = 'http://localhost:8000/api/devtools'
 
 export function ADRFormEditor({ adr, isNewAdr = false, onSave }: ADRFormEditorProps) {
   const [formData, setFormData] = useState<ADRFormData>({})

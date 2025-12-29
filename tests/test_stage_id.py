@@ -30,7 +30,7 @@ class TestStageIdGeneration:
         stage_id = compute_stage_id(inputs, prefix="stg_")
         
         assert stage_id.startswith("stg_")
-        assert len(stage_id) == 4 + 16  # prefix + 16 hex chars
+        assert len(stage_id) == 4 + 8  # prefix + 8 hex chars per ADR-0004-DAT
 
     def test_compute_stage_id_different_inputs(self):
         """Test that different inputs produce different IDs."""

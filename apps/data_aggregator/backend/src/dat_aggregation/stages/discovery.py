@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from shared.utils.stage_id import compute_stage_id
-from ..adapters.factory import AdapterFactory
+from apps.data_aggregator.backend.adapters import create_default_registry
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +74,12 @@ async def execute_discovery(
         DiscoveryResult with discovered files.
     """
     files: list[DiscoveredFile] = []
-    supported_extensions = AdapterFactory.get_supported_extensions()
+    registry = create_default_registry()
+    
+    # Get supported extensions from all registered adapters
+    supported_extensions: set[str] = set()
+    for meta in registry.list_adapters():
+        supported_extensions.update(meta.file_extensions)
 
     # Determine which extensions to scan for
     if config.extensions:
@@ -151,9 +156,9 @@ async def execute_discovery(
         adapter_name = None
         if is_supported:
             try:
-                adapter = AdapterFactory.get_adapter(file_path)
-                adapter_name = adapter.__name__
-            except ValueError:
+                adapter = registry.get_adapter_for_file(str(file_path))
+                adapter_name = adapter.metadata.name
+            except Exception:
                 is_supported = False
 
         files.append(DiscoveredFile(

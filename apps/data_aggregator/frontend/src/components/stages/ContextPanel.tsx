@@ -22,7 +22,7 @@ export function ContextPanel({ runId }: ContextPanelProps) {
   const { data: profiles, isLoading: profilesLoading } = useQuery({
     queryKey: ['dat-profiles'],
     queryFn: async (): Promise<Profile[]> => {
-      const response = await debugFetch('/api/dat/v1/profiles')
+      const response = await debugFetch('/api/dat/profiles')
       if (!response.ok) throw new Error('Failed to fetch profiles')
       return response.json()
     },
@@ -30,7 +30,7 @@ export function ContextPanel({ runId }: ContextPanelProps) {
 
   const lockMutation = useMutation({
     mutationFn: async () => {
-      const response = await debugFetch(`/api/dat/v1/runs/${runId}/stages/context/lock`, {
+      const response = await debugFetch(`/api/dat/runs/${runId}/stages/context/lock`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

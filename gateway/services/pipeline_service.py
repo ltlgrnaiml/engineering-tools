@@ -28,11 +28,11 @@ from shared.utils.stage_id import compute_pipeline_id
 logger = logging.getLogger(__name__)
 
 # Tool API base URLs (internal routing via gateway mounts)
-# Per ADR-0029: Tool-specific APIs use /api/{tool}/v1/ pattern
+# Per ADR-0029: Tool-specific APIs use /api/{tool}/ pattern (no version prefix)
 TOOL_BASE_URLS = {
-    "dat": "http://localhost:8000/api/dat/v1",
-    "sov": "http://localhost:8000/api/sov/v1",
-    "pptx": "http://localhost:8000/api/pptx/v1",
+    "dat": "http://localhost:8000/api/dat",
+    "sov": "http://localhost:8000/api/sov",
+    "pptx": "http://localhost:8000/api/pptx",
 }
 
 # Timeout for tool API calls (seconds)

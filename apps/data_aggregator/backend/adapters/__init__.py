@@ -10,6 +10,7 @@ Available Adapters:
 - CSVAdapter: CSV and TSV files (.csv, .tsv)
 - ExcelAdapter: Excel files (.xlsx, .xls)
 - JSONAdapter: JSON and JSON Lines files (.json, .jsonl, .ndjson)
+- ParquetAdapter: Parquet files (.parquet)
 
 Usage:
     from apps.data_aggregator.backend.adapters import create_default_registry
@@ -20,10 +21,13 @@ Usage:
     # Auto-select adapter by file extension
     adapter = registry.get_adapter_for_file("data.csv")
 
-    # Read file
+    # Read file (async)
     df, result = await adapter.read_dataframe("data.csv")
 
-    # Or get specific adapter
+    # Probe schema without reading all data (async)
+    schema = await adapter.probe_schema("data.csv")
+
+    # Or get specific adapter by ID
     csv_adapter = registry.get_adapter("csv")
 """
 
@@ -74,3 +78,4 @@ def create_default_registry() -> AdapterRegistry:
     registry.register(ParquetAdapter(), is_builtin=True)
 
     return registry
+

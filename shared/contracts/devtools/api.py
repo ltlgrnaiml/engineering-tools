@@ -276,7 +276,7 @@ class APITestRequest(BaseModel):
     """Request to test an API endpoint."""
 
     method: Literal["GET", "POST", "PUT", "DELETE", "PATCH"]
-    path: str = Field(..., description="API path (e.g., /api/v1/datasets)")
+    path: str = Field(..., description="API path (e.g., /api/datasets)")
     headers: dict[str, str] = Field(default_factory=dict)
     query_params: dict[str, str] = Field(default_factory=dict)
     body: dict[str, Any] | None = None

@@ -50,7 +50,7 @@ class TestHealthEndpoint:
 
 
 class TestDataSetEndpoints:
-    """Tests for /api/v1/datasets/ endpoints."""
+    """Tests for /api/datasets/ endpoints."""
 
     @pytest.fixture
     def client(self):
@@ -59,33 +59,33 @@ class TestDataSetEndpoints:
 
     def test_list_datasets_returns_200(self, client):
         """Test that listing datasets returns 200."""
-        response = client.get("/api/v1/datasets/")
+        response = client.get("/api/datasets/")
         assert response.status_code == 200
 
     def test_list_datasets_returns_list(self, client):
         """Test that listing datasets returns a list."""
-        response = client.get("/api/v1/datasets/")
+        response = client.get("/api/datasets/")
         data = response.json()
         assert isinstance(data, list)
 
     def test_list_datasets_with_tool_filter(self, client):
         """Test filtering datasets by tool."""
-        response = client.get("/api/v1/datasets/?tool=dat")
+        response = client.get("/api/datasets/?tool=dat")
         assert response.status_code == 200
 
     def test_list_datasets_with_limit(self, client):
         """Test limiting dataset results."""
-        response = client.get("/api/v1/datasets/?limit=5")
+        response = client.get("/api/datasets/?limit=5")
         assert response.status_code == 200
 
     def test_get_nonexistent_dataset_returns_404(self, client):
         """Test that getting nonexistent dataset returns 404."""
-        response = client.get("/api/v1/datasets/nonexistent_id")
+        response = client.get("/api/datasets/nonexistent_id")
         assert response.status_code == 404
 
 
 class TestPipelineEndpoints:
-    """Tests for /api/v1/pipelines endpoints."""
+    """Tests for /api/pipelines endpoints."""
 
     @pytest.fixture
     def client(self):
@@ -94,19 +94,19 @@ class TestPipelineEndpoints:
 
     def test_list_pipelines_returns_200(self, client):
         """Test that listing pipelines returns 200."""
-        response = client.get("/api/v1/pipelines/")
+        response = client.get("/api/pipelines/")
         assert response.status_code == 200
 
     def test_list_pipelines_returns_list(self, client):
         """Test that listing pipelines returns a list."""
-        response = client.get("/api/v1/pipelines/")
+        response = client.get("/api/pipelines/")
         data = response.json()
         assert isinstance(data, list)
 
     def test_create_pipeline(self, client):
         """Test creating a pipeline."""
         response = client.post(
-            "/api/v1/pipelines/",
+            "/api/pipelines/",
             json={
                 "name": "Test Pipeline",
                 "description": "A test pipeline",
@@ -128,7 +128,7 @@ class TestPipelineEndpoints:
         """Test getting a created pipeline."""
         # Create a pipeline first
         create_response = client.post(
-            "/api/v1/pipelines/",
+            "/api/pipelines/",
             json={
                 "name": "Get Test Pipeline",
                 "steps": [
@@ -143,13 +143,13 @@ class TestPipelineEndpoints:
         pipeline_id = create_response.json()["pipeline_id"]
         
         # Get it
-        response = client.get(f"/api/v1/pipelines/{pipeline_id}")
+        response = client.get(f"/api/pipelines/{pipeline_id}")
         assert response.status_code == 200
         assert response.json()["pipeline_id"] == pipeline_id
 
     def test_get_nonexistent_pipeline_returns_404(self, client):
         """Test that getting nonexistent pipeline returns 404."""
-        response = client.get("/api/v1/pipelines/nonexistent_id")
+        response = client.get("/api/pipelines/nonexistent_id")
         assert response.status_code == 404
 
 

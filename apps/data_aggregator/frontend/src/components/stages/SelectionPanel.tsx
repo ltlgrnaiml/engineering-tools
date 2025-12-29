@@ -40,7 +40,7 @@ export function SelectionPanel({ runId }: SelectionPanelProps) {
 
   const scanMutation = useMutation({
     mutationFn: async (path: string) => {
-      const response = await debugFetch(`/api/dat/v1/runs/${runId}/stages/selection/scan`, {
+      const response = await debugFetch(`/api/dat/runs/${runId}/stages/selection/scan`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ folder_path: path }),
@@ -67,7 +67,7 @@ export function SelectionPanel({ runId }: SelectionPanelProps) {
 
   const discoveryMutation = useMutation({
     mutationFn: async (path: string) => {
-      const response = await debugFetch(`/api/dat/v1/runs/${runId}/stages/discovery/lock`, {
+      const response = await debugFetch(`/api/dat/runs/${runId}/stages/discovery/lock`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ folder_path: path }),
@@ -83,7 +83,7 @@ export function SelectionPanel({ runId }: SelectionPanelProps) {
   const lockMutation = useMutation({
     mutationFn: async () => {
       const filesToLock = Array.from(selectedFiles)
-      const response = await debugFetch(`/api/dat/v1/runs/${runId}/stages/selection/lock`, {
+      const response = await debugFetch(`/api/dat/runs/${runId}/stages/selection/lock`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ selected_files: filesToLock }),

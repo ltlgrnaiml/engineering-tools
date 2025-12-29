@@ -9,11 +9,13 @@ Each stage manages its own lifecycle while a global orchestrator
 coordinates forward gating and unlock cascades.
 """
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timezone
-from typing import Callable, Any, TYPE_CHECKING
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING, Any
 
-from shared.contracts.dat import DATStageType, DATStageState
+from shared.contracts.dat import DATStageState, DATStageType
+from shared.contracts.dat.stage_graph import StageGraphConfig
 
 if TYPE_CHECKING:
     from .run_store import RunStore
@@ -37,54 +39,49 @@ class StageStatus:
     artifact_path: str | None = None
 
 
-# Forward gating rules (per ADR-0001-DAT)
-FORWARD_GATES: dict[Stage, list[tuple[Stage, bool]]] = {
-    # Stage: [(required_stage, must_be_completed), ...]
-    # Discovery has no gates - it's the first stage
-    Stage.SELECTION: [(Stage.DISCOVERY, False)],
-    Stage.CONTEXT: [(Stage.SELECTION, False)],
-    Stage.TABLE_AVAILABILITY: [(Stage.SELECTION, False)],
-    Stage.TABLE_SELECTION: [(Stage.TABLE_AVAILABILITY, False)],
-    Stage.PREVIEW: [(Stage.TABLE_SELECTION, False)],
-    Stage.PARSE: [(Stage.TABLE_SELECTION, False)],
-    Stage.EXPORT: [(Stage.PARSE, True)],  # Must be completed
-}
-
-# Cascade unlock rules (per ADR-0001-DAT)
-CASCADE_TARGETS: dict[Stage, list[Stage]] = {
-    Stage.DISCOVERY: [
-        Stage.SELECTION, Stage.CONTEXT, Stage.TABLE_AVAILABILITY,
-        Stage.TABLE_SELECTION, Stage.PREVIEW, Stage.PARSE, Stage.EXPORT
-    ],
-    Stage.SELECTION: [
-        Stage.CONTEXT, Stage.TABLE_AVAILABILITY, Stage.TABLE_SELECTION,
-        Stage.PREVIEW, Stage.PARSE, Stage.EXPORT
-    ],
-    Stage.TABLE_AVAILABILITY: [
-        Stage.TABLE_SELECTION, Stage.PREVIEW, Stage.PARSE, Stage.EXPORT
-    ],
-    Stage.TABLE_SELECTION: [Stage.PREVIEW, Stage.PARSE, Stage.EXPORT],
-    Stage.PARSE: [Stage.EXPORT],
-    # Context and Preview do NOT cascade (per ADR-0003)
-    Stage.CONTEXT: [],
-    Stage.PREVIEW: [],
-}
-
-
 class DATStateMachine:
-    """Hybrid FSM for DAT stage orchestration."""
+    """Hybrid FSM for DAT stage orchestration.
 
-    def __init__(self, run_id: str, store: "RunStore"):
+    Per ADR-0001-DAT: Config-driven stage graph.
+    """
+
+    def __init__(
+        self,
+        run_id: str,
+        store: "RunStore",
+        config: StageGraphConfig | None = None,
+    ) -> None:
+        """Initialize the state machine.
+
+        Args:
+            run_id: Unique run identifier.
+            store: Run store for persistence.
+            config: Stage graph configuration. Defaults to standard 8-stage pipeline.
+        """
         self.run_id = run_id
         self.store = store
+        self.config = config or StageGraphConfig.default()
+        self._build_lookup_tables()
+
+    def _build_lookup_tables(self) -> None:
+        """Build fast lookup dicts from config."""
+        self._forward_gates: dict[Stage, list[tuple[Stage, bool]]] = {}
+        for rule in self.config.gating_rules:
+            self._forward_gates[rule.target_stage] = [
+                (s, rule.require_completion) for s in rule.required_stages
+            ]
+
+        self._cascade_targets: dict[Stage, list[Stage]] = {}
+        for rule in self.config.cascade_rules:
+            self._cascade_targets[rule.trigger_stage] = list(rule.cascade_targets)
 
     async def can_lock(self, stage: Stage) -> tuple[bool, str | None]:
         """Check if a stage can be locked (forward gating).
-        
+
         Returns:
             (can_lock, reason) - reason is None if can_lock is True
         """
-        gates = FORWARD_GATES.get(stage, [])
+        gates = self._forward_gates.get(stage, [])
 
         for required_stage, must_complete in gates:
             status = await self.store.get_stage_status(self.run_id, required_stage)
@@ -104,7 +101,7 @@ class DATStateMachine:
         execute_fn: Callable[[], dict] | None = None,
     ) -> StageStatus:
         """Lock a stage, optionally executing its logic.
-        
+
         Per ADR-0002: If stage ID exists, reuse artifact (idempotent re-lock).
         """
         from shared.utils.stage_id import compute_stage_id
@@ -126,7 +123,7 @@ class DATStateMachine:
                 stage=stage,
                 state=StageState.LOCKED,
                 stage_id=stage_id,
-                locked_at=datetime.now(timezone.utc),
+                locked_at=datetime.now(UTC),
                 completed=existing.get("completed", False),
                 artifact_path=existing.get("path"),
             )
@@ -144,7 +141,7 @@ class DATStateMachine:
             stage=stage,
             state=StageState.LOCKED,
             stage_id=stage_id,
-            locked_at=datetime.now(timezone.utc),
+            locked_at=datetime.now(UTC),
             completed=result.get("completed", False),
             artifact_path=artifact_path,
         )
@@ -154,17 +151,17 @@ class DATStateMachine:
 
     async def unlock_stage(self, stage: Stage, cascade: bool = True) -> list[StageStatus]:
         """Unlock a stage and optionally cascade to downstream stages.
-        
+
         Per ADR-0002: Artifacts are preserved (never deleted).
-        
+
         Args:
             stage: The stage to unlock.
             cascade: If True, also unlock downstream stages per CASCADE_TARGETS.
-            
+
         Returns:
             List of StageStatus for all unlocked stages.
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         unlocked: list[StageStatus] = []
 
         # Unlock this stage (preserve artifact)
@@ -178,7 +175,7 @@ class DATStateMachine:
 
         # Cascade to downstream stages if requested
         if cascade:
-            for target in CASCADE_TARGETS.get(stage, []):
+            for target in self._cascade_targets.get(stage, []):
                 current = await self.store.get_stage_status(self.run_id, target)
                 if current.state == StageState.LOCKED:
                     target_status = StageStatus(

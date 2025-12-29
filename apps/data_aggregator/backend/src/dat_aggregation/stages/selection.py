@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from ..adapters.factory import AdapterFactory
+from apps.data_aggregator.backend.adapters import create_default_registry
 
 
 @dataclass
@@ -23,6 +23,19 @@ class SelectionResult:
     completed: bool = True
 
 
+async def _get_tables_for_file(adapter, file_path: Path) -> list[str]:
+    """Get tables/sheets from a file using async probe_schema.
+    
+    For multi-sheet formats (Excel), returns sheet names.
+    For single-table formats, returns the filename.
+    """
+    if adapter.metadata.capabilities.supports_multiple_sheets:
+        result = await adapter.probe_schema(str(file_path))
+        if result.sheets:
+            return [sheet.sheet_name for sheet in result.sheets]
+    return [file_path.name]
+
+
 async def discover_files(
     source_paths: list[Path],
     recursive: bool = True,
@@ -36,13 +49,20 @@ async def discover_files(
     Returns:
         List of discovered file information
     """
-    supported = AdapterFactory.get_supported_extensions()
+    registry = create_default_registry()
+    
+    # Get supported extensions from all registered adapters
+    supported: set[str] = set()
+    for meta in registry.list_adapters():
+        supported.update(meta.file_extensions)
+    
     discovered: list[FileInfo] = []
 
     for source in source_paths:
         if source.is_file():
             if source.suffix.lower() in supported:
-                tables = AdapterFactory.get_tables(source)
+                adapter = registry.get_adapter_for_file(str(source))
+                tables = await _get_tables_for_file(adapter, source)
                 discovered.append(FileInfo(
                     path=source,
                     name=source.name,
@@ -55,7 +75,8 @@ async def discover_files(
             for file_path in source.glob(pattern):
                 if file_path.is_file() and file_path.suffix.lower() in supported:
                     try:
-                        tables = AdapterFactory.get_tables(file_path)
+                        adapter = registry.get_adapter_for_file(str(file_path))
+                        tables = await _get_tables_for_file(adapter, file_path)
                         discovered.append(FileInfo(
                             path=file_path,
                             name=file_path.name,

@@ -3,22 +3,32 @@
 Per ADR-0003: Parse uses profile defaults if context.json missing.
 Per ADR-0013: Cancellation preserves completed work, no partial data.
 Per ADR-0014: Output saved as Parquet.
+Per ADR-0040: Files >10MB use streaming.
 """
 import json
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import polars as pl
 
+from apps.data_aggregator.backend.adapters import create_default_registry
+from shared.contracts.dat.adapter import ReadOptions
 from shared.contracts.dat.cancellation import (
     CancellationResult,
     CheckpointType,
 )
-from ..adapters.factory import AdapterFactory
+
 from ..core.checkpoint_manager import CheckpointManager
 from ..profiles.profile_loader import DATProfile, get_profile_by_id
+
+# Per ADR-0040: Large file streaming threshold
+STREAMING_THRESHOLD_BYTES = 10 * 1024 * 1024  # 10MB
+
+# Per ADR-0014: Parse always outputs Parquet
+OUTPUT_FORMAT = "parquet"
 
 logger = logging.getLogger(__name__)
 
@@ -48,10 +58,10 @@ class ParseResult:
 class CancellationToken:
     """Token for checking cancellation status."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._cancelled = False
 
-    def cancel(self):
+    def cancel(self) -> None:
         self._cancelled = True
 
     @property
@@ -151,12 +161,14 @@ async def execute_parse(
             logger.warning(f"Profile not found: {config.profile_id}")
 
     # Load context with profile default fallback per ADR-0003
-    context = _load_context_with_fallback(
+    _load_context_with_fallback(
         run_id=run_id,
         workspace_path=workspace_path,
         profile=profile,
         context_overrides=config.context_overrides,
     )
+
+    registry = create_default_registry()
 
     all_dfs: list[pl.DataFrame] = []
     source_files: list[str] = []
@@ -169,7 +181,13 @@ async def execute_parse(
     for file_path in config.selected_files:
         tables = config.selected_tables.get(str(file_path), [])
         if not tables:
-            tables = AdapterFactory.get_tables(file_path)
+            # Get tables from adapter using async probe_schema
+            adapter = registry.get_adapter_for_file(str(file_path))
+            if adapter.metadata.capabilities.supports_multiple_sheets:
+                result = await adapter.probe_schema(str(file_path))
+                tables = [s.sheet_name for s in result.sheets] if result.sheets else [file_path.name]
+            else:
+                tables = [file_path.name]
         file_tables_map[file_path] = tables
 
     total_tables = sum(len(tables) for tables in file_tables_map.values())
@@ -198,8 +216,23 @@ async def execute_parse(
                     discarded_count=total_tables - tables_processed,
                 )
 
-            # Read table - use 'table' parameter for cross-adapter compatibility
-            df = AdapterFactory.read_file(file_path, table=table)
+            # Read table using async adapter - stream if large per ADR-0040
+            adapter = registry.get_adapter_for_file(str(file_path))
+            options = ReadOptions(extra={"sheet_name": table} if table != file_path.name else {})
+
+            file_size = file_path.stat().st_size
+            if file_size > STREAMING_THRESHOLD_BYTES:
+                # Stream large files in chunks per ADR-0040
+                logger.info(f"Streaming large file ({file_size / 1024 / 1024:.1f}MB): {file_path.name}")
+                chunks: list[pl.DataFrame] = []
+                async for chunk in adapter.stream_dataframe(str(file_path), options, chunk_size=50000):
+                    if cancel_token and cancel_token.is_cancelled:
+                        break
+                    chunks.append(chunk)
+                df = pl.concat(chunks) if chunks else pl.DataFrame()
+            else:
+                # Eager load small files
+                df, _ = await adapter.read_dataframe(str(file_path), options)
 
             # Apply column mappings if provided
             if config.column_mappings:
@@ -226,10 +259,7 @@ async def execute_parse(
             )
 
     # Combine all DataFrames
-    if all_dfs:
-        combined = pl.concat(all_dfs, how="diagonal")
-    else:
-        combined = pl.DataFrame()
+    combined = pl.concat(all_dfs, how="diagonal") if all_dfs else pl.DataFrame()
 
     # Compute parse ID
     from shared.utils.stage_id import compute_stage_id

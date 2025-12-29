@@ -15,11 +15,16 @@ from shared.utils.stage_id import compute_dataset_id
 from .parse import ParseResult
 
 
+# Per ADR-0014: Supported export formats
+SUPPORTED_EXPORT_FORMATS = {"parquet", "csv", "excel", "json"}
+
+
 class ExportFormat(str, Enum):
     """Supported export formats per ADR-0014."""
     PARQUET = "parquet"  # Default, best for data pipelines
     CSV = "csv"          # Universal compatibility
     EXCEL = "excel"      # .xlsx for business users
+    JSON = "json"        # For API integration
 
 
 async def execute_export(

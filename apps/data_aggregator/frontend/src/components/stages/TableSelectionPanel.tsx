@@ -22,7 +22,7 @@ export function TableSelectionPanel({ runId }: TableSelectionPanelProps) {
   const { data: tables, isLoading } = useQuery({
     queryKey: ['dat-available-tables', runId],
     queryFn: async (): Promise<TableInfo[]> => {
-      const response = await debugFetch(`/api/dat/v1/runs/${runId}/stages/table_selection/tables`)
+      const response = await debugFetch(`/api/dat/runs/${runId}/stages/table_selection/tables`)
       if (!response.ok) throw new Error('Failed to fetch tables')
       return response.json()
     },
@@ -44,7 +44,7 @@ export function TableSelectionPanel({ runId }: TableSelectionPanelProps) {
         }
       })
       
-      const response = await debugFetch(`/api/dat/v1/runs/${runId}/stages/table_selection/lock`, {
+      const response = await debugFetch(`/api/dat/runs/${runId}/stages/table_selection/lock`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ selected_tables: selectedTablesByFile }),

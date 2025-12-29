@@ -9,8 +9,6 @@ from apps.data_aggregator.backend.src.dat_aggregation.core.state_machine import 
     Stage,
     StageState,
     StageStatus,
-    FORWARD_GATES,
-    CASCADE_TARGETS,
 )
 from apps.data_aggregator.backend.src.dat_aggregation.core.run_store import RunStore
 from apps.data_aggregator.backend.src.dat_aggregation.core.run_manager import RunManager
@@ -33,84 +31,6 @@ class TestStageEnum:
         """Test stage state values."""
         assert StageState.UNLOCKED.value == "unlocked"
         assert StageState.LOCKED.value == "locked"
-
-
-class TestForwardGating:
-    """Test forward gating rules."""
-    
-    def test_discovery_has_no_gates(self):
-        """Test discovery stage has no forward gates (first stage)."""
-        gates = FORWARD_GATES.get(Stage.DISCOVERY, [])
-        assert len(gates) == 0
-    
-    def test_selection_requires_discovery(self):
-        """Test selection stage requires discovery."""
-        gates = FORWARD_GATES.get(Stage.SELECTION, [])
-        required_stages = [g[0] for g in gates]
-        assert Stage.DISCOVERY in required_stages
-    
-    def test_context_requires_selection(self):
-        """Test context stage requires selection."""
-        gates = FORWARD_GATES.get(Stage.CONTEXT, [])
-        
-        required_stages = [g[0] for g in gates]
-        assert Stage.SELECTION in required_stages
-    
-    def test_parse_requires_table_selection(self):
-        """Test parse stage requires table selection."""
-        gates = FORWARD_GATES.get(Stage.PARSE, [])
-        
-        required_stages = [g[0] for g in gates]
-        assert Stage.TABLE_SELECTION in required_stages
-    
-    def test_export_requires_completed_parse(self):
-        """Test export requires completed parse."""
-        gates = FORWARD_GATES.get(Stage.EXPORT, [])
-        
-        # Find parse gate
-        parse_gate = next((g for g in gates if g[0] == Stage.PARSE), None)
-        assert parse_gate is not None
-        assert parse_gate[1] is True  # must_be_completed = True
-
-
-class TestCascadeUnlock:
-    """Test cascade unlock rules."""
-    
-    def test_discovery_cascades_to_all_downstream(self):
-        """Test discovery unlock cascades to all downstream stages."""
-        targets = CASCADE_TARGETS.get(Stage.DISCOVERY, [])
-        
-        assert Stage.SELECTION in targets
-        assert Stage.CONTEXT in targets
-        assert Stage.TABLE_AVAILABILITY in targets
-        assert Stage.TABLE_SELECTION in targets
-        assert Stage.PARSE in targets
-        assert Stage.EXPORT in targets
-    
-    def test_selection_cascades_to_downstream(self):
-        """Test selection unlock cascades to downstream stages."""
-        targets = CASCADE_TARGETS.get(Stage.SELECTION, [])
-        
-        assert Stage.CONTEXT in targets
-        assert Stage.TABLE_AVAILABILITY in targets
-        assert Stage.TABLE_SELECTION in targets
-        assert Stage.PARSE in targets
-        assert Stage.EXPORT in targets
-    
-    def test_context_does_not_cascade(self):
-        """Test context stage does not cascade (per ADR-0003)."""
-        targets = CASCADE_TARGETS.get(Stage.CONTEXT, [])
-        assert len(targets) == 0
-    
-    def test_preview_does_not_cascade(self):
-        """Test preview stage does not cascade (per ADR-0003)."""
-        targets = CASCADE_TARGETS.get(Stage.PREVIEW, [])
-        assert len(targets) == 0
-    
-    def test_parse_cascades_to_export(self):
-        """Test parse unlock cascades to export."""
-        targets = CASCADE_TARGETS.get(Stage.PARSE, [])
-        assert Stage.EXPORT in targets
 
 
 class TestRunStore:

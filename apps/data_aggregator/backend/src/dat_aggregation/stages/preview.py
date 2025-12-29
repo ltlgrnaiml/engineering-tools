@@ -62,8 +62,10 @@ async def execute_preview(
     Returns:
         PreviewResult with table previews
     """
-    from dat_aggregation.adapters.factory import AdapterFactory
+    from apps.data_aggregator.backend.adapters import create_default_registry
+    from shared.contracts.dat.adapter import ReadOptions
 
+    registry = create_default_registry()
     file_table_map = get_selected_file_table_map(table_selection)
     previews: list[TablePreview] = []
     total_rows = 0
@@ -71,12 +73,13 @@ async def execute_preview(
 
     for file_path_str, table_names in file_table_map.items():
         file_path = Path(file_path_str)
-        adapter = AdapterFactory.get_adapter(file_path)
+        adapter = registry.get_adapter_for_file(file_path_str)
 
         for table_name in table_names:
             try:
-                # Read the table
-                df = adapter.read(file_path, sheet=table_name)
+                # Read the table using async adapter.read_dataframe
+                options = ReadOptions(extra={"sheet_name": table_name} if table_name != file_path.name else {})
+                df, _ = await adapter.read_dataframe(file_path_str, options)
 
                 # Apply context configuration if provided
                 if context_config:

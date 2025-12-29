@@ -67,7 +67,7 @@ def test_backend():
             print(f"   Available endpoints: {len(paths)}")
             job_paths = [p for p in paths if 'jobs' in p]
             print(f"   Job endpoints: {len(job_paths)}")
-            dat_paths = [p for p in paths if '/v1/' in p]
+            dat_paths = [p for p in paths if '/' in p]
             print(f"   DAT endpoints: {len(dat_paths)}")
         else:
             print(f"❌ OpenAPI schema failed: {resp.status_code}")

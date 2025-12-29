@@ -1,6 +1,6 @@
 """DAT API routes.
 
-Per ADR-0029: All routes use versioned /v1/ prefix.
+Per ADR-0029: All routes use /api/{tool}/{resource} pattern (no version prefix).
 Per ADR-0013: Cancellation events are logged for audit.
 """
 from datetime import datetime, timezone
@@ -10,7 +10,15 @@ from fastapi import APIRouter, HTTPException, BackgroundTasks
 
 from shared.contracts.dat.cancellation import (
     CancellationAuditLog,
+    CleanupTarget,
 )
+from shared.contracts.dat.profile import (
+    CreateProfileRequest,
+    UpdateProfileRequest,
+)
+from apps.data_aggregator.backend.services.cleanup import cleanup
+from apps.data_aggregator.backend.services.profile_service import ProfileService
+from shared.contracts.core.path_safety import make_relative
 from shared.contracts.core.error_response import (
     ErrorCategory,
     create_error_response,
@@ -35,9 +43,10 @@ from .schemas import (
     PreviewResponse,
 )
 
-# Per ADR-0029: Tool-specific routes use /v1/ prefix
-router = APIRouter(prefix="/v1")
+# Per ADR-0029: Tool-specific routes use no version prefix (mounted at /api/dat by gateway)
+router = APIRouter()
 run_manager = RunManager()
+profile_service = ProfileService()
 
 # Track active cancellation tokens
 _cancel_tokens: dict[str, CancellationToken] = {}
@@ -231,7 +240,9 @@ async def lock_discovery(run_id: str, request: ScanRequest):
                 "completed": result.completed,
             }
 
-        inputs = {"root_path": str(source_path)}
+        # Per ADR-0004-DAT: Use relative paths for deterministic IDs
+        workspace_root = Path(run.get("workspace", source_path.parent))
+        inputs = {"root_path": make_relative(source_path, workspace_root).path}
         status = await sm.lock_stage(Stage.DISCOVERY, inputs=inputs, execute_fn=execute)
 
         artifact = await sm.store.get_artifact(run_id, Stage.DISCOVERY, status.stage_id)
@@ -613,19 +624,26 @@ async def scan_table_availability(run_id: str):
     selected_files = selection_artifact.get("selected_files", [])
 
     # Get tables from selected files with actual row/column counts
-    from ..adapters.factory import AdapterFactory
+    from apps.data_aggregator.backend.adapters import create_default_registry
+    from shared.contracts.dat.adapter import ReadOptions
+    
+    registry = create_default_registry()
     tables = []
     for file_path in selected_files:
         try:
-            file_tables = AdapterFactory.get_tables(Path(file_path))
+            adapter = registry.get_adapter_for_file(file_path)
+            # Get table names using async probe_schema
+            if adapter.metadata.capabilities.supports_multiple_sheets:
+                probe_result = await adapter.probe_schema(file_path)
+                file_tables = [s.sheet_name for s in probe_result.sheets] if probe_result.sheets else [Path(file_path).name]
+            else:
+                file_tables = [Path(file_path).name]
+            
             for table in file_tables:
-                # Get actual row and column counts from preview
+                # Get actual row and column counts using async adapter
                 try:
-                    preview_df = AdapterFactory.get_preview(Path(file_path), table=table, rows=1)
-                    # For row count, we need to read full table metadata
-                    # Use adapter to get shape info without loading all data
-                    adapter = AdapterFactory.get_adapter(Path(file_path))
-                    full_df = adapter.read(Path(file_path), table=table)
+                    options = ReadOptions(extra={"sheet_name": table} if table != Path(file_path).name else {})
+                    full_df, _ = await adapter.read_dataframe(file_path, options)
                     row_count = len(full_df)
                     column_count = len(full_df.columns)
                 except Exception as e:
@@ -666,16 +684,26 @@ async def lock_table_availability(run_id: str):
     selected_files = selection_artifact.get("selected_files", [])
 
     # Discover tables from selected files with actual row/column counts
-    from ..adapters.factory import AdapterFactory
+    from apps.data_aggregator.backend.adapters import create_default_registry
+    from shared.contracts.dat.adapter import ReadOptions
+    
+    registry = create_default_registry()
     tables = []
     for file_path in selected_files:
         try:
-            file_tables = AdapterFactory.get_tables(Path(file_path))
+            adapter = registry.get_adapter_for_file(file_path)
+            # Get table names using async probe_schema
+            if adapter.metadata.capabilities.supports_multiple_sheets:
+                probe_result = await adapter.probe_schema(file_path)
+                file_tables = [s.sheet_name for s in probe_result.sheets] if probe_result.sheets else [Path(file_path).name]
+            else:
+                file_tables = [Path(file_path).name]
+            
             for table in file_tables:
-                # Get actual row and column counts
+                # Get actual row and column counts using async adapter
                 try:
-                    adapter = AdapterFactory.get_adapter(Path(file_path))
-                    full_df = adapter.read(Path(file_path), table=table)
+                    options = ReadOptions(extra={"sheet_name": table} if table != Path(file_path).name else {})
+                    full_df, _ = await adapter.read_dataframe(file_path, options)
                     row_count = len(full_df)
                     column_count = len(full_df.columns)
                 except Exception as e:
@@ -805,8 +833,10 @@ async def lock_preview(run_id: str):
 
     async def execute():
         # Generate preview data from selected tables
-        from ..adapters.factory import AdapterFactory
+        from apps.data_aggregator.backend.adapters import create_default_registry
+        from shared.contracts.dat.adapter import ReadOptions
 
+        registry = create_default_registry()
         selected_tables = table_sel_artifact.get("selected_tables", {})
         all_rows = []
         all_columns = set()
@@ -814,10 +844,11 @@ async def lock_preview(run_id: str):
         preview_rows_per_table = 20  # Limit per table
 
         for file_path, tables in selected_tables.items():
+            adapter = registry.get_adapter_for_file(file_path)
             for table_name in tables[:5]:  # Limit tables per file
                 try:
-                    adapter = AdapterFactory.get_adapter(Path(file_path))
-                    df = adapter.read(Path(file_path), table=table_name)
+                    options = ReadOptions(extra={"sheet_name": table_name} if table_name != Path(file_path).name else {})
+                    df, _ = await adapter.read_dataframe(file_path, options)
 
                     if len(df) > 0:
                         preview_df = df.head(preview_rows_per_table)
@@ -1121,3 +1152,81 @@ async def start_parse(run_id: str):
     except ValueError as e:
         _cancel_tokens.pop(run_id, None)
         raise HTTPException(status_code=400, detail=str(e))
+
+
+# =============================================================================
+# Cleanup Endpoints (M8: Cancellation Checkpointing per ADR-0013)
+# =============================================================================
+
+
+@router.post("/runs/{run_id}/cleanup")
+async def cleanup_run(
+    run_id: str,
+    targets: list[CleanupTarget] | None = None,
+    dry_run: bool = True,
+):
+    """Explicitly clean up partial artifacts from cancelled runs.
+
+    Per ADR-0013: Cleanup is user-initiated only, dry-run by default.
+
+    Args:
+        run_id: Run identifier.
+        targets: Optional list of cleanup targets. If None, discovers targets.
+        dry_run: If True, only report what would be cleaned (default: True).
+
+    Returns:
+        CleanupResult with details of cleanup actions.
+    """
+    if targets is None:
+        targets = []
+
+    result = await cleanup(
+        run_id=run_id,
+        targets=targets,
+        dry_run=dry_run,
+    )
+    return result
+
+
+# =============================================================================
+# Profile CRUD Endpoints (M9: Profile Management per SPEC-DAT-0005)
+# =============================================================================
+
+
+@router.post("/profiles")
+async def create_profile(request: CreateProfileRequest):
+    """Create a new extraction profile.
+
+    Per SPEC-DAT-0005: Profile management with deterministic IDs.
+    """
+    try:
+        return await profile_service.create(request)
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+
+
+@router.get("/profiles/{profile_id}")
+async def get_profile(profile_id: str):
+    """Get a profile by ID."""
+    profile = await profile_service.get(profile_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    return profile
+
+
+@router.put("/profiles/{profile_id}")
+async def update_profile(profile_id: str, request: UpdateProfileRequest):
+    """Update an existing profile."""
+    profile = await profile_service.update(profile_id, request)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    return profile
+
+
+@router.delete("/profiles/{profile_id}")
+async def delete_profile(profile_id: str):
+    """Delete a profile."""
+    deleted = await profile_service.delete(profile_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    return {"status": "deleted", "profile_id": profile_id}

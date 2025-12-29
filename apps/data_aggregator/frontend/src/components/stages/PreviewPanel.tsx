@@ -23,7 +23,7 @@ export function PreviewPanel({ runId }: PreviewPanelProps) {
   const lockMutation = useMutation({
     mutationFn: async (loadData: boolean = false) => {
       console.log('[PreviewPanel] Locking preview stage...')
-      const response = await debugFetch(`/api/dat/v1/runs/${runId}/stages/preview/lock`, {
+      const response = await debugFetch(`/api/dat/runs/${runId}/stages/preview/lock`, {
         method: 'POST',
       })
       if (!response.ok) {
@@ -56,7 +56,7 @@ export function PreviewPanel({ runId }: PreviewPanelProps) {
     queryKey: ['dat-preview-status', runId],
     queryFn: async () => {
       console.log('[PreviewPanel] Fetching stage status...')
-      const response = await debugFetch(`/api/dat/v1/runs/${runId}/stages/preview`)
+      const response = await debugFetch(`/api/dat/runs/${runId}/stages/preview`)
       if (!response.ok) {
         console.log('[PreviewPanel] Stage status not found, treating as unlocked')
         return { state: 'unlocked' }
@@ -72,7 +72,7 @@ export function PreviewPanel({ runId }: PreviewPanelProps) {
     queryKey: ['dat-preview', runId],
     queryFn: async (): Promise<PreviewData> => {
       console.log('[PreviewPanel] Fetching preview data...')
-      const response = await debugFetch(`/api/dat/v1/runs/${runId}/stages/preview/data?rows=50`)
+      const response = await debugFetch(`/api/dat/runs/${runId}/stages/preview/data?rows=50`)
       if (!response.ok) {
         const errorText = await response.text()
         console.error('[PreviewPanel] Preview data fetch failed:', errorText)
@@ -235,7 +235,7 @@ export function PreviewPanel({ runId }: PreviewPanelProps) {
             <button
               onClick={async () => {
                 try {
-                  const response = await debugFetch(`/api/dat/v1/runs/${runId}/stages/preview/complete`, {
+                  const response = await debugFetch(`/api/dat/runs/${runId}/stages/preview/complete`, {
                     method: 'POST',
                   })
                   if (response.ok) {

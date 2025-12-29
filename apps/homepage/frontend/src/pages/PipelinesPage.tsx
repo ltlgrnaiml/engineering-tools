@@ -30,7 +30,7 @@ const stateColors = {
 }
 
 async function fetchPipelines(): Promise<Pipeline[]> {
-  const response = await fetch('/api/v1/pipelines')
+  const response = await fetch('/api/pipelines')
   if (!response.ok) throw new Error('Failed to fetch pipelines')
   return response.json()
 }

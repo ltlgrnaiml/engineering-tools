@@ -58,19 +58,28 @@ async def execute_table_availability(
     Returns:
         TableAvailabilityResult with discovered tables.
     """
-    from dat_aggregation.adapters.factory import AdapterFactory
+    from apps.data_aggregator.backend.adapters import create_default_registry
+    from shared.contracts.dat.adapter import ReadOptions
 
+    registry = create_default_registry()
     tables: list[TableInfo] = []
 
     for file_path in selected_files:
         try:
-            adapter = AdapterFactory.get_adapter(file_path)
-            table_names = adapter.get_tables(file_path)
+            adapter = registry.get_adapter_for_file(str(file_path))
+            
+            # Get table names using async probe_schema
+            if adapter.metadata.capabilities.supports_multiple_sheets:
+                probe_result = await adapter.probe_schema(str(file_path))
+                table_names = [s.sheet_name for s in probe_result.sheets] if probe_result.sheets else [file_path.name]
+            else:
+                table_names = [file_path.name]
 
             for table_name in table_names:
                 try:
-                    # Try to read a sample to get metadata
-                    df = adapter.read(file_path, table=table_name)
+                    # Try to read a sample to get metadata using async adapter
+                    options = ReadOptions(extra={"sheet_name": table_name} if table_name != file_path.name else {})
+                    df, _ = await adapter.read_dataframe(str(file_path), options)
 
                     # Determine status per ADR-0006 using shared contracts
                     if len(df) == 0:

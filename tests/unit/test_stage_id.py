@@ -40,14 +40,14 @@ class TestComputeStageId:
         assert id_with_prefix.startswith("ds_")
 
     def test_id_length(self):
-        """ID is 16 hex characters (plus prefix)."""
+        """ID is 8 hex characters (plus prefix) per ADR-0004-DAT."""
         inputs = {"test": "data"}
         
         id_no_prefix = compute_stage_id(inputs)
         id_with_prefix = compute_stage_id(inputs, prefix="ds_")
         
-        assert len(id_no_prefix) == 16
-        assert len(id_with_prefix) == 16 + 3  # 3 for "ds_"
+        assert len(id_no_prefix) == 8
+        assert len(id_with_prefix) == 8 + 3  # 3 for "ds_"
 
     def test_seed_affects_output(self):
         """Different seeds produce different IDs."""
