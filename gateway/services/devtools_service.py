@@ -19,6 +19,16 @@ from shared.contracts.adr_schema import (
     ADRFieldValidationResponse,
     ADRSchema,
 )
+from shared.contracts.devtools.workflow import (
+    ArtifactCreateRequest,
+    ArtifactCreateResponse,
+    ArtifactListResponse,
+    ArtifactType,
+    ArtifactUpdateRequest,
+    ArtifactUpdateResponse,
+    GraphResponse,
+)
+from gateway.services.workflow_service import get_workflow_service
 
 router = APIRouter()
 
@@ -343,3 +353,58 @@ async def validate_field(request: ADRFieldValidationRequest) -> ADRFieldValidati
         return ADRFieldValidationResponse(valid=True, error=None)
     except Exception as e:
         return ADRFieldValidationResponse(valid=False, error=str(e))
+
+
+# =============================================================================
+# Workflow Management
+# =============================================================================
+
+
+@router.get("/artifacts", response_model=ArtifactListResponse)
+async def list_artifacts(
+    type: ArtifactType | None = None,
+    search: str | None = None,
+) -> ArtifactListResponse:
+    """List all workflow artifacts, optionally filtered."""
+    service = get_workflow_service()
+    artifacts = service.scan_artifacts(artifact_type=type, search=search)
+    return ArtifactListResponse(artifacts=artifacts, total=len(artifacts))
+
+
+@router.get("/artifacts/graph", response_model=GraphResponse)
+async def get_artifact_graph() -> GraphResponse:
+    """Get the dependency graph of all artifacts."""
+    service = get_workflow_service()
+    return service.get_graph()
+
+
+@router.post("/artifacts", response_model=ArtifactCreateResponse)
+async def create_artifact(request: ArtifactCreateRequest) -> ArtifactCreateResponse:
+    """Create a new artifact."""
+    # TODO: Implement creation logic in WorkflowService
+    return ArtifactCreateResponse(
+        success=False,
+        artifact=None,  # type: ignore
+        message="Not implemented yet"
+    )
+
+
+@router.put("/artifacts/{artifact_id}", response_model=ArtifactUpdateResponse)
+async def update_artifact(
+    artifact_id: str,
+    request: ArtifactUpdateRequest
+) -> ArtifactUpdateResponse:
+    """Update an artifact."""
+    # TODO: Implement update logic in WorkflowService
+    return ArtifactUpdateResponse(
+        success=False,
+        artifact=None,  # type: ignore
+        message="Not implemented yet"
+    )
+
+
+@router.delete("/artifacts/{artifact_id}")
+async def delete_artifact(artifact_id: str) -> dict[str, Any]:
+    """Delete an artifact."""
+    # TODO: Implement delete logic in WorkflowService
+    return {"success": False, "message": "Not implemented yet"}
