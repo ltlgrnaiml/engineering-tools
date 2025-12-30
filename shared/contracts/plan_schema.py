@@ -402,6 +402,165 @@ class HandoffNotes(BaseModel):
 
 
 # =============================================================================
+# L3 Chunking Models (Progressive Chunking for Budget Models)
+# =============================================================================
+
+
+class ChunkStatus(str, Enum):
+    """Status of a chunk's line count relative to limits."""
+
+    OPTIMAL = "optimal"      # Under 600 lines - ideal
+    WARNING = "warning"      # 600-800 lines - acceptable with note
+    EXCEEDED = "exceeded"    # Over 800 lines - should have been split
+
+
+class ChunkExecutionLog(BaseModel):
+    """Record of which model executed a chunk.
+
+    Fun experiment: Let models self-report their identity!
+    """
+
+    chunk_id: str = Field(..., description="Which chunk was executed")
+    model_name: str | None = Field(
+        None, description="Model's self-reported name (if self-aware)"
+    )
+    model_provider: str | None = Field(
+        None, description="Provider: anthropic, openai, google, xai, etc."
+    )
+    session_id: str = Field(..., description="Session that executed this chunk")
+    started_at: datetime = Field(..., description="When execution started")
+    completed_at: datetime | None = Field(None, description="When execution finished")
+    tasks_completed: int = Field(0, description="Number of tasks completed")
+    escalations: int = Field(0, description="Number of .questions/ files created")
+
+
+class ChunkMeta(BaseModel):
+    """Metadata for a plan chunk (L3 progressive chunking).
+
+    Evidence from EXP-001: Budget models need smaller context windows.
+    Target: 600 lines, Soft limit: 800 lines.
+    """
+
+    chunk_id: str = Field(..., description="Chunk ID (e.g., M1, M1a, M2)")
+    chunk_file: str = Field(..., description="Filename of this chunk")
+    line_count: int = Field(..., description="Actual line count")
+    target_limit: int = Field(default=600, description="Target max lines (optimal)")
+    soft_limit: int = Field(default=800, description="Soft warning threshold")
+
+    @computed_field
+    @property
+    def chunk_status(self) -> ChunkStatus:
+        """Compute chunk status based on line count."""
+        if self.line_count <= self.target_limit:
+            return ChunkStatus.OPTIMAL
+        elif self.line_count <= self.soft_limit:
+            return ChunkStatus.WARNING
+        else:
+            return ChunkStatus.EXCEEDED
+
+    warning_note: str | None = Field(
+        None,
+        description="If soft limit exceeded, explain why not split (C override)"
+    )
+    auto_split_disabled: bool = Field(
+        default=False,
+        description="If True, auto-split was overridden with justification"
+    )
+
+
+class ContinuationContext(BaseModel):
+    """Context passed between chunks for session continuity.
+
+    This is the 'handshake' that tells the next model what was established.
+    """
+
+    previous_chunk: str | None = Field(None, description="Previous chunk filename")
+    last_completed_task: str | None = Field(None, description="Last task ID completed")
+    files_created: list[str] = Field(
+        default_factory=list, description="Files created in previous chunks"
+    )
+    files_modified: list[str] = Field(
+        default_factory=list, description="Files modified in previous chunks"
+    )
+    architecture_rules: list[str] = Field(
+        default_factory=list,
+        description="Architecture rules established (e.g., 'STYLE: Functional, NO classes')"
+    )
+    patterns_established: list[str] = Field(
+        default_factory=list,
+        description="Code patterns to maintain (e.g., '5-value enums')"
+    )
+    active_blockers: list[str] = Field(
+        default_factory=list, description="Unresolved blockers from previous chunks"
+    )
+
+
+class L3ChunkIndex(BaseModel):
+    """Master index for L3 chunked plans.
+
+    This file is ALWAYS loaded first. It tells the model which chunk to execute
+    and provides continuation context.
+    """
+
+    plan_id: str = Field(..., description="Parent plan ID (e.g., PLAN-001)")
+    granularity: Literal["L3"] = Field(default="L3", description="Always L3 for chunks")
+    title: str = Field(..., description="Plan title")
+    total_chunks: int = Field(..., description="Total number of chunks")
+    chunks: list[ChunkMeta] = Field(..., description="List of all chunks")
+    current_chunk: str | None = Field(
+        None, description="Chunk currently being executed"
+    )
+    continuation_context: ContinuationContext = Field(
+        default_factory=ContinuationContext,
+        description="Context for the current/next chunk"
+    )
+    execution_history: list[ChunkExecutionLog] = Field(
+        default_factory=list,
+        description="Record of which models executed which chunks"
+    )
+    session_required: bool = Field(
+        default=True,
+        description="L3 requires session files (from GPT-5.2 patterns)"
+    )
+
+
+class L3ChunkHeader(BaseModel):
+    """Header section of an L3 chunk file.
+
+    Appears at the top of each chunk to orient the model.
+    """
+
+    chunk_meta: ChunkMeta
+    continuation_from: ContinuationContext
+    session_instruction: str = Field(
+        default="Create SESSION_XXX_<plan>_<chunk>_<summary>.md before starting",
+        description="Session creation instruction"
+    )
+    verification_strictness: Literal["stop_and_escalate", "log_and_continue", "retry_once"] = Field(
+        default="stop_and_escalate",
+        description="L3 default: stop and create .questions/ on failure"
+    )
+
+
+class L3ChunkFooter(BaseModel):
+    """Footer section of an L3 chunk file.
+
+    Appears at the end of each chunk for handoff to next chunk.
+    """
+
+    handoff_to_next: str | None = Field(None, description="Next chunk filename")
+    files_to_preserve: list[str] = Field(
+        default_factory=list, description="Files that must not be modified"
+    )
+    patterns_to_maintain: list[str] = Field(
+        default_factory=list, description="Patterns the next chunk must follow"
+    )
+    checkpoint_command: str | None = Field(
+        None, description="Command to verify chunk completion (e.g., pytest)"
+    )
+
+
+# =============================================================================
 # Progress Summary
 # =============================================================================
 

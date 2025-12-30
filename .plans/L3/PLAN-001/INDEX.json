@@ -1,0 +1,151 @@
+{
+  "_comment": "L3 Chunked Plan Index - Read this file FIRST before any chunk",
+  "schema_type": "l3_chunk_index",
+  "plan_id": "PLAN-001",
+  "granularity": "L3",
+  "title": "DevTools Workflow Manager Implementation",
+  "version": "2025.12.02",
+  "total_chunks": 9,
+  "target_model": "grok-code-fast-1",
+  "session_required": true,
+  "verification_strictness": "stop_and_escalate",
+
+  "chunks": [
+    {
+      "chunk_id": "M1",
+      "chunk_file": "PLAN-001_L3_M1.json",
+      "name": "Backend API Foundation & Contracts",
+      "line_count": 580,
+      "target_limit": 600,
+      "soft_limit": 800,
+      "status": "pending",
+      "warning_note": null
+    },
+    {
+      "chunk_id": "M2",
+      "chunk_file": "PLAN-001_L3_M2.json",
+      "name": "Sidebar Component",
+      "line_count": 0,
+      "target_limit": 600,
+      "soft_limit": 800,
+      "status": "pending",
+      "warning_note": "Not yet authored"
+    },
+    {
+      "chunk_id": "M3",
+      "chunk_file": "PLAN-001_L3_M3.json",
+      "name": "Graph Visualization",
+      "line_count": 0,
+      "target_limit": 600,
+      "soft_limit": 800,
+      "status": "pending",
+      "warning_note": "Not yet authored"
+    },
+    {
+      "chunk_id": "M4",
+      "chunk_file": "PLAN-001_L3_M4.json",
+      "name": "Artifact Reader Panels",
+      "line_count": 0,
+      "target_limit": 600,
+      "soft_limit": 800,
+      "status": "pending",
+      "warning_note": "Not yet authored"
+    },
+    {
+      "chunk_id": "M5",
+      "chunk_file": "PLAN-001_L3_M5.json",
+      "name": "Artifact Editor Panels",
+      "line_count": 0,
+      "target_limit": 600,
+      "soft_limit": 800,
+      "status": "pending",
+      "warning_note": "Not yet authored"
+    },
+    {
+      "chunk_id": "M6",
+      "chunk_file": "PLAN-001_L3_M6.json",
+      "name": "Command Palette",
+      "line_count": 0,
+      "target_limit": 600,
+      "soft_limit": 800,
+      "status": "pending",
+      "warning_note": "Not yet authored"
+    },
+    {
+      "chunk_id": "M7",
+      "chunk_file": "PLAN-001_L3_M7.json",
+      "name": "Workflow Wizard",
+      "line_count": 0,
+      "target_limit": 600,
+      "soft_limit": 800,
+      "status": "pending",
+      "warning_note": "Not yet authored"
+    },
+    {
+      "chunk_id": "M8",
+      "chunk_file": "PLAN-001_L3_M8.json",
+      "name": "State Management",
+      "line_count": 0,
+      "target_limit": 600,
+      "soft_limit": 800,
+      "status": "pending",
+      "warning_note": "Not yet authored"
+    },
+    {
+      "chunk_id": "M9",
+      "chunk_file": "PLAN-001_L3_M9.json",
+      "name": "Integration & Polish",
+      "line_count": 0,
+      "target_limit": 600,
+      "soft_limit": 800,
+      "status": "pending",
+      "warning_note": "Not yet authored"
+    }
+  ],
+
+  "current_chunk": "M1",
+  "last_completed_task": null,
+
+  "continuation_context": {
+    "previous_chunk": null,
+    "last_completed_task": null,
+    "files_created": [],
+    "files_modified": [],
+    "architecture_rules": [
+      "STYLE: Functional programming - NO classes except Pydantic models",
+      "ENUMS: Always exactly 5 values for status enums",
+      "VERSION: Use __version__ = '2025.12.01' format",
+      "IMPORTS: Always at top of file, sorted alphabetically",
+      "NAMING: Use full descriptive names (ArtifactSummary not ArtifactInfo)"
+    ],
+    "patterns_established": [],
+    "active_blockers": []
+  },
+
+  "execution_history": [],
+
+  "_instructions": {
+    "before_starting": [
+      "1. Read this INDEX file completely",
+      "2. Check current_chunk to know which chunk to execute",
+      "3. Read the chunk file specified in chunks[current_chunk].chunk_file",
+      "4. Create a session file: .sessions/SESSION_XXX_PLAN-001_<chunk>_<summary>.md",
+      "5. Run baseline tests: pytest tests/ -v (document if failing)",
+      "6. If baseline fails, create .questions/ file and STOP"
+    ],
+    "during_execution": [
+      "1. Follow each step in order - do not skip steps",
+      "2. Run verification_hint after each step",
+      "3. If any step fails, create .questions/ file and STOP",
+      "4. Copy code snippets EXACTLY - do not modify",
+      "5. After every 5 tasks, update session file with progress"
+    ],
+    "after_completing_chunk": [
+      "1. Run all acceptance criteria verification commands",
+      "2. Update this INDEX file: current_chunk, last_completed_task, continuation_context",
+      "3. Add entry to execution_history with your model name",
+      "4. Update session file with handoff notes",
+      "5. Commit changes: git add -A && git commit -m 'PLAN-001 <chunk>: <summary>'"
+    ]
+  }
+}

@@ -1,0 +1,229 @@
+{
+  "_chunk_header": {
+    "chunk_meta": {
+      "chunk_id": "M1",
+      "chunk_file": "PLAN-001_L3_M1.json",
+      "line_count": 580,
+      "target_limit": 600,
+      "soft_limit": 800,
+      "warning_note": null
+    },
+    "continuation_from": {
+      "previous_chunk": null,
+      "last_completed_task": null,
+      "files_created": [],
+      "architecture_rules": [
+        "STYLE: Functional programming - NO classes except Pydantic models",
+        "ENUMS: Always exactly 5 values for status enums",
+        "VERSION: Use __version__ = '2025.12.01' format",
+        "IMPORTS: Always at top of file, sorted alphabetically",
+        "NAMING: Use full descriptive names (ArtifactSummary not ArtifactInfo)"
+      ],
+      "patterns_established": []
+    },
+    "session_instruction": "Create .sessions/SESSION_XXX_PLAN-001_M1_Backend-Foundation.md before starting",
+    "verification_strictness": "stop_and_escalate"
+  },
+
+  "milestone": {
+    "id": "M1",
+    "name": "Backend API Foundation & Contracts",
+    "objective": "Create Pydantic contracts and backend API endpoints for artifact discovery and CRUD operations."
+  },
+
+  "preflight": {
+    "step_type": "preflight",
+    "instructions": [
+      {
+        "step_number": 0,
+        "instruction": "Check .sessions/ for highest SESSION_XXX number, claim next number",
+        "verification_hint": "ls .sessions/ | grep SESSION | tail -1"
+      },
+      {
+        "step_number": 1,
+        "instruction": "Create session file with template below",
+        "file_path": ".sessions/SESSION_XXX_PLAN-001_M1_Backend-Foundation.md",
+        "code_snippet": "# SESSION_XXX: PLAN-001 M1 Backend API Foundation\n\nDate: YYYY-MM-DD\n\n## Objective\nExecute Milestone M1 of PLAN-001 (L3): backend contracts + service + endpoints + tests.\n\n## Preflight\n- [ ] Claimed session number\n- [ ] Baseline tests status: ___\n\n## Work Log\n(update as you complete tasks)\n\n## Tasks\n- [ ] T-M1-01: Create workflow.py contract\n- [ ] T-M1-02: Create workflow_service.py\n- [ ] T-M1-03: Add GET /artifacts endpoint\n- [ ] T-M1-04: Add GET /artifacts/graph endpoint\n- [ ] T-M1-05: Add CRUD endpoints\n- [ ] T-M1-06: Write unit tests\n\n## Handoff Notes\n(fill before ending session)\n"
+      },
+      {
+        "step_number": 2,
+        "instruction": "Run baseline tests and document result in session file",
+        "verification_hint": "pytest tests/ -v --tb=no -q | tail -5",
+        "on_failure_hint": "If tests fail, document failures in session file under Preflight. You may proceed if failures are unrelated to DevTools.",
+        "escalate_on_failure": false
+      }
+    ]
+  },
+
+  "tasks": [
+    {
+      "id": "T-M1-01",
+      "description": "Create shared/contracts/devtools/workflow.py with all API models",
+      "verification_command": "python -c \"from shared.contracts.devtools.workflow import ArtifactType, GraphNode\"",
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Create new file shared/contracts/devtools/workflow.py with the EXACT content below",
+          "file_path": "shared/contracts/devtools/workflow.py",
+          "code_snippet": "\"\"\"Workflow Manager API contracts.\n\nPer ADR-0043: DevTools Workflow Manager UI Architecture.\nDefines Pydantic models for artifact discovery and graph visualization.\n\"\"\"\n\nfrom enum import Enum\nfrom typing import Literal\n\nfrom pydantic import BaseModel, Field\n\n__version__ = \"2025.12.01\"\n\n\n# =============================================================================\n# Enums (EXACTLY 5 values each for consistency)\n# =============================================================================\n\n\nclass ArtifactType(str, Enum):\n    \"\"\"Types of workflow artifacts.\"\"\"\n\n    DISCUSSION = \"discussion\"\n    ADR = \"adr\"\n    SPEC = \"spec\"\n    PLAN = \"plan\"\n    CONTRACT = \"contract\"\n\n\nclass ArtifactStatus(str, Enum):\n    \"\"\"Status of a workflow artifact.\"\"\"\n\n    DRAFT = \"draft\"\n    ACTIVE = \"active\"\n    DEPRECATED = \"deprecated\"\n    SUPERSEDED = \"superseded\"\n    COMPLETED = \"completed\"\n\n\nclass RelationshipType(str, Enum):\n    \"\"\"Types of relationships between artifacts.\"\"\"\n\n    IMPLEMENTS = \"implements\"\n    REFERENCES = \"references\"\n    CREATES = \"creates\"\n    SUPERSEDES = \"supersedes\"\n    DEPENDS_ON = \"depends_on\"\n\n\n# =============================================================================\n# Graph Models\n# =============================================================================\n\n\nclass GraphNode(BaseModel):\n    \"\"\"A node in the artifact relationship graph.\"\"\"\n\n    id: str = Field(..., description=\"Unique artifact ID (e.g., ADR-0001)\")\n    type: ArtifactType = Field(..., description=\"Artifact type\")\n    label: str = Field(..., description=\"Display label (title)\")\n    status: ArtifactStatus = Field(..., description=\"Current status\")\n    file_path: str = Field(..., description=\"Relative path to artifact file\")\n\n\nclass GraphEdge(BaseModel):\n    \"\"\"An edge (relationship) between two artifacts.\"\"\"\n\n    source: str = Field(..., description=\"Source artifact ID\")\n    target: str = Field(..., description=\"Target artifact ID\")\n    relationship: RelationshipType = Field(..., description=\"Relationship type\")\n\n\nclass GraphResponse(BaseModel):\n    \"\"\"Response for artifact graph endpoint.\"\"\"\n\n    nodes: list[GraphNode] = Field(default_factory=list)\n    edges: list[GraphEdge] = Field(default_factory=list)\n\n\n# =============================================================================\n# Artifact Models\n# =============================================================================\n\n\nclass ArtifactSummary(BaseModel):\n    \"\"\"Summary of an artifact for list views.\"\"\"\n\n    id: str = Field(..., description=\"Artifact ID\")\n    type: ArtifactType = Field(..., description=\"Artifact type\")\n    title: str = Field(..., description=\"Artifact title\")\n    status: ArtifactStatus = Field(default=ArtifactStatus.DRAFT)\n    file_path: str = Field(..., description=\"Relative path to file\")\n    created_date: str | None = Field(None, description=\"Creation date\")\n    updated_date: str | None = Field(None, description=\"Last update date\")\n\n\nclass ArtifactListResponse(BaseModel):\n    \"\"\"Response for artifact list endpoint.\"\"\"\n\n    items: list[ArtifactSummary] = Field(default_factory=list)\n    total: int = Field(0, description=\"Total count\")\n\n\n# =============================================================================\n# CRUD Request/Response Models\n# =============================================================================\n\n\nclass CreateArtifactRequest(BaseModel):\n    \"\"\"Request to create a new artifact.\"\"\"\n\n    type: ArtifactType = Field(..., description=\"Artifact type to create\")\n    title: str = Field(..., min_length=5, description=\"Artifact title\")\n    content: str = Field(..., description=\"Initial content\")\n\n\nclass UpdateArtifactRequest(BaseModel):\n    \"\"\"Request to update an existing artifact.\"\"\"\n\n    title: str | None = Field(None, description=\"New title\")\n    content: str | None = Field(None, description=\"New content\")\n    status: ArtifactStatus | None = Field(None, description=\"New status\")\n\n\nclass ArtifactResponse(BaseModel):\n    \"\"\"Response containing a single artifact.\"\"\"\n\n    artifact: ArtifactSummary\n    message: str = Field(default=\"Success\")\n",
+          "checkpoint": true,
+          "verification_hint": "python -c \"from shared.contracts.devtools.workflow import ArtifactType, GraphNode, ArtifactSummary\""
+        },
+        {
+          "step_number": 2,
+          "step_type": "code",
+          "instruction": "Update shared/contracts/devtools/__init__.py to export new models",
+          "file_path": "shared/contracts/devtools/__init__.py",
+          "code_snippet": "# Add these lines to existing __init__.py exports:\nfrom shared.contracts.devtools.workflow import (\n    ArtifactListResponse,\n    ArtifactResponse,\n    ArtifactStatus,\n    ArtifactSummary,\n    ArtifactType,\n    CreateArtifactRequest,\n    GraphEdge,\n    GraphNode,\n    GraphResponse,\n    RelationshipType,\n    UpdateArtifactRequest,\n)\n",
+          "verification_hint": "grep 'ArtifactType' shared/contracts/devtools/__init__.py"
+        }
+      ]
+    },
+    {
+      "id": "T-M1-02",
+      "description": "Create gateway/services/workflow_service.py with artifact scanning logic",
+      "verification_command": "grep \"def scan_artifacts\" gateway/services/workflow_service.py",
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Create new file gateway/services/workflow_service.py with the EXACT content below",
+          "file_path": "gateway/services/workflow_service.py",
+          "code_snippet": "\"\"\"Workflow artifact scanning and graph building service.\n\nPer PLAN-001 M1: Backend API Foundation.\nProvides functions for discovering and relating workflow artifacts.\n\"\"\"\n\nimport json\nfrom pathlib import Path\n\nfrom shared.contracts.devtools.workflow import (\n    ArtifactStatus,\n    ArtifactSummary,\n    ArtifactType,\n    GraphEdge,\n    GraphNode,\n    GraphResponse,\n    RelationshipType,\n)\n\n# =============================================================================\n# Constants\n# =============================================================================\n\nARTIFACT_DIRECTORIES: dict[ArtifactType, str] = {\n    ArtifactType.DISCUSSION: \".discussions\",\n    ArtifactType.ADR: \".adrs\",\n    ArtifactType.SPEC: \"docs/specs\",\n    ArtifactType.PLAN: \".plans\",\n    ArtifactType.CONTRACT: \"shared/contracts\",\n}\n\n\n# =============================================================================\n# Artifact Scanning\n# =============================================================================\n\n\ndef scan_artifacts(\n    artifact_type: ArtifactType | None = None,\n    search: str | None = None,\n) -> list[ArtifactSummary]:\n    \"\"\"Scan filesystem for workflow artifacts.\n\n    Args:\n        artifact_type: Filter by artifact type (optional).\n        search: Filter by title/ID containing this string (optional).\n\n    Returns:\n        List of artifact summaries found.\n    \"\"\"\n    results: list[ArtifactSummary] = []\n    types_to_scan = [artifact_type] if artifact_type else list(ArtifactType)\n\n    for atype in types_to_scan:\n        directory = Path(ARTIFACT_DIRECTORIES[atype])\n        if not directory.exists():\n            continue\n\n        pattern = \"*.json\" if atype in (ArtifactType.ADR, ArtifactType.SPEC) else \"*.md\"\n        for file_path in directory.rglob(pattern):\n            if file_path.name.startswith(\".\") or \"template\" in file_path.name.lower():\n                continue\n\n            summary = _parse_artifact_file(file_path, atype)\n            if summary:\n                if search and search.lower() not in summary.title.lower():\n                    continue\n                results.append(summary)\n\n    return sorted(results, key=lambda x: x.id)\n\n\ndef _parse_artifact_file(file_path: Path, atype: ArtifactType) -> ArtifactSummary | None:\n    \"\"\"Parse a single artifact file into a summary.\"\"\"\n    try:\n        if file_path.suffix == \".json\":\n            with open(file_path, encoding=\"utf-8\") as f:\n                data = json.load(f)\n            return ArtifactSummary(\n                id=data.get(\"id\", file_path.stem),\n                type=atype,\n                title=data.get(\"title\", file_path.stem),\n                status=ArtifactStatus(data.get(\"status\", \"draft\")),\n                file_path=str(file_path),\n                created_date=data.get(\"created_date\"),\n                updated_date=data.get(\"updated_date\"),\n            )\n        else:\n            # Markdown: extract title from first # heading\n            content = file_path.read_text(encoding=\"utf-8\")\n            title = file_path.stem\n            for line in content.split(\"\\n\"):\n                if line.startswith(\"# \"):\n                    title = line[2:].strip()\n                    break\n            return ArtifactSummary(\n                id=file_path.stem,\n                type=atype,\n                title=title,\n                status=ArtifactStatus.DRAFT,\n                file_path=str(file_path),\n            )\n    except Exception:\n        return None\n\n\n# =============================================================================\n# Graph Building\n# =============================================================================\n\n\ndef build_artifact_graph() -> GraphResponse:\n    \"\"\"Build a graph of all artifacts and their relationships.\n\n    Returns:\n        GraphResponse with nodes and edges.\n    \"\"\"\n    artifacts = scan_artifacts()\n    nodes: list[GraphNode] = []\n    edges: list[GraphEdge] = []\n\n    # Build nodes\n    for artifact in artifacts:\n        nodes.append(\n            GraphNode(\n                id=artifact.id,\n                type=artifact.type,\n                label=artifact.title,\n                status=artifact.status,\n                file_path=artifact.file_path,\n            )\n        )\n\n    # Build edges by parsing references\n    artifact_ids = {a.id for a in artifacts}\n    for artifact in artifacts:\n        refs = _extract_references(artifact.file_path)\n        for ref_id, rel_type in refs:\n            if ref_id in artifact_ids:\n                edges.append(\n                    GraphEdge(\n                        source=artifact.id,\n                        target=ref_id,\n                        relationship=rel_type,\n                    )\n                )\n\n    return GraphResponse(nodes=nodes, edges=edges)\n\n\ndef _extract_references(file_path: str) -> list[tuple[str, RelationshipType]]:\n    \"\"\"Extract references from an artifact file.\"\"\"\n    refs: list[tuple[str, RelationshipType]] = []\n    path = Path(file_path)\n\n    try:\n        if path.suffix == \".json\":\n            with open(path, encoding=\"utf-8\") as f:\n                data = json.load(f)\n            # Check common reference fields\n            if \"implements_adr\" in data:\n                refs.append((data[\"implements_adr\"], RelationshipType.IMPLEMENTS))\n            if \"source_discussion\" in data:\n                refs.append((data[\"source_discussion\"], RelationshipType.CREATES))\n            if \"supersedes\" in data:\n                refs.append((data[\"supersedes\"], RelationshipType.SUPERSEDES))\n            for ref in data.get(\"references\", []):\n                if isinstance(ref, str):\n                    refs.append((ref, RelationshipType.REFERENCES))\n                elif isinstance(ref, dict) and \"id\" in ref:\n                    refs.append((ref[\"id\"], RelationshipType.REFERENCES))\n    except Exception:\n        pass\n\n    return refs\n",
+          "checkpoint": true,
+          "verification_hint": "python -c \"from gateway.services.workflow_service import scan_artifacts, build_artifact_graph\""
+        }
+      ]
+    },
+    {
+      "id": "T-M1-03",
+      "description": "Add GET /api/devtools/artifacts endpoint",
+      "verification_command": "grep \"artifacts\" gateway/services/devtools_service.py",
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Add imports to gateway/services/devtools_service.py (at TOP of file with other imports)",
+          "file_path": "gateway/services/devtools_service.py",
+          "code_snippet": "from gateway.services.workflow_service import build_artifact_graph, scan_artifacts\nfrom shared.contracts.devtools.workflow import (\n    ArtifactListResponse,\n    ArtifactType,\n    GraphResponse,\n)\n",
+          "verification_hint": "grep 'scan_artifacts' gateway/services/devtools_service.py"
+        },
+        {
+          "step_number": 2,
+          "step_type": "code",
+          "instruction": "Add list_artifacts function to gateway/services/devtools_service.py",
+          "file_path": "gateway/services/devtools_service.py",
+          "code_snippet": "\n\nasync def list_artifacts(\n    artifact_type: ArtifactType | None = None,\n    search: str | None = None,\n) -> ArtifactListResponse:\n    \"\"\"List workflow artifacts with optional filtering.\n\n    Args:\n        artifact_type: Filter by type (optional).\n        search: Filter by title/ID (optional).\n\n    Returns:\n        ArtifactListResponse with matching artifacts.\n    \"\"\"\n    items = scan_artifacts(artifact_type=artifact_type, search=search)\n    return ArtifactListResponse(items=items, total=len(items))\n",
+          "checkpoint": true,
+          "verification_hint": "grep 'def list_artifacts' gateway/services/devtools_service.py"
+        }
+      ]
+    },
+    {
+      "id": "T-M1-04",
+      "description": "Add GET /api/devtools/artifacts/graph endpoint",
+      "verification_command": "grep \"artifacts/graph\\|get_artifact_graph\" gateway/services/devtools_service.py",
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Add get_artifact_graph function to gateway/services/devtools_service.py",
+          "file_path": "gateway/services/devtools_service.py",
+          "code_snippet": "\n\nasync def get_artifact_graph() -> GraphResponse:\n    \"\"\"Get the artifact relationship graph.\n\n    Returns:\n        GraphResponse with nodes and edges.\n    \"\"\"\n    return build_artifact_graph()\n",
+          "checkpoint": true,
+          "verification_hint": "grep 'def get_artifact_graph' gateway/services/devtools_service.py"
+        }
+      ]
+    },
+    {
+      "id": "T-M1-05",
+      "description": "Add CRUD endpoints for artifacts",
+      "verification_command": "grep -E 'create_artifact|update_artifact|delete_artifact' gateway/services/devtools_service.py",
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Add additional imports to gateway/services/devtools_service.py (merge with existing imports)",
+          "file_path": "gateway/services/devtools_service.py",
+          "code_snippet": "from shared.contracts.devtools.workflow import (\n    ArtifactListResponse,\n    ArtifactResponse,\n    ArtifactStatus,\n    ArtifactSummary,\n    ArtifactType,\n    CreateArtifactRequest,\n    GraphResponse,\n    UpdateArtifactRequest,\n)\n",
+          "verification_hint": "grep 'CreateArtifactRequest' gateway/services/devtools_service.py"
+        },
+        {
+          "step_number": 2,
+          "step_type": "code",
+          "instruction": "Add CRUD functions to gateway/services/devtools_service.py",
+          "file_path": "gateway/services/devtools_service.py",
+          "code_snippet": "\n\nasync def create_artifact(request: CreateArtifactRequest) -> ArtifactResponse:\n    \"\"\"Create a new workflow artifact.\n\n    Args:\n        request: Creation request with type, title, content.\n\n    Returns:\n        ArtifactResponse with created artifact summary.\n    \"\"\"\n    # TODO: Implement file creation logic\n    artifact = ArtifactSummary(\n        id=f\"{request.type.value.upper()}-NEW\",\n        type=request.type,\n        title=request.title,\n        status=ArtifactStatus.DRAFT,\n        file_path=f\"./{request.type.value}s/{request.title}.md\",\n    )\n    return ArtifactResponse(artifact=artifact, message=\"Created (placeholder)\")\n\n\nasync def update_artifact(\n    artifact_id: str,\n    request: UpdateArtifactRequest,\n) -> ArtifactResponse:\n    \"\"\"Update an existing workflow artifact.\n\n    Args:\n        artifact_id: ID of artifact to update.\n        request: Update request with optional fields.\n\n    Returns:\n        ArtifactResponse with updated artifact summary.\n    \"\"\"\n    # TODO: Implement file update logic\n    artifact = ArtifactSummary(\n        id=artifact_id,\n        type=ArtifactType.DISCUSSION,\n        title=request.title or \"Updated\",\n        status=request.status or ArtifactStatus.DRAFT,\n        file_path=f\"./artifacts/{artifact_id}.md\",\n    )\n    return ArtifactResponse(artifact=artifact, message=\"Updated (placeholder)\")\n\n\nasync def delete_artifact(artifact_id: str, backup: bool = True) -> ArtifactResponse:\n    \"\"\"Delete a workflow artifact.\n\n    Args:\n        artifact_id: ID of artifact to delete.\n        backup: If True, create backup before deleting.\n\n    Returns:\n        ArtifactResponse confirming deletion.\n    \"\"\"\n    # TODO: Implement file deletion with backup logic\n    artifact = ArtifactSummary(\n        id=artifact_id,\n        type=ArtifactType.DISCUSSION,\n        title=\"Deleted\",\n        status=ArtifactStatus.DEPRECATED,\n        file_path=\"\",\n    )\n    return ArtifactResponse(artifact=artifact, message=\"Deleted (placeholder)\")\n",
+          "checkpoint": true,
+          "verification_hint": "grep -E 'def (create|update|delete)_artifact' gateway/services/devtools_service.py"
+        }
+      ]
+    },
+    {
+      "id": "T-M1-06",
+      "description": "Write unit tests for all new endpoints",
+      "verification_command": "pytest tests/gateway/test_devtools_workflow.py -v",
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Create tests/gateway/ directory if it doesn't exist",
+          "verification_hint": "mkdir -p tests/gateway && touch tests/gateway/__init__.py"
+        },
+        {
+          "step_number": 2,
+          "step_type": "code",
+          "instruction": "Create tests/gateway/test_devtools_workflow.py with the EXACT content below",
+          "file_path": "tests/gateway/test_devtools_workflow.py",
+          "code_snippet": "\"\"\"Tests for DevTools Workflow Manager endpoints.\n\nPer PLAN-001 M1: Backend API Foundation.\n\"\"\"\n\nimport pytest\n\nfrom gateway.services.workflow_service import build_artifact_graph, scan_artifacts\nfrom shared.contracts.devtools.workflow import (\n    ArtifactStatus,\n    ArtifactSummary,\n    ArtifactType,\n    GraphResponse,\n)\n\n\nclass TestScanArtifacts:\n    \"\"\"Tests for scan_artifacts function.\"\"\"\n\n    def test_scan_all_artifacts(self) -> None:\n        \"\"\"Scan should return artifacts from all directories.\"\"\"\n        results = scan_artifacts()\n        assert isinstance(results, list)\n        # Should find at least some artifacts in the repo\n        # (discussions, ADRs, specs, plans exist)\n\n    def test_scan_by_type(self) -> None:\n        \"\"\"Scan should filter by artifact type.\"\"\"\n        results = scan_artifacts(artifact_type=ArtifactType.ADR)\n        for artifact in results:\n            assert artifact.type == ArtifactType.ADR\n\n    def test_scan_with_search(self) -> None:\n        \"\"\"Scan should filter by search term.\"\"\"\n        # Search for a term that likely exists\n        results = scan_artifacts(search=\"workflow\")\n        # All results should contain the search term in title\n        for artifact in results:\n            assert \"workflow\" in artifact.title.lower() or \"workflow\" in artifact.id.lower()\n\n\nclass TestBuildArtifactGraph:\n    \"\"\"Tests for build_artifact_graph function.\"\"\"\n\n    def test_graph_structure(self) -> None:\n        \"\"\"Graph should have nodes and edges lists.\"\"\"\n        graph = build_artifact_graph()\n        assert isinstance(graph, GraphResponse)\n        assert isinstance(graph.nodes, list)\n        assert isinstance(graph.edges, list)\n\n    def test_node_structure(self) -> None:\n        \"\"\"Each node should have required fields.\"\"\"\n        graph = build_artifact_graph()\n        for node in graph.nodes:\n            assert node.id\n            assert node.type in ArtifactType\n            assert node.label\n            assert node.status in ArtifactStatus\n            assert node.file_path\n",
+          "checkpoint": true,
+          "verification_hint": "pytest tests/gateway/test_devtools_workflow.py -v --tb=short"
+        }
+      ]
+    }
+  ],
+
+  "acceptance_criteria": [
+    {
+      "id": "AC-M1-01",
+      "description": "workflow.py contract exists with all models",
+      "verification_command": "python -c \"from shared.contracts.devtools.workflow import ArtifactType, GraphNode, ArtifactSummary\""
+    },
+    {
+      "id": "AC-M1-02",
+      "description": "scan_artifacts function works",
+      "verification_command": "python -c \"from gateway.services.workflow_service import scan_artifacts; print(len(scan_artifacts()))\""
+    },
+    {
+      "id": "AC-M1-03",
+      "description": "build_artifact_graph function works",
+      "verification_command": "python -c \"from gateway.services.workflow_service import build_artifact_graph; g=build_artifact_graph(); print(f'Nodes: {len(g.nodes)}, Edges: {len(g.edges)}')\""
+    },
+    {
+      "id": "AC-M1-04",
+      "description": "Unit tests pass",
+      "verification_command": "pytest tests/gateway/test_devtools_workflow.py -v"
+    }
+  ],
+
+  "_chunk_footer": {
+    "handoff_to_next": "PLAN-001_L3_M2.json",
+    "files_created": [
+      "shared/contracts/devtools/workflow.py",
+      "gateway/services/workflow_service.py",
+      "tests/gateway/test_devtools_workflow.py"
+    ],
+    "files_modified": [
+      "shared/contracts/devtools/__init__.py",
+      "gateway/services/devtools_service.py"
+    ],
+    "patterns_to_maintain": [
+      "Functional style - NO classes except Pydantic models",
+      "5-value enums: ArtifactType, ArtifactStatus, RelationshipType",
+      "Import from shared.contracts.devtools.workflow",
+      "Use scan_artifacts() and build_artifact_graph() from workflow_service"
+    ],
+    "checkpoint_command": "pytest tests/gateway/test_devtools_workflow.py -v && python -c \"from gateway.services.workflow_service import scan_artifacts; print('OK')\""
+  }
+}
