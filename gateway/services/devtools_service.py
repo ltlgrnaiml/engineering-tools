@@ -19,6 +19,24 @@ from shared.contracts.adr_schema import (
     ADRFieldValidationResponse,
     ADRSchema,
 )
+from shared.contracts.devtools.workflow import (
+    ArtifactCreateRequest,
+    ArtifactCreateResponse,
+    ArtifactDeleteRequest,
+    ArtifactDeleteResponse,
+    ArtifactGraphResponse,
+    ArtifactListResponse,
+    ArtifactReadResponse,
+    ArtifactStatus,
+    ArtifactSummary,
+    ArtifactType,
+    ArtifactUpdateRequest,
+    ArtifactUpdateResponse,
+)
+from gateway.services.workflow_service import (
+    build_artifact_graph,
+    scan_artifacts,
+)
 
 router = APIRouter()
 
@@ -343,3 +361,158 @@ async def validate_field(request: ADRFieldValidationRequest) -> ADRFieldValidati
         return ADRFieldValidationResponse(valid=True, error=None)
     except Exception as e:
         return ADRFieldValidationResponse(valid=False, error=str(e))
+
+
+# =============================================================================
+# Workflow Manager Endpoints (ADR-0043)
+# =============================================================================
+
+
+@router.get("/artifacts", response_model=ArtifactListResponse)
+async def list_artifacts(
+    type: ArtifactType | None = Query(None, description="Filter by artifact type"),
+    search: str | None = Query(None, description="Search query for titles/content"),
+) -> ArtifactListResponse:
+    """List all workflow artifacts with optional filtering.
+
+    Args:
+        type: Optional artifact type filter.
+        search: Optional text search query.
+
+    Returns:
+        ArtifactListResponse with items and total count.
+    """
+    artifacts = scan_artifacts(artifact_type=type, search_query=search)
+    return ArtifactListResponse(
+        items=artifacts,
+        total=len(artifacts),
+        filtered_type=type,
+    )
+
+
+@router.get("/artifacts/graph", response_model=ArtifactGraphResponse)
+async def get_artifact_graph(
+    type: ArtifactType | None = Query(None, description="Filter by artifact type"),
+) -> ArtifactGraphResponse:
+    """Get artifact relationship graph.
+
+    Args:
+        type: Optional artifact type filter.
+
+    Returns:
+        ArtifactGraphResponse with nodes and edges.
+    """
+    artifacts = scan_artifacts(artifact_type=type)
+    nodes, edges = build_artifact_graph(artifacts)
+    
+    return ArtifactGraphResponse(
+        nodes=nodes,
+        edges=edges,
+        total_nodes=len(nodes),
+        total_edges=len(edges),
+    )
+
+
+@router.get("/artifacts/{artifact_id}", response_model=ArtifactReadResponse)
+async def read_artifact(artifact_id: str) -> ArtifactReadResponse:
+    """Read a single artifact by ID.
+
+    Args:
+        artifact_id: Artifact ID to read.
+
+    Returns:
+        ArtifactReadResponse with full content.
+
+    Raises:
+        HTTPException: If artifact not found.
+    """
+    artifacts = scan_artifacts()
+    artifact = next((a for a in artifacts if a.id == artifact_id), None)
+    
+    if not artifact:
+        raise HTTPException(404, f"Artifact not found: {artifact_id}")
+    
+    file_path = PROJECT_ROOT / artifact.file_path
+    if not file_path.exists():
+        raise HTTPException(404, f"Artifact file not found: {artifact.file_path}")
+    
+    try:
+        with file_path.open(encoding="utf-8") as f:
+            raw_content = f.read()
+        
+        if artifact.type in (ArtifactType.ADR, ArtifactType.SPEC, ArtifactType.PLAN):
+            content = json.loads(raw_content)
+        else:
+            content = raw_content
+        
+        from shared.contracts.devtools.workflow import ArtifactContent
+        
+        return ArtifactReadResponse(
+            artifact=ArtifactContent(
+                id=artifact.id,
+                type=artifact.type,
+                title=artifact.title,
+                status=artifact.status,
+                file_path=artifact.file_path,
+                content=content,
+                raw_content=raw_content,
+            )
+        )
+    except Exception as e:
+        raise HTTPException(500, f"Error reading artifact: {str(e)}")
+
+
+@router.post("/artifacts", response_model=ArtifactCreateResponse)
+async def create_artifact(request: ArtifactCreateRequest) -> ArtifactCreateResponse:
+    """Create a new workflow artifact.
+
+    Args:
+        request: Artifact creation request.
+
+    Returns:
+        ArtifactCreateResponse with created artifact info.
+
+    Raises:
+        HTTPException: If creation fails.
+    """
+    raise HTTPException(501, "Artifact creation not yet implemented")
+
+
+@router.put("/artifacts/{artifact_id}", response_model=ArtifactUpdateResponse)
+async def update_artifact(
+    artifact_id: str,
+    request: ArtifactUpdateRequest,
+) -> ArtifactUpdateResponse:
+    """Update an existing workflow artifact.
+
+    Args:
+        artifact_id: Artifact ID to update.
+        request: Artifact update request.
+
+    Returns:
+        ArtifactUpdateResponse with update status.
+
+    Raises:
+        HTTPException: If update fails.
+    """
+    raise HTTPException(501, "Artifact update not yet implemented")
+
+
+@router.delete("/artifacts/{artifact_id}", response_model=ArtifactDeleteResponse)
+async def delete_artifact(
+    artifact_id: str,
+    request: ArtifactDeleteRequest,
+) -> ArtifactDeleteResponse:
+    """Delete a workflow artifact.
+
+    Args:
+        artifact_id: Artifact ID to delete.
+        request: Artifact deletion request.
+
+    Returns:
+        ArtifactDeleteResponse with deletion status.
+
+    Raises:
+        HTTPException: If deletion fails.
+    """
+    raise HTTPException(501, "Artifact deletion not yet implemented")

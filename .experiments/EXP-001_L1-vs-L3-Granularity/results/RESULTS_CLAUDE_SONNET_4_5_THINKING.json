@@ -1,0 +1,57 @@
+{
+  "experiment_id": "EXP-001",
+  "branch": "experiment/l1-sonnet",
+  "model": {
+    "model_id": "claude-sonnet-4.5-thinking",
+    "model_name": "Claude Sonnet 4.5 Thinking",
+    "cost_multiplier": 3,
+    "granularity": "L1"
+  },
+  "execution": {
+    "start_time": "11:01",
+    "end_time": "11:14",
+    "total_messages": null,
+    "errors_encountered": null,
+    "notes": "Results collected manually after experiment completion"
+  },
+  "verifications": {
+    "T-M1-01_contracts": {
+      "command": "python -c \"from shared.contracts.devtools.workflow import ArtifactType, GraphNode\"",
+      "passed": true,
+      "file_exists": "shared/contracts/devtools/workflow.py (6754 bytes)"
+    },
+    "T-M1-02_service": {
+      "command": "test -f gateway/services/workflow_service.py",
+      "passed": true,
+      "file_exists": "gateway/services/workflow_service.py (12315 bytes)"
+    },
+    "T-M1-03_list_endpoint": {
+      "command": "grep artifacts gateway/services/devtools_service.py",
+      "passed": true,
+      "file_exists": "gateway/services/devtools_service.py (17382 bytes)"
+    },
+    "T-M1-04_graph_endpoint": {
+      "command": "grep artifacts/graph gateway/services/devtools_service.py",
+      "passed": true,
+      "notes": "Endpoints in devtools_service.py per project structure"
+    },
+    "T-M1-05_crud_endpoints": {
+      "command": "grep @router gateway/services/devtools_service.py",
+      "passed": true,
+      "notes": "CRUD endpoints implemented"
+    },
+    "T-M1-06_tests": {
+      "command": "test -f tests/test_devtools_workflow.py",
+      "passed": true,
+      "file_exists": "tests/test_devtools_workflow.py (5324 bytes)",
+      "notes": "Tests placed in tests/ instead of tests/gateway/"
+    }
+  },
+  "scores": {
+    "tasks_passed": 6,
+    "tasks_total": 6,
+    "completion_rate": 100.0
+  },
+  "recorded_at": "2025-12-30T11:22:00",
+  "recorded_by": "manual_verification"
+}
