@@ -19,6 +19,24 @@ from shared.contracts.adr_schema import (
     ADRFieldValidationResponse,
     ADRSchema,
 )
+from shared.contracts.devtools.workflow import (
+    ArtifactCreateRequest,
+    ArtifactCreateResponse,
+    ArtifactDeleteRequest,
+    ArtifactDeleteResponse,
+    ArtifactGraphResponse,
+    ArtifactListResponse,
+    ArtifactReadResponse,
+    ArtifactSummary,
+    ArtifactStatus,
+    ArtifactType,
+    ArtifactUpdateRequest,
+    ArtifactUpdateResponse,
+)
+from gateway.services.workflow_service import (
+    build_artifact_graph,
+    scan_artifacts,
+)
 
 router = APIRouter()
 
@@ -343,3 +361,237 @@ async def validate_field(request: ADRFieldValidationRequest) -> ADRFieldValidati
         return ADRFieldValidationResponse(valid=True, error=None)
     except Exception as e:
         return ADRFieldValidationResponse(valid=False, error=str(e))
+
+
+# =============================================================================
+# Workflow Artifact Endpoints
+# =============================================================================
+
+
+@router.get("/artifacts", response_model=ArtifactListResponse)
+async def list_artifacts(
+    type: ArtifactType | None = Query(None, description="Filter by artifact type"),
+    search: str | None = Query(None, description="Text search filter"),
+) -> ArtifactListResponse:
+    """List all workflow artifacts with optional filtering.
+    
+    GET /api/devtools/artifacts
+    """
+    artifacts = scan_artifacts(artifact_type=type, search=search)
+    unique_types = list({a.type for a in artifacts})
+    return ArtifactListResponse(
+        items=artifacts,
+        total=len(artifacts),
+        types=unique_types,
+    )
+
+
+@router.get("/artifacts/graph", response_model=ArtifactGraphResponse)
+async def get_artifact_graph() -> ArtifactGraphResponse:
+    """Get artifact relationship graph with nodes and edges.
+    
+    GET /api/devtools/artifacts/graph
+    """
+    nodes, edges = build_artifact_graph()
+    return ArtifactGraphResponse(
+        nodes=nodes,
+        edges=edges,
+        node_count=len(nodes),
+        edge_count=len(edges),
+    )
+
+
+@router.post("/artifacts", response_model=ArtifactCreateResponse)
+async def create_artifact(request: ArtifactCreateRequest) -> ArtifactCreateResponse:
+    """Create a new workflow artifact.
+    
+    POST /api/devtools/artifacts
+    """
+    # Determine target directory and file extension
+    directory = {
+        ArtifactType.DISCUSSION: PROJECT_ROOT / ".discussions",
+        ArtifactType.ADR: PROJECT_ROOT / ".adrs",
+        ArtifactType.SPEC: PROJECT_ROOT / "docs" / "specs",
+        ArtifactType.PLAN: PROJECT_ROOT / ".plans",
+        ArtifactType.CONTRACT: PROJECT_ROOT / "shared" / "contracts",
+    }.get(request.type)
+
+    if not directory:
+        return ArtifactCreateResponse(
+            success=False,
+            message=f"Unknown artifact type: {request.type}",
+        )
+
+    directory.mkdir(parents=True, exist_ok=True)
+
+    # Generate filename
+    if request.file_path:
+        filepath = PROJECT_ROOT / request.file_path
+    else:
+        ext = ".json" if request.type in (ArtifactType.ADR, ArtifactType.SPEC) else ".md"
+        safe_title = request.title.replace(" ", "-").replace("/", "-")[:50]
+        filename = f"{safe_title}{ext}"
+        filepath = directory / filename
+
+    # Security check
+    try:
+        filepath.resolve().relative_to(PROJECT_ROOT.resolve())
+    except ValueError:
+        return ArtifactCreateResponse(
+            success=False,
+            message="Invalid file path - outside project root",
+        )
+
+    if filepath.exists():
+        return ArtifactCreateResponse(
+            success=False,
+            message=f"File already exists: {filepath.relative_to(PROJECT_ROOT)}",
+        )
+
+    # Write content
+    try:
+        if isinstance(request.content, dict):
+            content_str = json.dumps(request.content, indent=2, ensure_ascii=False)
+        else:
+            content_str = request.content
+
+        with open(filepath, "w", encoding="utf-8") as f:
+            f.write(content_str)
+            if not content_str.endswith("\n"):
+                f.write("\n")
+
+        rel_path = str(filepath.relative_to(PROJECT_ROOT))
+        artifact = ArtifactSummary(
+            id=filepath.stem,
+            type=request.type,
+            title=request.title,
+            status=ArtifactStatus.DRAFT,
+            file_path=rel_path,
+            created_date=datetime.utcnow().strftime("%Y-%m-%d"),
+            updated_date=None,
+        )
+        return ArtifactCreateResponse(
+            success=True,
+            artifact=artifact,
+            file_path=rel_path,
+            message=f"Created {request.type.value}: {rel_path}",
+        )
+    except OSError as e:
+        return ArtifactCreateResponse(
+            success=False,
+            message=f"Failed to create file: {e}",
+        )
+
+
+@router.put("/artifacts", response_model=ArtifactUpdateResponse)
+async def update_artifact(request: ArtifactUpdateRequest) -> ArtifactUpdateResponse:
+    """Update an existing workflow artifact.
+    
+    PUT /api/devtools/artifacts
+    """
+    filepath = PROJECT_ROOT / request.file_path
+
+    # Security check
+    try:
+        filepath.resolve().relative_to(PROJECT_ROOT.resolve())
+    except ValueError:
+        return ArtifactUpdateResponse(
+            success=False,
+            message="Invalid file path - outside project root",
+        )
+
+    if not filepath.exists():
+        return ArtifactUpdateResponse(
+            success=False,
+            message=f"File not found: {request.file_path}",
+        )
+
+    # Create backup if requested
+    backup_path = None
+    if request.create_backup:
+        backup_dir = filepath.parent / ".backup"
+        backup_dir.mkdir(exist_ok=True)
+        backup_filename = f"{filepath.stem}.{datetime.utcnow().strftime('%Y%m%d%H%M%S')}.bak"
+        backup_path = backup_dir / backup_filename
+        try:
+            import shutil
+            shutil.copy2(filepath, backup_path)
+        except OSError:
+            pass  # Non-fatal if backup fails
+
+    # Write updated content
+    try:
+        if isinstance(request.content, dict):
+            content_str = json.dumps(request.content, indent=2, ensure_ascii=False)
+        else:
+            content_str = request.content
+
+        with open(filepath, "w", encoding="utf-8") as f:
+            f.write(content_str)
+            if not content_str.endswith("\n"):
+                f.write("\n")
+
+        # Re-scan to get updated artifact summary
+        artifacts = scan_artifacts()
+        artifact = next((a for a in artifacts if a.file_path == request.file_path), None)
+
+        return ArtifactUpdateResponse(
+            success=True,
+            artifact=artifact,
+            backup_path=str(backup_path.relative_to(PROJECT_ROOT)) if backup_path else None,
+            message=f"Updated: {request.file_path}",
+        )
+    except OSError as e:
+        return ArtifactUpdateResponse(
+            success=False,
+            message=f"Failed to update file: {e}",
+        )
+
+
+@router.delete("/artifacts", response_model=ArtifactDeleteResponse)
+async def delete_artifact(request: ArtifactDeleteRequest) -> ArtifactDeleteResponse:
+    """Delete a workflow artifact (moves to backup by default).
+    
+    DELETE /api/devtools/artifacts
+    """
+    filepath = PROJECT_ROOT / request.file_path
+
+    # Security check
+    try:
+        filepath.resolve().relative_to(PROJECT_ROOT.resolve())
+    except ValueError:
+        return ArtifactDeleteResponse(
+            success=False,
+            message="Invalid file path - outside project root",
+        )
+
+    if not filepath.exists():
+        return ArtifactDeleteResponse(
+            success=False,
+            message=f"File not found: {request.file_path}",
+        )
+
+    try:
+        if request.permanent:
+            filepath.unlink()
+            return ArtifactDeleteResponse(
+                success=True,
+                message=f"Permanently deleted: {request.file_path}",
+            )
+        else:
+            # Move to backup
+            backup_dir = filepath.parent / ".backup"
+            backup_dir.mkdir(exist_ok=True)
+            backup_filename = f"{filepath.stem}.{datetime.utcnow().strftime('%Y%m%d%H%M%S')}.deleted"
+            backup_path = backup_dir / backup_filename
+            filepath.rename(backup_path)
+            return ArtifactDeleteResponse(
+                success=True,
+                backup_path=str(backup_path.relative_to(PROJECT_ROOT)),
+                message=f"Moved to backup: {request.file_path}",
+            )
+    except OSError as e:
+        return ArtifactDeleteResponse(
+            success=False,
+            message=f"Failed to delete file: {e}",
+        )
