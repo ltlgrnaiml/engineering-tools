@@ -1,0 +1,78 @@
+{
+  "$schema": "Enhanced EXP-001 Scorecard with Architectural Consistency",
+  "version": "2.0",
+  "dimensions": {
+    "correctness": {
+      "weight": 25,
+      "description": "Code works as intended",
+      "criteria": {
+        "C1_imports": {"max": 5, "desc": "All imports resolve without errors"},
+        "C2_endpoints": {"max": 5, "desc": "Required endpoints exist and callable"},
+        "C3_schema_valid": {"max": 5, "desc": "Pydantic models validate correctly"},
+        "C4_tests_pass": {"max": 10, "desc": "Unit tests run and pass"}
+      }
+    },
+    "completeness": {
+      "weight": 20,
+      "description": "All required tasks finished",
+      "criteria": {
+        "CP1_contracts": {"max": 4, "desc": "T-M1-01: workflow.py contracts created"},
+        "CP2_service": {"max": 4, "desc": "T-M1-02: workflow_service.py created"},
+        "CP3_list_endpoint": {"max": 3, "desc": "T-M1-03: Artifacts list endpoint"},
+        "CP4_graph_endpoint": {"max": 3, "desc": "T-M1-04: Graph endpoint"},
+        "CP5_crud": {"max": 3, "desc": "T-M1-05: CRUD endpoints"},
+        "CP6_tests": {"max": 3, "desc": "T-M1-06: Unit tests written"}
+      }
+    },
+    "architectural_consistency": {
+      "weight": 20,
+      "description": "Follows existing project patterns",
+      "criteria": {
+        "AC1_style": {"max": 5, "desc": "Matches existing code style (functional vs OOP)"},
+        "AC2_file_location": {"max": 5, "desc": "Files placed in correct directories"},
+        "AC3_naming": {"max": 5, "desc": "Function/class names follow project conventions"},
+        "AC4_no_extras": {"max": 5, "desc": "No unnecessary files created"}
+      }
+    },
+    "schema_adherence": {
+      "weight": 15,
+      "description": "Follows L1 context guidance precisely",
+      "criteria": {
+        "SA1_version_format": {"max": 4, "desc": "Uses correct __version__ format (YYYY.MM.PATCH)"},
+        "SA2_enum_values": {"max": 4, "desc": "Enum values match existing patterns"},
+        "SA3_field_names": {"max": 4, "desc": "Field/param names match plan hints"},
+        "SA4_imports_style": {"max": 3, "desc": "Import style matches project (shared.contracts.*)"}
+      }
+    },
+    "code_quality": {
+      "weight": 10,
+      "description": "Clean, maintainable code",
+      "criteria": {
+        "Q1_linting": {"max": 3, "desc": "Passes ruff check"},
+        "Q2_type_hints": {"max": 3, "desc": "All functions have type hints"},
+        "Q3_docstrings": {"max": 2, "desc": "Google-style docstrings present"},
+        "Q4_no_dead_code": {"max": 2, "desc": "No commented-out or unused code"}
+      }
+    },
+    "efficiency": {
+      "weight": 10,
+      "description": "Speed and token efficiency",
+      "criteria": {
+        "E1_time": {"max": 5, "desc": "<5min=5, 5-10=4, 10-15=3, 15-20=2, >20=1"},
+        "E2_messages": {"max": 5, "desc": "<10msg=5, 10-15=4, 15-20=3, 20-30=2, >30=1"}
+      }
+    }
+  },
+  "total_max": 100,
+  "l1_schema_improvement_flags": {
+    "description": "Flags for L1 schema improvements based on observed variations",
+    "flags": [
+      "SPECIFY_ARCHITECTURE_STYLE",
+      "SPECIFY_VERSION_FORMAT", 
+      "SPECIFY_ENUM_VALUES",
+      "SPECIFY_FILE_LOCATIONS",
+      "SPECIFY_NAMING_CONVENTIONS",
+      "SPECIFY_PARAM_NAMES"
+    ]
+  }
+}

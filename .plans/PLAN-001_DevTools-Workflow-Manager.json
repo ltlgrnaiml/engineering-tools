@@ -55,11 +55,15 @@
           "notes": null,
           "blocked_by": null,
           "context": [
-            "ArtifactType enum: discussion, adr, spec, plan, contract",
-            "ArtifactStatus enum: draft, active, deprecated, etc.",
-            "GraphNode needs: id, type, label, status, file_path",
-            "GraphEdge needs: source, target, relationship (implements, references, creates)",
-            "Follow existing pattern in shared/contracts/devtools/api.py"
+            "ARCHITECTURE: Functional module (no classes) matching shared/contracts/devtools/api.py",
+            "VERSION: Use __version__ = '2025.12.01' (YYYY.MM.PATCH format)",
+            "ENUM ArtifactType: discussion, adr, spec, plan, contract (exactly these 5)",
+            "ENUM ArtifactStatus: draft, active, deprecated, superseded, completed (exactly these 5)",
+            "ENUM RelationshipType: implements, references, creates, supersedes, depends_on",
+            "MODEL GraphNode: id, type (ArtifactType), label, status, file_path fields",
+            "MODEL GraphEdge: source, target, relationship (RelationshipType) fields",
+            "IMPORTS: from pydantic import BaseModel, Field",
+            "NAMING: Use full names (ArtifactSummary not ArtifactInfo)"
           ],
           "hints": [],
           "references": [],
@@ -74,10 +78,14 @@
           "notes": null,
           "blocked_by": null,
           "context": [
-            "Scan directories: .discussions/, .adrs/, docs/specs/, .plans/, shared/contracts/",
-            "Parse JSON files for ADRs/SPECs, markdown for discussions/plans",
-            "Extract references from implements_adr, source_discussion fields",
-            "Return list of ArtifactSummary objects"
+            "ARCHITECTURE: Functional style (no classes) matching gateway/services/*.py pattern",
+            "FILE: Create gateway/services/workflow_service.py (new file)",
+            "FUNCTION: def scan_artifacts(artifact_type: ArtifactType | None = None, search: str | None = None) -> list[ArtifactSummary]",
+            "PARAM NAMES: Use 'search' not 'search_query' for consistency",
+            "VAR NAMES: Use ARTIFACT_DIRECTORIES (not ARTIFACT_DIRS) for clarity",
+            "DIRECTORIES: .discussions/, .adrs/, docs/specs/, .plans/, shared/contracts/",
+            "PARSING: JSON for ADRs/SPECs, markdown for discussions/plans",
+            "IMPORTS: from shared.contracts.devtools.workflow import ArtifactType, ArtifactSummary, etc."
           ],
           "hints": [],
           "references": [],
@@ -92,10 +100,12 @@
           "notes": null,
           "blocked_by": null,
           "context": [
-            "Endpoint: GET /api/devtools/artifacts",
-            "Query params: type (optional filter), search (optional text search)",
-            "Response: ArtifactListResponse with items and total count",
-            "Call workflow_service.scan_artifacts()"
+            "ARCHITECTURE: Add to existing gateway/services/devtools_service.py (not routes/devtools.py)",
+            "ENDPOINT: GET /api/devtools/artifacts",
+            "QUERY PARAMS: type (ArtifactType, optional), search (str, optional)",
+            "RESPONSE MODEL: ArtifactListResponse with items: list[ArtifactSummary] and total: int",
+            "IMPORT: from gateway.services.workflow_service import scan_artifacts",
+            "CALL: scan_artifacts(artifact_type=type, search=search)"
           ],
           "hints": [],
           "references": [],
@@ -104,20 +114,41 @@
         {
           "id": "T-M1-04",
           "description": "Add artifact graph endpoint with reference extraction",
-          "verification_command": "grep \"artifacts/graph\" gateway/routes/devtools.py",
+          "verification_command": "grep \"artifacts/graph\" gateway/services/devtools_service.py",
           "status": "pending",
           "evidence": null,
           "notes": null,
-          "blocked_by": null
+          "blocked_by": null,
+          "context": [
+            "ARCHITECTURE: Add to gateway/services/devtools_service.py (same file as list endpoint)",
+            "ENDPOINT: GET /api/devtools/artifacts/graph",
+            "RESPONSE MODEL: GraphResponse with nodes: list[GraphNode] and edges: list[GraphEdge]",
+            "FUNCTION: def build_artifact_graph() -> GraphResponse in workflow_service.py",
+            "LOGIC: Extract relationships from implements_adr, source_discussion, references fields"
+          ],
+          "hints": [],
+          "references": [],
+          "steps": []
         },
         {
           "id": "T-M1-05",
           "description": "Add artifact CRUD endpoints (POST, PUT, DELETE)",
-          "verification_command": "grep -E \"POST|PUT|DELETE.*artifacts\" gateway/routes/devtools.py",
+          "verification_command": "grep -E \"POST|PUT|DELETE\" gateway/services/devtools_service.py",
           "status": "pending",
           "evidence": null,
           "notes": null,
-          "blocked_by": null
+          "blocked_by": null,
+          "context": [
+            "ARCHITECTURE: Add to gateway/services/devtools_service.py",
+            "ENDPOINTS: POST /api/devtools/artifacts, PUT /api/devtools/artifacts/{id}, DELETE /api/devtools/artifacts/{id}",
+            "REQUEST MODEL: CreateArtifactRequest with type, title, content fields",
+            "RESPONSE MODEL: ArtifactResponse with artifact: ArtifactSummary",
+            "FILE WRITE: Write to appropriate directory based on artifact type",
+            "VALIDATION: Ensure artifact ID follows naming convention (e.g., DISC-XXX, ADR-XXXX)"
+          ],
+          "hints": [],
+          "references": [],
+          "steps": []
         },
         {
           "id": "T-M1-06",
@@ -126,7 +157,18 @@
           "status": "pending",
           "evidence": null,
           "notes": null,
-          "blocked_by": null
+          "blocked_by": null,
+          "context": [
+            "FILE: Create tests/gateway/test_devtools_workflow.py (NOT tests/test_*.py)",
+            "TEST CLASS: class TestDevToolsWorkflow with pytest fixtures",
+            "TESTS: test_scan_artifacts, test_list_endpoint, test_graph_endpoint, test_crud_endpoints",
+            "FIXTURES: Use existing test patterns from tests/gateway/*.py if present",
+            "ASSERTIONS: Verify response models match contract definitions",
+            "IMPORTS: from shared.contracts.devtools.workflow import ArtifactType, ArtifactSummary, etc."
+          ],
+          "hints": [],
+          "references": [],
+          "steps": []
         }
       ],
       "acceptance_criteria": [

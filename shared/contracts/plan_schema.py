@@ -65,16 +65,22 @@ class GranularityLevel(str, Enum):
     """Plan granularity level for tiered execution.
 
     Allows the same plan structure to support different execution modes:
-    - L1: Standard detail with context (mid-tier models, $$)
-    - L2: Enhanced detail with hints and patterns (smaller models, $)
-    - L3: Full procedural steps (cheapest models, $)
+    - L1: Standard detail with context (premium models: Opus, Sonnet, GPT-5.2)
+    - L2: Enhanced detail with hints and constraints (mid-tier: Gemini Pro)
+    - L3: Full procedural steps (budget models: Haiku, Flash, Grok)
 
     Higher levels include all information from lower levels.
+
+    Evidence from EXP-001 (L1 vs L3 Granularity Experiment):
+    - L1 produced 39% code volume variation, L3 only 19%
+    - L1 had 6-value enum spread, L3 only 1-value spread
+    - L3 achieved 100% architecture consistency vs 67% for L1
+    - L2 should target the sweet spot: explicit constraints without full procedures
     """
 
-    L1_STANDARD = "L1"      # Context + verification (baseline, $$)
-    L2_ENHANCED = "L2"      # + hints, patterns, gotchas ($)
-    L3_PROCEDURAL = "L3"    # + step-by-step instructions ($)
+    L1_STANDARD = "L1"      # Context + verification (premium models $$$$)
+    L2_ENHANCED = "L2"      # + hints, constraints, negative examples (mid-tier $$)
+    L3_PROCEDURAL = "L3"    # + step-by-step instructions with code snippets ($)
 
 
 # =============================================================================
@@ -96,6 +102,8 @@ class TaskStep(BaseModel):
 
     Used when maximum detail is needed for smaller/cheaper models.
     Each step is a single, atomic instruction that can be executed verbatim.
+
+    Evidence from EXP-001: L3 steps reduced code volume variation from 39% to 19%.
     """
 
     step_number: int = Field(..., ge=1, description="Step sequence number")
@@ -103,9 +111,20 @@ class TaskStep(BaseModel):
     code_snippet: str | None = Field(
         None, description="Optional code to write/modify (copy-paste ready)"
     )
-    file_path: str | None = Field(None, description="File to create or modify")
+    file_path: str | None = Field(
+        None,
+        description="File to create or modify (CRITICAL: be explicit to avoid wrong locations)"
+    )
     checkpoint: bool = Field(
         False, description="Safe to commit/save after this step?"
+    )
+    verification_hint: str | None = Field(
+        None,
+        description="Quick verification command the AI can run after this step"
+    )
+    on_failure_hint: str | None = Field(
+        None,
+        description="What to check if this step fails (e.g., 'Check __init__.py exports')"
     )
 
 
@@ -134,26 +153,46 @@ class Task(BaseModel):
     notes: str | None = Field(None, description="Additional notes or context")
     blocked_by: str | None = Field(None, description="What's blocking this task")
 
-    # --- L1: Standard (baseline) ---
+    # --- L1: Standard (baseline for premium models) ---
+    # Evidence: L1 context with prefixes (ARCHITECTURE:, FILE:, ENUM:) improved consistency
     context: list[str] = Field(
         default_factory=list,
-        description="L1: Key context, decisions, and constraints for this task",
+        description="""L1: Key context using standard prefixes:
+        - ARCHITECTURE: Style guidance (e.g., 'Functional style, no classes')
+        - FILE: Exact file paths (e.g., 'Modify gateway/services/devtools_service.py')
+        - FUNCTION: Exact signatures (e.g., 'def scan_artifacts(search: str) -> list')
+        - ENUM: Exact values (e.g., 'ArtifactStatus: draft, active, deprecated, superseded, completed')
+        - VERSION: Format spec (e.g., '__version__ = "2025.12.01"')
+        - PARAM: Naming conventions (e.g., 'Use "search" not "search_query"')""",
     )
 
-    # --- L2: Enhanced ---
+    # --- L2: Enhanced (for mid-tier models) ---
+    # Evidence: L2 bridges L1 and L3 - adds constraints without full procedures
     hints: list[str] = Field(
         default_factory=list,
-        description="L2: Implementation hints, patterns to follow, gotchas to avoid",
+        description="L2: Implementation hints and patterns to follow",
     )
     references: list[str] = Field(
         default_factory=list,
         description="L2: File paths or docs to reference during implementation",
     )
+    constraints: list[str] = Field(
+        default_factory=list,
+        description="""L2: Explicit constraints and negative examples:
+        - DO NOT: Things to avoid (e.g., 'DO NOT use class-based architecture')
+        - MUST: Hard requirements (e.g., 'MUST place tests in tests/gateway/')
+        - EXACTLY: Precise values (e.g., 'EXACTLY 5 enum values, no more')""",
+    )
+    existing_patterns: list[str] = Field(
+        default_factory=list,
+        description="L2: References to existing code to match (e.g., 'Follow pattern in dataset_service.py')",
+    )
 
-    # --- L3: Procedural ---
+    # --- L3: Procedural (for budget models) ---
+    # Evidence: L3 achieved 100% architecture consistency vs 67% for L1
     steps: list[TaskStep] = Field(
         default_factory=list,
-        description="L3: Step-by-step procedural instructions for smaller models",
+        description="L3: Step-by-step procedural instructions with code snippets for budget models",
     )
 
     @field_validator("id")
