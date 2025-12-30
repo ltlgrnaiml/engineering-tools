@@ -13,6 +13,8 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field, ValidationError
 
+from gateway.routes.devtools import router as workflow_router
+
 from shared.contracts.adr_schema import (
     ADRCreateRequest as SchemaADRCreateRequest,
     ADRFieldValidationRequest,
@@ -21,6 +23,7 @@ from shared.contracts.adr_schema import (
 )
 
 router = APIRouter()
+router.include_router(workflow_router)
 
 # Get project root (parent of gateway/)
 PROJECT_ROOT = Path(__file__).parent.parent.parent
