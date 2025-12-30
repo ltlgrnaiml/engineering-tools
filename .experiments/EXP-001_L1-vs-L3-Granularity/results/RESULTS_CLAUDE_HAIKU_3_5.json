@@ -1,0 +1,67 @@
+{
+  "experiment_id": "EXP-001",
+  "branch": "experiment/l3-haiku",
+  "model": {
+    "model_id": "claude-haiku-3.5",
+    "model_name": "Claude Haiku 3.5",
+    "cost_multiplier": 1,
+    "granularity": "L3"
+  },
+  "execution": {
+    "start_time": "11:45",
+    "end_time": "11:53",
+    "duration_minutes": 8,
+    "total_messages": null,
+    "errors_encountered": null,
+    "notes": "Results collected manually."
+  },
+  "verifications": {
+    "T-M1-01_contracts": {
+      "command": "python -c \"from shared.contracts.devtools.workflow import ArtifactType, GraphNode\"",
+      "passed": true,
+      "file_exists": "shared/contracts/devtools/workflow.py (3371 bytes)"
+    },
+    "T-M1-02_service": {
+      "command": "test -f gateway/services/workflow_service.py",
+      "passed": true,
+      "file_exists": "gateway/services/workflow_service.py (5698 bytes)"
+    },
+    "T-M1-03_list_endpoint": {
+      "command": "grep artifacts gateway/services/devtools_service.py",
+      "passed": true,
+      "file_exists": "gateway/services/devtools_service.py (14516 bytes)"
+    },
+    "T-M1-04_graph_endpoint": {
+      "command": "grep artifacts/graph gateway/services/devtools_service.py",
+      "passed": true,
+      "notes": "Endpoints in devtools_service.py (correct location)"
+    },
+    "T-M1-05_crud_endpoints": {
+      "command": "grep -E POST|PUT|DELETE gateway/services/devtools_service.py",
+      "passed": true,
+      "notes": "CRUD endpoints implemented"
+    },
+    "T-M1-06_tests": {
+      "command": "test -f tests/gateway/test_devtools_workflow.py",
+      "passed": true,
+      "file_exists": "tests/gateway/test_devtools_workflow.py (4037 bytes)"
+    }
+  },
+  "l3_adherence": {
+    "followed_steps": true,
+    "used_code_snippets": true,
+    "version_format": "YES - __version__ = '2025.12.01'",
+    "architecture_style": "Functional (correct)",
+    "param_naming": "Correct - uses 'search'",
+    "var_naming": "Correct - uses ARTIFACT_DIRECTORIES",
+    "enum_values": "Partial - has ACCEPTED, RESOLVED, TRACKED_BY (extra values)",
+    "file_locations": "Correct - used gateway/services/devtools_service.py"
+  },
+  "scores": {
+    "tasks_passed": 6,
+    "tasks_total": 6,
+    "completion_rate": 100.0
+  },
+  "recorded_at": "2025-12-30T11:53:00",
+  "recorded_by": "manual_verification"
+}

@@ -1,0 +1,60 @@
+{
+  "experiment_id": "EXP-001",
+  "branch": "experiment/l3-haiku",
+  "model": {
+    "model_id": "claude-haiku",
+    "model_name": "Claude Haiku",
+    "cost_multiplier": 1,
+    "granularity": "L3"
+  },
+  "execution": {
+    "start_time": "11:40",
+    "end_time": "2025-12-30T11:52:47.114580",
+    "total_messages": 0,
+    "errors_encountered": 3
+  },
+  "verifications": {
+    "T-M1-01_contracts": {
+      "command": "python -c \"from shared.contracts.devtools.workflow import ArtifactType, GraphNode\"",
+      "passed": true,
+      "stdout": "",
+      "stderr": ""
+    },
+    "T-M1-02_service": {
+      "command": "grep \"def scan_artifacts\" gateway/services/workflow_service.py",
+      "passed": true,
+      "stdout": "async def scan_artifacts(\n",
+      "stderr": ""
+    },
+    "T-M1-03_list_endpoint": {
+      "command": "grep \"artifacts\" gateway/routes/devtools.py",
+      "passed": true,
+      "stdout": "@router.get(\"/artifacts\", response_model=ArtifactListResponse)\nasync def list_artifacts(\n    \"\"\"List all workflow artifacts.\n        List of artifacts with total count.\n    return await workflow_service.scan_artifacts(artifact_type=type, search=search)\n@router.get(\"/artifacts/graph\", response_model=ArtifactGraphResponse)\n@router.post(\"/artifacts\", response_model=ArtifactCreateResponse)\n@router.delete(\"/artifacts/{artifact_type}/{artifact_id}\", response_model=ArtifactDeleteResponse)\n",
+      "stderr": ""
+    },
+    "T-M1-04_graph_endpoint": {
+      "command": "grep \"artifacts/graph\" gateway/routes/devtools.py",
+      "passed": true,
+      "stdout": "@router.get(\"/artifacts/graph\", response_model=ArtifactGraphResponse)\n",
+      "stderr": ""
+    },
+    "T-M1-05_crud_endpoints": {
+      "command": "grep -E \"@router\\.(post|delete)\" gateway/routes/devtools.py",
+      "passed": true,
+      "stdout": "@router.post(\"/artifacts\", response_model=ArtifactCreateResponse)\n@router.delete(\"/artifacts/{artifact_type}/{artifact_id}\", response_model=ArtifactDeleteResponse)\n",
+      "stderr": ""
+    },
+    "T-M1-06_tests": {
+      "command": "test -f tests/gateway/test_devtools_workflow.py && echo \"EXISTS\"",
+      "passed": true,
+      "stdout": "\"EXISTS\"\n",
+      "stderr": ""
+    }
+  },
+  "scores": {
+    "tasks_passed": 6,
+    "tasks_total": 6,
+    "completion_rate": 100.0
+  },
+  "recorded_at": "2025-12-30T11:52:51.837365"
+}
