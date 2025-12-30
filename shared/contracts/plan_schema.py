@@ -97,16 +97,36 @@ class TaskEvidence(BaseModel):
     session_id: str | None = Field(None, description="Session that verified this task")
 
 
+class StepType(str, Enum):
+    """Type of procedural step for L3 granularity.
+
+    Evidence from EXP-001: GPT-5.2 demonstrated value of session/question steps.
+    """
+
+    CODE = "code"              # Write or modify code
+    VERIFY = "verify"          # Run verification command
+    SESSION = "session"        # Create/update session file (from GPT-5.2 patterns)
+    QUESTION = "question"      # Escalate blocker to .questions/ (from GPT-5.2 patterns)
+    PREFLIGHT = "preflight"    # Run baseline checks before starting
+
+
 class TaskStep(BaseModel):
     """A single procedural step within a task (L3 granularity).
 
     Used when maximum detail is needed for smaller/cheaper models.
     Each step is a single, atomic instruction that can be executed verbatim.
 
-    Evidence from EXP-001: L3 steps reduced code volume variation from 39% to 19%.
+    Evidence from EXP-001:
+    - L3 steps reduced code volume variation from 39% to 19%
+    - GPT-5.2 showed value of session discipline and question escalation
+    - These patterns should be baked into L3 plans for all models
     """
 
     step_number: int = Field(..., ge=1, description="Step sequence number")
+    step_type: StepType = Field(
+        default=StepType.CODE,
+        description="Type of step: code, verify, session, question, preflight"
+    )
     instruction: str = Field(..., description="Exactly what to do in this step")
     code_snippet: str | None = Field(
         None, description="Optional code to write/modify (copy-paste ready)"
@@ -125,6 +145,10 @@ class TaskStep(BaseModel):
     on_failure_hint: str | None = Field(
         None,
         description="What to check if this step fails (e.g., 'Check __init__.py exports')"
+    )
+    escalate_on_failure: bool = Field(
+        False,
+        description="If True and step fails, create .questions/ file instead of proceeding"
     )
 
 
