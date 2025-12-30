@@ -218,6 +218,54 @@ Per SESSION_017/018 lessons:
 | Contract → Plan | Imports verified |
 | Task → Complete | Verification command passes |
 
+### L3 Execution Protocol (Budget Models)
+
+L3 plans are chunked for smaller context windows. Target: 600 lines, Soft limit: 800 lines.
+
+**Before Starting Any Chunk:**
+
+1. Read `.plans/L3/<PLAN>/INDEX.json` first
+2. Check `current_chunk` field to know which chunk to execute
+3. Read the chunk file specified in `chunks[current_chunk].chunk_file`
+4. Create session file: `.sessions/SESSION_XXX_<plan>_<chunk>_<summary>.md`
+5. Run baseline tests and document result in session file
+6. If baseline fails with unrelated errors, document and proceed
+7. If baseline fails with related errors, create `.questions/` file and STOP
+
+**During Execution:**
+
+1. Follow each step in order - do not skip steps
+2. Copy code snippets EXACTLY - do not modify
+3. Run `verification_hint` after each step
+4. If any step fails, create `.questions/` file and STOP (L3 is strict)
+5. After every 5 tasks, update session file with progress
+
+**Self-Reflection Checkpoint (every 5 tasks):**
+
+```text
+CHECKPOINT:
+- [ ] Am I following established patterns from continuation_context?
+- [ ] Did I create files in the correct locations?
+- [ ] Did I run verification commands for completed tasks?
+- [ ] Should I escalate any blockers to .questions/?
+```
+
+**After Completing Chunk:**
+
+1. Run all acceptance criteria verification commands
+2. Update INDEX.json: `current_chunk`, `last_completed_task`, `continuation_context`
+3. Add entry to `execution_history` with your model name (self-report!)
+4. Update session file with handoff notes
+5. Commit: `git add -A && git commit -m 'PLAN-XXX <chunk>: <summary>'`
+
+**Verification Strictness by Granularity:**
+
+| Granularity | On Failure |
+|-------------|------------|
+| L1 (Premium) | Log and continue - models can self-correct |
+| L2 (Mid-tier) | Log failure, continue with caution |
+| L3 (Budget) | STOP and create `.questions/` file |
+
 ### Quick Reference: New Artifacts
 
 ```bash
