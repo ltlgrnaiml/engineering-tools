@@ -1,0 +1,186 @@
+# Engineering Tools Platform - AI Coding Guide
+
+> **Windsurf Auto-Discovery**: This file applies globally to all files in the repository.
+> Tool-specific rules are in subdirectory `AGENTS.md` files.
+
+---
+
+## Solo-Dev Ethos
+
+This platform follows a **first-principles, AI-assisted, greenfield** development philosophy:
+
+| Principle | Rule |
+|-----------|------|
+| **Quality > Speed** | Take the correct architectural path, never the shortcut |
+| **First-Principles** | Question every decision. No legacy assumptions. |
+| **Breaking Changes > Shims** | No backward compatibility hacks. Fix the source directly. |
+| **No Dead Code** | Remove immediately. Git history exists for reference. |
+| **Automation First** | Generate docs, tests, schemas from contracts—don't write manually |
+
+---
+
+## Critical ADRs (Must Know)
+
+| Priority | ADR | Key Rule |
+|----------|-----|----------|
+| 🔴 | **ADR-0009** | Contracts in `shared/contracts/` are SSOT. Never duplicate. |
+| 🔴 | **ADR-0033** | AI-parseable patterns: `{verb}_{noun}()`, Google docstrings |
+| 🔴 | **ADR-0004** | Deterministic SHA-256 IDs for reproducibility |
+| 🟡 | **ADR-0002** | Never delete artifacts on unlock. Preserve user work. |
+| 🟡 | **ADR-0017** | Cross-cutting guardrails (see below) |
+| 🟡 | **ADR-0031** | All HTTP errors use `ErrorResponse` contract |
+
+---
+
+## Guardrails Checklist (ADR-0017)
+
+Before any code change, verify:
+
+- [ ] **path-safety**: All public paths are relative (use `assert_relpath_safe()`)
+- [ ] **concurrency**: Using spawn-safe API only (no raw `multiprocessing`)
+- [ ] **message-catalogs**: User messages from catalog, not hardcoded
+- [ ] **cancel-behavior**: Artifacts preserved on cancel; explicit cleanup only
+- [ ] **tier-boundaries**: No contract duplication across tiers
+
+---
+
+## Contract Discipline (ADR-0009)
+
+```python
+# ✅ CORRECT: Import from shared.contracts
+from shared.contracts.core.dataset import DataSetManifest
+from shared.contracts.dat.profile import DATProfile
+
+# ❌ WRONG: Define inline Pydantic model
+class DataSetManifest(BaseModel):  # NEVER DO THIS
+    ...
+```
+
+**Rules**:
+
+- ALL shared data structures → `shared/contracts/`
+- ALL contracts have `__version__` attribute (YYYY.MM.PATCH per ADR-0016)
+- Import, never duplicate
+
+---
+
+## Code Patterns (ADR-0033)
+
+### Naming Conventions
+
+| Element | Pattern | Example |
+|---------|---------|---------|
+| Files | `{domain}_{action}.py` | `dataset_loader.py`, `profile_executor.py` |
+| Functions | `{verb}_{noun}()` | `load_dataset()`, `validate_profile()` |
+| Classes | `PascalCase` | `ProfileExecutor`, `AdapterFactory` |
+
+### Required Docstring Format (Google Style)
+
+```python
+def compute_stage_id(inputs: dict[str, Any], seed: int = 42) -> str:
+    """Compute deterministic stage ID from inputs.
+
+    Args:
+        inputs: Dictionary of stage inputs to hash.
+        seed: Random seed for determinism. Defaults to 42.
+
+    Returns:
+        8-character SHA-256 hash prefix.
+
+    Raises:
+        ValueError: If inputs is empty.
+    """
+    ...
+```
+
+### Type Hints
+
+- **Required** on all function signatures
+- Use `dict[str, Any]` not `Dict[str, Any]` (Python 3.9+)
+- Use `list[str]` not `List[str]`
+- Use `X | None` not `Optional[X]`
+
+---
+
+## Common Pitfalls to Avoid
+
+| Pitfall | Correct Approach |
+|---------|------------------|
+| Using absolute file paths in API responses | Use relative paths; call `assert_relpath_safe()` |
+| Deleting artifacts on unlock/cancel | Set `locked: false`; preserve files |
+| Using raw `multiprocessing` | Use spawn-safe concurrency API (ADR-0012) |
+| Hardcoding user messages | Use message catalog |
+| Creating backward compatibility shims | Delete old, fix all call sites directly |
+
+---
+
+## Directory Structure
+
+```
+engineering-tools/
+├── shared/              # Tier-0: Contracts, utilities (SSOT)
+├── gateway/             # API gateway and cross-tool services
+├── apps/                # Individual tool applications
+│   ├── data_aggregator/ # DAT: Data extraction & aggregation
+│   ├── pptx_generator/  # PPTX: PowerPoint report generation
+│   └── sov_analyzer/    # SOV: Source of Variation analysis
+├── workspace/           # Local artifact storage (gitignored)
+├── .adrs/               # Architecture Decision Records (WHY)
+├── docs/specs/          # Technical Specifications (WHAT)
+└── docs/guides/         # How-to Guides (HOW)
+```
+
+---
+
+## 3-Tier Document Model (ADR-0015)
+
+```
+Tier 0: shared/contracts/     → Pydantic models (SSOT)
+Tier 1: .adrs/                → ADRs explain WHY
+Tier 2: docs/specs/           → SPECs define WHAT
+Tier 3: docs/guides/          → Guides show HOW
+```
+
+**Rule**: Never duplicate content across tiers. Reference, don't copy.
+
+---
+
+## Quick Commands
+
+| Command | Purpose |
+|---------|---------|
+| `uv sync` | Install all dependencies |
+| `ruff check .` | Run linting |
+| `ruff format .` | Auto-format code |
+| `pytest tests/ -v` | Run all tests |
+| `./start.ps1` | Start platform (Windows) |
+| `./start.sh` | Start platform (Linux/macOS) |
+
+---
+
+## Session Discipline
+
+Every AI session must:
+
+1. Check `.sessions/` for highest SESSION_XXX number
+2. Claim next number and create session file
+3. Ensure tests pass before making changes
+4. Update session file with progress
+5. Document remaining work before ending
+
+---
+
+## Where to Find Things
+
+| Need | Location |
+|------|----------|
+| Data contracts | `shared/contracts/core/dataset.py` |
+| DAT contracts | `shared/contracts/dat/` |
+| ADR Index | `.adrs/INDEX.md` |
+| SPEC Index | `docs/specs/INDEX.md` |
+| Test fixtures | `tests/fixtures/` |
+| CI scripts | `ci/steps/` |
+
+---
+
+*This AGENTS.md follows Windsurf's hierarchical pattern. See subdirectory AGENTS.md files for tool-specific rules.*
