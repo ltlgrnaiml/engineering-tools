@@ -1,0 +1,68 @@
+{
+  "experiment_id": "EXP-001",
+  "branch": "experiment/l3-grok",
+  "model": {
+    "model_id": "grok-code-fast-1",
+    "model_name": "Grok Code Fast 1",
+    "cost_multiplier": 0,
+    "granularity": "L3"
+  },
+  "execution": {
+    "start_time": "11:29",
+    "end_time": "11:43",
+    "duration_minutes": 14,
+    "total_messages": null,
+    "errors_encountered": null,
+    "notes": "User noted some delay from 'continue' button wait. Results collected manually."
+  },
+  "verifications": {
+    "T-M1-01_contracts": {
+      "command": "python -c \"from shared.contracts.devtools.workflow import ArtifactType, GraphNode\"",
+      "passed": true,
+      "file_exists": "shared/contracts/devtools/workflow.py (3119 bytes)"
+    },
+    "T-M1-02_service": {
+      "command": "test -f gateway/services/workflow_service.py",
+      "passed": true,
+      "file_exists": "gateway/services/workflow_service.py (5837 bytes)"
+    },
+    "T-M1-03_list_endpoint": {
+      "command": "test -f gateway/routes/devtools.py",
+      "passed": true,
+      "file_exists": "gateway/routes/devtools.py (2650 bytes)",
+      "notes": "Created in routes/ instead of services/devtools_service.py"
+    },
+    "T-M1-04_graph_endpoint": {
+      "command": "grep artifacts gateway/routes/devtools.py",
+      "passed": true,
+      "notes": "Endpoints in routes/devtools.py"
+    },
+    "T-M1-05_crud_endpoints": {
+      "command": "grep -E POST|PUT|DELETE gateway/routes/devtools.py",
+      "passed": true,
+      "notes": "CRUD endpoints implemented"
+    },
+    "T-M1-06_tests": {
+      "command": "test -f tests/gateway/test_devtools_workflow.py",
+      "passed": true,
+      "file_exists": "tests/gateway/test_devtools_workflow.py (2025 bytes)"
+    }
+  },
+  "l3_adherence": {
+    "followed_steps": true,
+    "used_code_snippets": true,
+    "version_format": "NO - missing __version__",
+    "architecture_style": "Functional (correct)",
+    "param_naming": "Correct - uses 'search'",
+    "var_naming": "Correct - uses ARTIFACT_DIRECTORIES",
+    "enum_values": "Partial - has ACCEPTED, RESOLVED instead of SUPERSEDED, COMPLETED",
+    "file_locations": "Different - used gateway/routes/ instead of gateway/services/devtools_service.py"
+  },
+  "scores": {
+    "tasks_passed": 6,
+    "tasks_total": 6,
+    "completion_rate": 100.0
+  },
+  "recorded_at": "2025-12-30T11:44:00",
+  "recorded_by": "manual_verification"
+}
