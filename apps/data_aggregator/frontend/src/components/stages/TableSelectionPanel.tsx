@@ -26,7 +26,7 @@ export function TableSelectionPanel({ runId }: TableSelectionPanelProps) {
   const queryClient = useQueryClient()
   const debugFetch = useDebugFetch()
 
-  // Get profile_id from run state
+  // Get profile_id from run state (includes context stage artifact)
   const { data: runState } = useQuery({
     queryKey: ['dat-run', runId],
     queryFn: async () => {
@@ -36,7 +36,8 @@ export function TableSelectionPanel({ runId }: TableSelectionPanelProps) {
     },
   })
 
-  const profileId = runState?.profile_id
+  // Profile ID can come from run state OR context stage artifact
+  const profileId = runState?.profile_id || runState?.stages?.context?.artifact?.profile_id
 
   // Fetch profile-defined tables if profile is set
   const { data: profileTables, isLoading: profileTablesLoading } = useProfileTables(profileId)
@@ -321,7 +322,7 @@ export function TableSelectionPanel({ runId }: TableSelectionPanelProps) {
                     <span className="font-medium text-slate-900 truncate">{table.name}</span>
                   </div>
                   <div className="mt-1 text-sm text-slate-500">
-                    {table.row_count.toLocaleString()} rows × {table.column_count} cols
+                    {table.row_count?.toLocaleString() ?? '-'} rows × {table.column_count ?? '-'} cols
                   </div>
                   <div className="mt-1 text-xs text-slate-400 truncate">{table.file}</div>
                 </div>

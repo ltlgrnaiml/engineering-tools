@@ -62,6 +62,20 @@ class RunStore:
                     runs.append(state)
         return runs
 
+    async def delete_run(self, run_id: str) -> bool:
+        """Delete a run and all its artifacts.
+        
+        Returns True if deleted, False if run not found.
+        """
+        import shutil
+        
+        run_dir = self.dat_workspace / "runs" / run_id
+        if not run_dir.exists():
+            return False
+        
+        shutil.rmtree(run_dir)
+        return True
+
     async def get_stage_status(self, run_id: str, stage: Stage) -> StageStatus:
         """Get status of a specific stage."""
         state = self._read_state(run_id)

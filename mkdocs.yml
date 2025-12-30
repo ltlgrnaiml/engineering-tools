@@ -54,6 +54,21 @@ markdown_extensions:
 plugins:
   - search
 
+# Validation settings - suppress warnings for files intentionally not in nav
+validation:
+  nav:
+    omitted_files: info
+    not_found: warn
+    absolute_links: warn
+  links:
+    not_found: info
+    absolute_links: info
+    unrecognized_links: info
+
+# Exclude archived/internal files from build
+exclude_docs: |
+  _archive/
+
 # Navigation structure
 nav:
   - Home: index.md
@@ -74,22 +89,12 @@ nav:
     - Overview: data-aggregator/index.md
   - SOV Analyzer:
     - Overview: sov-analyzer/index.md
-  - Change Plan:
-    - Overview: change-plan/README.md
-    - Vision: change-plan/tier-1-vision/PLATFORM_VISION.md
-    - Integration:
-      - Cross-Tool: change-plan/tier-2-integration/CROSS_TOOL_INTEGRATION.md
-      - Homepage: change-plan/tier-2-integration/HOMEPAGE_CONTROL.md
-    - Specifications:
-      - Data Aggregator: change-plan/tier-3-tools/data-aggregator/DAT_SPEC.md
-      - Homepage: change-plan/tier-3-tools/homepage/HOMEPAGE_SPEC.md
-      - PPTX Generator: change-plan/tier-3-tools/pptx-generator/PPTX_SPEC.md
-      - SOV Analyzer: change-plan/tier-3-tools/sov-analyzer/SOV_SPEC.md
-    - Implementation:
-      - Phase 1: change-plan/tier-4-implementation/phase-1-foundation/PHASE1_INSTRUCTIONS.md
-      - Phase 2: change-plan/tier-4-implementation/phase-2-homepage-pptx/PHASE2_INSTRUCTIONS.md
-      - Phase 3: change-plan/tier-4-implementation/phase-3-data-aggregator/PHASE3_INSTRUCTIONS.md
-      - Phase 4: change-plan/tier-4-implementation/phase-4-sov-analyzer/PHASE4_INSTRUCTIONS.md
+  - Guides:
+    - AI Coding Guide: AI_CODING_GUIDE.md
+    - Agents MD Guide: AGENTS_MD_CREATION_GUIDE.md
+    - TODO Guide: TODO_GUIDES.md
+  - Reference:
+    - Specs Index: specs/SPEC_INDEX.md
 
 # Watch for changes in development
 watch:

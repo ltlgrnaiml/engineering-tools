@@ -179,6 +179,19 @@ async def get_run(run_id: str):
     )
 
 
+@router.delete("/runs/{run_id}")
+async def delete_run(run_id: str):
+    """Delete a DAT run and all its artifacts."""
+    deleted = await run_manager.delete_run(run_id)
+    if not deleted:
+        _raise_error(
+            status_code=404,
+            message=f"Run not found: {run_id}",
+            category=ErrorCategory.NOT_FOUND,
+        )
+    return {"status": "deleted", "run_id": run_id}
+
+
 @router.get("/runs/{run_id}/stages/{stage}")
 async def get_stage_status(run_id: str, stage: str):
     """Get stage status."""
@@ -708,6 +721,72 @@ async def get_profile_tables(profile_id: str):
     }
 
 
+@router.get("/profiles/{profile_id}/context")
+async def get_profile_context_config(profile_id: str):
+    """Get context configuration from a profile per ADR-0011.
+    
+    Returns context_defaults (regex patterns, defaults, content patterns)
+    and contexts (run_context, image_context definitions) for UI display.
+    """
+    from ..profiles.profile_loader import get_profile_by_id
+
+    profile = get_profile_by_id(profile_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail=f"Profile not found: {profile_id}")
+
+    result = {
+        "profile_id": profile_id,
+        "profile_name": profile.title,
+    }
+
+    # Context defaults (regex patterns, defaults, etc.)
+    if profile.context_defaults:
+        result["context_defaults"] = {
+            "defaults": profile.context_defaults.defaults,
+            "regex_patterns": [
+                {
+                    "field": p.field,
+                    "pattern": p.pattern,
+                    "scope": p.scope.value if p.scope else "filename",
+                    "required": p.required,
+                    "description": p.description,
+                    "example": p.example,
+                }
+                for p in profile.context_defaults.regex_patterns
+            ],
+            "content_patterns": [
+                {
+                    "field": p.field,
+                    "path": p.path,
+                    "required": p.required,
+                    "default": p.default,
+                    "description": p.description,
+                }
+                for p in profile.context_defaults.content_patterns
+            ] if profile.context_defaults.content_patterns else [],
+            "allow_user_override": profile.context_defaults.allow_user_override,
+        }
+    else:
+        result["context_defaults"] = None
+
+    # Context definitions (run_context, image_context)
+    if profile.contexts:
+        result["contexts"] = [
+            {
+                "name": ctx.name,
+                "level": ctx.level,
+                "paths": ctx.paths,
+                "key_map": ctx.key_map,
+                "primary_keys": ctx.primary_keys,
+            }
+            for ctx in profile.contexts
+        ]
+    else:
+        result["contexts"] = []
+
+    return result
+
+
 @router.post("/runs/{run_id}/stages/parse/profile-extract", response_model=ExtractionResponse)
 async def execute_profile_extraction(run_id: str, request: ParseRequest | None = None):
     """Execute profile-driven extraction per ADR-0011.
@@ -907,6 +986,9 @@ async def scan_table_availability(run_id: str):
     """Scan for available tables from selected files.
     
     Per ADR-0006: Table availability must show actual row/column counts.
+    
+    When a profile is selected (via context stage), returns profile-defined tables.
+    Otherwise, returns file-based tables (legacy behavior).
     """
     import logging
     logger = logging.getLogger(__name__)
@@ -921,7 +1003,35 @@ async def scan_table_availability(run_id: str):
     selection_artifact = await sm.store.get_artifact(run_id, Stage.SELECTION, selection_status.stage_id)
     selected_files = selection_artifact.get("selected_files", [])
 
-    # Get tables from selected files with actual row/column counts
+    # Check if a profile was selected in context stage
+    context_status = await sm.store.get_stage_status(run_id, Stage.CONTEXT)
+    profile_id = None
+    if context_status.state == StageState.LOCKED and context_status.stage_id:
+        context_artifact = await sm.store.get_artifact(run_id, Stage.CONTEXT, context_status.stage_id)
+        profile_id = context_artifact.get("profile_id") if context_artifact else None
+
+    # If profile selected, return profile-defined tables
+    if profile_id:
+        from ..profiles.profile_loader import get_profile_by_id
+        
+        profile = get_profile_by_id(profile_id)
+        if not profile:
+            raise HTTPException(status_code=404, detail=f"Profile not found: {profile_id}")
+        
+        tables = []
+        for level_name, table_config in profile.get_all_tables():
+            tables.append({
+                "name": table_config.id,
+                "label": table_config.label,
+                "description": table_config.description,
+                "level": level_name,
+                "file": ", ".join([Path(f).name for f in selected_files]),
+                "available": True,  # Profile tables are always "available" - extraction will handle actual data
+            })
+        
+        return tables
+
+    # Fallback: Get tables from selected files (legacy file-based mode)
     from apps.data_aggregator.backend.adapters import create_default_registry
     from shared.contracts.dat.adapter import ReadOptions
     
@@ -967,6 +1077,9 @@ async def lock_table_availability(run_id: str):
     """Lock table availability stage with discovered tables.
     
     Per ADR-0006: Table availability must show actual row/column counts.
+    
+    When a profile is selected, stores profile table definitions.
+    Otherwise, discovers tables from files (legacy behavior).
     """
     import logging
     logger = logging.getLogger(__name__)
@@ -981,7 +1094,46 @@ async def lock_table_availability(run_id: str):
     selection_artifact = await sm.store.get_artifact(run_id, Stage.SELECTION, selection_status.stage_id)
     selected_files = selection_artifact.get("selected_files", [])
 
-    # Discover tables from selected files with actual row/column counts
+    # Check if a profile was selected in context stage
+    context_status = await sm.store.get_stage_status(run_id, Stage.CONTEXT)
+    profile_id = None
+    if context_status.state == StageState.LOCKED and context_status.stage_id:
+        context_artifact = await sm.store.get_artifact(run_id, Stage.CONTEXT, context_status.stage_id)
+        profile_id = context_artifact.get("profile_id") if context_artifact else None
+
+    # If profile selected, use profile-defined tables
+    if profile_id:
+        from ..profiles.profile_loader import get_profile_by_id
+        
+        profile = get_profile_by_id(profile_id)
+        if not profile:
+            raise HTTPException(status_code=404, detail=f"Profile not found: {profile_id}")
+        
+        tables = []
+        for level_name, table_config in profile.get_all_tables():
+            tables.append({
+                "name": table_config.id,
+                "label": table_config.label,
+                "description": table_config.description,
+                "level": level_name,
+                "available": True,
+            })
+        
+        async def execute():
+            return {
+                "discovered_tables": tables,
+                "profile_id": profile_id,
+                "completed": True,
+            }
+
+        try:
+            inputs = {"files": selected_files, "profile_id": profile_id}
+            status = await sm.lock_stage(Stage.TABLE_AVAILABILITY, inputs=inputs, execute_fn=execute)
+            return {"status": "locked", "stage_id": status.stage_id, "discovered_tables": tables}
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
+    # Fallback: Discover tables from selected files (legacy file-based mode)
     from apps.data_aggregator.backend.adapters import create_default_registry
     from shared.contracts.dat.adapter import ReadOptions
     
@@ -1129,58 +1281,93 @@ async def lock_preview(run_id: str):
     if not table_sel_artifact:
         raise HTTPException(status_code=400, detail="Table Selection artifact not found")
 
+    # Check if profile mode is used
+    context_status = await sm.store.get_stage_status(run_id, Stage.CONTEXT)
+    profile_id = None
+    if context_status.state == StageState.LOCKED and context_status.stage_id:
+        ctx_artifact = await sm.store.get_artifact(run_id, Stage.CONTEXT, context_status.stage_id)
+        profile_id = ctx_artifact.get("profile_id") if ctx_artifact else None
+
+    # Get selected files from selection stage
+    selection_status = await sm.store.get_stage_status(run_id, Stage.SELECTION)
+    selection_artifact = await sm.store.get_artifact(run_id, Stage.SELECTION, selection_status.stage_id)
+    selected_files = selection_artifact.get("selected_files", []) if selection_artifact else []
+
     async def execute():
         # Generate preview data from selected tables
         from apps.data_aggregator.backend.adapters import create_default_registry
         from shared.contracts.dat.adapter import ReadOptions
 
-        registry = create_default_registry()
-        selected_tables = table_sel_artifact.get("selected_tables", {})
         all_rows = []
         all_columns = set()
-
         preview_rows_per_table = 20  # Limit per table
 
-        for file_path, tables in selected_tables.items():
-            adapter = registry.get_adapter_for_file(file_path)
-            for table_name in tables[:5]:  # Limit tables per file
+        # Profile-based preview: use ProfileExecutor to extract tables
+        if profile_id:
+            from ..profiles.profile_loader import get_profile_by_id
+            from ..profiles.profile_executor import ProfileExecutor
+
+            profile = get_profile_by_id(profile_id)
+            if not profile:
+                logger.warning(f"Profile not found: {profile_id}")
+                return {
+                    "preview_data": {"columns": [], "rows": [], "row_count": 0, "total_rows": 0},
+                    "completed": False,
+                }
+
+            selected_table_ids = table_sel_artifact.get("selected_tables", {}).get("profile", [])
+            
+            executor = ProfileExecutor(profile)
+            for file_path in selected_files[:3]:  # Limit files for preview
                 try:
-                    options = ReadOptions(extra={"sheet_name": table_name} if table_name != Path(file_path).name else {})
-                    df, _ = await adapter.read_dataframe(file_path, options)
+                    result = await executor.extract_tables(
+                        file_path,
+                        table_ids=selected_table_ids[:5] if selected_table_ids else None,  # Limit tables
+                    )
+                    
+                    for table_id, df in result.tables.items():
+                        if len(df) > 0:
+                            preview_df = df.head(preview_rows_per_table)
+                            rows = preview_df.to_dicts()
 
-                    if len(df) > 0:
-                        preview_df = df.head(preview_rows_per_table)
-                        
-                        # Per DESIGN §10: Apply PII masking in preview
-                        context_status = await sm.store.get_stage_status(run_id, Stage.CONTEXT)
-                        if context_status.stage_id:
-                            ctx_artifact = await sm.store.get_artifact(
-                                run_id, Stage.CONTEXT, context_status.stage_id
-                            )
-                            if ctx_artifact and ctx_artifact.get("profile_id"):
-                                from ..profiles.profile_loader import get_profile_by_id
-                                from ..profiles.transform_pipeline import TransformPipeline
-                                profile = get_profile_by_id(ctx_artifact["profile_id"])
-                                if profile and profile.governance and profile.governance.compliance:
-                                    pii_cols = profile.governance.compliance.pii_columns
-                                    mask_cols = profile.governance.compliance.mask_in_preview
-                                    if pii_cols or mask_cols:
-                                        pipeline = TransformPipeline()
-                                        preview_df = pipeline.apply_pii_masking(
-                                            preview_df, pii_cols, mask_cols
-                                        )
-                        
-                        rows = preview_df.to_dicts()
+                            for row in rows:
+                                row["_source_table"] = table_id
+                                row["_source_file"] = Path(file_path).name
 
-                        # Add source info to each row
-                        for row in rows:
-                            row["_source_table"] = table_name
-                            row["_source_file"] = Path(file_path).name
-
-                        all_rows.extend(rows)
-                        all_columns.update(preview_df.columns)
+                            all_rows.extend(rows)
+                            all_columns.update(preview_df.columns)
                 except Exception as e:
-                    logger.warning(f"Could not preview {table_name} from {file_path}: {e}")
+                    logger.warning(f"Could not preview from {file_path}: {e}")
+
+        else:
+            # File-based preview (legacy mode)
+            registry = create_default_registry()
+            selected_tables = table_sel_artifact.get("selected_tables", {})
+
+            for file_path, tables in selected_tables.items():
+                if file_path == "profile":  # Skip profile key in legacy mode
+                    continue
+                try:
+                    adapter = registry.get_adapter_for_file(file_path)
+                    for table_name in tables[:5]:  # Limit tables per file
+                        try:
+                            options = ReadOptions(extra={"sheet_name": table_name} if table_name != Path(file_path).name else {})
+                            df, _ = await adapter.read_dataframe(file_path, options)
+
+                            if len(df) > 0:
+                                preview_df = df.head(preview_rows_per_table)
+                                rows = preview_df.to_dicts()
+
+                                for row in rows:
+                                    row["_source_table"] = table_name
+                                    row["_source_file"] = Path(file_path).name
+
+                                all_rows.extend(rows)
+                                all_columns.update(preview_df.columns)
+                        except Exception as e:
+                            logger.warning(f"Could not preview {table_name} from {file_path}: {e}")
+                except Exception as e:
+                    logger.warning(f"Could not get adapter for {file_path}: {e}")
 
         # Ensure consistent column order
         columns = ["_source_file", "_source_table"] + sorted(all_columns - {"_source_file", "_source_table"})

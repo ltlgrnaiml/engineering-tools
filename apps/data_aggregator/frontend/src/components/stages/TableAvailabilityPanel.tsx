@@ -12,6 +12,10 @@ interface TableInfo {
   available: boolean
   row_count?: number
   column_count?: number
+  // Profile-based fields
+  label?: string
+  description?: string
+  level?: string
 }
 
 export function TableAvailabilityPanel({ runId }: TableAvailabilityPanelProps) {
@@ -44,6 +48,17 @@ export function TableAvailabilityPanel({ runId }: TableAvailabilityPanelProps) {
   const availableCount = tables?.filter(t => t.available).length || 0
   const totalCount = tables?.length || 0
 
+  // Check if we're in profile mode (tables have level field)
+  const isProfileMode = tables?.some(t => t.level) || false
+
+  // Group tables by level for profile mode display
+  const tablesByLevel = tables?.reduce((acc, table) => {
+    const level = table.level || 'unknown'
+    if (!acc[level]) acc[level] = []
+    acc[level].push(table)
+    return acc
+  }, {} as Record<string, TableInfo[]>) || {}
+
   return (
     <div className="space-y-6">
       <div>
@@ -73,7 +88,42 @@ export function TableAvailabilityPanel({ runId }: TableAvailabilityPanelProps) {
           <div className="flex items-center justify-center py-8">
             <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
           </div>
+        ) : isProfileMode ? (
+          // Profile-based table display (grouped by level)
+          <div className="divide-y divide-slate-100">
+            {Object.entries(tablesByLevel).map(([level, levelTables]) => (
+              <div key={level} className="p-4">
+                <div className="text-sm font-medium text-slate-500 uppercase tracking-wide mb-3">
+                  {level} Level ({levelTables.length} tables)
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {levelTables.map((table) => (
+                    <div
+                      key={table.name}
+                      className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg"
+                    >
+                      <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <Table className="w-4 h-4 text-slate-400" />
+                          <span className="font-medium text-slate-900">
+                            {table.label || table.name}
+                          </span>
+                        </div>
+                        {table.description && (
+                          <p className="text-xs text-slate-500 mt-1 truncate">
+                            {table.description}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
+          // File-based table display (legacy)
           <table className="w-full">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>

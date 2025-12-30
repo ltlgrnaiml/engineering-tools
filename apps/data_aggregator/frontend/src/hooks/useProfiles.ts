@@ -54,6 +54,59 @@ export function useProfileTables(profileId: string | null) {
 }
 
 /**
+ * Profile context configuration response type.
+ */
+export interface ProfileContextResponse {
+  profile_id: string
+  profile_name: string
+  context_defaults: {
+    defaults: Record<string, string>
+    regex_patterns: Array<{
+      field: string
+      pattern: string
+      scope: string
+      required: boolean
+      description: string
+      example: string
+    }>
+    content_patterns: Array<{
+      field: string
+      path: string
+      required: boolean
+      default: string | null
+      description: string
+    }>
+    allow_user_override: string[]
+  } | null
+  contexts: Array<{
+    name: string
+    level: string
+    paths: string[]
+    key_map: Record<string, string>
+    primary_keys: string[]
+  }>
+}
+
+/**
+ * Hook to fetch context configuration from a profile.
+ * Returns regex patterns, defaults, content patterns for UI display.
+ */
+export function useProfileContext(profileId: string | null) {
+  const debugFetch = useDebugFetch()
+
+  return useQuery({
+    queryKey: ['dat-profile-context', profileId],
+    queryFn: async (): Promise<ProfileContextResponse> => {
+      if (!profileId) throw new Error('No profile ID')
+      const response = await debugFetch(`/api/dat/profiles/${profileId}/context`)
+      if (!response.ok) throw new Error('Failed to fetch profile context')
+      return response.json()
+    },
+    enabled: !!profileId,
+  })
+}
+
+/**
  * Hook to execute profile-driven extraction.
  * Returns tables and context SEPARATELY per DESIGN §4, §9.
  */

@@ -54,3 +54,10 @@ class RunManager:
         if status.stage_id:
             return await self.store.get_artifact(run_id, Stage.PARSE, status.stage_id)
         return None
+
+    async def delete_run(self, run_id: str) -> bool:
+        """Delete a run and all its artifacts.
+        
+        Returns True if deleted, False if run not found.
+        """
+        return await self.store.delete_run(run_id)

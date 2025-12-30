@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Settings, Loader2, Table, ChevronDown, ChevronRight } from 'lucide-react'
+import { Settings, Loader2, Table, ChevronDown, ChevronRight, Code, FileText, Edit3 } from 'lucide-react'
 import { useDebugFetch } from '../debug'
-import { useProfiles, useProfileTables } from '../../hooks/useProfiles'
+import { useProfiles, useProfileTables, useProfileContext } from '../../hooks/useProfiles'
 
 interface ContextPanelProps {
   runId: string
@@ -11,6 +11,7 @@ interface ContextPanelProps {
 export function ContextPanel({ runId }: ContextPanelProps) {
   const [selectedProfile, setSelectedProfile] = useState<string>('')
   const [expandedLevels, setExpandedLevels] = useState<Set<string>>(new Set(['run']))
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['regex']))
   const queryClient = useQueryClient()
   const debugFetch = useDebugFetch()
 
@@ -21,6 +22,23 @@ export function ContextPanel({ runId }: ContextPanelProps) {
   const { data: profileTables, isLoading: tablesLoading, error: tablesError } = useProfileTables(
     selectedProfile || null
   )
+  
+  // Fetch context configuration for selected profile
+  const { data: profileContext, isLoading: contextLoading } = useProfileContext(
+    selectedProfile || null
+  )
+  
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => {
+      const next = new Set(prev)
+      if (next.has(section)) {
+        next.delete(section)
+      } else {
+        next.add(section)
+      }
+      return next
+    })
+  }
   
   const toggleLevel = (level: string) => {
     setExpandedLevels(prev => {
@@ -158,6 +176,153 @@ export function ContextPanel({ runId }: ContextPanelProps) {
             </div>
           ) : (
             <p className="text-sm text-slate-500">No tables defined in this profile.</p>
+          )}
+        </div>
+      )}
+
+      {/* Context Configuration - Regex Patterns */}
+      {selectedProfile && profileContext?.context_defaults && (
+        <div className="bg-white rounded-lg border border-slate-200 p-4">
+          <button
+            onClick={() => toggleSection('regex')}
+            className="w-full flex items-center justify-between mb-3"
+          >
+            <label className="text-sm font-medium text-slate-700 flex items-center gap-2 cursor-pointer">
+              <Code className="w-4 h-4" />
+              Context Extraction (REGEX Patterns)
+            </label>
+            {expandedSections.has('regex') ? (
+              <ChevronDown className="w-4 h-4 text-slate-400" />
+            ) : (
+              <ChevronRight className="w-4 h-4 text-slate-400" />
+            )}
+          </button>
+          
+          {contextLoading ? (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+            </div>
+          ) : expandedSections.has('regex') && profileContext.context_defaults.regex_patterns.length > 0 ? (
+            <div className="space-y-3">
+              <p className="text-xs text-slate-500 mb-3">
+                These patterns automatically extract context values from filenames:
+              </p>
+              {profileContext.context_defaults.regex_patterns.map((pattern) => (
+                <div
+                  key={pattern.field}
+                  className="border border-slate-100 rounded-lg p-3 bg-slate-50"
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-medium text-slate-800 text-sm">
+                      {pattern.field}
+                      {pattern.required && (
+                        <span className="ml-1 text-xs text-red-500">*required</span>
+                      )}
+                    </span>
+                    <span className="text-xs text-slate-400">{pattern.scope}</span>
+                  </div>
+                  <code className="block text-xs bg-slate-200 text-slate-700 px-2 py-1 rounded font-mono mb-2 overflow-x-auto">
+                    {pattern.pattern}
+                  </code>
+                  {pattern.description && (
+                    <p className="text-xs text-slate-500">{pattern.description}</p>
+                  )}
+                  {pattern.example && (
+                    <p className="text-xs text-slate-400 mt-1">
+                      Example: <span className="font-mono">{pattern.example}</span>
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : expandedSections.has('regex') ? (
+            <p className="text-sm text-slate-500">No regex patterns defined.</p>
+          ) : null}
+        </div>
+      )}
+
+      {/* Context Defaults */}
+      {selectedProfile && profileContext?.context_defaults?.defaults && 
+       Object.keys(profileContext.context_defaults.defaults).length > 0 && (
+        <div className="bg-white rounded-lg border border-slate-200 p-4">
+          <button
+            onClick={() => toggleSection('defaults')}
+            className="w-full flex items-center justify-between mb-3"
+          >
+            <label className="text-sm font-medium text-slate-700 flex items-center gap-2 cursor-pointer">
+              <FileText className="w-4 h-4" />
+              Default Values (Fallback)
+            </label>
+            {expandedSections.has('defaults') ? (
+              <ChevronDown className="w-4 h-4 text-slate-400" />
+            ) : (
+              <ChevronRight className="w-4 h-4 text-slate-400" />
+            )}
+          </button>
+          
+          {expandedSections.has('defaults') && (
+            <div className="space-y-2">
+              <p className="text-xs text-slate-500 mb-2">
+                Default values used when extraction fails:
+              </p>
+              {Object.entries(profileContext.context_defaults.defaults).map(([key, value]) => (
+                <div
+                  key={key}
+                  className="flex items-center justify-between text-sm border-b border-slate-100 pb-2"
+                >
+                  <span className="font-medium text-slate-700">{key}</span>
+                  <span className="text-slate-500 font-mono text-xs">{String(value)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Context Key Mapping */}
+      {selectedProfile && profileContext?.contexts && profileContext.contexts.length > 0 && (
+        <div className="bg-white rounded-lg border border-slate-200 p-4">
+          <button
+            onClick={() => toggleSection('keymap')}
+            className="w-full flex items-center justify-between mb-3"
+          >
+            <label className="text-sm font-medium text-slate-700 flex items-center gap-2 cursor-pointer">
+              <Edit3 className="w-4 h-4" />
+              Context Key Mapping (JSONPath)
+            </label>
+            {expandedSections.has('keymap') ? (
+              <ChevronDown className="w-4 h-4 text-slate-400" />
+            ) : (
+              <ChevronRight className="w-4 h-4 text-slate-400" />
+            )}
+          </button>
+          
+          {expandedSections.has('keymap') && (
+            <div className="space-y-3">
+              {profileContext.contexts.map((ctx) => (
+                <div key={ctx.name} className="border border-slate-100 rounded-lg p-3">
+                  <div className="font-medium text-slate-700 text-sm mb-2 capitalize">
+                    {ctx.name} <span className="text-slate-400 font-normal">({ctx.level} level)</span>
+                  </div>
+                  <div className="space-y-1">
+                    {Object.entries(ctx.key_map).map(([key, path]) => (
+                      <div key={key} className="flex items-center gap-2 text-xs">
+                        <span className="font-medium text-slate-600 min-w-[100px]">{key}</span>
+                        <span className="text-slate-400">→</span>
+                        <code className="text-slate-500 font-mono bg-slate-100 px-1 rounded">
+                          {path}
+                        </code>
+                      </div>
+                    ))}
+                  </div>
+                  {ctx.primary_keys.length > 0 && (
+                    <div className="mt-2 text-xs text-slate-400">
+                      Primary keys: {ctx.primary_keys.join(', ')}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           )}
         </div>
       )}
