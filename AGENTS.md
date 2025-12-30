@@ -170,6 +170,70 @@ Every AI session must:
 
 ---
 
+<!-- WINDSURF_SPECIFIC: AI Development Workflow section -->
+
+## AI Development Workflow (ADR-0041)
+
+### 6-Tier Hierarchy
+
+| Tier | Artifact | Purpose | Directory |
+|------|----------|---------|-----------|
+| T0 | Discussion | Design conversation capture | `.discussions/` |
+| T1 | Decision | Architecture decisions (ADR) | `.adrs/` |
+| T2 | Specification | Behavioral requirements (SPEC) | `docs/specs/` |
+| T3 | Contract | Data shapes (Pydantic SSOT) | `shared/contracts/` |
+| T4 | Plan | Implementation milestones & tasks | `.plans/` |
+| T5 | Fragment | Single verifiable work unit | Per-task execution |
+
+### Workflow Entry Points
+
+| Scenario | Start At | Skip |
+|----------|----------|------|
+| Architectural change | T0 (Discussion) | None |
+| New feature | T0 or T2 | Depends on complexity |
+| Simple enhancement | T2 (SPEC) | T0, T1 |
+| New data structure | T3 (Contract) | T0-T2 |
+| Bug fix / Refactor | T4 (Plan) | T0-T3 |
+
+### Fragment-Based Execution (CRITICAL)
+
+Per SESSION_017/018 lessons:
+
+```text
+1. IMPLEMENT one task
+2. VERIFY with command (grep, pytest, import check)
+3. DOCUMENT evidence in plan
+4. ONLY THEN mark complete
+```
+
+**NEVER mark a task complete without running verification.**
+
+### Gate Rules
+
+| Gate | Requirement |
+|------|-------------|
+| Discussion → ADR | USER approves decision is needed |
+| ADR → SPEC | ADR status is 'active' |
+| SPEC → Contract | SPEC status is 'active' |
+| Contract → Plan | Imports verified |
+| Task → Complete | Verification command passes |
+
+### Quick Reference: New Artifacts
+
+```bash
+# Create new discussion
+python scripts/workflow/new_discussion.py "Title"
+
+# Create new plan
+python scripts/workflow/new_plan.py "Title"
+```
+
+See `.discussions/AGENTS.md` and `.plans/AGENTS.md` for detailed instructions.
+
+<!-- WINDSURF_SPECIFIC: End of AI Development Workflow section -->
+
+---
+
 ## Where to Find Things
 
 | Need | Location |

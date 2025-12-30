@@ -1,0 +1,95 @@
+{
+  "schema_type": "plan",
+  "id": "PLAN-XXX",
+  "title": "Brief Description of Implementation",
+  "version": "2025.12.01",
+  "status": "draft",
+  "created_date": "YYYY-MM-DD",
+  "updated_date": "YYYY-MM-DD",
+  "author": "AI-Assisted (Cascade)",
+  "summary": "One paragraph describing what this plan implements and why.",
+  "objective": "Clear statement of what success looks like when this plan is complete.",
+  "source_references": [
+    {
+      "type": "discussion",
+      "id": "DISC-XXX",
+      "title": "Source Discussion Title"
+    },
+    {
+      "type": "adr",
+      "id": "ADR-XXXX",
+      "title": "Source ADR Title"
+    },
+    {
+      "type": "spec",
+      "id": "SPEC-XXXX",
+      "title": "Source SPEC Title"
+    }
+  ],
+  "prerequisites": [
+    "All existing tests pass (pytest tests/ -v)",
+    "Linting passes (ruff check .)",
+    "Node.js dependencies up to date (if frontend)"
+  ],
+  "milestones": [
+    {
+      "id": "M1",
+      "name": "First Milestone Name",
+      "objective": "What this milestone achieves.",
+      "status": "pending",
+      "deliverables": [
+        "path/to/file1.py — Description",
+        "path/to/file2.tsx — Description"
+      ],
+      "dependencies": [],
+      "tasks": [
+        {
+          "id": "T-M1-01",
+          "description": "First task description",
+          "verification_command": "grep 'expected' path/to/file.py",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M1-02",
+          "description": "Second task description",
+          "verification_command": "python -c \"from module import Class\"",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        }
+      ],
+      "acceptance_criteria": [
+        {
+          "id": "AC-M1-01",
+          "description": "First acceptance criterion",
+          "verification_command": "pytest tests/specific_test.py -v",
+          "status": "pending",
+          "evidence": null
+        }
+      ],
+      "notes": null,
+      "started_at": null,
+      "completed_at": null
+    }
+  ],
+  "global_acceptance_criteria": [
+    {
+      "id": "AC-GLOBAL-01",
+      "description": "All Python tests pass",
+      "verification_command": "pytest tests/ -v"
+    },
+    {
+      "id": "AC-GLOBAL-02",
+      "description": "No linting errors",
+      "verification_command": "ruff check ."
+    }
+  ],
+  "execution_log": [],
+  "blockers": [],
+  "lessons_learned": [],
+  "handoff_notes": null
+}

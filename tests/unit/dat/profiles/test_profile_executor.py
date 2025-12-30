@@ -25,7 +25,7 @@ from apps.data_aggregator.backend.src.dat_aggregation.profiles.strategies import
     ArrayOfObjectsStrategy,
     RepeatOverStrategy,
 )
-from apps.data_aggregator.backend.src.dat_aggregation.profiles.strategies.base import (
+from shared.contracts.dat.profile import (
     SelectConfig,
     RepeatOverConfig,
 )

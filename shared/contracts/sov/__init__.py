@@ -4,6 +4,8 @@ This package contains Pydantic models for SOV-specific data structures:
 - ANOVA contracts for analysis of variance results
 - Variance components contracts for hierarchical variance decomposition
 - Visualization contracts for chart/plot specifications
+- Pipeline contracts for analysis pipeline stages (ADR-0022)
+- DataSet I/O contracts for data loading and output (ADR-0023)
 
 All contracts are domain-agnostic; user-specific knowledge (factor names,
 response columns, grouping levels) is injected via analysis configs.
@@ -36,6 +38,50 @@ from shared.contracts.sov.visualization import (
     PlotStyle,
     ColorPalette,
 )
+from shared.contracts.sov.pipeline import (
+    SOVStageId,
+    SOVStageState,
+    SOVPipelineState,
+    DataIngestionConfig,
+    FactorIdentificationConfig,
+    ANOVAComputationConfig,
+    VarianceDecompositionConfig,
+    VisualizationPreparationConfig,
+    DataIngestionResult,
+    FactorIdentificationResult,
+    ANOVAComputationResult,
+    VarianceDecompositionResult,
+    VisualizationPreparationResult,
+    SOVStageStatus,
+    SOVPipelineConfig,
+    SOVPipeline,
+    SOVPipelineRef,
+    CreatePipelineRequest,
+    StartPipelineRequest,
+    CancelPipelineRequest,
+    PipelineProgressUpdate,
+)
+from shared.contracts.sov.dataset_io import (
+    SOVColumnRole,
+    SOVFactorType,
+    SignificanceLevel,
+    SOVColumnMeta,
+    DataSetLoadRequest,
+    DataSetLoadResult,
+    DataSetValidationResult,
+    OutputColumn,
+    DataSetOutputConfig,
+    DataSetOutputResult,
+    ANOVATableRow,
+    ANOVATableOutput,
+    PostHocTableRow,
+    PostHocTableOutput,
+    GroupMeansRow,
+    GroupMeansOutput,
+    VarianceComponentRow,
+    VarianceComponentsOutput,
+    SOVResultsBundle,
+)
 
 __all__ = [
     # ANOVA contracts
@@ -63,4 +109,46 @@ __all__ = [
     "NormalProbabilityPlotConfig",
     "PlotStyle",
     "ColorPalette",
+    # Pipeline contracts (ADR-0022)
+    "SOVStageId",
+    "SOVStageState",
+    "SOVPipelineState",
+    "DataIngestionConfig",
+    "FactorIdentificationConfig",
+    "ANOVAComputationConfig",
+    "VarianceDecompositionConfig",
+    "VisualizationPreparationConfig",
+    "DataIngestionResult",
+    "FactorIdentificationResult",
+    "ANOVAComputationResult",
+    "VarianceDecompositionResult",
+    "VisualizationPreparationResult",
+    "SOVStageStatus",
+    "SOVPipelineConfig",
+    "SOVPipeline",
+    "SOVPipelineRef",
+    "CreatePipelineRequest",
+    "StartPipelineRequest",
+    "CancelPipelineRequest",
+    "PipelineProgressUpdate",
+    # DataSet I/O contracts (ADR-0023)
+    "SOVColumnRole",
+    "SOVFactorType",
+    "SignificanceLevel",
+    "SOVColumnMeta",
+    "DataSetLoadRequest",
+    "DataSetLoadResult",
+    "DataSetValidationResult",
+    "OutputColumn",
+    "DataSetOutputConfig",
+    "DataSetOutputResult",
+    "ANOVATableRow",
+    "ANOVATableOutput",
+    "PostHocTableRow",
+    "PostHocTableOutput",
+    "GroupMeansRow",
+    "GroupMeansOutput",
+    "VarianceComponentRow",
+    "VarianceComponentsOutput",
+    "SOVResultsBundle",
 ]

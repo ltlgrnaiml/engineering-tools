@@ -1,0 +1,1020 @@
+{
+  "schema_type": "plan",
+  "id": "PLAN-001",
+  "title": "DevTools Workflow Manager Implementation",
+  "version": "2025.12.01",
+  "status": "draft",
+  "granularity": "L1",
+  "created_date": "2025-12-30",
+  "updated_date": "2025-12-30",
+  "author": "AI-Assisted (Cascade)",
+  "summary": "Implement the DevTools Workflow Manager UI for managing AI Development Workflow artifacts (Discussions, ADRs, SPECs, Plans, Contracts) with interactive 2D/3D graph visualization, unified artifact navigation, and guided workflow creation.",
+  "objective": "Deliver a fully functional Workflow Manager utility within the DevTools page that: (1) Lists and searches all artifact types from a tabbed sidebar, (2) Visualizes artifact relationships as an interactive force-directed graph (2D/3D), (3) Provides reader/editor panels for all artifact types, (4) Offers a command palette for keyboard-driven navigation, (5) Includes workflow wizard for guided artifact creation.",
+  "source_references": [
+    {
+      "type": "discussion",
+      "id": "DISC-001",
+      "title": "DevTools AI Workflow Integration"
+    },
+    {
+      "type": "adr",
+      "id": "ADR-0043",
+      "title": "DevTools Workflow Manager UI Architecture"
+    },
+    {
+      "type": "spec",
+      "id": "SPEC-0046",
+      "title": "DevTools Workflow Manager"
+    }
+  ],
+  "prerequisites": [
+    "All existing tests pass (pytest tests/ -v)",
+    "Linting passes (ruff check .)",
+    "Node.js dependencies up to date (cd apps/homepage/frontend && npm install)",
+    "Development environment running (./start.ps1)"
+  ],
+  "milestones": [
+    {
+      "id": "M1",
+      "name": "Backend API Foundation & Contracts",
+      "objective": "Create Pydantic contracts and backend API endpoints for artifact discovery and CRUD operations.",
+      "status": "pending",
+      "deliverables": [
+        "shared/contracts/devtools/workflow.py — New contract file with all API models",
+        "gateway/services/workflow_service.py — Service for artifact scanning",
+        "gateway/routes/devtools.py — Extended with new endpoints"
+      ],
+      "dependencies": [],
+      "tasks": [
+        {
+          "id": "T-M1-01",
+          "description": "Create shared/contracts/devtools/workflow.py with ArtifactType, ArtifactStatus, ArtifactSummary, GraphNode, GraphEdge, etc.",
+          "verification_command": "python -c \"from shared.contracts.devtools.workflow import ArtifactType, GraphNode\"",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null,
+          "context": [
+            "ArtifactType enum: discussion, adr, spec, plan, contract",
+            "ArtifactStatus enum: draft, active, deprecated, etc.",
+            "GraphNode needs: id, type, label, status, file_path",
+            "GraphEdge needs: source, target, relationship (implements, references, creates)",
+            "Follow existing pattern in shared/contracts/devtools/api.py"
+          ],
+          "hints": [],
+          "references": [],
+          "steps": []
+        },
+        {
+          "id": "T-M1-02",
+          "description": "Create gateway/services/workflow_service.py with artifact scanning logic",
+          "verification_command": "grep \"def scan_artifacts\" gateway/services/workflow_service.py",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null,
+          "context": [
+            "Scan directories: .discussions/, .adrs/, docs/specs/, .plans/, shared/contracts/",
+            "Parse JSON files for ADRs/SPECs, markdown for discussions/plans",
+            "Extract references from implements_adr, source_discussion fields",
+            "Return list of ArtifactSummary objects"
+          ],
+          "hints": [],
+          "references": [],
+          "steps": []
+        },
+        {
+          "id": "T-M1-03",
+          "description": "Add artifact list endpoint to gateway/routes/devtools.py",
+          "verification_command": "grep \"GET.*artifacts\" gateway/routes/devtools.py",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null,
+          "context": [
+            "Endpoint: GET /api/devtools/artifacts",
+            "Query params: type (optional filter), search (optional text search)",
+            "Response: ArtifactListResponse with items and total count",
+            "Call workflow_service.scan_artifacts()"
+          ],
+          "hints": [],
+          "references": [],
+          "steps": []
+        },
+        {
+          "id": "T-M1-04",
+          "description": "Add artifact graph endpoint with reference extraction",
+          "verification_command": "grep \"artifacts/graph\" gateway/routes/devtools.py",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M1-05",
+          "description": "Add artifact CRUD endpoints (POST, PUT, DELETE)",
+          "verification_command": "grep -E \"POST|PUT|DELETE.*artifacts\" gateway/routes/devtools.py",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M1-06",
+          "description": "Write unit tests for all new endpoints",
+          "verification_command": "pytest tests/gateway/test_devtools_workflow.py -v",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        }
+      ],
+      "acceptance_criteria": [
+        {
+          "id": "AC-M1-01",
+          "description": "workflow.py contract exists with all models",
+          "verification_command": "grep \"class ArtifactType\" shared/contracts/devtools/workflow.py",
+          "status": "pending",
+          "evidence": null
+        },
+        {
+          "id": "AC-M1-02",
+          "description": "GET /api/devtools/artifacts returns 200",
+          "verification_command": "curl -s http://localhost:8000/api/devtools/artifacts | jq .total",
+          "status": "pending",
+          "evidence": null
+        },
+        {
+          "id": "AC-M1-03",
+          "description": "GET /api/devtools/artifacts/graph returns nodes and edges",
+          "verification_command": "curl -s http://localhost:8000/api/devtools/artifacts/graph | jq '.nodes | length'",
+          "status": "pending",
+          "evidence": null
+        },
+        {
+          "id": "AC-M1-04",
+          "description": "POST /api/devtools/artifacts creates artifact",
+          "verification_command": "curl -X POST http://localhost:8000/api/devtools/artifacts -H 'Content-Type: application/json' -d '{...}' | jq .artifact.id",
+          "status": "pending",
+          "evidence": null
+        },
+        {
+          "id": "AC-M1-05",
+          "description": "Unit tests pass for new endpoints",
+          "verification_command": "pytest tests/gateway/test_devtools_workflow.py -v",
+          "status": "pending",
+          "evidence": null
+        }
+      ],
+      "notes": null,
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "id": "M2",
+      "name": "Sidebar Component",
+      "objective": "Build the sidebar with tabbed artifact type navigation and search.",
+      "status": "pending",
+      "deliverables": [
+        "WorkflowSidebar.tsx — Main sidebar container",
+        "SidebarTabs.tsx — Tab bar with artifact type icons",
+        "ArtifactList.tsx — Scrollable list with search"
+      ],
+      "dependencies": ["M1"],
+      "tasks": [
+        {
+          "id": "T-M2-01",
+          "description": "Create components/workflow/ directory structure",
+          "verification_command": "ls apps/homepage/frontend/src/components/workflow/",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M2-02",
+          "description": "Implement WorkflowSidebar.tsx with collapse toggle",
+          "verification_command": "grep \"WorkflowSidebar\" apps/homepage/frontend/src/components/workflow/WorkflowSidebar.tsx",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M2-03",
+          "description": "Implement SidebarTabs.tsx with Lucide icons per type",
+          "verification_command": "grep \"SidebarTabs\" apps/homepage/frontend/src/components/workflow/SidebarTabs.tsx",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M2-04",
+          "description": "Implement ArtifactList.tsx with search input",
+          "verification_command": "grep \"ArtifactList\" apps/homepage/frontend/src/components/workflow/ArtifactList.tsx",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M2-05",
+          "description": "Add keyboard navigation hooks",
+          "verification_command": "grep -E \"useKeyboardNavigation|onKeyDown\" apps/homepage/frontend/src/components/workflow/",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M2-06",
+          "description": "Style with TailwindCSS matching existing DevTools",
+          "verification_command": "Visual inspection",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        }
+      ],
+      "acceptance_criteria": [
+        {
+          "id": "AC-M2-01",
+          "description": "WorkflowSidebar component exists",
+          "verification_command": "grep \"WorkflowSidebar\" apps/homepage/frontend/src/components/workflow/",
+          "status": "pending",
+          "evidence": null
+        },
+        {
+          "id": "AC-M2-02",
+          "description": "Tabs switch artifact lists",
+          "verification_command": "Manual testing",
+          "status": "pending",
+          "evidence": null
+        },
+        {
+          "id": "AC-M2-03",
+          "description": "Search filters results",
+          "verification_command": "Manual testing",
+          "status": "pending",
+          "evidence": null
+        },
+        {
+          "id": "AC-M2-04",
+          "description": "Keyboard navigation works (Tab, Arrow keys)",
+          "verification_command": "Manual testing",
+          "status": "pending",
+          "evidence": null
+        }
+      ],
+      "notes": null,
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "id": "M3",
+      "name": "Graph Visualization",
+      "objective": "Implement interactive 2D/3D force-directed graph using react-force-graph.",
+      "status": "pending",
+      "deliverables": [
+        "ArtifactGraph.tsx — Graph container with 2D/3D toggle",
+        "GraphToolbar.tsx — Controls (zoom, export, 2D/3D toggle)",
+        "Lazy-loaded 3D component"
+      ],
+      "dependencies": ["M1", "M2"],
+      "tasks": [
+        {
+          "id": "T-M3-01",
+          "description": "Install dependencies: npm install react-force-graph-2d react-force-graph-3d three",
+          "verification_command": "grep \"react-force-graph\" apps/homepage/frontend/package.json",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M3-02",
+          "description": "Create ArtifactGraph.tsx with ForceGraph2D",
+          "verification_command": "grep \"ForceGraph2D\" apps/homepage/frontend/src/components/workflow/ArtifactGraph.tsx",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M3-03",
+          "description": "Implement node coloring by tier (per ADR-0043 colors)",
+          "verification_command": "grep -E \"#3B82F6|#22C55E\" apps/homepage/frontend/src/components/workflow/",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M3-04",
+          "description": "Implement edge styling by relationship type",
+          "verification_command": "grep -E \"implements|references|creates\" apps/homepage/frontend/src/components/workflow/",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M3-05",
+          "description": "Add hover tooltip with artifact summary",
+          "verification_command": "grep -E \"tooltip|onNodeHover\" apps/homepage/frontend/src/components/workflow/",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M3-06",
+          "description": "Add click handler to select artifact",
+          "verification_command": "grep \"onNodeClick\" apps/homepage/frontend/src/components/workflow/",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M3-07",
+          "description": "Implement lazy-loaded 3D toggle",
+          "verification_command": "grep -E \"React.lazy|Suspense\" apps/homepage/frontend/src/components/workflow/",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M3-08",
+          "description": "Create GraphToolbar.tsx with export button",
+          "verification_command": "grep \"GraphToolbar\" apps/homepage/frontend/src/components/workflow/",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        }
+      ],
+      "acceptance_criteria": [
+        {
+          "id": "AC-M3-01",
+          "description": "react-force-graph-2d installed",
+          "verification_command": "grep \"react-force-graph-2d\" apps/homepage/frontend/package.json",
+          "status": "pending",
+          "evidence": null
+        },
+        {
+          "id": "AC-M3-02",
+          "description": "Graph renders nodes with tier colors",
+          "verification_command": "Visual inspection",
+          "status": "pending",
+          "evidence": null
+        },
+        {
+          "id": "AC-M3-03",
+          "description": "Graph renders edges with relationship styles",
+          "verification_command": "Visual inspection",
+          "status": "pending",
+          "evidence": null
+        },
+        {
+          "id": "AC-M3-04",
+          "description": "Click node selects artifact",
+          "verification_command": "Manual testing",
+          "status": "pending",
+          "evidence": null
+        },
+        {
+          "id": "AC-M3-05",
+          "description": "3D mode loads lazily",
+          "verification_command": "Network tab inspection",
+          "status": "pending",
+          "evidence": null
+        }
+      ],
+      "notes": null,
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "id": "M4",
+      "name": "Reader Component",
+      "objective": "Build artifact reader/viewer supporting all artifact types with formatted display.",
+      "status": "pending",
+      "deliverables": [
+        "ArtifactReader.tsx — Main reader container",
+        "JsonRenderer.tsx — For ADR/SPEC JSON",
+        "MarkdownRenderer.tsx — For Discussion/Plan markdown",
+        "CodeRenderer.tsx — For Contract Python"
+      ],
+      "dependencies": ["M2"],
+      "tasks": [
+        {
+          "id": "T-M4-01",
+          "description": "Create ArtifactReader.tsx with type-based rendering",
+          "verification_command": "grep \"ArtifactReader\" apps/homepage/frontend/src/components/workflow/ArtifactReader.tsx",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M4-02",
+          "description": "Implement JsonRenderer.tsx with collapsible sections",
+          "verification_command": "grep \"JsonRenderer\" apps/homepage/frontend/src/components/workflow/",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M4-03",
+          "description": "Install and configure react-markdown: npm install react-markdown react-syntax-highlighter",
+          "verification_command": "grep \"react-markdown\" apps/homepage/frontend/package.json",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M4-04",
+          "description": "Implement MarkdownRenderer.tsx",
+          "verification_command": "grep \"MarkdownRenderer\" apps/homepage/frontend/src/components/workflow/",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M4-05",
+          "description": "Implement CodeRenderer.tsx with Python highlighting",
+          "verification_command": "grep -E \"CodeRenderer|python\" apps/homepage/frontend/src/components/workflow/",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M4-06",
+          "description": "Add reader header with Edit/Copy/Link buttons",
+          "verification_command": "grep -E \"Edit|Copy\" apps/homepage/frontend/src/components/workflow/ArtifactReader.tsx",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        }
+      ],
+      "acceptance_criteria": [
+        {
+          "id": "AC-M4-01",
+          "description": "Reader renders ADR JSON as structured sections",
+          "verification_command": "Visual inspection",
+          "status": "pending",
+          "evidence": null
+        },
+        {
+          "id": "AC-M4-02",
+          "description": "Reader renders Discussion markdown",
+          "verification_command": "Visual inspection",
+          "status": "pending",
+          "evidence": null
+        },
+        {
+          "id": "AC-M4-03",
+          "description": "Reader renders Contract with syntax highlighting",
+          "verification_command": "Visual inspection",
+          "status": "pending",
+          "evidence": null
+        },
+        {
+          "id": "AC-M4-04",
+          "description": "Edit button opens editor",
+          "verification_command": "Manual testing",
+          "status": "pending",
+          "evidence": null
+        }
+      ],
+      "notes": null,
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "id": "M5",
+      "name": "Editor Component",
+      "objective": "Build slide-in editor panel with form-based and Monaco editing.",
+      "status": "pending",
+      "deliverables": [
+        "ArtifactEditor.tsx — Slide-in container",
+        "EditorForm.tsx — Form fields for structured types",
+        "Monaco integration for unstructured types"
+      ],
+      "dependencies": ["M4", "M1"],
+      "tasks": [
+        {
+          "id": "T-M5-01",
+          "description": "Create ArtifactEditor.tsx with slide-in animation",
+          "verification_command": "grep \"ArtifactEditor\" apps/homepage/frontend/src/components/workflow/ArtifactEditor.tsx",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M5-02",
+          "description": "Implement slide animation (200ms ease-in-out)",
+          "verification_command": "grep -E \"transition|animate\" apps/homepage/frontend/src/components/workflow/ArtifactEditor.tsx",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M5-03",
+          "description": "Install Monaco editor: npm install @monaco-editor/react",
+          "verification_command": "grep \"@monaco-editor\" apps/homepage/frontend/package.json",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M5-04",
+          "description": "Implement EditorForm.tsx for ADR/SPEC structured editing",
+          "verification_command": "grep \"EditorForm\" apps/homepage/frontend/src/components/workflow/",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M5-05",
+          "description": "Integrate Monaco for Discussion/Plan/Contract",
+          "verification_command": "grep -E \"Monaco|Editor\" apps/homepage/frontend/src/components/workflow/ArtifactEditor.tsx",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M5-06",
+          "description": "Add save/cancel handlers with validation",
+          "verification_command": "grep -E \"handleSave|handleCancel\" apps/homepage/frontend/src/components/workflow/",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M5-07",
+          "description": "Add dirty state confirmation dialog",
+          "verification_command": "grep -E \"dirty|unsaved|confirm\" apps/homepage/frontend/src/components/workflow/",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M5-08",
+          "description": "Add keyboard shortcuts (Ctrl+S, Escape)",
+          "verification_command": "grep -E \"Ctrl.*S|Escape|useEffect.*keydown\" apps/homepage/frontend/src/components/workflow/",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        }
+      ],
+      "acceptance_criteria": [
+        {
+          "id": "AC-M5-01",
+          "description": "Editor slides in from right",
+          "verification_command": "Visual inspection",
+          "status": "pending",
+          "evidence": null
+        },
+        {
+          "id": "AC-M5-02",
+          "description": "Save persists via API",
+          "verification_command": "Network tab + file check",
+          "status": "pending",
+          "evidence": null
+        },
+        {
+          "id": "AC-M5-03",
+          "description": "Cancel with dirty state shows confirmation",
+          "verification_command": "Manual testing",
+          "status": "pending",
+          "evidence": null
+        },
+        {
+          "id": "AC-M5-04",
+          "description": "Ctrl+S saves, Escape cancels",
+          "verification_command": "Manual testing",
+          "status": "pending",
+          "evidence": null
+        }
+      ],
+      "notes": null,
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "id": "M6",
+      "name": "Header & Command Palette",
+      "objective": "Build workflow header with actions and command palette for power users.",
+      "status": "pending",
+      "deliverables": [
+        "WorkflowHeader.tsx — Header action bar",
+        "NewWorkflowDropdown.tsx — Dropdown with workflow types",
+        "CommandPalette.tsx — Cmd+K modal"
+      ],
+      "dependencies": ["M1", "M2", "M3", "M4", "M5"],
+      "tasks": [
+        {
+          "id": "T-M6-01",
+          "description": "Create WorkflowHeader.tsx",
+          "verification_command": "grep \"WorkflowHeader\" apps/homepage/frontend/src/components/workflow/WorkflowHeader.tsx",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M6-02",
+          "description": "Implement NewWorkflowDropdown.tsx with workflow types",
+          "verification_command": "grep -E \"NewWorkflowDropdown|New Feature|Bug Fix\" apps/homepage/frontend/src/components/workflow/",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M6-03",
+          "description": "Create CommandPalette.tsx modal",
+          "verification_command": "grep \"CommandPalette\" apps/homepage/frontend/src/components/workflow/CommandPalette.tsx",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M6-04",
+          "description": "Add global Cmd+K listener",
+          "verification_command": "grep -E \"metaKey|ctrlKey.*[Kk]\" apps/homepage/frontend/src/",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M6-05",
+          "description": "Implement fuzzy search for artifacts",
+          "verification_command": "grep -E \"fuzzy|filter|search\" apps/homepage/frontend/src/components/workflow/CommandPalette.tsx",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M6-06",
+          "description": "Add recent items to command palette",
+          "verification_command": "grep -E \"recent|history\" apps/homepage/frontend/src/components/workflow/",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        }
+      ],
+      "acceptance_criteria": [
+        {
+          "id": "AC-M6-01",
+          "description": "Header shows New Workflow button",
+          "verification_command": "Visual inspection",
+          "status": "pending",
+          "evidence": null
+        },
+        {
+          "id": "AC-M6-02",
+          "description": "Dropdown creates new artifacts",
+          "verification_command": "Manual testing",
+          "status": "pending",
+          "evidence": null
+        },
+        {
+          "id": "AC-M6-03",
+          "description": "Cmd+K opens command palette",
+          "verification_command": "Manual testing",
+          "status": "pending",
+          "evidence": null
+        },
+        {
+          "id": "AC-M6-04",
+          "description": "Fuzzy search finds artifacts",
+          "verification_command": "Manual testing",
+          "status": "pending",
+          "evidence": null
+        }
+      ],
+      "notes": null,
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "id": "M7",
+      "name": "Activity Feed & Empty States",
+      "objective": "Add activity feed showing recent changes and helpful empty states.",
+      "status": "pending",
+      "deliverables": [
+        "ActivityFeed.tsx — Recent activity list",
+        "EmptyState.tsx — Empty state variants"
+      ],
+      "dependencies": ["M1", "M2"],
+      "tasks": [
+        {
+          "id": "T-M7-01",
+          "description": "Add /api/devtools/artifacts/activity endpoint",
+          "verification_command": "grep \"activity\" gateway/routes/devtools.py",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M7-02",
+          "description": "Create ActivityFeed.tsx component",
+          "verification_command": "grep \"ActivityFeed\" apps/homepage/frontend/src/components/workflow/ActivityFeed.tsx",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M7-03",
+          "description": "Create EmptyState.tsx with variants per type",
+          "verification_command": "grep \"EmptyState\" apps/homepage/frontend/src/components/workflow/EmptyState.tsx",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M7-04",
+          "description": "Add CTAs to empty states",
+          "verification_command": "grep -E \"Create your first|Get started\" apps/homepage/frontend/src/components/workflow/",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        }
+      ],
+      "acceptance_criteria": [
+        {
+          "id": "AC-M7-01",
+          "description": "Activity feed shows recent changes",
+          "verification_command": "Visual inspection",
+          "status": "pending",
+          "evidence": null
+        },
+        {
+          "id": "AC-M7-02",
+          "description": "Empty states show helpful CTAs",
+          "verification_command": "Visual inspection",
+          "status": "pending",
+          "evidence": null
+        }
+      ],
+      "notes": null,
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "id": "M8",
+      "name": "Workflow Stepper",
+      "objective": "Build workflow wizard with progress stepper for guided artifact creation.",
+      "status": "pending",
+      "deliverables": [
+        "WorkflowStepper.tsx — Progress stepper bar",
+        "Workflow state management"
+      ],
+      "dependencies": ["M6", "M1"],
+      "tasks": [
+        {
+          "id": "T-M8-01",
+          "description": "Create WorkflowStepper.tsx with stages",
+          "verification_command": "grep \"WorkflowStepper\" apps/homepage/frontend/src/components/workflow/WorkflowStepper.tsx",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M8-02",
+          "description": "Implement stage progression logic",
+          "verification_command": "grep -E \"nextStage|advanceStage\" apps/homepage/frontend/src/components/workflow/",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M8-03",
+          "description": "Add sessionStorage persistence for active workflow",
+          "verification_command": "grep \"sessionStorage\" apps/homepage/frontend/src/components/workflow/",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M8-04",
+          "description": "Generate AI handoff prompts per stage",
+          "verification_command": "grep -E \"prompt|handoff\" apps/homepage/frontend/src/components/workflow/",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        }
+      ],
+      "acceptance_criteria": [
+        {
+          "id": "AC-M8-01",
+          "description": "Stepper shows workflow stages",
+          "verification_command": "Visual inspection",
+          "status": "pending",
+          "evidence": null
+        },
+        {
+          "id": "AC-M8-02",
+          "description": "Stage transitions work",
+          "verification_command": "Manual testing",
+          "status": "pending",
+          "evidence": null
+        },
+        {
+          "id": "AC-M8-03",
+          "description": "State persists across refresh",
+          "verification_command": "Manual testing",
+          "status": "pending",
+          "evidence": null
+        }
+      ],
+      "notes": null,
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "id": "M9",
+      "name": "Integration & Polish",
+      "objective": "Wire all components together, add loading/error states, accessibility, and E2E tests.",
+      "status": "pending",
+      "deliverables": [
+        "WorkflowManagerPage.tsx — Top-level page integration",
+        "Loading and error states",
+        "Accessibility fixes",
+        "E2E tests"
+      ],
+      "dependencies": ["M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8"],
+      "tasks": [
+        {
+          "id": "T-M9-01",
+          "description": "Create WorkflowManagerPage.tsx composing all components",
+          "verification_command": "grep \"WorkflowManagerPage\" apps/homepage/frontend/src/pages/",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M9-02",
+          "description": "Add loading states (skeletons) for async operations",
+          "verification_command": "grep -E \"Skeleton|loading\" apps/homepage/frontend/src/components/workflow/",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M9-03",
+          "description": "Add error boundaries and toast notifications",
+          "verification_command": "grep -E \"ErrorBoundary|toast\" apps/homepage/frontend/src/",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M9-04",
+          "description": "Implement graph export as PNG",
+          "verification_command": "grep -E \"export|toDataURL|canvas\" apps/homepage/frontend/src/components/workflow/",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M9-05",
+          "description": "Run accessibility audit and fix issues",
+          "verification_command": "npx axe-core or manual audit",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M9-06",
+          "description": "Write E2E tests for critical flows",
+          "verification_command": "ls apps/homepage/frontend/tests/e2e/workflow*",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        },
+        {
+          "id": "T-M9-07",
+          "description": "Performance optimization (memo, lazy loading)",
+          "verification_command": "grep -E \"React.memo|useMemo|useCallback\" apps/homepage/frontend/src/components/workflow/",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null
+        }
+      ],
+      "acceptance_criteria": [
+        {
+          "id": "AC-M9-01",
+          "description": "Full workflow from sidebar to edit works",
+          "verification_command": "E2E test",
+          "status": "pending",
+          "evidence": null
+        },
+        {
+          "id": "AC-M9-02",
+          "description": "No accessibility violations",
+          "verification_command": "npx axe ...",
+          "status": "pending",
+          "evidence": null
+        },
+        {
+          "id": "AC-M9-03",
+          "description": "Graph export as PNG works",
+          "verification_command": "Manual testing",
+          "status": "pending",
+          "evidence": null
+        },
+        {
+          "id": "AC-M9-04",
+          "description": "E2E tests pass",
+          "verification_command": "npm run test:e2e",
+          "status": "pending",
+          "evidence": null
+        }
+      ],
+      "notes": null,
+      "started_at": null,
+      "completed_at": null
+    }
+  ],
+  "global_acceptance_criteria": [
+    {
+      "id": "AC-GLOBAL-01",
+      "description": "All Python tests pass",
+      "verification_command": "pytest tests/ -v"
+    },
+    {
+      "id": "AC-GLOBAL-02",
+      "description": "No Python linting errors",
+      "verification_command": "ruff check ."
+    },
+    {
+      "id": "AC-GLOBAL-03",
+      "description": "Frontend builds",
+      "verification_command": "cd apps/homepage/frontend && npm run build"
+    },
+    {
+      "id": "AC-GLOBAL-04",
+      "description": "No TypeScript errors",
+      "verification_command": "cd apps/homepage/frontend && npm run typecheck"
+    },
+    {
+      "id": "AC-GLOBAL-05",
+      "description": "Imports verified",
+      "verification_command": "python -c \"from shared.contracts.devtools.workflow import *\""
+    }
+  ],
+  "execution_log": [],
+  "blockers": [],
+  "lessons_learned": [],
+  "handoff_notes": {
+    "current_state": "Plan created in JSON format with full schema validation. Ready for M1 implementation.",
+    "immediate_next_steps": [
+      "Create shared/contracts/devtools/workflow.py",
+      "Implement artifact scanning service",
+      "Add API endpoints to devtools routes"
+    ],
+    "known_issues": [],
+    "files_modified": [
+      ".plans/PLAN-001_DevTools-Workflow-Manager.json"
+    ],
+    "updated_at": "2025-12-30T09:55:00"
+  }
+}

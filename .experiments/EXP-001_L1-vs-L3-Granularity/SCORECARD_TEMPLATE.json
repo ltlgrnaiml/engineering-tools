@@ -1,0 +1,182 @@
+{
+  "experiment_id": "EXP-001",
+  "experiment_name": "L1 vs L3 Plan Granularity Comparison",
+  "branch": "",
+  "granularity": "",
+  "model_used": "",
+  "executor": "AI Assistant",
+  "execution": {
+    "start_time": "",
+    "end_time": "",
+    "duration_minutes": 0,
+    "ai_messages_sent": 0,
+    "ai_tool_calls": 0,
+    "errors_encountered": 0,
+    "manual_interventions": 0,
+    "restarts_required": 0
+  },
+  "definition_of_done": {
+    "correctness": {
+      "weight": 40,
+      "criteria": [
+        {
+          "id": "C1",
+          "name": "Imports work",
+          "max_points": 10,
+          "verification": "python -c \"from shared.contracts.devtools.workflow import ArtifactType, GraphNode\"",
+          "score": null,
+          "notes": ""
+        },
+        {
+          "id": "C2",
+          "name": "Endpoints exist",
+          "max_points": 10,
+          "verification": "grep -E \"@router\\.(get|post).*artifacts\" gateway/routes/devtools.py",
+          "score": null,
+          "notes": ""
+        },
+        {
+          "id": "C3",
+          "name": "Schema validates",
+          "max_points": 10,
+          "verification": "python -c \"from shared.contracts.devtools.workflow import ArtifactListResponse; print('OK')\"",
+          "score": null,
+          "notes": ""
+        },
+        {
+          "id": "C4",
+          "name": "Service callable",
+          "max_points": 10,
+          "verification": "grep \"scan_artifacts\" gateway/routes/devtools.py",
+          "score": null,
+          "notes": ""
+        }
+      ],
+      "subtotal": null
+    },
+    "completeness": {
+      "weight": 30,
+      "criteria": [
+        {
+          "id": "CP1",
+          "name": "T-M1-01 complete",
+          "max_points": 5,
+          "verification": "Task verification command passes",
+          "score": null,
+          "notes": ""
+        },
+        {
+          "id": "CP2",
+          "name": "T-M1-02 complete",
+          "max_points": 5,
+          "verification": "Task verification command passes",
+          "score": null,
+          "notes": ""
+        },
+        {
+          "id": "CP3",
+          "name": "T-M1-03 complete",
+          "max_points": 5,
+          "verification": "Task verification command passes",
+          "score": null,
+          "notes": ""
+        },
+        {
+          "id": "CP4",
+          "name": "T-M1-04 complete",
+          "max_points": 5,
+          "verification": "Task verification command passes",
+          "score": null,
+          "notes": ""
+        },
+        {
+          "id": "CP5",
+          "name": "T-M1-05 complete",
+          "max_points": 5,
+          "verification": "Task verification command passes",
+          "score": null,
+          "notes": ""
+        },
+        {
+          "id": "CP6",
+          "name": "T-M1-06 complete",
+          "max_points": 5,
+          "verification": "Task verification command passes",
+          "score": null,
+          "notes": ""
+        }
+      ],
+      "subtotal": null
+    },
+    "code_quality": {
+      "weight": 20,
+      "criteria": [
+        {
+          "id": "Q1",
+          "name": "Linting passes",
+          "max_points": 5,
+          "verification": "ruff check shared/contracts/devtools/workflow.py gateway/services/workflow_service.py",
+          "score": null,
+          "notes": ""
+        },
+        {
+          "id": "Q2",
+          "name": "Type hints complete",
+          "max_points": 5,
+          "verification": "Manual review - all functions have type hints",
+          "score": null,
+          "notes": ""
+        },
+        {
+          "id": "Q3",
+          "name": "Docstrings present",
+          "max_points": 5,
+          "verification": "grep -c '\"\"\"' shared/contracts/devtools/workflow.py (expect > 5)",
+          "score": null,
+          "notes": ""
+        },
+        {
+          "id": "Q4",
+          "name": "Follows patterns",
+          "max_points": 5,
+          "verification": "Manual review - matches existing devtools patterns",
+          "score": null,
+          "notes": ""
+        }
+      ],
+      "subtotal": null
+    },
+    "efficiency": {
+      "weight": 10,
+      "criteria": [
+        {
+          "id": "E1",
+          "name": "Iterations score",
+          "max_points": 5,
+          "verification": "< 10 messages = 5pts, 10-15 = 4pts, 15-20 = 3pts, 20-30 = 2pts, > 30 = 1pt",
+          "score": null,
+          "notes": ""
+        },
+        {
+          "id": "E2",
+          "name": "Time score",
+          "max_points": 5,
+          "verification": "< 15min = 5pts, 15-30 = 4pts, 30-45 = 3pts, 45-60 = 2pts, > 60 = 1pt",
+          "score": null,
+          "notes": ""
+        }
+      ],
+      "subtotal": null
+    }
+  },
+  "total_score": null,
+  "max_score": 100,
+  "percentage": null,
+  "qualitative_observations": {
+    "what_went_well": [],
+    "what_went_wrong": [],
+    "ai_confusion_points": [],
+    "unexpected_issues": []
+  },
+  "recommendation": ""
+}
