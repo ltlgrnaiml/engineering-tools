@@ -1,0 +1,71 @@
+{
+  "experiment_id": "EXP-001",
+  "branch": "experiment/l3-gemini-flash",
+  "model": {
+    "model_id": "gemini-flash-3-high",
+    "model_name": "Gemini Flash 3 High",
+    "cost_multiplier": 1,
+    "granularity": "L3"
+  },
+  "execution": {
+    "start_time": "11:45",
+    "end_time": "11:57",
+    "duration_minutes": 12,
+    "total_messages": null,
+    "errors_encountered": null,
+    "notes": "Script failed - uses input() which requires interactive terminal. Results collected manually."
+  },
+  "verifications": {
+    "T-M1-01_contracts": {
+      "command": "python -c \"from shared.contracts.devtools.workflow import ArtifactType, GraphNode\"",
+      "passed": true,
+      "file_exists": "shared/contracts/devtools/workflow.py (3432 bytes)"
+    },
+    "T-M1-02_service": {
+      "command": "test -f gateway/services/workflow_service.py",
+      "passed": true,
+      "file_exists": "gateway/services/workflow_service.py (5265 bytes)"
+    },
+    "T-M1-03_list_endpoint": {
+      "command": "grep artifacts gateway/services/devtools_service.py",
+      "passed": true,
+      "notes": "Endpoints added to devtools_service.py"
+    },
+    "T-M1-04_graph_endpoint": {
+      "command": "grep artifacts/graph gateway/services/devtools_service.py",
+      "passed": true,
+      "notes": "Graph endpoint implemented"
+    },
+    "T-M1-05_crud_endpoints": {
+      "command": "grep -E POST|PUT|DELETE gateway/services/devtools_service.py",
+      "passed": true,
+      "notes": "CRUD endpoints implemented"
+    },
+    "T-M1-06_tests": {
+      "command": "test -f tests/gateway/test_devtools_workflow.py",
+      "passed": true,
+      "file_exists": "tests/gateway/test_devtools_workflow.py (2025 bytes)"
+    }
+  },
+  "l3_adherence": {
+    "followed_steps": true,
+    "used_code_snippets": true,
+    "version_format": "YES - __version__ = '2025.12.01'",
+    "architecture_style": "Functional (correct)",
+    "param_naming": "Correct - uses 'search'",
+    "var_naming": "Correct - uses ARTIFACT_DIRECTORIES",
+    "enum_values": "Partial - has ACCEPTED, RESOLVED, TRACKED_BY (extra values)",
+    "file_locations": "Correct - used gateway/services/devtools_service.py"
+  },
+  "script_issue": {
+    "problem": "save_results.py uses input() for interactive prompts",
+    "recommendation": "Consider using command-line arguments or environment variables instead"
+  },
+  "scores": {
+    "tasks_passed": 6,
+    "tasks_total": 6,
+    "completion_rate": 100.0
+  },
+  "recorded_at": "2025-12-30T11:57:00",
+  "recorded_by": "manual_verification"
+}

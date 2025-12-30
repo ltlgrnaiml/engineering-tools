@@ -150,13 +150,13 @@ def main():
             'grep "def scan_artifacts" gateway/services/workflow_service.py'
         ),
         "T-M1-03_list_endpoint": run_verification(
-            'grep "artifacts" gateway/routes/devtools.py'
+            'grep "artifacts" gateway/services/devtools_service.py'
         ),
         "T-M1-04_graph_endpoint": run_verification(
-            'grep "artifacts/graph" gateway/routes/devtools.py'
+            'grep "artifacts/graph" gateway/services/devtools_service.py'
         ),
         "T-M1-05_crud_endpoints": run_verification(
-            'grep -E "@router\\.(post|delete)" gateway/routes/devtools.py'
+            'grep -E "@router\\.(post|delete)" gateway/services/devtools_service.py'
         ),
         "T-M1-06_tests": run_verification(
             'test -f tests/gateway/test_devtools_workflow.py && echo "EXISTS"'

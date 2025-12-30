@@ -19,6 +19,15 @@ from shared.contracts.adr_schema import (
     ADRFieldValidationResponse,
     ADRSchema,
 )
+from shared.contracts.devtools.workflow import (
+    ArtifactType,
+    ArtifactListResponse,
+    ArtifactGraphResponse,
+    ArtifactCreateRequest,
+    ArtifactCreateResponse,
+    ArtifactDeleteResponse,
+)
+from gateway.services import workflow_service
 
 router = APIRouter()
 
@@ -114,6 +123,72 @@ async def update_devtools_config(
             raise HTTPException(400, f"Invalid mode: {mode}")
         _devtools_config.mode = mode
     return _devtools_config
+
+
+@router.get("/artifacts", response_model=ArtifactListResponse)
+async def list_artifacts(
+    type: ArtifactType | None = Query(None, description="Filter by artifact type"),
+) -> ArtifactListResponse:
+    """List all workflow artifacts with filtering.
+
+    Args:
+        type: Optional artifact type to filter by.
+
+    Returns:
+        ArtifactListResponse containing artifacts and total count.
+    """
+    return await workflow_service.scan_artifacts(artifact_type=type)
+
+
+@router.get("/artifacts/graph", response_model=ArtifactGraphResponse)
+async def get_artifact_graph() -> ArtifactGraphResponse:
+    """Get the artifact relationship graph.
+
+    Returns:
+        ArtifactGraphResponse with nodes and edges.
+    """
+    return await workflow_service.get_artifact_graph()
+
+
+@router.post("/artifacts", response_model=ArtifactCreateResponse)
+async def create_artifact(
+    request: ArtifactCreateRequest,
+) -> ArtifactCreateResponse:
+    """Create a new workflow artifact.
+
+    Args:
+        request: Artifact creation request.
+
+    Returns:
+        Created artifact with file path.
+    """
+    artifact, path = await workflow_service.create_artifact(
+        artifact_type=request.type,
+        title=request.title,
+        content=request.content,
+    )
+    return ArtifactCreateResponse(artifact=artifact, path=path)
+
+
+@router.delete("/artifacts/{artifact_type}/{artifact_id}", response_model=ArtifactDeleteResponse)
+async def delete_artifact(
+    artifact_type: ArtifactType,
+    artifact_id: str,
+) -> ArtifactDeleteResponse:
+    """Soft delete an artifact (moves to .backup/).
+
+    Args:
+        artifact_type: Type of artifact.
+        artifact_id: ID of artifact to delete.
+
+    Returns:
+        Deletion result with backup path.
+    """
+    success, backup_path = await workflow_service.delete_artifact(
+        artifact_type=artifact_type,
+        artifact_id=artifact_id,
+    )
+    return ArtifactDeleteResponse(success=success, backup_path=backup_path)
 
 
 @router.get("/adrs", response_model=list[ADRSummary])
