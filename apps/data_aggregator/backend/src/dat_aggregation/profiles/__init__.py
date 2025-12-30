@@ -5,21 +5,27 @@ Tier-0 contracts imported from shared.contracts.dat.profile.
 """
 from shared.contracts.dat.profile import (
     AggregationConfig,
+    ContentPattern,
     ContextConfig,
     ContextDefaults,
     DATProfile,
     GovernanceConfig,
+    JoinConfig,
+    JoinHow,
     JoinOutputConfig,
     LevelConfig,
+    OnFailBehavior,
     OutputConfig,
     ProfileValidationResult,
     RegexPattern,
+    RegexScope,
     RepeatOverConfig,
     SelectConfig,
     StrategyType,
     TableConfig,
     UIConfig,
 )
+
 from .profile_loader import (
     get_builtin_profiles,
     get_profile_by_id,
@@ -31,15 +37,20 @@ from .profile_loader import (
 __all__ = [
     # Tier-0 contracts (from shared.contracts.dat.profile)
     "AggregationConfig",
+    "ContentPattern",
     "ContextConfig",
     "ContextDefaults",
     "DATProfile",
     "GovernanceConfig",
+    "JoinConfig",
+    "JoinHow",
     "JoinOutputConfig",
     "LevelConfig",
+    "OnFailBehavior",
     "OutputConfig",
     "ProfileValidationResult",
     "RegexPattern",
+    "RegexScope",
     "RepeatOverConfig",
     "SelectConfig",
     "StrategyType",

@@ -15,7 +15,11 @@ from typing import Any
 
 from jsonpath_ng import parse as jsonpath_parse
 
-from .profile_loader import DATProfile, RegexPattern, ContentPattern
+from shared.contracts.dat.profile import (
+    ContentPattern,
+    DATProfile,
+    RegexPattern,
+)
 
 
 class SkipFileException(Exception):
@@ -76,7 +80,11 @@ class ContextExtractor:
         
         # Priority 1: User overrides (highest, allowlisted)
         if user_overrides:
-            allowed = profile.context_defaults.allow_user_override if profile.context_defaults else []
+            allowed = (
+                profile.context_defaults.allow_user_override
+                if profile.context_defaults
+                else []
+            )
             applied = {}
             for key, value in user_overrides.items():
                 if not allowed or key in allowed:

@@ -148,7 +148,7 @@
         "description": "Output configuration",
         "fields": {
           "defaults": {"type": "array[OutputConfig]", "required": false, "description": "Default exports (always included)"},
-          "long_form_optional": {"type": "array[OutputConfig]", "required": false, "description": "Optional exports (user selects)"},
+          "optional_outputs": {"type": "array[OutputConfig]", "required": false, "description": "Optional exports (user selects)"},
           "aggregations": {"type": "array[AggregationConfig]", "required": false, "description": "Post-extraction aggregations"},
           "joins": {"type": "array[JoinConfig]", "required": false, "description": "Output table joins"},
           "ui": {"type": "object", "required": false, "description": "UI presentation hints"}

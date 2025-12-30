@@ -110,7 +110,8 @@ def _parse_profile(data: dict[str, Any]) -> DATProfile:
         _parse_output_config(out) for out in outputs.get("defaults", [])
     ]
     optional_outputs = [
-        _parse_output_config(out) for out in outputs.get("long_form_optional", [])
+        _parse_output_config(out)
+        for out in outputs.get("optional_outputs", outputs.get("long_form_optional", []))
     ]
 
     # Parse aggregations and joins
@@ -147,11 +148,13 @@ def _parse_profile(data: dict[str, Any]) -> DATProfile:
         datasource_options=datasource.get("options", {}),
         default_strategy=population.get("default_strategy", "all"),
         include_populations=population.get("include_populations", []),
+        population_strategies=population.get("strategies", {}),
         context_defaults=context_defaults,
         contexts=contexts,
         levels=levels,
         nan_values=normalization.get("nan_values", []),
         units_policy=normalization.get("units_policy", "preserve"),
+        unit_mappings=normalization.get("unit_mappings", {}),
         numeric_coercion=normalization.get("numeric_coercion", True),
         nan_replacement=normalization.get("nan_replacement"),
         numeric_errors=normalization.get("numeric_errors"),
@@ -172,6 +175,9 @@ def _parse_profile(data: dict[str, Any]) -> DATProfile:
         on_validation_fail=data.get("on_validation_fail", "continue"),
         quarantine_table=data.get("quarantine_table", "validation_failures"),
         governance=governance,
+        overrides_allow=data.get("overrides", {}).get("allow", {}),
+        overrides_deny=data.get("overrides", {}).get("deny", {}),
+        overrides_discovery=data.get("overrides", {}).get("discovery", {}),
     )
 
 
@@ -183,9 +189,17 @@ def _parse_context_defaults(data: dict[str, Any] | None) -> ContextDefaults | No
     regex_patterns = []
     for p in data.get("regex_patterns", []):
         scope_str = p.get("scope", "filename")
-        scope = RegexScope(scope_str) if scope_str in RegexScope._value2member_map_ else RegexScope.FILENAME
+        scope = (
+            RegexScope(scope_str)
+            if scope_str in RegexScope._value2member_map_
+            else RegexScope.FILENAME
+        )
         on_fail_str = p.get("on_fail", "warn")
-        on_fail = OnFailBehavior(on_fail_str) if on_fail_str in OnFailBehavior._value2member_map_ else OnFailBehavior.WARN
+        on_fail = (
+            OnFailBehavior(on_fail_str)
+            if on_fail_str in OnFailBehavior._value2member_map_
+            else OnFailBehavior.WARN
+        )
         regex_patterns.append(
             RegexPattern(
                 field=p.get("field", ""),
@@ -203,7 +217,11 @@ def _parse_context_defaults(data: dict[str, Any] | None) -> ContextDefaults | No
     content_patterns = []
     for p in data.get("content_patterns", []):
         on_fail_str = p.get("on_fail", "warn")
-        on_fail = OnFailBehavior(on_fail_str) if on_fail_str in OnFailBehavior._value2member_map_ else OnFailBehavior.WARN
+        on_fail = (
+            OnFailBehavior(on_fail_str)
+            if on_fail_str in OnFailBehavior._value2member_map_
+            else OnFailBehavior.WARN
+        )
         content_patterns.append(
             ContentPattern(
                 field=p.get("field", ""),
@@ -266,7 +284,11 @@ def _parse_table_config(data: dict[str, Any]) -> TableConfig:
 def _parse_select_config(data: dict[str, Any]) -> SelectConfig:
     """Parse extraction strategy configuration."""
     strategy_str = data.get("strategy", "flat_object")
-    strategy = StrategyType(strategy_str) if strategy_str in StrategyType._value2member_map_ else StrategyType.FLAT_OBJECT
+    strategy = (
+        StrategyType(strategy_str)
+        if strategy_str in StrategyType._value2member_map_
+        else StrategyType.FLAT_OBJECT
+    )
 
     repeat_over = None
     if data.get("repeat_over"):

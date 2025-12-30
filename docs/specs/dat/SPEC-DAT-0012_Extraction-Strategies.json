@@ -135,7 +135,7 @@
         "data_key": {"type": "string", "required": true},
         "repeat_over": {
           "path": {"type": "JSONPath", "required": true, "description": "Array to iterate over"},
-          "as": {"type": "string", "required": true, "description": "Variable name for index"},
+          "as": {"type": "string", "required": true, "description": "Variable name for index", "python_alias": "as_var", "note": "In Python contracts, this field uses alias 'as_var' to avoid Python keyword conflict"},
           "inject_fields": {"type": "object", "required": false, "description": "Context fields to inject from parent"}
         }
       },
