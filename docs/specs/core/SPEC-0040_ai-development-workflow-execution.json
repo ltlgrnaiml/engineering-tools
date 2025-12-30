@@ -1,0 +1,623 @@
+{
+  "id": "SPEC-0040_ai-development-workflow-execution",
+  "title": "AI Development Workflow Execution",
+  "version": "2025.12.01",
+  "status": "draft",
+  "created_date": "2025-12-30",
+  "updated_date": "2025-12-30",
+  "implements_adr": ["ADR-0043"],
+  "tier_0_contracts": [
+    {
+      "module": "shared.contracts.plan_schema",
+      "classes": ["PlanSchema", "Milestone", "Task", "TaskStep", "TaskEvidence", "AcceptanceCriterion", "GranularityLevel", "L3ChunkIndex", "L3ChunkHeader", "L3ChunkFooter", "ContinuationContext", "ChunkMeta"],
+      "status": "exists",
+      "version": "2025.12.01"
+    }
+  ],
+  "overview": {
+    "purpose": "Define the execution semantics for the 6-tier AI Development Workflow, including artifact schemas, gate enforcement, fragment execution protocol, plan granularity levels (L1/L2/L3), and session management.",
+    "scope": "Workflow execution process only. UI implementation is covered by SPEC-0034 (DevTools Workflow Manager).",
+    "out_of_scope": [
+      "UI components and interactions (see SPEC-0034)",
+      "Artifact CRUD API endpoints (see SPEC-0034)",
+      "Graph visualization (see SPEC-0034)"
+    ]
+  },
+  "requirements": {
+    "tier_definitions": [
+      {
+        "id": "SPEC-0040-T0",
+        "tier": "T0",
+        "name": "Discussion",
+        "artifact_path": ".discussions/DISC-XXX_<title>.md",
+        "artifact_format": "markdown",
+        "purpose": "Capture AI ↔ Human design conversation before implementation",
+        "required_sections": [
+          "## Context",
+          "## Requirements", 
+          "## Options Considered",
+          "## Decision",
+          "## Next Steps"
+        ],
+        "outputs": ["ADR reference", "SPEC reference", "Plan reference"],
+        "owner": "Human (with AI assistance)",
+        "acceptance_criteria": [
+          "File exists at .discussions/DISC-XXX_<title>.md",
+          "Contains all required sections",
+          "## Decision section has explicit outcome"
+        ]
+      },
+      {
+        "id": "SPEC-0040-T1",
+        "tier": "T1",
+        "name": "Decision (ADR)",
+        "artifact_path": ".adrs/{domain}/ADR-XXXX_<title>.json",
+        "artifact_format": "json",
+        "purpose": "Record WHY an architectural decision was made (immutable once active)",
+        "required_fields": ["id", "title", "status", "context", "decision", "consequences", "alternatives_considered"],
+        "status_values": ["draft", "active", "deprecated", "superseded"],
+        "outputs": ["SPEC reference", "Contract reference"],
+        "owner": "Human (final approval), AI (drafting)",
+        "acceptance_criteria": [
+          "File exists at .adrs/{domain}/ADR-XXXX_<title>.json",
+          "All required fields present",
+          "status field has valid value",
+          "JSON parses without errors"
+        ]
+      },
+      {
+        "id": "SPEC-0040-T2",
+        "tier": "T2",
+        "name": "Specification (SPEC)",
+        "artifact_path": "docs/specs/{domain}/SPEC-XXXX_<title>.json",
+        "artifact_format": "json",
+        "purpose": "Define WHAT to build (behavioral requirements)",
+        "required_fields": ["id", "title", "status", "implements_adr", "requirements", "acceptance_criteria"],
+        "status_values": ["draft", "active", "deprecated", "superseded"],
+        "outputs": ["Contract reference", "Plan reference"],
+        "owner": "AI (drafting), Human (approval)",
+        "acceptance_criteria": [
+          "File exists at docs/specs/{domain}/SPEC-XXXX_<title>.json",
+          "implements_adr references valid ADR",
+          "All required fields present",
+          "JSON parses without errors"
+        ]
+      },
+      {
+        "id": "SPEC-0040-T3",
+        "tier": "T3",
+        "name": "Contract",
+        "artifact_path": "shared/contracts/{domain}/<module>.py",
+        "artifact_format": "python (Pydantic)",
+        "purpose": "Define data shapes as Pydantic models (SSOT per ADR-0010)",
+        "required_elements": ["__version__", "Pydantic BaseModel classes", "Google-style docstrings"],
+        "validation_command": "python -c \"from shared.contracts.{domain}.{module} import *\"",
+        "outputs": ["Importable models for Plan tasks"],
+        "owner": "AI (implementation), Human (review)",
+        "acceptance_criteria": [
+          "File exists at shared/contracts/{domain}/<module>.py",
+          "__version__ attribute present",
+          "Import command succeeds",
+          "All models inherit from BaseModel"
+        ]
+      },
+      {
+        "id": "SPEC-0040-T4",
+        "tier": "T4",
+        "name": "Plan",
+        "artifact_path": ".plans/PLAN-XXX_<title>.json",
+        "artifact_format": "json",
+        "purpose": "Define milestones, tasks, acceptance criteria, and verification commands",
+        "required_fields": ["id", "title", "granularity", "milestones", "global_acceptance_criteria"],
+        "granularity_levels": ["L1", "L2", "L3"],
+        "outputs": ["Fragment executions (T5)", "Session logs"],
+        "owner": "AI (generation), Human (approval)",
+        "acceptance_criteria": [
+          "File exists at .plans/PLAN-XXX_<title>.json",
+          "granularity is L1, L2, or L3",
+          "Each milestone has tasks with verification_command",
+          "JSON parses without errors"
+        ]
+      },
+      {
+        "id": "SPEC-0040-T5",
+        "tier": "T5",
+        "name": "Fragment",
+        "artifact_path": ".sessions/SESSION_XXX_<summary>.md",
+        "artifact_format": "markdown + inline evidence",
+        "purpose": "One verifiable unit of work with captured evidence",
+        "required_sections": [
+          "# SESSION_XXX: <Title>",
+          "## Objective",
+          "## Preflight",
+          "## Work Log",
+          "## Tasks",
+          "## Handoff Notes"
+        ],
+        "lifecycle_states": ["pending", "in_progress", "verified", "failed", "blocked"],
+        "outputs": ["Code changes", "Test results", "Updated Plan status"],
+        "owner": "AI (execution), Human (verification optional)",
+        "acceptance_criteria": [
+          "Session file exists at .sessions/SESSION_XXX_<summary>.md",
+          "All required sections present",
+          "Each completed task has verification evidence",
+          "Handoff notes filled before session end"
+        ]
+      }
+    ],
+    "gate_enforcement": [
+      {
+        "id": "SPEC-0040-G01",
+        "gate": "T0_to_T1",
+        "condition": "Discussion concludes with architectural decision needed",
+        "verification": "Human approval in Discussion ## Decision section",
+        "skip_allowed": true,
+        "acceptance_criteria": [
+          "Discussion ## Decision explicitly states 'requires ADR'",
+          "Human has reviewed and approved"
+        ]
+      },
+      {
+        "id": "SPEC-0040-G02",
+        "gate": "T1_to_T2",
+        "condition": "ADR status is 'active'",
+        "verification": "grep '\"status\": \"active\"' in ADR file",
+        "skip_allowed": true,
+        "acceptance_criteria": [
+          "ADR file contains '\"status\": \"active\"'",
+          "ADR has been reviewed and approved"
+        ]
+      },
+      {
+        "id": "SPEC-0040-G03",
+        "gate": "T2_to_T3",
+        "condition": "SPEC status is 'active' AND data structures identified",
+        "verification": "SPEC acceptance_criteria include data model requirements",
+        "skip_allowed": true,
+        "acceptance_criteria": [
+          "SPEC file contains '\"status\": \"active\"'",
+          "SPEC requirements mention Pydantic models needed"
+        ]
+      },
+      {
+        "id": "SPEC-0040-G04",
+        "gate": "T3_to_T4",
+        "condition": "Contract imports successfully",
+        "verification": "python -c \"from shared.contracts.{domain}.{module} import *\"",
+        "skip_allowed": false,
+        "acceptance_criteria": [
+          "Import command exits with code 0",
+          "No import errors or missing dependencies"
+        ]
+      },
+      {
+        "id": "SPEC-0040-G05",
+        "gate": "T4_to_T5",
+        "condition": "Milestone prerequisites met (dependencies completed)",
+        "verification": "All dependent milestones have status 'completed'",
+        "skip_allowed": false,
+        "acceptance_criteria": [
+          "Plan file shows dependent milestones as 'completed'",
+          "No blocking issues in Plan blockers array"
+        ]
+      },
+      {
+        "id": "SPEC-0040-G06",
+        "gate": "T5_complete",
+        "condition": "Verification command passes",
+        "verification": "Run task.verification_command, capture output",
+        "skip_allowed": false,
+        "acceptance_criteria": [
+          "Verification command exits with code 0",
+          "Output captured in session file as evidence",
+          "Task status updated to 'verified'"
+        ]
+      }
+    ],
+    "fragment_execution_protocol": [
+      {
+        "id": "SPEC-0040-FE01",
+        "step": 1,
+        "action": "IMPLEMENT",
+        "description": "Make code changes for ONE task only",
+        "acceptance_criteria": [
+          "Code changes target single task",
+          "No unrelated changes mixed in",
+          "Changes follow established patterns"
+        ]
+      },
+      {
+        "id": "SPEC-0040-FE02",
+        "step": 2,
+        "action": "VERIFY",
+        "description": "Run task.verification_command and capture output",
+        "acceptance_criteria": [
+          "Verification command executed",
+          "Output captured (success or failure)",
+          "Exit code recorded"
+        ]
+      },
+      {
+        "id": "SPEC-0040-FE03",
+        "step": 3,
+        "action": "DOCUMENT",
+        "description": "Record verification output in session file as evidence",
+        "acceptance_criteria": [
+          "Session file updated with task status",
+          "Verification output included",
+          "Timestamp recorded"
+        ]
+      },
+      {
+        "id": "SPEC-0040-FE04",
+        "step": 4,
+        "action": "UPDATE",
+        "description": "Mark task status as 'verified' in Plan, proceed to next task",
+        "acceptance_criteria": [
+          "Plan file updated with task status",
+          "evidence field populated",
+          "Next task identified"
+        ]
+      }
+    ],
+    "anti_patterns": [
+      {
+        "id": "SPEC-0040-AP01",
+        "pattern": "Breadth over depth",
+        "description": "Touching multiple milestones before completing one",
+        "detection": "Plan shows multiple milestones 'in_progress' simultaneously",
+        "mitigation": "Complete one milestone fully before starting next"
+      },
+      {
+        "id": "SPEC-0040-AP02",
+        "pattern": "Unverified completion",
+        "description": "Marking task complete without running verification",
+        "detection": "Task status is 'completed' but evidence field is null",
+        "mitigation": "Run verification_command and capture output before marking complete"
+      },
+      {
+        "id": "SPEC-0040-AP03",
+        "pattern": "Unwired code",
+        "description": "Creating code without wiring it into execution path",
+        "detection": "grep shows function defined but never called/imported",
+        "mitigation": "Verify new code is imported and called from execution path"
+      },
+      {
+        "id": "SPEC-0040-AP04",
+        "pattern": "Skipped tests",
+        "description": "Skipping tests because 'it looks correct'",
+        "detection": "No test execution in verification_command output",
+        "mitigation": "Always run tests as part of verification"
+      }
+    ],
+    "plan_granularity_levels": [
+      {
+        "id": "SPEC-0040-L1",
+        "level": "L1_STANDARD",
+        "target_models": ["Claude Opus", "Claude Sonnet 3.5+", "GPT-4o", "Gemini 1.5 Pro"],
+        "cost_tier": "$$$",
+        "description": "Context + verification commands. Premium models infer implementation.",
+        "task_schema": {
+          "required_fields": ["id", "description", "verification_command", "status"],
+          "optional_fields": ["context", "notes", "blocked_by"]
+        },
+        "verification_on_failure": "log_and_continue",
+        "when_to_use": "Standard work with capable model, tight timelines",
+        "acceptance_criteria": [
+          "Task has id, description, verification_command, status",
+          "Context provides enough information for premium model to infer implementation"
+        ]
+      },
+      {
+        "id": "SPEC-0040-L2",
+        "level": "L2_ENHANCED",
+        "target_models": ["Claude Sonnet 3.5", "GPT-4o-mini", "Gemini 1.5 Flash", "Grok-2"],
+        "cost_tier": "$$",
+        "description": "L1 + explicit constraints, hints, references, and negative examples.",
+        "task_schema": {
+          "required_fields": ["id", "description", "verification_command", "status", "context"],
+          "optional_fields": ["hints", "references", "negative_examples", "notes", "blocked_by"]
+        },
+        "verification_on_failure": "log_and_continue_with_caution",
+        "when_to_use": "Large scope with mid-tier model, want guardrails",
+        "l2_enhancement_triggers": [
+          "Task involves multiple files",
+          "Task has complex dependencies",
+          "Task requires specific naming conventions",
+          "Previous similar task failed verification"
+        ],
+        "acceptance_criteria": [
+          "Task has all L1 required fields plus context array",
+          "Context includes explicit constraints and patterns",
+          "Hints guide model toward correct implementation"
+        ]
+      },
+      {
+        "id": "SPEC-0040-L3",
+        "level": "L3_PROCEDURAL",
+        "target_models": ["Claude Haiku", "Gemini Flash 8B", "Grok-fast", "GPT-4o-mini (strict)"],
+        "cost_tier": "$",
+        "description": "L2 + step-by-step instructions with copy-paste code snippets.",
+        "task_schema": {
+          "required_fields": ["id", "description", "verification_command", "status", "context", "steps"],
+          "optional_fields": ["hints", "references", "notes", "blocked_by"],
+          "steps_schema": {
+            "required_fields": ["step_number", "instruction", "verification_hint"],
+            "optional_fields": ["file_path", "code_snippet", "checkpoint"]
+          }
+        },
+        "verification_on_failure": "stop_and_escalate",
+        "when_to_use": "Massive scope, budget-constrained, using smaller model",
+        "acceptance_criteria": [
+          "Task has all L2 required fields plus steps array",
+          "Each step has step_number, instruction, verification_hint",
+          "Code snippets are copy-pasteable without modification",
+          "Checkpoints mark verification points"
+        ]
+      }
+    ],
+    "l3_chunking_protocol": [
+      {
+        "id": "SPEC-0040-CH01",
+        "name": "Chunk Size Limits",
+        "target_lines": 600,
+        "soft_limit_lines": 800,
+        "hard_limit_lines": 1000,
+        "rationale": "Ensures budget models have context room for code generation",
+        "acceptance_criteria": [
+          "Chunk file line count <= 800 (soft limit)",
+          "If exceeds 800, split into smaller chunks"
+        ]
+      },
+      {
+        "id": "SPEC-0040-CH02",
+        "name": "Chunk Directory Structure",
+        "index_file": ".plans/L3/<PLAN-ID>/INDEX.json",
+        "chunk_files": ".plans/L3/<PLAN-ID>/PLAN-XXX_L3_<milestone>.json",
+        "acceptance_criteria": [
+          "INDEX.json exists at .plans/L3/<PLAN-ID>/INDEX.json",
+          "Each chunk file named PLAN-XXX_L3_<milestone>.json"
+        ]
+      },
+      {
+        "id": "SPEC-0040-CH03",
+        "name": "INDEX Schema",
+        "required_fields": ["plan_id", "granularity", "total_chunks", "chunks", "current_chunk", "continuation_context"],
+        "chunks_item_fields": ["chunk_id", "chunk_file", "name", "line_count", "status"],
+        "acceptance_criteria": [
+          "INDEX.json has all required fields",
+          "current_chunk points to active chunk",
+          "continuation_context updated after each chunk"
+        ]
+      },
+      {
+        "id": "SPEC-0040-CH04",
+        "name": "Chunk Schema",
+        "header_fields": ["chunk_meta", "continuation_from", "session_instruction", "verification_strictness"],
+        "body_fields": ["milestone", "preflight", "tasks", "acceptance_criteria"],
+        "footer_fields": ["handoff_to_next", "files_created", "files_modified", "patterns_to_maintain", "checkpoint_command"],
+        "acceptance_criteria": [
+          "Chunk has _chunk_header with continuation context",
+          "Chunk has milestone and tasks in body",
+          "Chunk has _chunk_footer with handoff information"
+        ]
+      },
+      {
+        "id": "SPEC-0040-CH05",
+        "name": "Continuation Context",
+        "fields": {
+          "previous_chunk": "ID of last completed chunk",
+          "last_completed_task": "ID of last verified task",
+          "files_created": "List of new files from previous chunks",
+          "files_modified": "List of modified files",
+          "architecture_rules": "Patterns that MUST be followed",
+          "patterns_established": "Conventions established in previous chunks",
+          "active_blockers": "Unresolved issues requiring escalation"
+        },
+        "acceptance_criteria": [
+          "Continuation context updated after each chunk completion",
+          "Files created/modified tracked accurately",
+          "Patterns propagated to next chunk"
+        ]
+      },
+      {
+        "id": "SPEC-0040-CH06",
+        "name": "Execution History",
+        "fields": ["chunk_id", "model_name", "started_at", "completed_at", "tasks_completed", "tasks_failed"],
+        "acceptance_criteria": [
+          "Each chunk execution adds entry to execution_history",
+          "Model name self-reported by executing AI",
+          "Timestamps in ISO-8601 format"
+        ]
+      }
+    ],
+    "session_management": [
+      {
+        "id": "SPEC-0040-SM01",
+        "name": "Session File Path",
+        "path_pattern": ".sessions/SESSION_XXX_<summary>.md",
+        "naming_convention": {
+          "XXX": "3-digit sequential number (001, 002, ...)",
+          "summary": "Brief kebab-case description"
+        },
+        "acceptance_criteria": [
+          "Session file follows naming pattern",
+          "Number is sequential (no gaps)",
+          "Summary describes work being done"
+        ]
+      },
+      {
+        "id": "SPEC-0040-SM02",
+        "name": "Session Required Sections",
+        "sections": [
+          "# SESSION_XXX: <Title>",
+          "## Objective",
+          "## Preflight (baseline test status)",
+          "## Work Log",
+          "## Tasks (checklist)",
+          "## Handoff Notes"
+        ],
+        "acceptance_criteria": [
+          "All required sections present",
+          "Preflight documents baseline test status",
+          "Tasks section tracks completion status",
+          "Handoff notes filled before session end"
+        ]
+      },
+      {
+        "id": "SPEC-0040-SM03",
+        "name": "Session Claiming Protocol",
+        "steps": [
+          "Check .sessions/ for highest SESSION_XXX number",
+          "Claim next sequential number",
+          "Create session file before starting any work"
+        ],
+        "acceptance_criteria": [
+          "No duplicate session numbers",
+          "Session file created before code changes",
+          "Session number claimed atomically"
+        ]
+      },
+      {
+        "id": "SPEC-0040-SM04",
+        "name": "Self-Reflection Checkpoint",
+        "frequency": "Every 5 tasks",
+        "checklist": [
+          "Am I following established patterns from continuation_context?",
+          "Did I create files in the correct locations?",
+          "Did I run verification commands for completed tasks?",
+          "Should I escalate any blockers to .questions/?"
+        ],
+        "acceptance_criteria": [
+          "Checkpoint performed every 5 tasks",
+          "Session file updated with checkpoint results",
+          "Blockers escalated to .questions/ if needed"
+        ]
+      }
+    ],
+    "subset_flows": [
+      {
+        "id": "SPEC-0040-SF01",
+        "scenario": "Architectural change",
+        "entry_tier": "T0 (Discussion)",
+        "skip_tiers": [],
+        "example": "New integration pattern, major refactor"
+      },
+      {
+        "id": "SPEC-0040-SF02",
+        "scenario": "New feature",
+        "entry_tier": "T0 or T2",
+        "skip_tiers": ["T0 if scope is clear"],
+        "example": "New API endpoint with well-understood requirements"
+      },
+      {
+        "id": "SPEC-0040-SF03",
+        "scenario": "Simple enhancement",
+        "entry_tier": "T2 (SPEC)",
+        "skip_tiers": ["T0", "T1"],
+        "example": "Add field to existing model"
+      },
+      {
+        "id": "SPEC-0040-SF04",
+        "scenario": "New data structure only",
+        "entry_tier": "T3 (Contract)",
+        "skip_tiers": ["T0", "T1", "T2"],
+        "example": "New Pydantic model for existing feature"
+      },
+      {
+        "id": "SPEC-0040-SF05",
+        "scenario": "Bug fix",
+        "entry_tier": "T4 (Plan)",
+        "skip_tiers": ["T0", "T1", "T2", "T3"],
+        "example": "Fix validation error"
+      },
+      {
+        "id": "SPEC-0040-SF06",
+        "scenario": "Refactor",
+        "entry_tier": "T4 (Plan)",
+        "skip_tiers": ["T0", "T1", "T2", "T3"],
+        "example": "Rename module, extract function"
+      }
+    ]
+  },
+  "orthogonality_notes": {
+    "description": "This SPEC is orthogonal to related SPECs (no overlap)",
+    "related_specs": {
+      "SPEC-0034": {
+        "title": "DevTools Workflow Manager",
+        "relationship": "SPEC-0034 defines UI for managing artifacts. SPEC-0040 defines execution semantics.",
+        "boundary": "SPEC-0034 owns UI/API; SPEC-0040 owns execution process"
+      },
+      "SPEC-0015": {
+        "title": "AI-Assisted Development Patterns",
+        "relationship": "SPEC-0015 defines code patterns. SPEC-0040 uses those patterns during execution.",
+        "boundary": "SPEC-0015 owns code style; SPEC-0040 owns workflow orchestration"
+      }
+    }
+  },
+  "guardrails": [
+    {
+      "id": "SPEC-0040-GR01",
+      "rule": "No task may be marked 'complete' without running verification_command",
+      "enforcement": "Session file must contain verification evidence",
+      "scope": "core"
+    },
+    {
+      "id": "SPEC-0040-GR02",
+      "rule": "All Plan execution MUST create a session file before starting",
+      "enforcement": "Check .sessions/ for session file matching plan execution",
+      "scope": "core"
+    },
+    {
+      "id": "SPEC-0040-GR03",
+      "rule": "L3 plans MUST stop and escalate on verification failure",
+      "enforcement": "L3 INDEX.json sets verification_strictness: stop_and_escalate",
+      "scope": "core"
+    },
+    {
+      "id": "SPEC-0040-GR04",
+      "rule": "Gates marked skip_allowed: false MUST pass before proceeding",
+      "enforcement": "Manual review; future automation in verify_plan.py",
+      "scope": "core"
+    }
+  ],
+  "automation_scripts": [
+    {
+      "path": "scripts/workflow/new_discussion.py",
+      "purpose": "Create new Discussion from template with auto-numbered ID",
+      "status": "exists"
+    },
+    {
+      "path": "scripts/workflow/new_plan.py",
+      "purpose": "Create new Plan from template with auto-numbered ID",
+      "status": "exists"
+    },
+    {
+      "path": "scripts/workflow/verify_plan.py",
+      "purpose": "Validate Plan schema and check for missing verifications",
+      "status": "planned"
+    },
+    {
+      "path": "scripts/workflow/expand_task.py",
+      "purpose": "Expand L1 task to L2/L3 granularity via AI",
+      "status": "planned"
+    }
+  ],
+  "tags": [
+    "workflow",
+    "execution",
+    "ai-assisted",
+    "fragment",
+    "session",
+    "plan-granularity",
+    "verification"
+  ],
+  "affected_components": [
+    ".discussions/",
+    ".plans/",
+    ".sessions/",
+    ".questions/",
+    "shared/contracts/workflow/",
+    "scripts/workflow/"
+  ]
+}

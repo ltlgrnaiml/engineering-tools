@@ -1,0 +1,183 @@
+{
+  "_chunk_header": {
+    "chunk_meta": {
+      "chunk_id": "M1",
+      "chunk_file": "PLAN-XXX_L3_M1.json",
+      "line_count": 0,
+      "target_limit": 600,
+      "soft_limit": 800,
+      "warning_note": null
+    },
+    "continuation_from": {
+      "previous_chunk": null,
+      "last_completed_task": null,
+      "files_created": [],
+      "files_modified": [],
+      "architecture_rules": [
+        "STYLE: Functional programming, no classes for services",
+        "IMPORTS: Use absolute imports from project root",
+        "CONTRACTS: All data models from shared/contracts/"
+      ],
+      "patterns_established": [],
+      "active_blockers": []
+    },
+    "session_instruction": "Create SESSION_XXX_PLAN-XXX_M1_<summary>.md before starting",
+    "verification_strictness": "stop_and_escalate"
+  },
+
+  "milestone": {
+    "id": "M1",
+    "name": "Milestone Name",
+    "objective": "What this milestone achieves"
+  },
+
+  "preflight": [
+    {
+      "step": 1,
+      "instruction": "Create session file: .sessions/SESSION_XXX_PLAN-XXX_M1_<summary>.md",
+      "verification_hint": "ls .sessions/SESSION_*.md | tail -1"
+    },
+    {
+      "step": 2,
+      "instruction": "Run baseline tests to verify starting state",
+      "verification_hint": "pytest tests/ -v --tb=short 2>&1 | tail -5"
+    },
+    {
+      "step": 3,
+      "instruction": "Check for any unresolved blockers in .questions/",
+      "verification_hint": "ls .questions/*.md 2>/dev/null || echo 'No blockers'"
+    }
+  ],
+
+  "tasks": [
+    {
+      "id": "T-M1-01",
+      "description": "First task - be very specific",
+      "verification_command": "grep 'expected' path/to/file.py",
+      "status": "pending",
+      "context": [
+        "ARCHITECTURE: Functional style",
+        "FILE: Create shared/contracts/new_module.py"
+      ],
+      "hints": [
+        "Follow pattern in existing_module.py"
+      ],
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Create the file with version header",
+          "file_path": "shared/contracts/new_module.py",
+          "code_snippet": "\"\"\"New module description.\n\nPer ADR-XXXX.\n\"\"\"\n\n__version__ = \"2025.12.01\"\n",
+          "verification_hint": "head -5 shared/contracts/new_module.py",
+          "checkpoint": false
+        },
+        {
+          "step_number": 2,
+          "step_type": "code",
+          "instruction": "Add imports",
+          "file_path": "shared/contracts/new_module.py",
+          "code_snippet": "from pydantic import BaseModel, Field\n\n",
+          "verification_hint": "grep 'from pydantic' shared/contracts/new_module.py",
+          "checkpoint": false
+        },
+        {
+          "step_number": 3,
+          "step_type": "code",
+          "instruction": "Add the main model class",
+          "file_path": "shared/contracts/new_module.py",
+          "code_snippet": "class NewModel(BaseModel):\n    \"\"\"Description of the model.\n\n    Args:\n        field_name: Description of field.\n    \"\"\"\n\n    field_name: str = Field(..., description=\"Field description\")\n",
+          "verification_hint": "grep 'class NewModel' shared/contracts/new_module.py",
+          "checkpoint": true
+        },
+        {
+          "step_number": 4,
+          "step_type": "verify",
+          "instruction": "Verify the module imports correctly",
+          "verification_hint": "python -c \"from shared.contracts.new_module import NewModel; print('OK')\"",
+          "checkpoint": true,
+          "escalate_on_failure": true,
+          "on_failure_hint": "Check __init__.py exports and import paths"
+        }
+      ]
+    },
+    {
+      "id": "T-M1-02",
+      "description": "Second task description",
+      "verification_command": "pytest tests/specific_test.py -v",
+      "status": "pending",
+      "context": [
+        "FILE: Modify existing_file.py"
+      ],
+      "hints": [],
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Add the import at the top of the file",
+          "file_path": "path/to/existing_file.py",
+          "code_snippet": "from shared.contracts.new_module import NewModel\n",
+          "verification_hint": "grep 'from shared.contracts.new_module' path/to/existing_file.py",
+          "checkpoint": false
+        },
+        {
+          "step_number": 2,
+          "step_type": "verify",
+          "instruction": "Run the task verification command",
+          "verification_hint": "pytest tests/specific_test.py -v",
+          "checkpoint": true
+        }
+      ]
+    }
+  ],
+
+  "acceptance_criteria": [
+    {
+      "id": "AC-M1-01",
+      "description": "New module imports successfully",
+      "verification_command": "python -c \"from shared.contracts.new_module import *; print('OK')\""
+    },
+    {
+      "id": "AC-M1-02",
+      "description": "All tests pass",
+      "verification_command": "pytest tests/ -v"
+    }
+  ],
+
+  "_chunk_footer": {
+    "handoff_to_next": "PLAN-XXX_L3_M2.json",
+    "files_created": [
+      "shared/contracts/new_module.py"
+    ],
+    "files_modified": [
+      "path/to/existing_file.py"
+    ],
+    "patterns_to_maintain": [
+      "Functional style - no classes for services",
+      "All models inherit from BaseModel",
+      "Google-style docstrings required"
+    ],
+    "checkpoint_command": "pytest tests/ -v && ruff check ."
+  },
+
+  "_template_notes": {
+    "L3_purpose": "L3 (Procedural) plans are for budget models that need step-by-step instructions with copy-paste code.",
+    "chunk_limits": {
+      "target": 600,
+      "soft_limit": 800,
+      "hard_limit": 1000
+    },
+    "step_types": {
+      "code": "Write or modify code",
+      "verify": "Run verification command",
+      "session": "Create/update session file",
+      "question": "Escalate blocker to .questions/",
+      "preflight": "Run baseline checks"
+    },
+    "verification_strictness_options": {
+      "stop_and_escalate": "L3 default - stop and create .questions/ on failure",
+      "log_and_continue": "L1 default - log and proceed",
+      "retry_once": "Retry step once before escalating"
+    }
+  }
+}

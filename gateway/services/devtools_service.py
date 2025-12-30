@@ -13,11 +13,22 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field, ValidationError
 
+from gateway.services.workflow_service import build_artifact_graph, scan_artifacts
 from shared.contracts.adr_schema import (
     ADRCreateRequest as SchemaADRCreateRequest,
     ADRFieldValidationRequest,
     ADRFieldValidationResponse,
     ADRSchema,
+)
+from shared.contracts.devtools.workflow import (
+    ArtifactListResponse,
+    ArtifactResponse,
+    ArtifactStatus,
+    ArtifactSummary,
+    ArtifactType,
+    CreateArtifactRequest,
+    GraphResponse,
+    UpdateArtifactRequest,
 )
 
 router = APIRouter()
@@ -343,3 +354,107 @@ async def validate_field(request: ADRFieldValidationRequest) -> ADRFieldValidati
         return ADRFieldValidationResponse(valid=True, error=None)
     except Exception as e:
         return ADRFieldValidationResponse(valid=False, error=str(e))
+
+
+# =============================================================================
+# Workflow Manager Endpoints (ADR-0045, PLAN-001 M1)
+# =============================================================================
+
+
+@router.get("/artifacts", response_model=ArtifactListResponse)
+async def list_artifacts(
+    artifact_type: ArtifactType | None = Query(None, description="Filter by type"),
+    search: str | None = Query(None, description="Filter by title/ID"),
+) -> ArtifactListResponse:
+    """List workflow artifacts with optional filtering.
+
+    Args:
+        artifact_type: Filter by type (optional).
+        search: Filter by title/ID (optional).
+
+    Returns:
+        ArtifactListResponse with matching artifacts.
+    """
+    items = scan_artifacts(artifact_type=artifact_type, search=search)
+    return ArtifactListResponse(items=items, total=len(items))
+
+
+@router.get("/artifacts/graph", response_model=GraphResponse)
+async def get_artifact_graph() -> GraphResponse:
+    """Get the artifact relationship graph.
+
+    Returns:
+        GraphResponse with nodes and edges.
+    """
+    return build_artifact_graph()
+
+
+@router.post("/artifacts", response_model=ArtifactResponse)
+async def create_artifact(request: CreateArtifactRequest) -> ArtifactResponse:
+    """Create a new workflow artifact.
+
+    Args:
+        request: Creation request with type, title, content.
+
+    Returns:
+        ArtifactResponse with created artifact summary.
+    """
+    # TODO: Implement file creation logic
+    artifact = ArtifactSummary(
+        id=f"{request.type.value.upper()}-NEW",
+        type=request.type,
+        title=request.title,
+        status=ArtifactStatus.DRAFT,
+        file_path=f"./{request.type.value}s/{request.title}.md",
+    )
+    return ArtifactResponse(artifact=artifact, message="Created (placeholder)")
+
+
+@router.put("/artifacts/{artifact_id}", response_model=ArtifactResponse)
+async def update_artifact(
+    artifact_id: str,
+    request: UpdateArtifactRequest,
+) -> ArtifactResponse:
+    """Update an existing workflow artifact.
+
+    Args:
+        artifact_id: ID of artifact to update.
+        request: Update request with optional fields.
+
+    Returns:
+        ArtifactResponse with updated artifact summary.
+    """
+    # TODO: Implement file update logic
+    artifact = ArtifactSummary(
+        id=artifact_id,
+        type=ArtifactType.DISCUSSION,
+        title=request.title or "Updated",
+        status=request.status or ArtifactStatus.DRAFT,
+        file_path=f"./artifacts/{artifact_id}.md",
+    )
+    return ArtifactResponse(artifact=artifact, message="Updated (placeholder)")
+
+
+@router.delete("/artifacts/{artifact_id}", response_model=ArtifactResponse)
+async def delete_artifact(
+    artifact_id: str,
+    backup: bool = Query(True, description="Create backup before deleting"),
+) -> ArtifactResponse:
+    """Delete a workflow artifact.
+
+    Args:
+        artifact_id: ID of artifact to delete.
+        backup: If True, create backup before deleting.
+
+    Returns:
+        ArtifactResponse confirming deletion.
+    """
+    # TODO: Implement file deletion with backup logic
+    artifact = ArtifactSummary(
+        id=artifact_id,
+        type=ArtifactType.DISCUSSION,
+        title="Deleted",
+        status=ArtifactStatus.DEPRECATED,
+        file_path=f"./artifacts/{artifact_id}.md",
+    )
+    return ArtifactResponse(artifact=artifact, message=f"Deleted (backup={backup})")

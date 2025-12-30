@@ -83,6 +83,12 @@ Tier 1: ADRs (WHY)
 | SPEC-0038 | SOV ANOVA Computation | ADR-0023 | `shared/contracts/sov/anova.py` |
 | SPEC-0039 | SOV Visualization Contracts | ADR-0025 | `shared/contracts/sov/visualization.py` |
 
+### Workflow SPECs
+
+| SPEC ID | Title | Implements ADR | Tier-0 Contracts |
+|---------|-------|----------------|------------------|
+| SPEC-0040 | AI Development Workflow Execution | ADR-0043 | `shared/contracts/plan_schema.py` |
+
 ## Tier-0 Contract Status
 
 ### Core Contracts 

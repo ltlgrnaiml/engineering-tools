@@ -1,0 +1,207 @@
+{
+  "_chunk_header": {
+    "chunk_meta": {
+      "chunk_id": "M2",
+      "chunk_file": "PLAN-001_L3_M2.json",
+      "line_count": 450,
+      "target_limit": 600,
+      "soft_limit": 800,
+      "warning_note": null
+    },
+    "continuation_from": {
+      "previous_chunk": "M1",
+      "last_completed_task": "T-M1-06",
+      "files_created": [
+        "shared/contracts/devtools/workflow.py",
+        "gateway/services/workflow_service.py",
+        "tests/gateway/test_devtools_workflow.py"
+      ],
+      "files_modified": [
+        "shared/contracts/devtools/__init__.py",
+        "gateway/services/devtools_service.py"
+      ],
+      "architecture_rules": [
+        "STYLE: React functional components with hooks",
+        "IMPORTS: Use @/ alias for src/ imports",
+        "STYLING: TailwindCSS classes, match existing DevToolsPage patterns",
+        "TYPES: TypeScript strict mode, explicit return types",
+        "API: Fetch from http://localhost:8000/api/devtools/*"
+      ],
+      "patterns_established": [
+        "Use ArtifactType enum values: discussion, adr, spec, plan, contract",
+        "API response: ArtifactListResponse with items[] and total"
+      ]
+    },
+    "session_instruction": "Create .sessions/SESSION_XXX_PLAN-001_M2_Sidebar-Component.md before starting",
+    "verification_strictness": "stop_and_escalate"
+  },
+
+  "milestone": {
+    "id": "M2",
+    "name": "Sidebar Component",
+    "objective": "Build the sidebar with tabbed artifact type navigation and search."
+  },
+
+  "preflight": {
+    "step_type": "preflight",
+    "instructions": [
+      {
+        "step_number": 0,
+        "instruction": "Create session file .sessions/SESSION_007_PLAN-001_M2_Sidebar-Component.md",
+        "verification_hint": "ls .sessions/ | findstr SESSION_007"
+      },
+      {
+        "step_number": 1,
+        "instruction": "Verify M1 backend is working",
+        "verification_hint": "python -c \"from gateway.services.workflow_service import scan_artifacts; print(len(scan_artifacts()))\""
+      },
+      {
+        "step_number": 2,
+        "instruction": "Check frontend dependencies are installed",
+        "verification_hint": "cd apps/homepage/frontend && npm list react"
+      }
+    ]
+  },
+
+  "tasks": [
+    {
+      "id": "T-M2-01",
+      "description": "Create components/workflow/ directory structure",
+      "verification_command": "ls apps/homepage/frontend/src/components/workflow/",
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Create the workflow components directory",
+          "verification_hint": "mkdir -p apps/homepage/frontend/src/components/workflow"
+        },
+        {
+          "step_number": 2,
+          "step_type": "code",
+          "instruction": "Create index.ts barrel export file",
+          "file_path": "apps/homepage/frontend/src/components/workflow/index.ts",
+          "code_snippet": "export { WorkflowSidebar } from './WorkflowSidebar'\nexport { SidebarTabs } from './SidebarTabs'\nexport { ArtifactList } from './ArtifactList'\n",
+          "verification_hint": "cat apps/homepage/frontend/src/components/workflow/index.ts",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M2-02",
+      "description": "Implement WorkflowSidebar.tsx with collapse toggle",
+      "verification_command": "grep \"WorkflowSidebar\" apps/homepage/frontend/src/components/workflow/WorkflowSidebar.tsx",
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Create WorkflowSidebar.tsx component",
+          "file_path": "apps/homepage/frontend/src/components/workflow/WorkflowSidebar.tsx",
+          "code_snippet": "import { useState } from 'react'\nimport { ChevronLeft, ChevronRight } from 'lucide-react'\nimport { cn } from '@/lib/utils'\nimport { SidebarTabs } from './SidebarTabs'\nimport { ArtifactList } from './ArtifactList'\nimport type { ArtifactType } from './types'\n\ninterface WorkflowSidebarProps {\n  onArtifactSelect: (id: string, type: ArtifactType) => void\n  selectedArtifactId?: string\n}\n\nexport function WorkflowSidebar({ onArtifactSelect, selectedArtifactId }: WorkflowSidebarProps) {\n  const [collapsed, setCollapsed] = useState(false)\n  const [activeTab, setActiveTab] = useState<ArtifactType>('adr')\n  const [searchQuery, setSearchQuery] = useState('')\n\n  return (\n    <div\n      className={cn(\n        'flex flex-col border-r border-zinc-800 bg-zinc-900 transition-all duration-200',\n        collapsed ? 'w-12' : 'w-72'\n      )}\n    >\n      {/* Collapse toggle */}\n      <button\n        onClick={() => setCollapsed(!collapsed)}\n        className=\"flex items-center justify-center h-10 border-b border-zinc-800 hover:bg-zinc-800\"\n      >\n        {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}\n      </button>\n\n      {!collapsed && (\n        <>\n          <SidebarTabs activeTab={activeTab} onTabChange={setActiveTab} />\n          <ArtifactList\n            type={activeTab}\n            searchQuery={searchQuery}\n            onSearchChange={setSearchQuery}\n            onSelect={onArtifactSelect}\n            selectedId={selectedArtifactId}\n          />\n        </>\n      )}\n    </div>\n  )\n}\n",
+          "verification_hint": "grep 'export function WorkflowSidebar' apps/homepage/frontend/src/components/workflow/WorkflowSidebar.tsx",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M2-03",
+      "description": "Create types.ts with shared TypeScript types",
+      "verification_command": "grep \"ArtifactType\" apps/homepage/frontend/src/components/workflow/types.ts",
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Create types.ts with artifact type definitions",
+          "file_path": "apps/homepage/frontend/src/components/workflow/types.ts",
+          "code_snippet": "export type ArtifactType = 'discussion' | 'adr' | 'spec' | 'plan' | 'contract'\n\nexport type ArtifactStatus = 'draft' | 'active' | 'deprecated' | 'superseded' | 'completed'\n\nexport interface ArtifactSummary {\n  id: string\n  type: ArtifactType\n  title: string\n  status: ArtifactStatus\n  file_path: string\n  updated_date?: string\n}\n\nexport interface ArtifactListResponse {\n  items: ArtifactSummary[]\n  total: number\n}\n",
+          "verification_hint": "grep 'ArtifactType' apps/homepage/frontend/src/components/workflow/types.ts",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M2-04",
+      "description": "Implement SidebarTabs.tsx with Lucide icons per type",
+      "verification_command": "grep \"SidebarTabs\" apps/homepage/frontend/src/components/workflow/SidebarTabs.tsx",
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Create SidebarTabs.tsx component",
+          "file_path": "apps/homepage/frontend/src/components/workflow/SidebarTabs.tsx",
+          "code_snippet": "import { MessageSquare, FileJson, FileText, ListTodo, Code2 } from 'lucide-react'\nimport { cn } from '@/lib/utils'\nimport type { ArtifactType } from './types'\n\nconst TABS: { type: ArtifactType; icon: React.ReactNode; label: string }[] = [\n  { type: 'discussion', icon: <MessageSquare size={16} />, label: 'Discussions' },\n  { type: 'adr', icon: <FileJson size={16} />, label: 'ADRs' },\n  { type: 'spec', icon: <FileText size={16} />, label: 'SPECs' },\n  { type: 'plan', icon: <ListTodo size={16} />, label: 'Plans' },\n  { type: 'contract', icon: <Code2 size={16} />, label: 'Contracts' },\n]\n\ninterface SidebarTabsProps {\n  activeTab: ArtifactType\n  onTabChange: (tab: ArtifactType) => void\n}\n\nexport function SidebarTabs({ activeTab, onTabChange }: SidebarTabsProps) {\n  return (\n    <div className=\"flex border-b border-zinc-800\">\n      {TABS.map(({ type, icon, label }) => (\n        <button\n          key={type}\n          onClick={() => onTabChange(type)}\n          title={label}\n          className={cn(\n            'flex-1 flex items-center justify-center py-2 hover:bg-zinc-800 transition-colors',\n            activeTab === type && 'bg-zinc-800 border-b-2 border-blue-500'\n          )}\n        >\n          {icon}\n        </button>\n      ))}\n    </div>\n  )\n}\n",
+          "verification_hint": "grep 'export function SidebarTabs' apps/homepage/frontend/src/components/workflow/SidebarTabs.tsx",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M2-05",
+      "description": "Implement ArtifactList.tsx with search and API integration",
+      "verification_command": "grep \"ArtifactList\" apps/homepage/frontend/src/components/workflow/ArtifactList.tsx",
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Create ArtifactList.tsx component with API fetch",
+          "file_path": "apps/homepage/frontend/src/components/workflow/ArtifactList.tsx",
+          "code_snippet": "import { useState, useEffect } from 'react'\nimport { Search, Loader2 } from 'lucide-react'\nimport { cn } from '@/lib/utils'\nimport type { ArtifactType, ArtifactSummary, ArtifactListResponse } from './types'\n\nconst API_BASE = 'http://localhost:8000/api/devtools'\n\ninterface ArtifactListProps {\n  type: ArtifactType\n  searchQuery: string\n  onSearchChange: (query: string) => void\n  onSelect: (id: string, type: ArtifactType) => void\n  selectedId?: string\n}\n\nexport function ArtifactList({\n  type,\n  searchQuery,\n  onSearchChange,\n  onSelect,\n  selectedId,\n}: ArtifactListProps) {\n  const [artifacts, setArtifacts] = useState<ArtifactSummary[]>([])\n  const [loading, setLoading] = useState(false)\n  const [error, setError] = useState<string | null>(null)\n\n  useEffect(() => {\n    const fetchArtifacts = async () => {\n      setLoading(true)\n      setError(null)\n      try {\n        const params = new URLSearchParams()\n        params.set('artifact_type', type)\n        if (searchQuery) params.set('search', searchQuery)\n        \n        const res = await fetch(`${API_BASE}/artifacts?${params}`)\n        if (!res.ok) throw new Error('Failed to fetch')\n        \n        const data: ArtifactListResponse = await res.json()\n        setArtifacts(data.items)\n      } catch (err) {\n        setError(err instanceof Error ? err.message : 'Unknown error')\n      } finally {\n        setLoading(false)\n      }\n    }\n    \n    fetchArtifacts()\n  }, [type, searchQuery])\n\n  return (\n    <div className=\"flex flex-col flex-1 overflow-hidden\">\n      {/* Search input */}\n      <div className=\"p-2 border-b border-zinc-800\">\n        <div className=\"relative\">\n          <Search size={14} className=\"absolute left-2 top-1/2 -translate-y-1/2 text-zinc-500\" />\n          <input\n            type=\"text\"\n            placeholder=\"Search...\"\n            value={searchQuery}\n            onChange={(e) => onSearchChange(e.target.value)}\n            className=\"w-full pl-7 pr-2 py-1 text-sm bg-zinc-800 border border-zinc-700 rounded focus:outline-none focus:border-blue-500\"\n          />\n        </div>\n      </div>\n\n      {/* List */}\n      <div className=\"flex-1 overflow-y-auto\">\n        {loading && (\n          <div className=\"flex items-center justify-center py-8\">\n            <Loader2 size={20} className=\"animate-spin text-zinc-500\" />\n          </div>\n        )}\n        \n        {error && (\n          <div className=\"p-4 text-red-400 text-sm\">{error}</div>\n        )}\n        \n        {!loading && !error && artifacts.map((artifact) => (\n          <button\n            key={artifact.id}\n            onClick={() => onSelect(artifact.id, artifact.type)}\n            className={cn(\n              'w-full text-left px-3 py-2 text-sm hover:bg-zinc-800 border-b border-zinc-800/50',\n              selectedId === artifact.id && 'bg-zinc-800'\n            )}\n          >\n            <div className=\"font-medium truncate\">{artifact.id}</div>\n            <div className=\"text-xs text-zinc-500 truncate\">{artifact.title}</div>\n          </button>\n        ))}\n        \n        {!loading && !error && artifacts.length === 0 && (\n          <div className=\"p-4 text-zinc-500 text-sm text-center\">No artifacts found</div>\n        )}\n      </div>\n    </div>\n  )\n}\n",
+          "verification_hint": "grep 'export function ArtifactList' apps/homepage/frontend/src/components/workflow/ArtifactList.tsx",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M2-06",
+      "description": "Update index.ts to export types",
+      "verification_command": "grep \"types\" apps/homepage/frontend/src/components/workflow/index.ts",
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Update index.ts to include type exports",
+          "file_path": "apps/homepage/frontend/src/components/workflow/index.ts",
+          "code_snippet": "export { WorkflowSidebar } from './WorkflowSidebar'\nexport { SidebarTabs } from './SidebarTabs'\nexport { ArtifactList } from './ArtifactList'\nexport type { ArtifactType, ArtifactStatus, ArtifactSummary, ArtifactListResponse } from './types'\n",
+          "verification_hint": "grep 'types' apps/homepage/frontend/src/components/workflow/index.ts",
+          "checkpoint": true
+        }
+      ]
+    }
+  ],
+
+  "acceptance_criteria": [
+    {
+      "id": "AC-M2-01",
+      "description": "All workflow components exist",
+      "verification_command": "ls apps/homepage/frontend/src/components/workflow/"
+    },
+    {
+      "id": "AC-M2-02",
+      "description": "WorkflowSidebar exports correctly",
+      "verification_command": "grep 'WorkflowSidebar' apps/homepage/frontend/src/components/workflow/index.ts"
+    },
+    {
+      "id": "AC-M2-03",
+      "description": "Types match backend contract",
+      "verification_command": "grep 'ArtifactType' apps/homepage/frontend/src/components/workflow/types.ts"
+    }
+  ],
+
+  "_chunk_footer": {
+    "handoff_to_next": "PLAN-001_L3_M3.json",
+    "files_created": [
+      "apps/homepage/frontend/src/components/workflow/index.ts",
+      "apps/homepage/frontend/src/components/workflow/types.ts",
+      "apps/homepage/frontend/src/components/workflow/WorkflowSidebar.tsx",
+      "apps/homepage/frontend/src/components/workflow/SidebarTabs.tsx",
+      "apps/homepage/frontend/src/components/workflow/ArtifactList.tsx"
+    ],
+    "files_modified": [],
+    "patterns_to_maintain": [
+      "React functional components with hooks",
+      "TailwindCSS for styling",
+      "TypeScript strict types matching backend contracts",
+      "API calls to /api/devtools/artifacts"
+    ],
+    "checkpoint_command": "ls apps/homepage/frontend/src/components/workflow/"
+  }
+}

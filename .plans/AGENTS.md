@@ -209,9 +209,126 @@ Which approach should I take?"
 
 ---
 
+## WINDSURF_SPECIFIC: Plan Granularity Levels
+
+Per ADR-0043, plans support three granularity levels matched to AI model capability:
+
+### L1: Standard (Premium Models)
+
+**Target Models**: Claude Opus, Claude Sonnet 3.5+, GPT-4o, Gemini 1.5 Pro
+
+**Template**: `.templates/PLAN_TEMPLATE.json`
+
+**Task Schema**:
+- `id`, `description`, `verification_command`, `status` (required)
+- `context[]` (optional but recommended)
+
+**Execution**: Models infer implementation from context. Log and continue on failure.
+
+### L2: Enhanced (Mid-Tier Models)
+
+**Target Models**: Claude Sonnet 3.5, GPT-4o-mini, Gemini 1.5 Flash, Grok-2
+
+**Template**: `.templates/PLAN_TEMPLATE_L2.json`
+
+**Task Schema** (L1 + these fields):
+- `context[]` (REQUIRED - use prefixes: ARCHITECTURE:, FILE:, FUNCTION:, ENUM:)
+- `hints[]` - Implementation hints and patterns
+- `constraints[]` - DO NOT, MUST, EXACTLY rules
+- `references[]` - File paths to reference
+- `existing_patterns[]` - Examples to match
+
+**When to use L2**:
+- Task involves multiple files
+- Task has complex dependencies
+- Task requires specific naming conventions
+- Previous similar task failed verification
+
+**Execution**: Log and continue with caution on failure.
+
+### L3: Procedural (Budget Models)
+
+**Target Models**: Claude Haiku, Gemini Flash 8B, Grok-fast, GPT-4o-mini (strict)
+
+**Template**: `.templates/L3_CHUNK_TEMPLATE.json`
+
+**Task Schema** (L2 + these fields):
+- `steps[]` (REQUIRED) - Step-by-step instructions with code snippets
+  - `step_number`, `instruction`, `verification_hint` (required per step)
+  - `code_snippet`, `file_path`, `checkpoint` (optional)
+
+**Chunking**: L3 plans are split into 600-line chunks (800 soft limit)
+- Index file: `.plans/L3/<PLAN-ID>/INDEX.json`
+- Chunk files: `.plans/L3/<PLAN-ID>/PLAN-XXX_L3_<milestone>.json`
+
+**Execution**: STOP and escalate to `.questions/` on failure (no log_and_continue).
+
+### Execution Guides (Standard Artifacts)
+
+Every plan SHOULD include an `EXECUTION.md` file with copy-paste prompts for AI execution.
+
+**Templates by Granularity**:
+
+| Level | Template | Location |
+|-------|----------|----------|
+| L1 | `.templates/EXECUTION_L1.md` | `.plans/{PLAN-ID}_EXECUTION.md` |
+| L2 | `.templates/EXECUTION_L2.md` | `.plans/{PLAN-ID}_EXECUTION.md` |
+| L3 | `.templates/EXECUTION_L3.md` | `.plans/L3/{PLAN-ID}/EXECUTION.md` |
+
+**L3 Directory Structure**:
+
+```text
+.plans/L3/<PLAN-ID>/
+├── INDEX.json           # Chunk index and continuation context
+├── EXECUTION.md         # Human/AI-readable execution prompts
+├── PLAN-XXX_L3_M1.json  # Chunk files
+├── PLAN-XXX_L3_M2.json
+└── ...
+```
+
+**Purpose**:
+- Provides copy-paste prompts for each milestone
+- Contains pre/post-execution checklists
+- Documents troubleshooting steps
+- Serves as the "how to run this plan" guide
+
+**Required Sections**:
+1. Quick Start - Prompt with rules and plan location
+2. Pre-Execution Checklist - Session file, baseline tests
+3. Milestone Prompts - One per milestone with task list
+4. Post-Execution Checklist - Updates, commits
+5. Troubleshooting - Failure handling per granularity
+
+**Failure Handling by Level**:
+
+| Level | On Failure |
+|-------|------------|
+| L1 | Log and continue (self-correct) |
+| L2 | Log with caution, continue carefully |
+| L3 | STOP, create `.questions/` file |
+
+**When creating a new plan**:
+1. Choose granularity (L1/L2/L3)
+2. Create plan from appropriate template
+3. Create EXECUTION.md from matching template
+4. Fill in milestone prompts with task lists and ACs
+
+### Validation
+
+Run validation before execution:
+
+```bash
+python scripts/workflow/verify_plan.py .plans/PLAN-XXX.json
+python scripts/workflow/verify_plan.py --all  # Validate all plans
+```
+
+---
+
 ## Schema Reference
 
-See `.templates/PLAN_TEMPLATE.md` for complete schema.
+See `.templates/PLAN_TEMPLATE.json` for L1 schema.
+See `.templates/PLAN_TEMPLATE_L2.json` for L2 schema.
+See `.templates/L3_CHUNK_TEMPLATE.json` for L3 chunk schema.
 
 Key sections:
 

@@ -1,0 +1,68 @@
+{
+  "_chunk_header": {
+    "chunk_meta": {
+      "chunk_id": "M7",
+      "chunk_file": "PLAN-001_L3_M7.json",
+      "line_count": 320,
+      "target_limit": 600,
+      "soft_limit": 800
+    },
+    "continuation_from": {
+      "previous_chunk": "M6",
+      "architecture_rules": ["STYLE: React functional components", "STYLING: TailwindCSS"]
+    },
+    "session_instruction": "Create .sessions/SESSION_XXX_PLAN-001_M7_Activity-Feed.md"
+  },
+
+  "milestone": {
+    "id": "M7",
+    "name": "Activity Feed & Empty States",
+    "objective": "Add activity feed showing recent changes and helpful empty states."
+  },
+
+  "tasks": [
+    {
+      "id": "T-M7-01",
+      "description": "Create ActivityFeed.tsx component",
+      "verification_command": "grep 'ActivityFeed' apps/homepage/frontend/src/components/workflow/ActivityFeed.tsx",
+      "steps": [
+        {
+          "step_number": 1,
+          "instruction": "Create ActivityFeed.tsx component",
+          "file_path": "apps/homepage/frontend/src/components/workflow/ActivityFeed.tsx",
+          "code_snippet": "import { Clock, FileJson, FileText, MessageSquare, ListTodo, Code2 } from 'lucide-react'\nimport { cn } from '@/lib/utils'\nimport type { ArtifactType, ArtifactSummary } from './types'\n\nconst TYPE_ICONS: Record<ArtifactType, React.ReactNode> = {\n  discussion: <MessageSquare size={14} />,\n  adr: <FileJson size={14} />,\n  spec: <FileText size={14} />,\n  plan: <ListTodo size={14} />,\n  contract: <Code2 size={14} />,\n}\n\ninterface ActivityFeedProps {\n  recentArtifacts: ArtifactSummary[]\n  onSelect: (id: string, type: ArtifactType) => void\n  className?: string\n}\n\nexport function ActivityFeed({ recentArtifacts, onSelect, className }: ActivityFeedProps) {\n  return (\n    <div className={cn('flex flex-col', className)}>\n      <div className=\"flex items-center gap-2 px-4 py-2 border-b border-zinc-800\">\n        <Clock size={14} className=\"text-zinc-400\" />\n        <h3 className=\"text-sm font-medium text-zinc-400\">Recent Activity</h3>\n      </div>\n      <div className=\"flex-1 overflow-auto\">\n        {recentArtifacts.length === 0 ? (\n          <div className=\"p-4 text-sm text-zinc-500 text-center\">No recent activity</div>\n        ) : (\n          recentArtifacts.map((artifact) => (\n            <button\n              key={artifact.id}\n              onClick={() => onSelect(artifact.id, artifact.type)}\n              className=\"w-full flex items-center gap-3 px-4 py-2 hover:bg-zinc-800 text-left border-b border-zinc-800/50\"\n            >\n              <span className=\"text-zinc-400\">{TYPE_ICONS[artifact.type]}</span>\n              <div className=\"flex-1 min-w-0\">\n                <div className=\"text-sm font-medium truncate\">{artifact.id}</div>\n                <div className=\"text-xs text-zinc-500 truncate\">{artifact.title}</div>\n              </div>\n              {artifact.updated_date && (\n                <span className=\"text-xs text-zinc-500\">{artifact.updated_date}</span>\n              )}\n            </button>\n          ))\n        )}\n      </div>\n    </div>\n  )\n}\n",
+          "verification_hint": "grep 'ActivityFeed' apps/homepage/frontend/src/components/workflow/ActivityFeed.tsx",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M7-02",
+      "description": "Create EmptyState.tsx with variants",
+      "verification_command": "grep 'EmptyState' apps/homepage/frontend/src/components/workflow/EmptyState.tsx",
+      "steps": [
+        {
+          "step_number": 1,
+          "instruction": "Create EmptyState.tsx component",
+          "file_path": "apps/homepage/frontend/src/components/workflow/EmptyState.tsx",
+          "code_snippet": "import { Plus, FileJson, FileText, MessageSquare, ListTodo, Code2, Sparkles } from 'lucide-react'\nimport { cn } from '@/lib/utils'\nimport type { ArtifactType } from './types'\n\nconst EMPTY_STATE_CONTENT: Record<ArtifactType, { icon: React.ReactNode; title: string; description: string; cta: string }> = {\n  discussion: {\n    icon: <MessageSquare size={48} className=\"text-purple-400\" />,\n    title: 'No discussions yet',\n    description: 'Discussions capture design conversations before making decisions.',\n    cta: 'Start a Discussion',\n  },\n  adr: {\n    icon: <FileJson size={48} className=\"text-blue-400\" />,\n    title: 'No ADRs yet',\n    description: 'Architecture Decision Records document the \"why\" behind decisions.',\n    cta: 'Create an ADR',\n  },\n  spec: {\n    icon: <FileText size={48} className=\"text-green-400\" />,\n    title: 'No SPECs yet',\n    description: 'Specifications define the \"what\" - behavioral requirements and acceptance criteria.',\n    cta: 'Write a SPEC',\n  },\n  plan: {\n    icon: <ListTodo size={48} className=\"text-amber-400\" />,\n    title: 'No plans yet',\n    description: 'Plans break work into milestones and tasks with verification commands.',\n    cta: 'Create a Plan',\n  },\n  contract: {\n    icon: <Code2 size={48} className=\"text-pink-400\" />,\n    title: 'No contracts yet',\n    description: 'Contracts define data shapes as Pydantic models.',\n    cta: 'Add a Contract',\n  },\n}\n\ninterface EmptyStateProps {\n  type: ArtifactType\n  onAction: () => void\n  className?: string\n}\n\nexport function EmptyState({ type, onAction, className }: EmptyStateProps) {\n  const content = EMPTY_STATE_CONTENT[type]\n\n  return (\n    <div className={cn('flex flex-col items-center justify-center h-full p-8 text-center', className)}>\n      {content.icon}\n      <h2 className=\"mt-4 text-xl font-semibold\">{content.title}</h2>\n      <p className=\"mt-2 text-sm text-zinc-400 max-w-md\">{content.description}</p>\n      <button\n        onClick={onAction}\n        className=\"mt-6 flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg\"\n      >\n        <Plus size={16} />\n        {content.cta}\n      </button>\n    </div>\n  )\n}\n",
+          "verification_hint": "grep 'EmptyState' apps/homepage/frontend/src/components/workflow/EmptyState.tsx",
+          "checkpoint": true
+        }
+      ]
+    }
+  ],
+
+  "acceptance_criteria": [
+    { "id": "AC-M7-01", "verification_command": "grep 'ActivityFeed' apps/homepage/frontend/src/components/workflow/ActivityFeed.tsx" },
+    { "id": "AC-M7-02", "verification_command": "grep 'EmptyState' apps/homepage/frontend/src/components/workflow/EmptyState.tsx" }
+  ],
+
+  "_chunk_footer": {
+    "handoff_to_next": "PLAN-001_L3_M8.json",
+    "files_created": [
+      "apps/homepage/frontend/src/components/workflow/ActivityFeed.tsx",
+      "apps/homepage/frontend/src/components/workflow/EmptyState.tsx"
+    ]
+  }
+}

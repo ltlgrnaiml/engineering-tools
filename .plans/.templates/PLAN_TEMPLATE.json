@@ -4,6 +4,7 @@
   "title": "Brief Description of Implementation",
   "version": "2025.12.01",
   "status": "draft",
+  "granularity": "L1",
   "created_date": "YYYY-MM-DD",
   "updated_date": "YYYY-MM-DD",
   "author": "AI-Assisted (Cascade)",

@@ -1,0 +1,104 @@
+{
+  "_chunk_header": {
+    "chunk_meta": {
+      "chunk_id": "M3",
+      "chunk_file": "PLAN-001_L3_M3.json",
+      "line_count": 380,
+      "target_limit": 600,
+      "soft_limit": 800
+    },
+    "continuation_from": {
+      "previous_chunk": "M2",
+      "files_created": ["apps/homepage/frontend/src/components/workflow/*"],
+      "architecture_rules": [
+        "STYLE: React functional components with hooks",
+        "IMPORTS: Use @/ alias for src/ imports",
+        "STYLING: TailwindCSS classes"
+      ]
+    },
+    "session_instruction": "Create .sessions/SESSION_XXX_PLAN-001_M3_Graph-Visualization.md"
+  },
+
+  "milestone": {
+    "id": "M3",
+    "name": "Graph Visualization",
+    "objective": "Implement interactive 2D/3D force-directed graph using react-force-graph."
+  },
+
+  "tasks": [
+    {
+      "id": "T-M3-01",
+      "description": "Install graph dependencies",
+      "verification_command": "grep 'react-force-graph' apps/homepage/frontend/package.json",
+      "steps": [
+        {
+          "step_number": 1,
+          "instruction": "Install react-force-graph packages",
+          "code_snippet": "cd apps/homepage/frontend && npm install react-force-graph-2d react-force-graph-3d three @types/three",
+          "verification_hint": "grep 'react-force-graph-2d' apps/homepage/frontend/package.json",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M3-02",
+      "description": "Create ArtifactGraph.tsx with ForceGraph2D",
+      "verification_command": "grep 'ForceGraph2D' apps/homepage/frontend/src/components/workflow/ArtifactGraph.tsx",
+      "steps": [
+        {
+          "step_number": 1,
+          "instruction": "Create ArtifactGraph.tsx component",
+          "file_path": "apps/homepage/frontend/src/components/workflow/ArtifactGraph.tsx",
+          "code_snippet": "import { useRef, useCallback, useState, useEffect } from 'react'\nimport ForceGraph2D from 'react-force-graph-2d'\nimport { cn } from '@/lib/utils'\nimport type { ArtifactType } from './types'\n\nconst API_BASE = 'http://localhost:8000/api/devtools'\n\n// Tier colors per ADR-0045\nconst TYPE_COLORS: Record<ArtifactType, string> = {\n  discussion: '#8B5CF6', // purple\n  adr: '#3B82F6',        // blue\n  spec: '#22C55E',       // green\n  plan: '#F59E0B',       // amber\n  contract: '#EC4899',   // pink\n}\n\ninterface GraphNode {\n  id: string\n  type: ArtifactType\n  label: string\n  status: string\n  file_path: string\n}\n\ninterface GraphEdge {\n  source: string\n  target: string\n  relationship: string\n}\n\ninterface GraphData {\n  nodes: GraphNode[]\n  edges: GraphEdge[]\n}\n\ninterface ArtifactGraphProps {\n  onNodeClick?: (nodeId: string, type: ArtifactType) => void\n  selectedNodeId?: string\n  className?: string\n}\n\nexport function ArtifactGraph({ onNodeClick, selectedNodeId, className }: ArtifactGraphProps) {\n  const graphRef = useRef<any>(null)\n  const [graphData, setGraphData] = useState<GraphData>({ nodes: [], edges: [] })\n  const [loading, setLoading] = useState(true)\n\n  useEffect(() => {\n    const fetchGraph = async () => {\n      try {\n        const res = await fetch(`${API_BASE}/artifacts/graph`)\n        if (res.ok) {\n          const data = await res.json()\n          setGraphData({\n            nodes: data.nodes,\n            edges: data.edges.map((e: GraphEdge) => ({ ...e, source: e.source, target: e.target }))\n          })\n        }\n      } catch (err) {\n        console.error('Failed to fetch graph:', err)\n      } finally {\n        setLoading(false)\n      }\n    }\n    fetchGraph()\n  }, [])\n\n  const handleNodeClick = useCallback((node: GraphNode) => {\n    onNodeClick?.(node.id, node.type)\n  }, [onNodeClick])\n\n  const nodeColor = useCallback((node: GraphNode) => {\n    return TYPE_COLORS[node.type] || '#6B7280'\n  }, [])\n\n  const nodeLabel = useCallback((node: GraphNode) => {\n    return `${node.id}\\n${node.label}`\n  }, [])\n\n  if (loading) {\n    return <div className=\"flex items-center justify-center h-full text-zinc-500\">Loading graph...</div>\n  }\n\n  return (\n    <div className={cn('w-full h-full bg-zinc-950', className)}>\n      <ForceGraph2D\n        ref={graphRef}\n        graphData={{ nodes: graphData.nodes, links: graphData.edges }}\n        nodeColor={nodeColor}\n        nodeLabel={nodeLabel}\n        onNodeClick={handleNodeClick}\n        linkDirectionalArrowLength={4}\n        linkDirectionalArrowRelPos={1}\n        linkColor={() => '#4B5563'}\n        backgroundColor=\"#09090b\"\n      />\n    </div>\n  )\n}\n",
+          "verification_hint": "grep 'ForceGraph2D' apps/homepage/frontend/src/components/workflow/ArtifactGraph.tsx",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M3-03",
+      "description": "Create GraphToolbar.tsx with controls",
+      "verification_command": "grep 'GraphToolbar' apps/homepage/frontend/src/components/workflow/GraphToolbar.tsx",
+      "steps": [
+        {
+          "step_number": 1,
+          "instruction": "Create GraphToolbar.tsx component",
+          "file_path": "apps/homepage/frontend/src/components/workflow/GraphToolbar.tsx",
+          "code_snippet": "import { ZoomIn, ZoomOut, Maximize2, Download, Box } from 'lucide-react'\nimport { cn } from '@/lib/utils'\n\ninterface GraphToolbarProps {\n  onZoomIn: () => void\n  onZoomOut: () => void\n  onCenter: () => void\n  onExport: () => void\n  is3D: boolean\n  onToggle3D: () => void\n  className?: string\n}\n\nexport function GraphToolbar({\n  onZoomIn,\n  onZoomOut,\n  onCenter,\n  onExport,\n  is3D,\n  onToggle3D,\n  className,\n}: GraphToolbarProps) {\n  const buttonClass = 'p-2 hover:bg-zinc-800 rounded transition-colors'\n\n  return (\n    <div className={cn('flex items-center gap-1 p-1 bg-zinc-900 border border-zinc-800 rounded-lg', className)}>\n      <button onClick={onZoomIn} className={buttonClass} title=\"Zoom In\">\n        <ZoomIn size={16} />\n      </button>\n      <button onClick={onZoomOut} className={buttonClass} title=\"Zoom Out\">\n        <ZoomOut size={16} />\n      </button>\n      <button onClick={onCenter} className={buttonClass} title=\"Center\">\n        <Maximize2 size={16} />\n      </button>\n      <div className=\"w-px h-4 bg-zinc-700 mx-1\" />\n      <button onClick={onToggle3D} className={cn(buttonClass, is3D && 'bg-zinc-800')} title=\"Toggle 3D\">\n        <Box size={16} />\n      </button>\n      <div className=\"w-px h-4 bg-zinc-700 mx-1\" />\n      <button onClick={onExport} className={buttonClass} title=\"Export PNG\">\n        <Download size={16} />\n      </button>\n    </div>\n  )\n}\n",
+          "verification_hint": "grep 'GraphToolbar' apps/homepage/frontend/src/components/workflow/GraphToolbar.tsx",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M3-04",
+      "description": "Update index.ts exports",
+      "verification_command": "grep 'ArtifactGraph' apps/homepage/frontend/src/components/workflow/index.ts",
+      "steps": [
+        {
+          "step_number": 1,
+          "instruction": "Add graph exports to index.ts",
+          "file_path": "apps/homepage/frontend/src/components/workflow/index.ts",
+          "code_snippet": "export { WorkflowSidebar } from './WorkflowSidebar'\nexport { SidebarTabs } from './SidebarTabs'\nexport { ArtifactList } from './ArtifactList'\nexport { ArtifactGraph } from './ArtifactGraph'\nexport { GraphToolbar } from './GraphToolbar'\nexport type { ArtifactType, ArtifactStatus, ArtifactSummary, ArtifactListResponse } from './types'\n",
+          "verification_hint": "grep 'ArtifactGraph' apps/homepage/frontend/src/components/workflow/index.ts",
+          "checkpoint": true
+        }
+      ]
+    }
+  ],
+
+  "acceptance_criteria": [
+    { "id": "AC-M3-01", "verification_command": "grep 'react-force-graph-2d' apps/homepage/frontend/package.json" },
+    { "id": "AC-M3-02", "verification_command": "grep 'ForceGraph2D' apps/homepage/frontend/src/components/workflow/ArtifactGraph.tsx" },
+    { "id": "AC-M3-03", "verification_command": "grep 'GraphToolbar' apps/homepage/frontend/src/components/workflow/GraphToolbar.tsx" }
+  ],
+
+  "_chunk_footer": {
+    "handoff_to_next": "PLAN-001_L3_M4.json",
+    "files_created": [
+      "apps/homepage/frontend/src/components/workflow/ArtifactGraph.tsx",
+      "apps/homepage/frontend/src/components/workflow/GraphToolbar.tsx"
+    ],
+    "patterns_to_maintain": ["TYPE_COLORS for artifact coloring", "ForceGraph2D for visualization"]
+  }
+}

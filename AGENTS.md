@@ -218,6 +218,29 @@ Per SESSION_017/018 lessons:
 | Contract → Plan | Imports verified |
 | Task → Complete | Verification command passes |
 
+### Plan Granularity Levels (ADR-0043)
+
+| Level | Target Models | Task Requirements | On Failure |
+|-------|---------------|-------------------|------------|
+| **L1** | Opus, Sonnet 3.5+, GPT-4o | `context[]` optional | Log & continue |
+| **L2** | Sonnet 3.5, GPT-4o-mini, Flash | `context[]` + `hints[]` + `constraints[]` | Log with caution |
+| **L3** | Haiku, Flash 8B, Grok-fast | `steps[]` with code snippets | STOP & escalate |
+
+**Templates**: `.plans/.templates/PLAN_TEMPLATE.json` (L1), `PLAN_TEMPLATE_L2.json` (L2), `L3_CHUNK_TEMPLATE.json` (L3)
+
+**Validation**: `python scripts/workflow/verify_plan.py .plans/PLAN-XXX.json`
+
+### L2 Execution Protocol (Mid-Tier Models)
+
+L2 plans add explicit constraints for models that benefit from guardrails:
+
+- **context[]**: REQUIRED - Use prefixes: `ARCHITECTURE:`, `FILE:`, `FUNCTION:`, `ENUM:`
+- **hints[]**: Implementation patterns to follow
+- **constraints[]**: `DO NOT`, `MUST`, `EXACTLY` rules
+- **references[]**: File paths to reference during implementation
+
+**When to use L2**: Multiple files, complex dependencies, specific naming conventions, or previous task failures.
+
 ### L3 Execution Protocol (Budget Models)
 
 L3 plans are chunked for smaller context windows. Target: 600 lines, Soft limit: 800 lines.

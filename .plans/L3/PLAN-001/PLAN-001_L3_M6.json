@@ -1,0 +1,86 @@
+{
+  "_chunk_header": {
+    "chunk_meta": {
+      "chunk_id": "M6",
+      "chunk_file": "PLAN-001_L3_M6.json",
+      "line_count": 380,
+      "target_limit": 600,
+      "soft_limit": 800
+    },
+    "continuation_from": {
+      "previous_chunk": "M5",
+      "architecture_rules": ["STYLE: React functional components", "STYLING: TailwindCSS"]
+    },
+    "session_instruction": "Create .sessions/SESSION_XXX_PLAN-001_M6_Command-Palette.md"
+  },
+
+  "milestone": {
+    "id": "M6",
+    "name": "Header & Command Palette",
+    "objective": "Build workflow header with actions and command palette for power users."
+  },
+
+  "tasks": [
+    {
+      "id": "T-M6-01",
+      "description": "Create WorkflowHeader.tsx",
+      "verification_command": "grep 'WorkflowHeader' apps/homepage/frontend/src/components/workflow/WorkflowHeader.tsx",
+      "steps": [
+        {
+          "step_number": 1,
+          "instruction": "Create WorkflowHeader.tsx component",
+          "file_path": "apps/homepage/frontend/src/components/workflow/WorkflowHeader.tsx",
+          "code_snippet": "import { Plus, Search, Settings } from 'lucide-react'\nimport { cn } from '@/lib/utils'\nimport { NewWorkflowDropdown } from './NewWorkflowDropdown'\n\ninterface WorkflowHeaderProps {\n  onOpenCommandPalette: () => void\n  onNewWorkflow: (type: string) => void\n  className?: string\n}\n\nexport function WorkflowHeader({ onOpenCommandPalette, onNewWorkflow, className }: WorkflowHeaderProps) {\n  return (\n    <div className={cn('flex items-center justify-between px-4 py-2 border-b border-zinc-800 bg-zinc-900', className)}>\n      <div className=\"flex items-center gap-4\">\n        <h1 className=\"text-lg font-semibold\">Workflow Manager</h1>\n        <button\n          onClick={onOpenCommandPalette}\n          className=\"flex items-center gap-2 px-3 py-1.5 text-sm text-zinc-400 bg-zinc-800 hover:bg-zinc-700 rounded border border-zinc-700\"\n        >\n          <Search size={14} />\n          <span>Search artifacts...</span>\n          <kbd className=\"ml-4 px-1.5 py-0.5 text-xs bg-zinc-700 rounded\">⌘K</kbd>\n        </button>\n      </div>\n      <div className=\"flex items-center gap-2\">\n        <NewWorkflowDropdown onSelect={onNewWorkflow} />\n        <button className=\"p-2 hover:bg-zinc-800 rounded\" title=\"Settings\">\n          <Settings size={16} />\n        </button>\n      </div>\n    </div>\n  )\n}\n",
+          "verification_hint": "grep 'WorkflowHeader' apps/homepage/frontend/src/components/workflow/WorkflowHeader.tsx",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M6-02",
+      "description": "Create NewWorkflowDropdown.tsx",
+      "verification_command": "grep 'NewWorkflowDropdown' apps/homepage/frontend/src/components/workflow/NewWorkflowDropdown.tsx",
+      "steps": [
+        {
+          "step_number": 1,
+          "instruction": "Create NewWorkflowDropdown.tsx component",
+          "file_path": "apps/homepage/frontend/src/components/workflow/NewWorkflowDropdown.tsx",
+          "code_snippet": "import { useState, useRef, useEffect } from 'react'\nimport { Plus, ChevronDown, Sparkles, Bug, Wrench, FileText } from 'lucide-react'\nimport { cn } from '@/lib/utils'\n\nconst WORKFLOW_TYPES = [\n  { id: 'feature', label: 'New Feature', icon: Sparkles, description: 'Start with Discussion → ADR → SPEC → Plan' },\n  { id: 'bugfix', label: 'Bug Fix', icon: Bug, description: 'Start with Plan → Fragment' },\n  { id: 'refactor', label: 'Refactor', icon: Wrench, description: 'Start with ADR → Plan' },\n  { id: 'enhancement', label: 'Enhancement', icon: FileText, description: 'Start with SPEC → Plan' },\n]\n\ninterface NewWorkflowDropdownProps {\n  onSelect: (type: string) => void\n}\n\nexport function NewWorkflowDropdown({ onSelect }: NewWorkflowDropdownProps) {\n  const [open, setOpen] = useState(false)\n  const ref = useRef<HTMLDivElement>(null)\n\n  useEffect(() => {\n    const handleClickOutside = (e: MouseEvent) => {\n      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)\n    }\n    document.addEventListener('mousedown', handleClickOutside)\n    return () => document.removeEventListener('mousedown', handleClickOutside)\n  }, [])\n\n  return (\n    <div ref={ref} className=\"relative\">\n      <button\n        onClick={() => setOpen(!open)}\n        className=\"flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded text-sm\"\n      >\n        <Plus size={14} />\n        New Workflow\n        <ChevronDown size={14} />\n      </button>\n\n      {open && (\n        <div className=\"absolute right-0 mt-1 w-72 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl z-50\">\n          {WORKFLOW_TYPES.map(({ id, label, icon: Icon, description }) => (\n            <button\n              key={id}\n              onClick={() => { onSelect(id); setOpen(false) }}\n              className=\"w-full flex items-start gap-3 px-3 py-2.5 hover:bg-zinc-700 first:rounded-t-lg last:rounded-b-lg text-left\"\n            >\n              <Icon size={18} className=\"mt-0.5 text-blue-400\" />\n              <div>\n                <div className=\"font-medium\">{label}</div>\n                <div className=\"text-xs text-zinc-400\">{description}</div>\n              </div>\n            </button>\n          ))}\n        </div>\n      )}\n    </div>\n  )\n}\n",
+          "verification_hint": "grep 'NewWorkflowDropdown' apps/homepage/frontend/src/components/workflow/NewWorkflowDropdown.tsx",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M6-03",
+      "description": "Create CommandPalette.tsx modal",
+      "verification_command": "grep 'CommandPalette' apps/homepage/frontend/src/components/workflow/CommandPalette.tsx",
+      "steps": [
+        {
+          "step_number": 1,
+          "instruction": "Create CommandPalette.tsx component",
+          "file_path": "apps/homepage/frontend/src/components/workflow/CommandPalette.tsx",
+          "code_snippet": "import { useState, useEffect, useMemo } from 'react'\nimport { Search, FileJson, FileText, MessageSquare, ListTodo, Code2 } from 'lucide-react'\nimport { cn } from '@/lib/utils'\nimport type { ArtifactSummary, ArtifactType } from './types'\n\nconst TYPE_ICONS: Record<ArtifactType, React.ReactNode> = {\n  discussion: <MessageSquare size={14} />,\n  adr: <FileJson size={14} />,\n  spec: <FileText size={14} />,\n  plan: <ListTodo size={14} />,\n  contract: <Code2 size={14} />,\n}\n\ninterface CommandPaletteProps {\n  isOpen: boolean\n  onClose: () => void\n  artifacts: ArtifactSummary[]\n  onSelect: (id: string, type: ArtifactType) => void\n  recentIds?: string[]\n}\n\nexport function CommandPalette({ isOpen, onClose, artifacts, onSelect, recentIds = [] }: CommandPaletteProps) {\n  const [query, setQuery] = useState('')\n  const [selectedIndex, setSelectedIndex] = useState(0)\n\n  const filtered = useMemo(() => {\n    const q = query.toLowerCase()\n    let results = artifacts.filter(a => a.id.toLowerCase().includes(q) || a.title.toLowerCase().includes(q))\n    // Prioritize recent\n    if (recentIds.length && !query) {\n      const recent = recentIds.map(id => artifacts.find(a => a.id === id)).filter(Boolean) as ArtifactSummary[]\n      results = [...recent, ...results.filter(a => !recentIds.includes(a.id))]\n    }\n    return results.slice(0, 20)\n  }, [artifacts, query, recentIds])\n\n  useEffect(() => {\n    setSelectedIndex(0)\n  }, [query])\n\n  useEffect(() => {\n    if (!isOpen) { setQuery(''); setSelectedIndex(0) }\n  }, [isOpen])\n\n  useEffect(() => {\n    const handleKeyDown = (e: KeyboardEvent) => {\n      if (!isOpen) return\n      if (e.key === 'ArrowDown') { e.preventDefault(); setSelectedIndex(i => Math.min(i + 1, filtered.length - 1)) }\n      if (e.key === 'ArrowUp') { e.preventDefault(); setSelectedIndex(i => Math.max(i - 1, 0)) }\n      if (e.key === 'Enter' && filtered[selectedIndex]) {\n        onSelect(filtered[selectedIndex].id, filtered[selectedIndex].type)\n        onClose()\n      }\n      if (e.key === 'Escape') onClose()\n    }\n    window.addEventListener('keydown', handleKeyDown)\n    return () => window.removeEventListener('keydown', handleKeyDown)\n  }, [isOpen, filtered, selectedIndex, onSelect, onClose])\n\n  if (!isOpen) return null\n\n  return (\n    <div className=\"fixed inset-0 z-50 flex items-start justify-center pt-[15vh]\" onClick={onClose}>\n      <div className=\"absolute inset-0 bg-black/60\" />\n      <div\n        onClick={(e) => e.stopPropagation()}\n        className=\"relative w-[560px] bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl overflow-hidden\"\n      >\n        <div className=\"flex items-center gap-3 px-4 py-3 border-b border-zinc-800\">\n          <Search size={18} className=\"text-zinc-400\" />\n          <input\n            autoFocus\n            type=\"text\"\n            placeholder=\"Search artifacts...\"\n            value={query}\n            onChange={(e) => setQuery(e.target.value)}\n            className=\"flex-1 bg-transparent outline-none text-lg\"\n          />\n        </div>\n        <div className=\"max-h-80 overflow-auto\">\n          {filtered.length === 0 ? (\n            <div className=\"p-4 text-zinc-500 text-center\">No results</div>\n          ) : (\n            filtered.map((artifact, i) => (\n              <button\n                key={artifact.id}\n                onClick={() => { onSelect(artifact.id, artifact.type); onClose() }}\n                className={cn(\n                  'w-full flex items-center gap-3 px-4 py-2.5 text-left',\n                  i === selectedIndex ? 'bg-blue-600/20' : 'hover:bg-zinc-800'\n                )}\n              >\n                <span className=\"text-zinc-400\">{TYPE_ICONS[artifact.type]}</span>\n                <span className=\"font-medium\">{artifact.id}</span>\n                <span className=\"text-zinc-500 truncate\">{artifact.title}</span>\n              </button>\n            ))\n          )}\n        </div>\n      </div>\n    </div>\n  )\n}\n",
+          "verification_hint": "grep 'CommandPalette' apps/homepage/frontend/src/components/workflow/CommandPalette.tsx",
+          "checkpoint": true
+        }
+      ]
+    }
+  ],
+
+  "acceptance_criteria": [
+    { "id": "AC-M6-01", "verification_command": "grep 'WorkflowHeader' apps/homepage/frontend/src/components/workflow/WorkflowHeader.tsx" },
+    { "id": "AC-M6-02", "verification_command": "grep 'NewWorkflowDropdown' apps/homepage/frontend/src/components/workflow/NewWorkflowDropdown.tsx" },
+    { "id": "AC-M6-03", "verification_command": "grep 'CommandPalette' apps/homepage/frontend/src/components/workflow/CommandPalette.tsx" }
+  ],
+
+  "_chunk_footer": {
+    "handoff_to_next": "PLAN-001_L3_M7.json",
+    "files_created": [
+      "apps/homepage/frontend/src/components/workflow/WorkflowHeader.tsx",
+      "apps/homepage/frontend/src/components/workflow/NewWorkflowDropdown.tsx",
+      "apps/homepage/frontend/src/components/workflow/CommandPalette.tsx"
+    ],
+    "patterns_to_maintain": ["Cmd+K opens palette", "Arrow keys navigate, Enter selects"]
+  }
+}

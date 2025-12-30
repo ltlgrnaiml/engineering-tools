@@ -18,99 +18,128 @@
       "line_count": 580,
       "target_limit": 600,
       "soft_limit": 800,
-      "status": "pending",
+      "status": "completed",
       "warning_note": null
     },
     {
       "chunk_id": "M2",
       "chunk_file": "PLAN-001_L3_M2.json",
       "name": "Sidebar Component",
-      "line_count": 0,
+      "line_count": 450,
       "target_limit": 600,
       "soft_limit": 800,
-      "status": "pending",
-      "warning_note": "Not yet authored"
+      "status": "completed",
+      "warning_note": null
     },
     {
       "chunk_id": "M3",
       "chunk_file": "PLAN-001_L3_M3.json",
       "name": "Graph Visualization",
-      "line_count": 0,
+      "line_count": 380,
       "target_limit": 600,
       "soft_limit": 800,
-      "status": "pending",
-      "warning_note": "Not yet authored"
+      "status": "completed",
+      "warning_note": null
     },
     {
       "chunk_id": "M4",
       "chunk_file": "PLAN-001_L3_M4.json",
       "name": "Artifact Reader Panels",
-      "line_count": 0,
+      "line_count": 420,
       "target_limit": 600,
       "soft_limit": 800,
-      "status": "pending",
-      "warning_note": "Not yet authored"
+      "status": "completed",
+      "warning_note": null
     },
     {
       "chunk_id": "M5",
       "chunk_file": "PLAN-001_L3_M5.json",
       "name": "Artifact Editor Panels",
-      "line_count": 0,
+      "line_count": 450,
       "target_limit": 600,
       "soft_limit": 800,
-      "status": "pending",
-      "warning_note": "Not yet authored"
+      "status": "completed",
+      "warning_note": null
     },
     {
       "chunk_id": "M6",
       "chunk_file": "PLAN-001_L3_M6.json",
-      "name": "Command Palette",
-      "line_count": 0,
+      "name": "Header & Command Palette",
+      "line_count": 380,
       "target_limit": 600,
       "soft_limit": 800,
-      "status": "pending",
-      "warning_note": "Not yet authored"
+      "status": "completed",
+      "warning_note": null
     },
     {
       "chunk_id": "M7",
       "chunk_file": "PLAN-001_L3_M7.json",
-      "name": "Workflow Wizard",
-      "line_count": 0,
+      "name": "Activity Feed & Empty States",
+      "line_count": 320,
       "target_limit": 600,
       "soft_limit": 800,
-      "status": "pending",
-      "warning_note": "Not yet authored"
+      "status": "completed",
+      "warning_note": null
     },
     {
       "chunk_id": "M8",
       "chunk_file": "PLAN-001_L3_M8.json",
-      "name": "State Management",
-      "line_count": 0,
+      "name": "Workflow Stepper",
+      "line_count": 350,
       "target_limit": 600,
       "soft_limit": 800,
-      "status": "pending",
-      "warning_note": "Not yet authored"
+      "status": "completed",
+      "warning_note": null
     },
     {
       "chunk_id": "M9",
       "chunk_file": "PLAN-001_L3_M9.json",
       "name": "Integration & Polish",
-      "line_count": 0,
+      "line_count": 480,
       "target_limit": 600,
       "soft_limit": 800,
-      "status": "pending",
-      "warning_note": "Not yet authored"
+      "status": "completed",
+      "warning_note": null
     }
   ],
 
-  "current_chunk": "M1",
-  "last_completed_task": null,
+  "current_chunk": null,
+  "last_completed_task": "T-M9-04",
 
   "continuation_context": {
-    "previous_chunk": null,
-    "last_completed_task": null,
-    "files_created": [],
-    "files_modified": [],
+    "previous_chunk": "M9",
+    "last_completed_task": "T-M9-04",
+    "files_created": [
+      "shared/contracts/devtools/workflow.py",
+      "gateway/services/workflow_service.py",
+      "tests/gateway/__init__.py",
+      "tests/gateway/test_devtools_workflow.py",
+      "apps/homepage/frontend/src/components/workflow/index.ts",
+      "apps/homepage/frontend/src/components/workflow/types.ts",
+      "apps/homepage/frontend/src/components/workflow/WorkflowSidebar.tsx",
+      "apps/homepage/frontend/src/components/workflow/SidebarTabs.tsx",
+      "apps/homepage/frontend/src/components/workflow/ArtifactList.tsx",
+      "apps/homepage/frontend/src/components/workflow/ArtifactGraph.tsx",
+      "apps/homepage/frontend/src/components/workflow/GraphToolbar.tsx",
+      "apps/homepage/frontend/src/components/workflow/ArtifactReader.tsx",
+      "apps/homepage/frontend/src/components/workflow/JsonRenderer.tsx",
+      "apps/homepage/frontend/src/components/workflow/MarkdownRenderer.tsx",
+      "apps/homepage/frontend/src/components/workflow/CodeRenderer.tsx",
+      "apps/homepage/frontend/src/components/workflow/ArtifactEditor.tsx",
+      "apps/homepage/frontend/src/components/workflow/EditorForm.tsx",
+      "apps/homepage/frontend/src/components/workflow/WorkflowHeader.tsx",
+      "apps/homepage/frontend/src/components/workflow/NewWorkflowDropdown.tsx",
+      "apps/homepage/frontend/src/components/workflow/CommandPalette.tsx",
+      "apps/homepage/frontend/src/components/workflow/ActivityFeed.tsx",
+      "apps/homepage/frontend/src/components/workflow/EmptyState.tsx",
+      "apps/homepage/frontend/src/components/workflow/WorkflowStepper.tsx",
+      "apps/homepage/frontend/src/components/workflow/useWorkflowState.ts",
+      "apps/homepage/frontend/src/pages/WorkflowManagerPage.tsx"
+    ],
+    "files_modified": [
+      "shared/contracts/devtools/__init__.py",
+      "gateway/services/devtools_service.py"
+    ],
     "architecture_rules": [
       "STYLE: Functional programming - NO classes except Pydantic models",
       "ENUMS: Always exactly 5 values for status enums",
@@ -118,11 +147,70 @@
       "IMPORTS: Always at top of file, sorted alphabetically",
       "NAMING: Use full descriptive names (ArtifactSummary not ArtifactInfo)"
     ],
-    "patterns_established": [],
+    "patterns_established": [
+      "Import workflow models from shared.contracts.devtools.workflow",
+      "Use scan_artifacts() and build_artifact_graph() from workflow_service",
+      "5-value enums for ArtifactType, ArtifactStatus, RelationshipType"
+    ],
     "active_blockers": []
   },
 
-  "execution_history": [],
+  "execution_history": [
+    {
+      "chunk_id": "M1",
+      "completed_by": "claude-sonnet-4-20250514",
+      "session_id": "SESSION_006",
+      "completed_date": "2025-12-30"
+    },
+    {
+      "chunk_id": "M2",
+      "completed_by": "claude-sonnet-4-20250514",
+      "session_id": "SESSION_007",
+      "completed_date": "2025-12-30"
+    },
+    {
+      "chunk_id": "M3",
+      "completed_by": "claude-sonnet-4-20250514",
+      "session_id": "SESSION_008",
+      "completed_date": "2025-12-30"
+    },
+    {
+      "chunk_id": "M4",
+      "completed_by": "claude-sonnet-4-20250514",
+      "session_id": "SESSION_009",
+      "completed_date": "2025-12-30"
+    },
+    {
+      "chunk_id": "M5",
+      "completed_by": "claude-sonnet-4-20250514",
+      "session_id": "SESSION_010",
+      "completed_date": "2025-12-30"
+    },
+    {
+      "chunk_id": "M6",
+      "completed_by": "claude-sonnet-4-20250514",
+      "session_id": "SESSION_011",
+      "completed_date": "2025-12-30"
+    },
+    {
+      "chunk_id": "M7",
+      "completed_by": "claude-sonnet-4-20250514",
+      "session_id": "SESSION_012",
+      "completed_date": "2025-12-30"
+    },
+    {
+      "chunk_id": "M8",
+      "completed_by": "claude-sonnet-4-20250514",
+      "session_id": "SESSION_013",
+      "completed_date": "2025-12-30"
+    },
+    {
+      "chunk_id": "M9",
+      "completed_by": "claude-sonnet-4-20250514",
+      "session_id": "SESSION_014",
+      "completed_date": "2025-12-30"
+    }
+  ],
 
   "_instructions": {
     "before_starting": [

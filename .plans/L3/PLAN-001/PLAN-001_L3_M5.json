@@ -1,0 +1,84 @@
+{
+  "_chunk_header": {
+    "chunk_meta": {
+      "chunk_id": "M5",
+      "chunk_file": "PLAN-001_L3_M5.json",
+      "line_count": 450,
+      "target_limit": 600,
+      "soft_limit": 800
+    },
+    "continuation_from": {
+      "previous_chunk": "M4",
+      "architecture_rules": ["STYLE: React functional components", "STYLING: TailwindCSS"]
+    },
+    "session_instruction": "Create .sessions/SESSION_XXX_PLAN-001_M5_Editor-Panels.md"
+  },
+
+  "milestone": {
+    "id": "M5",
+    "name": "Editor Component",
+    "objective": "Build slide-in editor panel with form-based and Monaco editing."
+  },
+
+  "tasks": [
+    {
+      "id": "T-M5-01",
+      "description": "Install Monaco editor",
+      "verification_command": "grep '@monaco-editor' apps/homepage/frontend/package.json",
+      "steps": [
+        {
+          "step_number": 1,
+          "instruction": "Install Monaco editor package",
+          "code_snippet": "cd apps/homepage/frontend && npm install @monaco-editor/react",
+          "verification_hint": "grep '@monaco-editor' apps/homepage/frontend/package.json",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M5-02",
+      "description": "Create ArtifactEditor.tsx with slide-in animation",
+      "verification_command": "grep 'ArtifactEditor' apps/homepage/frontend/src/components/workflow/ArtifactEditor.tsx",
+      "steps": [
+        {
+          "step_number": 1,
+          "instruction": "Create ArtifactEditor.tsx component",
+          "file_path": "apps/homepage/frontend/src/components/workflow/ArtifactEditor.tsx",
+          "code_snippet": "import { useState, useEffect, useCallback } from 'react'\nimport { X, Save, Loader2 } from 'lucide-react'\nimport Editor from '@monaco-editor/react'\nimport { cn } from '@/lib/utils'\nimport { EditorForm } from './EditorForm'\nimport type { ArtifactType } from './types'\n\nconst API_BASE = 'http://localhost:8000/api/devtools'\n\ninterface ArtifactEditorProps {\n  artifactId: string\n  artifactType: ArtifactType\n  isOpen: boolean\n  onClose: () => void\n  onSave?: () => void\n}\n\nexport function ArtifactEditor({ artifactId, artifactType, isOpen, onClose, onSave }: ArtifactEditorProps) {\n  const [content, setContent] = useState<string>('')\n  const [originalContent, setOriginalContent] = useState<string>('')\n  const [loading, setLoading] = useState(true)\n  const [saving, setSaving] = useState(false)\n  const [dirty, setDirty] = useState(false)\n\n  useEffect(() => {\n    if (isOpen && artifactId) {\n      setLoading(true)\n      fetch(`${API_BASE}/artifacts/${artifactId}`)\n        .then(res => res.json())\n        .then(data => {\n          const c = typeof data.content === 'string' ? data.content : JSON.stringify(data.content || data, null, 2)\n          setContent(c)\n          setOriginalContent(c)\n          setDirty(false)\n        })\n        .finally(() => setLoading(false))\n    }\n  }, [isOpen, artifactId])\n\n  useEffect(() => {\n    setDirty(content !== originalContent)\n  }, [content, originalContent])\n\n  // Keyboard shortcuts\n  useEffect(() => {\n    const handleKeyDown = (e: KeyboardEvent) => {\n      if ((e.metaKey || e.ctrlKey) && e.key === 's') {\n        e.preventDefault()\n        handleSave()\n      }\n      if (e.key === 'Escape') {\n        handleClose()\n      }\n    }\n    if (isOpen) window.addEventListener('keydown', handleKeyDown)\n    return () => window.removeEventListener('keydown', handleKeyDown)\n  }, [isOpen, content])\n\n  const handleSave = async () => {\n    setSaving(true)\n    try {\n      await fetch(`${API_BASE}/artifacts/${artifactId}`, {\n        method: 'PUT',\n        headers: { 'Content-Type': 'application/json' },\n        body: JSON.stringify({ content }),\n      })\n      setOriginalContent(content)\n      setDirty(false)\n      onSave?.()\n    } finally {\n      setSaving(false)\n    }\n  }\n\n  const handleClose = () => {\n    if (dirty && !confirm('You have unsaved changes. Discard them?')) return\n    onClose()\n  }\n\n  const getLanguage = () => {\n    if (artifactType === 'contract') return 'python'\n    if (artifactType === 'adr' || artifactType === 'spec') return 'json'\n    return 'markdown'\n  }\n\n  return (\n    <div\n      className={cn(\n        'fixed inset-y-0 right-0 w-[600px] bg-zinc-900 border-l border-zinc-800 shadow-xl',\n        'transform transition-transform duration-200 ease-in-out z-50',\n        isOpen ? 'translate-x-0' : 'translate-x-full'\n      )}\n    >\n      {/* Header */}\n      <div className=\"flex items-center justify-between px-4 py-3 border-b border-zinc-800\">\n        <div>\n          <h2 className=\"font-semibold\">Edit {artifactId}</h2>\n          {dirty && <span className=\"text-xs text-amber-400 ml-2\">• Unsaved changes</span>}\n        </div>\n        <div className=\"flex items-center gap-2\">\n          <button\n            onClick={handleSave}\n            disabled={saving || !dirty}\n            className=\"flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded text-sm\"\n          >\n            {saving ? <Loader2 size={14} className=\"animate-spin\" /> : <Save size={14} />}\n            Save\n          </button>\n          <button onClick={handleClose} className=\"p-2 hover:bg-zinc-800 rounded\">\n            <X size={16} />\n          </button>\n        </div>\n      </div>\n\n      {/* Content */}\n      <div className=\"h-[calc(100%-56px)]\">\n        {loading ? (\n          <div className=\"flex items-center justify-center h-full\"><Loader2 className=\"animate-spin\" /></div>\n        ) : artifactType === 'adr' || artifactType === 'spec' ? (\n          <EditorForm content={content} onChange={setContent} />\n        ) : (\n          <Editor\n            height=\"100%\"\n            language={getLanguage()}\n            value={content}\n            onChange={(v) => setContent(v || '')}\n            theme=\"vs-dark\"\n            options={{ minimap: { enabled: false }, fontSize: 13, wordWrap: 'on' }}\n          />\n        )}\n      </div>\n    </div>\n  )\n}\n",
+          "verification_hint": "grep 'ArtifactEditor' apps/homepage/frontend/src/components/workflow/ArtifactEditor.tsx",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M5-03",
+      "description": "Create EditorForm.tsx for structured ADR/SPEC editing",
+      "verification_command": "grep 'EditorForm' apps/homepage/frontend/src/components/workflow/EditorForm.tsx",
+      "steps": [
+        {
+          "step_number": 1,
+          "instruction": "Create EditorForm.tsx component",
+          "file_path": "apps/homepage/frontend/src/components/workflow/EditorForm.tsx",
+          "code_snippet": "import { useState, useEffect } from 'react'\nimport { cn } from '@/lib/utils'\n\ninterface EditorFormProps {\n  content: string\n  onChange: (content: string) => void\n  className?: string\n}\n\nexport function EditorForm({ content, onChange, className }: EditorFormProps) {\n  const [data, setData] = useState<Record<string, unknown>>({})\n\n  useEffect(() => {\n    try {\n      setData(JSON.parse(content))\n    } catch {\n      setData({})\n    }\n  }, [content])\n\n  const handleFieldChange = (field: string, value: unknown) => {\n    const updated = { ...data, [field]: value }\n    setData(updated)\n    onChange(JSON.stringify(updated, null, 2))\n  }\n\n  const inputClass = 'w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded focus:outline-none focus:border-blue-500'\n\n  return (\n    <div className={cn('p-4 space-y-4 overflow-auto h-full', className)}>\n      {/* Common fields */}\n      <div>\n        <label className=\"block text-sm text-zinc-400 mb-1\">ID</label>\n        <input\n          type=\"text\"\n          value={String(data.id || '')}\n          onChange={(e) => handleFieldChange('id', e.target.value)}\n          className={inputClass}\n        />\n      </div>\n      <div>\n        <label className=\"block text-sm text-zinc-400 mb-1\">Title</label>\n        <input\n          type=\"text\"\n          value={String(data.title || '')}\n          onChange={(e) => handleFieldChange('title', e.target.value)}\n          className={inputClass}\n        />\n      </div>\n      <div>\n        <label className=\"block text-sm text-zinc-400 mb-1\">Status</label>\n        <select\n          value={String(data.status || 'draft')}\n          onChange={(e) => handleFieldChange('status', e.target.value)}\n          className={inputClass}\n        >\n          <option value=\"draft\">Draft</option>\n          <option value=\"proposed\">Proposed</option>\n          <option value=\"active\">Active</option>\n          <option value=\"deprecated\">Deprecated</option>\n          <option value=\"superseded\">Superseded</option>\n        </select>\n      </div>\n      <div>\n        <label className=\"block text-sm text-zinc-400 mb-1\">Context</label>\n        <textarea\n          value={String(data.context || '')}\n          onChange={(e) => handleFieldChange('context', e.target.value)}\n          rows={4}\n          className={inputClass}\n        />\n      </div>\n      <div>\n        <label className=\"block text-sm text-zinc-400 mb-1\">Decision</label>\n        <textarea\n          value={String(data.decision_primary || data.decision || '')}\n          onChange={(e) => handleFieldChange('decision_primary', e.target.value)}\n          rows={4}\n          className={inputClass}\n        />\n      </div>\n    </div>\n  )\n}\n",
+          "verification_hint": "grep 'EditorForm' apps/homepage/frontend/src/components/workflow/EditorForm.tsx",
+          "checkpoint": true
+        }
+      ]
+    }
+  ],
+
+  "acceptance_criteria": [
+    { "id": "AC-M5-01", "verification_command": "grep '@monaco-editor' apps/homepage/frontend/package.json" },
+    { "id": "AC-M5-02", "verification_command": "grep 'ArtifactEditor' apps/homepage/frontend/src/components/workflow/ArtifactEditor.tsx" },
+    { "id": "AC-M5-03", "verification_command": "grep 'EditorForm' apps/homepage/frontend/src/components/workflow/EditorForm.tsx" }
+  ],
+
+  "_chunk_footer": {
+    "handoff_to_next": "PLAN-001_L3_M6.json",
+    "files_created": [
+      "apps/homepage/frontend/src/components/workflow/ArtifactEditor.tsx",
+      "apps/homepage/frontend/src/components/workflow/EditorForm.tsx"
+    ],
+    "patterns_to_maintain": ["Ctrl+S saves, Escape closes", "Dirty state confirmation before close"]
+  }
+}

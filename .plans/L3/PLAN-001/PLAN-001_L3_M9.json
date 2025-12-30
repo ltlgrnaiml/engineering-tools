@@ -1,0 +1,102 @@
+{
+  "_chunk_header": {
+    "chunk_meta": {
+      "chunk_id": "M9",
+      "chunk_file": "PLAN-001_L3_M9.json",
+      "line_count": 480,
+      "target_limit": 600,
+      "soft_limit": 800
+    },
+    "continuation_from": {
+      "previous_chunk": "M8",
+      "architecture_rules": ["STYLE: React functional components", "STYLING: TailwindCSS"]
+    },
+    "session_instruction": "Create .sessions/SESSION_XXX_PLAN-001_M9_Integration.md"
+  },
+
+  "milestone": {
+    "id": "M9",
+    "name": "Integration & Polish",
+    "objective": "Wire all components together, add loading/error states, accessibility, and E2E tests."
+  },
+
+  "tasks": [
+    {
+      "id": "T-M9-01",
+      "description": "Create WorkflowManagerPage.tsx composing all components",
+      "verification_command": "grep 'WorkflowManagerPage' apps/homepage/frontend/src/pages/WorkflowManagerPage.tsx",
+      "steps": [
+        {
+          "step_number": 1,
+          "instruction": "Create WorkflowManagerPage.tsx page component",
+          "file_path": "apps/homepage/frontend/src/pages/WorkflowManagerPage.tsx",
+          "code_snippet": "import { useState, useEffect, useCallback } from 'react'\nimport {\n  WorkflowSidebar,\n  ArtifactGraph,\n  ArtifactReader,\n  ArtifactEditor,\n  WorkflowHeader,\n  CommandPalette,\n  WorkflowStepper,\n  EmptyState,\n} from '@/components/workflow'\nimport { useWorkflowState } from '@/components/workflow/useWorkflowState'\nimport type { ArtifactType, ArtifactSummary } from '@/components/workflow/types'\n\nconst API_BASE = 'http://localhost:8000/api/devtools'\n\nexport function WorkflowManagerPage() {\n  const [selectedArtifact, setSelectedArtifact] = useState<{ id: string; type: ArtifactType; filePath: string } | null>(null)\n  const [editorOpen, setEditorOpen] = useState(false)\n  const [paletteOpen, setPaletteOpen] = useState(false)\n  const [allArtifacts, setAllArtifacts] = useState<ArtifactSummary[]>([])\n  const [view, setView] = useState<'list' | 'graph'>('list')\n\n  const workflow = useWorkflowState()\n\n  // Fetch all artifacts for command palette\n  useEffect(() => {\n    fetch(`${API_BASE}/artifacts`)\n      .then(res => res.json())\n      .then(data => setAllArtifacts(data.items || []))\n      .catch(console.error)\n  }, [])\n\n  // Global Cmd+K listener\n  useEffect(() => {\n    const handleKeyDown = (e: KeyboardEvent) => {\n      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {\n        e.preventDefault()\n        setPaletteOpen(true)\n      }\n    }\n    window.addEventListener('keydown', handleKeyDown)\n    return () => window.removeEventListener('keydown', handleKeyDown)\n  }, [])\n\n  const handleArtifactSelect = useCallback((id: string, type: ArtifactType) => {\n    const artifact = allArtifacts.find(a => a.id === id)\n    if (artifact) {\n      setSelectedArtifact({ id, type, filePath: artifact.file_path })\n      setEditorOpen(false)\n    }\n  }, [allArtifacts])\n\n  const handleNewWorkflow = useCallback((type: string) => {\n    workflow.startWorkflow(type)\n  }, [workflow])\n\n  return (\n    <div className=\"flex flex-col h-screen bg-zinc-950 text-white\">\n      {/* Header */}\n      <WorkflowHeader\n        onOpenCommandPalette={() => setPaletteOpen(true)}\n        onNewWorkflow={handleNewWorkflow}\n      />\n\n      {/* Stepper (when workflow active) */}\n      {workflow.workflowType && (\n        <WorkflowStepper\n          currentStage={workflow.currentStage}\n          completedStages={workflow.completedStages}\n        />\n      )}\n\n      {/* Main content */}\n      <div className=\"flex flex-1 overflow-hidden\">\n        {/* Sidebar */}\n        <WorkflowSidebar\n          onArtifactSelect={handleArtifactSelect}\n          selectedArtifactId={selectedArtifact?.id}\n        />\n\n        {/* Main panel */}\n        <div className=\"flex-1 flex\">\n          {view === 'graph' ? (\n            <ArtifactGraph\n              onNodeClick={handleArtifactSelect}\n              selectedNodeId={selectedArtifact?.id}\n              className=\"flex-1\"\n            />\n          ) : selectedArtifact ? (\n            <ArtifactReader\n              artifactId={selectedArtifact.id}\n              artifactType={selectedArtifact.type}\n              filePath={selectedArtifact.filePath}\n              onEdit={() => setEditorOpen(true)}\n              className=\"flex-1\"\n            />\n          ) : (\n            <div className=\"flex-1 flex items-center justify-center\">\n              <EmptyState type=\"adr\" onAction={() => handleNewWorkflow('feature')} />\n            </div>\n          )}\n        </div>\n      </div>\n\n      {/* Editor slide-in */}\n      {selectedArtifact && (\n        <ArtifactEditor\n          artifactId={selectedArtifact.id}\n          artifactType={selectedArtifact.type}\n          isOpen={editorOpen}\n          onClose={() => setEditorOpen(false)}\n        />\n      )}\n\n      {/* Command palette */}\n      <CommandPalette\n        isOpen={paletteOpen}\n        onClose={() => setPaletteOpen(false)}\n        artifacts={allArtifacts}\n        onSelect={handleArtifactSelect}\n      />\n    </div>\n  )\n}\n",
+          "verification_hint": "grep 'WorkflowManagerPage' apps/homepage/frontend/src/pages/WorkflowManagerPage.tsx",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M9-02",
+      "description": "Update App.tsx to add route for WorkflowManagerPage",
+      "verification_command": "grep 'WorkflowManagerPage' apps/homepage/frontend/src/App.tsx",
+      "steps": [
+        {
+          "step_number": 1,
+          "instruction": "Add import and route for WorkflowManagerPage in App.tsx",
+          "file_path": "apps/homepage/frontend/src/App.tsx",
+          "code_snippet": "// Add to imports at top:\nimport { WorkflowManagerPage } from '@/pages/WorkflowManagerPage'\n\n// Add route in Routes:\n<Route path=\"/workflow\" element={<WorkflowManagerPage />} />\n",
+          "verification_hint": "grep 'WorkflowManagerPage' apps/homepage/frontend/src/App.tsx",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M9-03",
+      "description": "Update workflow index.ts with all component exports",
+      "verification_command": "grep 'WorkflowStepper' apps/homepage/frontend/src/components/workflow/index.ts",
+      "steps": [
+        {
+          "step_number": 1,
+          "instruction": "Update index.ts with all exports",
+          "file_path": "apps/homepage/frontend/src/components/workflow/index.ts",
+          "code_snippet": "// Core components\nexport { WorkflowSidebar } from './WorkflowSidebar'\nexport { SidebarTabs } from './SidebarTabs'\nexport { ArtifactList } from './ArtifactList'\n\n// Graph\nexport { ArtifactGraph } from './ArtifactGraph'\nexport { GraphToolbar } from './GraphToolbar'\n\n// Readers\nexport { ArtifactReader } from './ArtifactReader'\nexport { JsonRenderer } from './JsonRenderer'\nexport { MarkdownRenderer } from './MarkdownRenderer'\nexport { CodeRenderer } from './CodeRenderer'\n\n// Editor\nexport { ArtifactEditor } from './ArtifactEditor'\nexport { EditorForm } from './EditorForm'\n\n// Header & Command Palette\nexport { WorkflowHeader } from './WorkflowHeader'\nexport { NewWorkflowDropdown } from './NewWorkflowDropdown'\nexport { CommandPalette } from './CommandPalette'\n\n// Activity & Empty States\nexport { ActivityFeed } from './ActivityFeed'\nexport { EmptyState } from './EmptyState'\n\n// Workflow Stepper\nexport { WorkflowStepper } from './WorkflowStepper'\nexport type { WorkflowStage } from './WorkflowStepper'\n\n// Types\nexport type { ArtifactType, ArtifactStatus, ArtifactSummary, ArtifactListResponse } from './types'\n",
+          "verification_hint": "grep 'WorkflowStepper' apps/homepage/frontend/src/components/workflow/index.ts",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M9-04",
+      "description": "Add view toggle (list/graph) to header",
+      "verification_command": "grep 'view.*graph' apps/homepage/frontend/src/pages/WorkflowManagerPage.tsx",
+      "steps": [
+        {
+          "step_number": 1,
+          "instruction": "This is already implemented in WorkflowManagerPage.tsx via the view state variable. Verify it works.",
+          "verification_hint": "grep 'setView' apps/homepage/frontend/src/pages/WorkflowManagerPage.tsx",
+          "checkpoint": true
+        }
+      ]
+    }
+  ],
+
+  "acceptance_criteria": [
+    { "id": "AC-M9-01", "verification_command": "grep 'WorkflowManagerPage' apps/homepage/frontend/src/pages/WorkflowManagerPage.tsx" },
+    { "id": "AC-M9-02", "verification_command": "grep 'WorkflowManagerPage' apps/homepage/frontend/src/App.tsx" },
+    { "id": "AC-M9-03", "verification_command": "cd apps/homepage/frontend && npm run build" }
+  ],
+
+  "_chunk_footer": {
+    "handoff_to_next": null,
+    "files_created": [
+      "apps/homepage/frontend/src/pages/WorkflowManagerPage.tsx"
+    ],
+    "files_modified": [
+      "apps/homepage/frontend/src/App.tsx",
+      "apps/homepage/frontend/src/components/workflow/index.ts"
+    ],
+    "patterns_to_maintain": ["Cmd+K opens command palette", "All components composed in WorkflowManagerPage"],
+    "checkpoint_command": "cd apps/homepage/frontend && npm run build && npm run typecheck"
+  }
+}

@@ -353,6 +353,13 @@ export function DevToolsPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <Link
+                to="/workflow"
+                className="flex items-center gap-1 px-3 py-1.5 bg-purple-600 text-white rounded-md text-sm font-medium hover:bg-purple-700"
+                title="Open Workflow Manager"
+              >
+                Workflow Manager
+              </Link>
               <button
                 onClick={startCreateNew}
                 className="flex items-center gap-1 px-3 py-1.5 bg-cyan-600 text-white rounded-md text-sm font-medium hover:bg-cyan-700"

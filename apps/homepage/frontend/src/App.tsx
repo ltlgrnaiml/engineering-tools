@@ -10,12 +10,23 @@ import { DataAggregatorPage } from './pages/DataAggregatorPage'
 import { PPTXGeneratorPage } from './pages/PPTXGeneratorPage'
 import { SOVAnalyzerPage } from './pages/SOVAnalyzerPage'
 import { DevToolsPage } from './pages/DevToolsPage'
+import { WorkflowManagerPage } from './pages/WorkflowManagerPage'
 
 function AppContent() {
   const location = useLocation()
   const isToolPage = location.pathname.startsWith('/tools/')
 
   const isDevToolsPage = location.pathname.startsWith('/devtools')
+
+  const isWorkflowPage = location.pathname.startsWith('/workflow')
+
+  if (isWorkflowPage) {
+    return (
+      <Routes>
+        <Route path="/workflow" element={<WorkflowManagerPage />} />
+      </Routes>
+    )
+  }
 
   if (isDevToolsPage) {
     return (

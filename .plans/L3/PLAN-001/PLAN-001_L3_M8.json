@@ -1,0 +1,69 @@
+{
+  "_chunk_header": {
+    "chunk_meta": {
+      "chunk_id": "M8",
+      "chunk_file": "PLAN-001_L3_M8.json",
+      "line_count": 350,
+      "target_limit": 600,
+      "soft_limit": 800
+    },
+    "continuation_from": {
+      "previous_chunk": "M7",
+      "architecture_rules": ["STYLE: React functional components", "STYLING: TailwindCSS"]
+    },
+    "session_instruction": "Create .sessions/SESSION_XXX_PLAN-001_M8_Workflow-Stepper.md"
+  },
+
+  "milestone": {
+    "id": "M8",
+    "name": "Workflow Stepper",
+    "objective": "Build workflow wizard with progress stepper for guided artifact creation."
+  },
+
+  "tasks": [
+    {
+      "id": "T-M8-01",
+      "description": "Create WorkflowStepper.tsx with stages",
+      "verification_command": "grep 'WorkflowStepper' apps/homepage/frontend/src/components/workflow/WorkflowStepper.tsx",
+      "steps": [
+        {
+          "step_number": 1,
+          "instruction": "Create WorkflowStepper.tsx component",
+          "file_path": "apps/homepage/frontend/src/components/workflow/WorkflowStepper.tsx",
+          "code_snippet": "import { Check, Circle, ArrowRight } from 'lucide-react'\nimport { cn } from '@/lib/utils'\n\nexport type WorkflowStage = 'discussion' | 'adr' | 'spec' | 'contract' | 'plan' | 'fragment'\n\nconst STAGES: { id: WorkflowStage; label: string; description: string }[] = [\n  { id: 'discussion', label: 'Discussion', description: 'Capture design conversation' },\n  { id: 'adr', label: 'ADR', description: 'Record architecture decision' },\n  { id: 'spec', label: 'SPEC', description: 'Define requirements' },\n  { id: 'contract', label: 'Contract', description: 'Create data shapes' },\n  { id: 'plan', label: 'Plan', description: 'Break into tasks' },\n  { id: 'fragment', label: 'Fragment', description: 'Execute & verify' },\n]\n\ninterface WorkflowStepperProps {\n  currentStage: WorkflowStage\n  completedStages: WorkflowStage[]\n  onStageClick?: (stage: WorkflowStage) => void\n  className?: string\n}\n\nexport function WorkflowStepper({ currentStage, completedStages, onStageClick, className }: WorkflowStepperProps) {\n  const currentIndex = STAGES.findIndex(s => s.id === currentStage)\n\n  return (\n    <div className={cn('flex items-center gap-2 p-4 bg-zinc-900 border-b border-zinc-800 overflow-x-auto', className)}>\n      {STAGES.map((stage, index) => {\n        const isCompleted = completedStages.includes(stage.id)\n        const isCurrent = stage.id === currentStage\n        const isPast = index < currentIndex\n\n        return (\n          <div key={stage.id} className=\"flex items-center\">\n            <button\n              onClick={() => onStageClick?.(stage.id)}\n              disabled={!isCompleted && !isCurrent}\n              className={cn(\n                'flex items-center gap-2 px-3 py-2 rounded-lg transition-colors',\n                isCurrent && 'bg-blue-600/20 border border-blue-500',\n                isCompleted && 'hover:bg-zinc-800',\n                !isCompleted && !isCurrent && 'opacity-50 cursor-not-allowed'\n              )}\n            >\n              <div\n                className={cn(\n                  'w-6 h-6 rounded-full flex items-center justify-center text-xs',\n                  isCompleted ? 'bg-green-500' : isCurrent ? 'bg-blue-500' : 'bg-zinc-700'\n                )}\n              >\n                {isCompleted ? <Check size={14} /> : index + 1}\n              </div>\n              <div className=\"text-left hidden sm:block\">\n                <div className=\"text-sm font-medium\">{stage.label}</div>\n                <div className=\"text-xs text-zinc-500\">{stage.description}</div>\n              </div>\n            </button>\n            {index < STAGES.length - 1 && (\n              <ArrowRight size={16} className=\"mx-2 text-zinc-600\" />\n            )}\n          </div>\n        )\n      })}\n    </div>\n  )\n}\n",
+          "verification_hint": "grep 'WorkflowStepper' apps/homepage/frontend/src/components/workflow/WorkflowStepper.tsx",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M8-02",
+      "description": "Create useWorkflowState hook with sessionStorage persistence",
+      "verification_command": "grep 'useWorkflowState' apps/homepage/frontend/src/components/workflow/useWorkflowState.ts",
+      "steps": [
+        {
+          "step_number": 1,
+          "instruction": "Create useWorkflowState.ts hook",
+          "file_path": "apps/homepage/frontend/src/components/workflow/useWorkflowState.ts",
+          "code_snippet": "import { useState, useEffect, useCallback } from 'react'\nimport type { WorkflowStage } from './WorkflowStepper'\n\nconst STORAGE_KEY = 'workflow-manager-state'\n\ninterface WorkflowState {\n  workflowType: string | null\n  currentStage: WorkflowStage\n  completedStages: WorkflowStage[]\n  artifactIds: Record<WorkflowStage, string | null>\n  startedAt: string | null\n}\n\nconst DEFAULT_STATE: WorkflowState = {\n  workflowType: null,\n  currentStage: 'discussion',\n  completedStages: [],\n  artifactIds: { discussion: null, adr: null, spec: null, contract: null, plan: null, fragment: null },\n  startedAt: null,\n}\n\nexport function useWorkflowState() {\n  const [state, setState] = useState<WorkflowState>(DEFAULT_STATE)\n\n  // Load from sessionStorage on mount\n  useEffect(() => {\n    const saved = sessionStorage.getItem(STORAGE_KEY)\n    if (saved) {\n      try {\n        setState(JSON.parse(saved))\n      } catch {\n        sessionStorage.removeItem(STORAGE_KEY)\n      }\n    }\n  }, [])\n\n  // Persist to sessionStorage on change\n  useEffect(() => {\n    if (state.workflowType) {\n      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state))\n    }\n  }, [state])\n\n  const startWorkflow = useCallback((type: string) => {\n    setState({\n      ...DEFAULT_STATE,\n      workflowType: type,\n      startedAt: new Date().toISOString(),\n    })\n  }, [])\n\n  const advanceStage = useCallback((artifactId: string) => {\n    setState(prev => {\n      const stages: WorkflowStage[] = ['discussion', 'adr', 'spec', 'contract', 'plan', 'fragment']\n      const currentIndex = stages.indexOf(prev.currentStage)\n      const nextStage = stages[currentIndex + 1] || prev.currentStage\n\n      return {\n        ...prev,\n        completedStages: [...prev.completedStages, prev.currentStage],\n        artifactIds: { ...prev.artifactIds, [prev.currentStage]: artifactId },\n        currentStage: nextStage,\n      }\n    })\n  }, [])\n\n  const resetWorkflow = useCallback(() => {\n    setState(DEFAULT_STATE)\n    sessionStorage.removeItem(STORAGE_KEY)\n  }, [])\n\n  return { ...state, startWorkflow, advanceStage, resetWorkflow }\n}\n",
+          "verification_hint": "grep 'useWorkflowState' apps/homepage/frontend/src/components/workflow/useWorkflowState.ts",
+          "checkpoint": true
+        }
+      ]
+    }
+  ],
+
+  "acceptance_criteria": [
+    { "id": "AC-M8-01", "verification_command": "grep 'WorkflowStepper' apps/homepage/frontend/src/components/workflow/WorkflowStepper.tsx" },
+    { "id": "AC-M8-02", "verification_command": "grep 'useWorkflowState' apps/homepage/frontend/src/components/workflow/useWorkflowState.ts" }
+  ],
+
+  "_chunk_footer": {
+    "handoff_to_next": "PLAN-001_L3_M9.json",
+    "files_created": [
+      "apps/homepage/frontend/src/components/workflow/WorkflowStepper.tsx",
+      "apps/homepage/frontend/src/components/workflow/useWorkflowState.ts"
+    ],
+    "patterns_to_maintain": ["sessionStorage for persistence", "Stage progression logic"]
+  }
+}

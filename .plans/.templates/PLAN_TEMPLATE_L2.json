@@ -1,0 +1,138 @@
+{
+  "schema_type": "plan",
+  "id": "PLAN-XXX",
+  "title": "Brief Description of Implementation",
+  "version": "2025.12.01",
+  "status": "draft",
+  "granularity": "L2",
+  "created_date": "YYYY-MM-DD",
+  "updated_date": "YYYY-MM-DD",
+  "author": "AI-Assisted (Cascade)",
+  "summary": "One paragraph describing what this plan implements and why.",
+  "objective": "Clear statement of what success looks like when this plan is complete.",
+  "source_references": [
+    {
+      "type": "spec",
+      "id": "SPEC-XXXX",
+      "title": "Source SPEC Title"
+    }
+  ],
+  "prerequisites": [
+    "All existing tests pass (pytest tests/ -v)",
+    "Linting passes (ruff check .)"
+  ],
+  "milestones": [
+    {
+      "id": "M1",
+      "name": "First Milestone Name",
+      "objective": "What this milestone achieves.",
+      "status": "pending",
+      "deliverables": [
+        "path/to/file1.py — Description",
+        "path/to/file2.tsx — Description"
+      ],
+      "dependencies": [],
+      "tasks": [
+        {
+          "id": "T-M1-01",
+          "description": "First task description - be specific about what to create/modify",
+          "verification_command": "grep 'expected_string' path/to/file.py",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null,
+          "context": [
+            "ARCHITECTURE: Functional style, no classes unless necessary",
+            "FILE: Create path/to/new_file.py",
+            "FUNCTION: def function_name(param: Type) -> ReturnType",
+            "ENUM: Status values: pending, active, completed",
+            "VERSION: __version__ = \"2025.12.01\""
+          ],
+          "hints": [
+            "Follow existing pattern in similar_file.py",
+            "Use Pydantic BaseModel for data classes",
+            "Import from shared.contracts, not inline definitions"
+          ],
+          "constraints": [
+            "DO NOT use class-based architecture for services",
+            "MUST place file in correct directory per ADR-0034",
+            "EXACTLY match the enum values specified in context"
+          ],
+          "references": [
+            "shared/contracts/existing_contract.py - pattern to follow",
+            "gateway/services/existing_service.py - API pattern"
+          ],
+          "existing_patterns": [
+            "See dataset_service.py for service function pattern",
+            "See conftest.py for fixture pattern"
+          ]
+        },
+        {
+          "id": "T-M1-02",
+          "description": "Second task description",
+          "verification_command": "python -c \"from module import Class; print('OK')\"",
+          "status": "pending",
+          "evidence": null,
+          "notes": null,
+          "blocked_by": null,
+          "context": [
+            "FILE: Modify gateway/services/existing_service.py",
+            "FUNCTION: Add new_function() after existing_function()"
+          ],
+          "hints": [
+            "Reuse existing helper functions where possible"
+          ],
+          "constraints": [
+            "MUST NOT change function signatures of existing public functions"
+          ],
+          "references": [],
+          "existing_patterns": []
+        }
+      ],
+      "acceptance_criteria": [
+        {
+          "id": "AC-M1-01",
+          "description": "All new functions have Google-style docstrings",
+          "verification_command": "grep -A5 'def new_function' path/to/file.py | grep '\"\"\"'",
+          "status": "pending",
+          "evidence": null
+        }
+      ],
+      "notes": null,
+      "started_at": null,
+      "completed_at": null
+    }
+  ],
+  "global_acceptance_criteria": [
+    {
+      "id": "AC-GLOBAL-01",
+      "description": "All Python tests pass",
+      "verification_command": "pytest tests/ -v"
+    },
+    {
+      "id": "AC-GLOBAL-02",
+      "description": "No linting errors",
+      "verification_command": "ruff check ."
+    }
+  ],
+  "execution_log": [],
+  "blockers": [],
+  "lessons_learned": [],
+  "handoff_notes": null,
+  "_template_notes": {
+    "L2_purpose": "L2 (Enhanced) plans are for mid-tier models that benefit from explicit constraints and patterns.",
+    "when_to_use": [
+      "Task involves multiple files",
+      "Task has complex dependencies",
+      "Task requires specific naming conventions",
+      "Previous similar task failed verification"
+    ],
+    "key_fields": {
+      "context": "REQUIRED - Use prefixes: ARCHITECTURE:, FILE:, FUNCTION:, ENUM:, VERSION:, PARAM:",
+      "hints": "Implementation hints and patterns to follow",
+      "constraints": "Explicit DO NOT, MUST, EXACTLY rules",
+      "references": "File paths to reference during implementation",
+      "existing_patterns": "Examples of existing code to match"
+    }
+  }
+}

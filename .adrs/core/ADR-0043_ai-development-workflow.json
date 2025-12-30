@@ -4,266 +4,542 @@
   "title": "AI Development Workflow Orchestration",
   "status": "active",
   "date": "2025-12-30",
+  "review_date": "2026-06-30",
   "author": "Mycahya Eggleston",
+  "scope": "core",
+  "provenance": [
+    {
+      "at": "2025-12-30",
+      "by": "Mycahya Eggleston",
+      "note": "Initial draft based on SESSION_017/018 lessons and industry SDD practices"
+    },
+    {
+      "at": "2025-12-30",
+      "by": "AI-Assisted Revision",
+      "note": "Expanded with explicit T5 Fragment schema, L2 middleground, and artifact format specifications"
+    }
+  ],
   "context": {
     "description": "As AI-assisted development matures, ad-hoc 'vibe coding' produces inconsistent results. Industry best practices (ThoughtWorks, JetBrains, GitHub Spec-kit) show that structured spec-driven development with explicit planning phases significantly improves code quality and reduces rework.",
-    "problem": "Need a structured workflow that: (1) captures design conversations before coding, (2) breaks work into verifiable fragments, (3) tracks execution state across sessions, (4) enforces verification gates before marking complete.",
+    "problem": "Need a structured workflow that: (1) captures design conversations before coding, (2) breaks work into verifiable fragments, (3) tracks execution state across sessions, (4) enforces verification gates before marking complete, (5) supports tiered granularity for different AI model capabilities.",
+    "lessons_learned": {
+      "SESSION_017": "Breadth-over-depth anti-pattern: touching many milestones without completing any",
+      "SESSION_018": "Fragment-based development: implement → verify → document → next"
+    },
     "constraints": [
-      "Must integrate with existing 3-Tier Document Model (ADRs, SPECs, Contracts)",
+      "Must integrate with existing 3-Tier Document Model (ADR-0016: ADRs, SPECs, Guides)",
       "Must support both greenfield features and incremental changes",
       "Must be AI-assistant agnostic at the schema level",
-      "Windsurf-specific instructions in AGENTS.md files must be easily removable"
+      "Windsurf-specific instructions in AGENTS.md files must be easily removable",
+      "Artifacts stored as files on disk (not database) for AI/human shared access"
     ]
   },
   "decision": {
-    "summary": "Implement a 6-tier hierarchical AI Development Workflow with Discussion, Decision (ADR), Specification (SPEC), Contract, Plan, and Fragment tiers.",
+    "summary": "Implement a 6-tier hierarchical AI Development Workflow with Discussion (T0), Decision/ADR (T1), Specification/SPEC (T2), Contract (T3), Plan (T4), and Fragment (T5) tiers. Each tier has explicit artifact schemas, gate requirements, and verification protocols.",
     "details": {
       "tier_hierarchy": [
         {
           "tier": "T0",
           "name": "Discussion",
-          "artifact": ".discussions/DISC-XXX.md",
-          "purpose": "Capture AI ↔ Human design conversation",
-          "trigger": "New feature, enhancement, or architectural exploration"
+          "artifact_path": ".discussions/DISC-XXX_<title>.md",
+          "artifact_format": "markdown",
+          "purpose": "Capture AI ↔ Human design conversation before any implementation",
+          "trigger": "New feature, enhancement, or architectural exploration",
+          "required_sections": ["## Context", "## Requirements", "## Options Considered", "## Decision", "## Next Steps"],
+          "outputs": ["ADR reference (if architectural)", "SPEC reference (if behavioral)", "Plan reference (if implementation-ready)"],
+          "owner": "Human (with AI assistance)"
         },
         {
           "tier": "T1",
-          "name": "Decision",
-          "artifact": ".adrs/ADR-XXXX.json",
-          "purpose": "Record WHY architectural decision was made",
-          "trigger": "Architecture choice required from discussion"
+          "name": "Decision (ADR)",
+          "artifact_path": ".adrs/{domain}/ADR-XXXX_<title>.json",
+          "artifact_format": "json",
+          "purpose": "Record WHY an architectural decision was made (immutable once active)",
+          "trigger": "Architecture choice required from discussion",
+          "required_fields": ["id", "title", "status", "context", "decision", "consequences", "alternatives_considered"],
+          "status_values": ["draft", "active", "deprecated", "superseded"],
+          "outputs": ["SPEC reference (defines WHAT)", "Contract reference (if data structures needed)"],
+          "owner": "Human (final approval), AI (drafting)"
         },
         {
           "tier": "T2",
-          "name": "Specification",
-          "artifact": "docs/specs/SPEC-XXX.json",
-          "purpose": "Define WHAT to build (behavioral requirements)",
-          "trigger": "Feature scope finalized"
+          "name": "Specification (SPEC)",
+          "artifact_path": "docs/specs/{domain}/SPEC-XXXX_<title>.json",
+          "artifact_format": "json",
+          "purpose": "Define WHAT to build (behavioral requirements, not implementation)",
+          "trigger": "Feature scope finalized from ADR or Discussion",
+          "required_fields": ["id", "title", "status", "implements_adr", "requirements", "acceptance_criteria"],
+          "status_values": ["draft", "active", "deprecated", "superseded"],
+          "outputs": ["Contract reference (data shapes)", "Plan reference (implementation)"],
+          "owner": "AI (drafting), Human (approval)"
         },
         {
           "tier": "T3",
           "name": "Contract",
-          "artifact": "shared/contracts/*.py",
-          "purpose": "Define data shapes (Pydantic SSOT)",
-          "trigger": "Data structures needed"
+          "artifact_path": "shared/contracts/{domain}/<module>.py",
+          "artifact_format": "python (Pydantic)",
+          "purpose": "Define data shapes as Pydantic models (SSOT per ADR-0010)",
+          "trigger": "Data structures needed for SPEC or Plan implementation",
+          "required_elements": ["__version__", "Pydantic BaseModel classes", "Google-style docstrings"],
+          "validation": "python -c \"from shared.contracts.{domain}.{module} import *\"",
+          "outputs": ["Importable models for Plan tasks"],
+          "owner": "AI (implementation), Human (review)"
         },
         {
           "tier": "T4",
           "name": "Plan",
-          "artifact": ".plans/PLAN-XXX.md",
-          "purpose": "Milestones, tasks, and acceptance criteria",
-          "trigger": "Implementation begins"
+          "artifact_path": ".plans/PLAN-XXX_<title>.json",
+          "artifact_format": "json",
+          "purpose": "Define milestones, tasks, acceptance criteria, and verification commands",
+          "trigger": "Implementation begins (after SPEC active or for bug fixes/refactors)",
+          "required_fields": ["id", "title", "granularity", "milestones[]", "global_acceptance_criteria[]"],
+          "granularity_levels": ["L1", "L2", "L3"],
+          "outputs": ["Fragment executions (T5)", "Session logs"],
+          "owner": "AI (generation), Human (approval)"
         },
         {
           "tier": "T5",
           "name": "Fragment",
-          "artifact": "Per-task execution",
-          "purpose": "One verifiable unit of work",
-          "trigger": "During plan execution"
+          "artifact_path": ".sessions/SESSION_XXX_<summary>.md (execution log)",
+          "artifact_format": "markdown + inline evidence",
+          "purpose": "One verifiable unit of work with captured evidence",
+          "trigger": "Task execution within a Plan milestone",
+          "required_elements": ["task_id reference", "verification_command", "verification_output", "status"],
+          "lifecycle": ["pending", "in_progress", "verified", "failed", "blocked"],
+          "outputs": ["Code changes", "Test results", "Updated Plan status"],
+          "owner": "AI (execution), Human (verification optional)"
         }
       ],
       "gate_enforcement": {
-        "description": "Each tier has explicit gates that must pass before proceeding",
+        "description": "Each tier has explicit gates that must pass before proceeding to next tier",
         "gates": {
-          "discussion_to_adr": "User approves that architectural decision is needed",
-          "adr_to_spec": "ADR status is 'active'",
-          "spec_to_contract": "SPEC status is 'active'",
-          "contract_to_plan": "Contract imports verified",
-          "plan_to_fragment": "Milestone prerequisites met",
-          "fragment_complete": "Verification command passes"
-        }
-      },
-      "fragment_execution_rules": {
-        "description": "Per SESSION_018 lessons learned",
-        "rules": [
-          "Implement one task at a time",
-          "Run verification command before marking complete",
-          "Document verification evidence in execution log",
-          "Never skip verification even for 'simple' changes"
-        ]
-      },
-      "plan_granularity_levels": {
-        "description": "Plans support tiered granularity matched to model capability. Evidence from EXP-001 (L1 vs L3 Experiment) showed L3 reduced code variation from 39% to 19%.",
-        "levels": {
-          "L1_STANDARD": {
-            "target_models": [
-              "Claude Opus",
-              "Claude Sonnet",
-              "GPT-5.2",
-              "Gemini Pro"
-            ],
-            "description": "Context + verification commands. Premium models handle ambiguity.",
-            "verification_on_failure": "log_and_continue"
+          "T0_to_T1": {
+            "condition": "Discussion concludes with architectural decision needed",
+            "verification": "Human approval in Discussion ## Decision section",
+            "skip_allowed": true
           },
-          "L2_ENHANCED": {
-            "target_models": [
-              "GPT-5.1",
-              "Gemini Pro"
-            ],
-            "description": "L1 + explicit constraints, hints, and negative examples.",
-            "verification_on_failure": "log_and_continue_with_caution"
+          "T1_to_T2": {
+            "condition": "ADR status is 'active'",
+            "verification": "grep '\"status\": \"active\"' in ADR file",
+            "skip_allowed": true
           },
-          "L3_PROCEDURAL": {
-            "target_models": [
-              "Claude Haiku",
-              "Gemini Flash",
-              "Grok Code Fast",
-              "GPT-4o-mini"
-            ],
-            "description": "L2 + step-by-step instructions with copy-paste code snippets.",
-            "verification_on_failure": "stop_and_escalate"
+          "T2_to_T3": {
+            "condition": "SPEC status is 'active' AND data structures identified",
+            "verification": "SPEC acceptance_criteria include data model requirements",
+            "skip_allowed": true
+          },
+          "T3_to_T4": {
+            "condition": "Contract imports successfully",
+            "verification": "python -c \"from shared.contracts.{domain}.{module} import *\"",
+            "skip_allowed": false
+          },
+          "T4_to_T5": {
+            "condition": "Milestone prerequisites met (dependencies completed)",
+            "verification": "All dependent milestones have status 'completed'",
+            "skip_allowed": false
+          },
+          "T5_complete": {
+            "condition": "Verification command passes",
+            "verification": "Run verification_command, capture output as evidence",
+            "skip_allowed": false
           }
         }
       },
+      "fragment_execution_protocol": {
+        "description": "Per SESSION_017/018 lessons: implement one task, verify, document, then proceed",
+        "steps": [
+          {
+            "step": 1,
+            "action": "IMPLEMENT",
+            "description": "Make code changes for ONE task only"
+          },
+          {
+            "step": 2,
+            "action": "VERIFY",
+            "description": "Run task.verification_command and capture output"
+          },
+          {
+            "step": 3,
+            "action": "DOCUMENT",
+            "description": "Record verification output in session file as evidence"
+          },
+          {
+            "step": 4,
+            "action": "UPDATE",
+            "description": "Mark task status as 'verified' in Plan, proceed to next task"
+          }
+        ],
+        "anti_patterns": [
+          "Touching multiple milestones before completing one (breadth-over-depth)",
+          "Marking complete without running verification",
+          "Creating code without wiring it into execution path",
+          "Skipping tests because 'it looks correct'"
+        ],
+        "self_reflection_checkpoint": {
+          "frequency": "Every 5 tasks",
+          "checklist": [
+            "Am I following established patterns from continuation_context?",
+            "Did I create files in the correct locations?",
+            "Did I run verification commands for completed tasks?",
+            "Should I escalate any blockers to .questions/?"
+          ]
+        }
+      },
+      "plan_granularity_levels": {
+        "description": "Plans support three granularity levels matched to AI model capability and cost. Evidence from EXP-001 showed L3 reduced code variation from 39% to 19%.",
+        "levels": {
+          "L1_STANDARD": {
+            "target_models": ["Claude Opus", "Claude Sonnet 3.5+", "GPT-4o", "Gemini 1.5 Pro"],
+            "cost_tier": "$$$",
+            "description": "Context + verification commands. Premium models infer implementation from context.",
+            "task_schema": {
+              "required": ["id", "description", "verification_command", "status"],
+              "optional": ["context[]", "notes", "blocked_by"]
+            },
+            "verification_on_failure": "log_and_continue",
+            "when_to_use": "Standard work with capable model, tight timelines"
+          },
+          "L2_ENHANCED": {
+            "target_models": ["Claude Sonnet 3.5", "GPT-4o-mini", "Gemini 1.5 Flash", "Grok-2"],
+            "cost_tier": "$$",
+            "description": "L1 + explicit constraints, hints, references, and negative examples.",
+            "task_schema": {
+              "required": ["id", "description", "verification_command", "status", "context[]"],
+              "optional": ["hints[]", "references[]", "negative_examples[]", "notes", "blocked_by"]
+            },
+            "verification_on_failure": "log_and_continue_with_caution",
+            "when_to_use": "Large scope with mid-tier model, want guardrails"
+          },
+          "L3_PROCEDURAL": {
+            "target_models": ["Claude Haiku", "Gemini Flash 8B", "Grok-fast", "GPT-4o-mini (strict)"],
+            "cost_tier": "$",
+            "description": "L2 + step-by-step instructions with copy-paste code snippets and checkpoints.",
+            "task_schema": {
+              "required": ["id", "description", "verification_command", "status", "context[]", "steps[]"],
+              "optional": ["hints[]", "references[]", "notes", "blocked_by"],
+              "steps_schema": {
+                "required": ["step_number", "instruction", "verification_hint"],
+                "optional": ["file_path", "code_snippet", "checkpoint"]
+              }
+            },
+            "verification_on_failure": "stop_and_escalate",
+            "when_to_use": "Massive scope, budget-constrained, using smaller model"
+          }
+        },
+        "expandability": "Plans can start at L1 and have specific tasks expanded to L2/L3 on demand",
+        "l2_enhancement_triggers": [
+          "Task involves multiple files",
+          "Task has complex dependencies",
+          "Task requires specific naming conventions",
+          "Previous similar task failed verification"
+        ]
+      },
       "l3_chunking_protocol": {
-        "description": "L3 plans are chunked for smaller context windows. Added based on EXP-001 findings and GPT-5.2 session discipline patterns.",
+        "description": "L3 plans are chunked into separate files for smaller context windows",
         "chunk_limits": {
           "target_lines": 600,
           "soft_limit_lines": 800,
-          "rationale": "Ensures budget models have context room for code generation"
+          "hard_limit_lines": 1000,
+          "rationale": "Ensures budget models have context room for code generation without truncation"
         },
-        "chunk_structure": {
-          "index_file": ".plans/L3/<PLAN>/INDEX.json",
-          "chunk_files": ".plans/L3/<PLAN>/PLAN-XXX_L3_<chunk>.json",
-          "chunk_header": "Contains continuation_context, session_instruction, verification_strictness",
-          "chunk_footer": "Contains handoff_to_next, files_to_preserve, patterns_to_maintain"
+        "directory_structure": {
+          "index_file": ".plans/L3/<PLAN-ID>/INDEX.json",
+          "chunk_files": ".plans/L3/<PLAN-ID>/PLAN-XXX_L3_<milestone>.json"
+        },
+        "index_schema": {
+          "required": ["plan_id", "granularity", "total_chunks", "chunks[]", "current_chunk", "continuation_context"],
+          "chunks_item": ["chunk_id", "chunk_file", "name", "line_count", "status"]
+        },
+        "chunk_schema": {
+          "header": {
+            "purpose": "Context for AI starting this chunk",
+            "fields": ["chunk_meta", "continuation_from", "session_instruction", "verification_strictness"]
+          },
+          "body": {
+            "purpose": "Executable tasks with steps",
+            "fields": ["milestone", "preflight", "tasks[]", "acceptance_criteria[]"]
+          },
+          "footer": {
+            "purpose": "Handoff to next chunk",
+            "fields": ["handoff_to_next", "files_created", "files_modified", "patterns_to_maintain", "checkpoint_command"]
+          }
         },
         "continuation_context": {
-          "purpose": "Handshake between chunks for session continuity",
-          "fields": [
-            "files_created",
-            "files_modified",
-            "architecture_rules",
-            "patterns_established",
-            "active_blockers"
-          ]
+          "purpose": "State handshake between chunks for session continuity",
+          "fields": {
+            "previous_chunk": "ID of last completed chunk",
+            "last_completed_task": "ID of last verified task",
+            "files_created": "List of new files from previous chunks",
+            "files_modified": "List of modified files",
+            "architecture_rules": "Patterns that MUST be followed",
+            "patterns_established": "Conventions established in previous chunks",
+            "active_blockers": "Unresolved issues requiring escalation"
+          }
         },
         "execution_history": {
-          "purpose": "Track which model executed each chunk",
-          "model_self_report": "Models add their name to execution_history (fun experiment!)"
+          "purpose": "Track which AI model executed each chunk (experiment!)",
+          "fields": ["chunk_id", "model_name", "started_at", "completed_at", "tasks_completed", "tasks_failed"]
         },
         "session_required": true
+      },
+      "session_management": {
+        "description": "Every AI execution session creates a session file for traceability",
+        "session_file_path": ".sessions/SESSION_XXX_<summary>.md",
+        "naming_convention": {
+          "XXX": "3-digit sequential number (001, 002, ...)",
+          "summary": "Brief kebab-case description (e.g., PLAN-001_M1_backend-foundation)"
+        },
+        "required_sections": [
+          "# SESSION_XXX: <Title>",
+          "## Objective",
+          "## Preflight (baseline test status)",
+          "## Work Log",
+          "## Tasks (checklist)",
+          "## Handoff Notes"
+        ],
+        "claiming_protocol": [
+          "Check .sessions/ for highest SESSION_XXX number",
+          "Claim next sequential number",
+          "Create session file before starting any work"
+        ]
       }
     }
   },
   "consequences": {
     "positive": [
-      "Consistent, traceable development process",
-      "Reduced rework from incomplete implementations",
-      "Clear handoff between AI sessions",
-      "Verification prevents 'breadth over depth' anti-pattern"
+      "Consistent, traceable development process across AI sessions",
+      "Reduced rework from incomplete implementations (fragment-based verification)",
+      "Clear handoff between AI sessions via continuation_context",
+      "Verification prevents 'breadth over depth' anti-pattern",
+      "Tiered granularity enables cost-effective AI usage",
+      "L2 provides middle ground between flexibility and guardrails",
+      "Explicit T5 Fragment schema ensures execution evidence is captured"
     ],
     "negative": [
-      "Additional overhead for small changes",
-      "Learning curve for new workflow",
-      "More files to maintain"
+      "Additional overhead for small changes (mitigated by subset flows)",
+      "Learning curve for new workflow (mitigated by templates)",
+      "More files to maintain (mitigated by automation scripts)",
+      "L3 authoring is time-consuming (mitigated by AI-assisted expansion)"
     ],
     "mitigations": [
-      "Subset flows for simple changes (skip higher tiers)",
-      "Templates and automation scripts reduce friction",
-      "AI assistant handles most bookkeeping automatically"
+      "Subset flows allow skipping higher tiers for simple changes",
+      "Templates and automation scripts (new_discussion.py, new_plan.py) reduce friction",
+      "AI assistant handles most bookkeeping (session files, status updates)",
+      "L1 plans can be expanded to L2/L3 incrementally on demand"
+    ]
+  },
+  "subset_flows": {
+    "description": "Not all work requires full T0→T5 workflow. Use appropriate entry point based on scope.",
+    "flows": [
+      {
+        "scenario": "Architectural change",
+        "entry_tier": "T0 (Discussion)",
+        "skip_tiers": [],
+        "example": "New integration pattern, major refactor affecting multiple tools"
+      },
+      {
+        "scenario": "New feature",
+        "entry_tier": "T0 or T2 (Discussion or SPEC)",
+        "skip_tiers": ["T0 if scope is clear"],
+        "example": "New API endpoint with well-understood requirements"
+      },
+      {
+        "scenario": "Simple enhancement",
+        "entry_tier": "T2 (SPEC)",
+        "skip_tiers": ["T0", "T1"],
+        "example": "Add field to existing model, extend existing endpoint"
+      },
+      {
+        "scenario": "New data structure only",
+        "entry_tier": "T3 (Contract)",
+        "skip_tiers": ["T0", "T1", "T2"],
+        "example": "New Pydantic model needed for existing feature"
+      },
+      {
+        "scenario": "Bug fix",
+        "entry_tier": "T4 (Plan)",
+        "skip_tiers": ["T0", "T1", "T2", "T3"],
+        "example": "Fix validation error, correct calculation logic"
+      },
+      {
+        "scenario": "Refactor",
+        "entry_tier": "T4 (Plan)",
+        "skip_tiers": ["T0", "T1", "T2", "T3"],
+        "example": "Rename module, extract function, improve performance"
+      }
     ]
   },
   "implementation": {
     "directory_structure": {
       ".discussions/": {
-        "purpose": "Design conversation artifacts",
-        "files": [
-          "README.md",
-          "INDEX.md",
-          "AGENTS.md",
-          ".templates/DISC_TEMPLATE.md"
-        ]
+        "purpose": "Design conversation artifacts (T0)",
+        "files": ["INDEX.md", "AGENTS.md", ".templates/DISC_TEMPLATE.md"]
       },
       ".plans/": {
-        "purpose": "Implementation plan artifacts",
-        "files": [
-          "README.md",
-          "INDEX.md",
-          "AGENTS.md",
-          ".templates/PLAN_TEMPLATE.md"
-        ]
+        "purpose": "Implementation plan artifacts (T4)",
+        "files": ["INDEX.md", "AGENTS.md", ".templates/PLAN_TEMPLATE.json"]
+      },
+      ".plans/L3/": {
+        "purpose": "Chunked L3 plans for budget models",
+        "structure": "<PLAN-ID>/INDEX.json + <PLAN-ID>_L3_<milestone>.json"
+      },
+      ".sessions/": {
+        "purpose": "Execution session logs (T5 evidence)",
+        "files": ["SESSION_XXX_<summary>.md"]
+      },
+      ".questions/": {
+        "purpose": "Escalation artifacts for blocked work",
+        "files": ["<CATEGORY>_<topic>.md"]
       }
     },
     "windsurf_specific_files": {
       "marker": "WINDSURF_SPECIFIC",
-      "description": "Files containing Windsurf-specific instructions are marked with this string for easy removal when migrating to other AI tools",
+      "description": "Files containing Windsurf-specific instructions are marked for easy removal when migrating to other AI tools",
       "files": [
         ".discussions/AGENTS.md",
         ".plans/AGENTS.md",
-        "docs/guides/AI_DEVELOPMENT_WORKFLOW.md (sections marked)"
+        "AGENTS.md (AI Development Workflow section)",
+        "docs/guides/AI_DEVELOPMENT_WORKFLOW.md (migration section)"
       ]
     },
-    "automation": {
+    "automation_scripts": {
       "scripts": [
-        "scripts/workflow/new_discussion.py",
-        "scripts/workflow/new_plan.py",
-        "scripts/workflow/verify_plan.py"
+        {
+          "path": "scripts/workflow/new_discussion.py",
+          "purpose": "Create new Discussion from template with auto-numbered ID"
+        },
+        {
+          "path": "scripts/workflow/new_plan.py",
+          "purpose": "Create new Plan from template with auto-numbered ID"
+        },
+        {
+          "path": "scripts/workflow/verify_plan.py",
+          "purpose": "Validate Plan schema and check for missing verifications"
+        },
+        {
+          "path": "scripts/workflow/expand_task.py",
+          "purpose": "Expand L1 task to L2/L3 granularity (future)"
+        }
+      ]
+    },
+    "contracts_required": {
+      "description": "Pydantic contracts for workflow artifacts (stored in shared/contracts/)",
+      "contracts": [
+        {
+          "path": "shared/contracts/plan_schema.py",
+          "models": ["PlanSchema", "Milestone", "Task", "TaskStep", "TaskEvidence", "AcceptanceCriterion", "GranularityLevel", "L3ChunkIndex", "ContinuationContext"],
+          "status": "exists",
+          "version": "2025.12.01"
+        }
       ]
     }
   },
-  "subset_flows": {
-    "description": "Not all work requires full workflow. Use appropriate entry point.",
-    "flows": [
-      {
-        "scenario": "Bug fix",
-        "entry_tier": "T4 (Plan)",
-        "skip_tiers": [
-          "T0",
-          "T1",
-          "T2",
-          "T3"
-        ]
-      },
-      {
-        "scenario": "Simple enhancement",
-        "entry_tier": "T2 (SPEC)",
-        "skip_tiers": [
-          "T0",
-          "T1"
-        ]
-      },
-      {
-        "scenario": "New data structure only",
-        "entry_tier": "T3 (Contract)",
-        "skip_tiers": [
-          "T0",
-          "T1",
-          "T2"
-        ]
-      },
-      {
-        "scenario": "Refactor",
-        "entry_tier": "T4 (Plan)",
-        "skip_tiers": [
-          "T0",
-          "T1",
-          "T2",
-          "T3"
-        ]
-      },
-      {
-        "scenario": "Architectural change",
-        "entry_tier": "T0 (Discussion)",
-        "skip_tiers": []
-      }
-    ]
-  },
-  "related_adrs": [
-    "ADR-0045: AI-Assisted Development Patterns",
-    "ADR-0045: 3-Tier Document Model"
+  "guardrails": [
+    {
+      "id": "workflow-fragment-verification-required",
+      "rule": "No task may be marked 'complete' without running verification_command and documenting output",
+      "enforcement": "Session file must contain verification evidence for each completed task",
+      "scope": "core"
+    },
+    {
+      "id": "workflow-session-required-for-plans",
+      "rule": "All Plan execution MUST create a session file before starting work",
+      "enforcement": "Check .sessions/ for session file matching plan execution",
+      "scope": "core"
+    },
+    {
+      "id": "workflow-l3-stop-on-failure",
+      "rule": "L3 granularity plans MUST stop and escalate on verification failure (no log_and_continue)",
+      "enforcement": "L3 INDEX.json sets verification_strictness: stop_and_escalate",
+      "scope": "core"
+    },
+    {
+      "id": "workflow-gate-enforcement",
+      "rule": "Gates marked skip_allowed: false MUST pass before proceeding to next tier",
+      "enforcement": "Manual review; future automation in verify_plan.py",
+      "scope": "core"
+    }
   ],
+  "cross_cutting_guardrails": [
+    "ADR-0016#tier-exclusivity: ADRs=WHY, SPECs=WHAT, Plans=HOW-TO-BUILD",
+    "ADR-0010#contracts-ssot: All data structures in shared/contracts/",
+    "ADR-0034#ai-patterns: Naming conventions for AI-parseability"
+  ],
+  "orthogonality_notes": {
+    "description": "This ADR is orthogonal to related ADRs (no overlap)",
+    "related_adrs": {
+      "ADR-0016": {
+        "title": "3-Tier Document Model",
+        "relationship": "ADR-0016 defines document tiers (ADR/SPEC/Guide). ADR-0043 extends with workflow tiers (Discussion/Plan/Fragment).",
+        "boundary": "ADR-0016 owns doc content separation; ADR-0043 owns workflow execution process"
+      },
+      "ADR-0034": {
+        "title": "AI-Assisted Development Patterns",
+        "relationship": "ADR-0034 defines code patterns for AI comprehension. ADR-0043 uses those patterns within workflow execution.",
+        "boundary": "ADR-0034 owns code style; ADR-0043 owns execution orchestration"
+      },
+      "ADR-0045": {
+        "title": "DevTools Workflow Manager UI",
+        "relationship": "ADR-0045 defines UI for managing workflow artifacts. ADR-0043 defines the workflow semantics that UI implements.",
+        "boundary": "ADR-0045 owns UI; ADR-0043 owns workflow schemas and execution rules"
+      }
+    }
+  },
   "references": [
-    "ThoughtWorks: Spec-Driven Development (Dec 2025)",
-    "JetBrains Junie: Spec-Driven Approach for AI Coding",
-    "Martin Fowler: Understanding SDD Tools",
-    "GitHub Spec-Kit: Constitution-Driven Development"
+    {
+      "source": "ThoughtWorks Technology Radar",
+      "title": "Spec-Driven Development",
+      "date": "2025-12",
+      "url": "https://www.thoughtworks.com/radar"
+    },
+    {
+      "source": "JetBrains",
+      "title": "Junie: Spec-Driven Approach for AI Coding",
+      "date": "2025",
+      "url": "https://www.jetbrains.com/junie/"
+    },
+    {
+      "source": "Martin Fowler",
+      "title": "Understanding SDD Tools",
+      "date": "2025",
+      "url": "https://martinfowler.com/"
+    },
+    {
+      "source": "GitHub",
+      "title": "Spec-Kit: Constitution-Driven Development",
+      "date": "2025",
+      "url": "https://github.com/github/spec-kit"
+    },
+    {
+      "source": "Internal",
+      "title": "EXP-001: L1 vs L3 Granularity Experiment",
+      "date": "2025-12",
+      "finding": "L3 reduced code variation from 39% to 19%"
+    }
+  ],
+  "resulting_specs": [
+    {
+      "id": "SPEC-0040",
+      "title": "AI Development Workflow Execution",
+      "status": "draft"
+    }
   ],
   "tags": [
     "workflow",
     "ai-assisted",
     "spec-driven",
     "planning",
-    "verification"
+    "verification",
+    "fragment-execution",
+    "session-management"
+  ],
+  "affected_components": [
+    ".discussions/",
+    ".plans/",
+    ".sessions/",
+    ".questions/",
+    "shared/contracts/workflow/",
+    "scripts/workflow/",
+    "AGENTS.md"
   ]
 }
