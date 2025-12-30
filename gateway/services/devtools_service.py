@@ -389,6 +389,50 @@ async def get_artifact_graph() -> GraphResponse:
     return build_artifact_graph()
 
 
+@router.get("/artifacts/{artifact_id}")
+async def get_artifact(artifact_id: str) -> dict[str, Any]:
+    """Get a single artifact's content by ID.
+
+    Args:
+        artifact_id: The artifact ID (e.g., ADR-0001, DISC-001).
+
+    Returns:
+        Dict with artifact metadata and content.
+    """
+    # Find the artifact in all scanned artifacts
+    artifacts = scan_artifacts()
+    artifact = next((a for a in artifacts if a.id == artifact_id), None)
+
+    if not artifact:
+        raise HTTPException(status_code=404, detail=f"Artifact {artifact_id} not found")
+
+    file_path = Path(artifact.file_path)
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail=f"Artifact file not found: {file_path}")
+
+    # Read content based on file type
+    try:
+        with open(file_path, encoding="utf-8") as f:
+            raw_content = f.read()
+
+        # Parse JSON for ADR/SPEC, return raw for others
+        if artifact.type in (ArtifactType.ADR, ArtifactType.SPEC):
+            content = json.loads(raw_content)
+        else:
+            content = raw_content
+
+        return {
+            "id": artifact.id,
+            "type": artifact.type.value,
+            "title": artifact.title,
+            "status": artifact.status.value,
+            "file_path": str(file_path),
+            "content": content,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading artifact: {e}")
+
+
 @router.post("/artifacts", response_model=ArtifactResponse)
 async def create_artifact(request: CreateArtifactRequest) -> ArtifactResponse:
     """Create a new workflow artifact.
@@ -399,15 +443,80 @@ async def create_artifact(request: CreateArtifactRequest) -> ArtifactResponse:
     Returns:
         ArtifactResponse with created artifact summary.
     """
-    # TODO: Implement file creation logic
+    from gateway.services.workflow_service import ARTIFACT_DIRECTORIES
+
+    # Determine file path based on artifact type
+    base_dir = Path(ARTIFACT_DIRECTORIES.get(request.type, "."))
+    
+    # Generate artifact ID and filename
+    if request.type == ArtifactType.ADR:
+        # Find next ADR number
+        existing = list(base_dir.rglob("ADR-*.json"))
+        numbers = [int(f.stem.split("_")[0].replace("ADR-", "")) for f in existing if f.stem.startswith("ADR-")]
+        next_num = max(numbers, default=0) + 1
+        slug = request.title.lower().replace(" ", "-").replace("_", "-")[:50]
+        artifact_id = f"ADR-{next_num:04d}_{slug}"
+        filename = f"{artifact_id}.json"
+        file_path = base_dir / "core" / filename
+    elif request.type == ArtifactType.DISCUSSION:
+        existing = list(base_dir.rglob("DISC-*.md"))
+        numbers = [int(f.stem.split("_")[0].replace("DISC-", "")) for f in existing if f.stem.startswith("DISC-")]
+        next_num = max(numbers, default=0) + 1
+        slug = request.title.lower().replace(" ", "-").replace("_", "-")[:50]
+        artifact_id = f"DISC-{next_num:03d}_{slug}"
+        filename = f"{artifact_id}.md"
+        file_path = base_dir / filename
+    elif request.type == ArtifactType.PLAN:
+        existing = list(base_dir.rglob("PLAN-*.md"))
+        numbers = [int(f.stem.split("_")[0].replace("PLAN-", "")) for f in existing if f.stem.startswith("PLAN-")]
+        next_num = max(numbers, default=0) + 1
+        slug = request.title.lower().replace(" ", "-").replace("_", "-")[:50]
+        artifact_id = f"PLAN-{next_num:03d}_{slug}"
+        filename = f"{artifact_id}.md"
+        file_path = base_dir / filename
+    elif request.type == ArtifactType.SPEC:
+        existing = list(base_dir.rglob("SPEC-*.json"))
+        numbers = [int(f.stem.split("_")[0].replace("SPEC-", "").replace("SPEC-", "")) for f in existing if "SPEC-" in f.stem]
+        next_num = max(numbers, default=0) + 1
+        slug = request.title.lower().replace(" ", "-").replace("_", "-")[:50]
+        artifact_id = f"SPEC-{next_num:04d}_{slug}"
+        filename = f"{artifact_id}.json"
+        file_path = base_dir / "core" / filename
+    else:
+        slug = request.title.lower().replace(" ", "-").replace("_", "-")[:50]
+        artifact_id = slug
+        filename = f"{slug}.py"
+        file_path = base_dir / filename
+
+    # Ensure parent directory exists
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Generate content based on type
+    if request.type in (ArtifactType.ADR, ArtifactType.SPEC):
+        content = {
+            "id": artifact_id,
+            "title": request.title,
+            "status": "draft",
+            "date": datetime.now().strftime("%Y-%m-%d"),
+            "context": request.content or "",
+            "decision_primary": "",
+            "consequences": [],
+        }
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(content, f, indent=2)
+    else:
+        content = f"# {request.title}\n\n{request.content or ''}\n"
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(content)
+
     artifact = ArtifactSummary(
-        id=f"{request.type.value.upper()}-NEW",
+        id=artifact_id,
         type=request.type,
         title=request.title,
         status=ArtifactStatus.DRAFT,
-        file_path=f"./{request.type.value}s/{request.title}.md",
+        file_path=str(file_path),
     )
-    return ArtifactResponse(artifact=artifact, message="Created (placeholder)")
+    return ArtifactResponse(artifact=artifact, message=f"Created {artifact_id}")
 
 
 @router.put("/artifacts/{artifact_id}", response_model=ArtifactResponse)
@@ -424,15 +533,55 @@ async def update_artifact(
     Returns:
         ArtifactResponse with updated artifact summary.
     """
-    # TODO: Implement file update logic
-    artifact = ArtifactSummary(
-        id=artifact_id,
-        type=ArtifactType.DISCUSSION,
-        title=request.title or "Updated",
-        status=request.status or ArtifactStatus.DRAFT,
-        file_path=f"./artifacts/{artifact_id}.md",
-    )
-    return ArtifactResponse(artifact=artifact, message="Updated (placeholder)")
+    # Find the artifact
+    artifacts = scan_artifacts()
+    artifact = next((a for a in artifacts if a.id == artifact_id), None)
+
+    if not artifact:
+        raise HTTPException(status_code=404, detail=f"Artifact {artifact_id} not found")
+
+    file_path = Path(artifact.file_path)
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail=f"Artifact file not found: {file_path}")
+
+    try:
+        # Handle content update
+        if request.content is not None:
+            if artifact.type in (ArtifactType.ADR, ArtifactType.SPEC):
+                # For JSON files, merge or replace content
+                if isinstance(request.content, dict):
+                    content = request.content
+                else:
+                    # Try to parse as JSON
+                    try:
+                        content = json.loads(request.content)
+                    except json.JSONDecodeError:
+                        raise HTTPException(status_code=400, detail="Invalid JSON content for ADR/SPEC")
+                
+                # Update status and title if provided
+                if request.status:
+                    content["status"] = request.status.value
+                if request.title:
+                    content["title"] = request.title
+                
+                with open(file_path, "w", encoding="utf-8") as f:
+                    json.dump(content, f, indent=2)
+            else:
+                # For markdown/text files, write content directly
+                content = request.content if isinstance(request.content, str) else json.dumps(request.content, indent=2)
+                with open(file_path, "w", encoding="utf-8") as f:
+                    f.write(content)
+
+        updated_artifact = ArtifactSummary(
+            id=artifact_id,
+            type=artifact.type,
+            title=request.title or artifact.title,
+            status=request.status or artifact.status,
+            file_path=str(file_path),
+        )
+        return ArtifactResponse(artifact=updated_artifact, message=f"Updated {artifact_id}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating artifact: {e}")
 
 
 @router.delete("/artifacts/{artifact_id}", response_model=ArtifactResponse)
@@ -449,12 +598,38 @@ async def delete_artifact(
     Returns:
         ArtifactResponse confirming deletion.
     """
-    # TODO: Implement file deletion with backup logic
-    artifact = ArtifactSummary(
-        id=artifact_id,
-        type=ArtifactType.DISCUSSION,
-        title="Deleted",
-        status=ArtifactStatus.DEPRECATED,
-        file_path=f"./artifacts/{artifact_id}.md",
-    )
-    return ArtifactResponse(artifact=artifact, message=f"Deleted (backup={backup})")
+    import shutil
+
+    # Find the artifact
+    artifacts = scan_artifacts()
+    artifact = next((a for a in artifacts if a.id == artifact_id), None)
+
+    if not artifact:
+        raise HTTPException(status_code=404, detail=f"Artifact {artifact_id} not found")
+
+    file_path = Path(artifact.file_path)
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail=f"Artifact file not found: {file_path}")
+
+    try:
+        # Create backup if requested (per ADR-0002: Never delete artifacts on unlock)
+        if backup:
+            backup_dir = Path(".backups") / datetime.now().strftime("%Y-%m-%d")
+            backup_dir.mkdir(parents=True, exist_ok=True)
+            backup_path = backup_dir / f"{file_path.name}.{datetime.now().strftime('%H%M%S')}.bak"
+            shutil.copy2(file_path, backup_path)
+
+        # Delete the file
+        file_path.unlink()
+
+        deleted_artifact = ArtifactSummary(
+            id=artifact_id,
+            type=artifact.type,
+            title=artifact.title,
+            status=ArtifactStatus.DEPRECATED,
+            file_path=str(file_path),
+        )
+        backup_msg = f" (backup at {backup_path})" if backup else ""
+        return ArtifactResponse(artifact=deleted_artifact, message=f"Deleted {artifact_id}{backup_msg}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error deleting artifact: {e}")

@@ -17,7 +17,7 @@ export function JsonRenderer({ data, className }: JsonRendererProps) {
 
 function JsonNode({ data, level }: { data: unknown; level: number }) {
   const [expanded, setExpanded] = useState(level < 2)
-  const indent = level * 16
+  const indentClass = level === 0 ? 'ml-0' : level === 1 ? 'ml-4' : level === 2 ? 'ml-8' : 'ml-12'
 
   if (data === null) return <span className="text-zinc-500">null</span>
   if (typeof data === 'boolean') return <span className="text-amber-400">{String(data)}</span>
@@ -28,12 +28,17 @@ function JsonNode({ data, level }: { data: unknown; level: number }) {
     if (data.length === 0) return <span className="text-zinc-500">[]</span>
     return (
       <div>
-        <button onClick={() => setExpanded(!expanded)} className="inline-flex items-center hover:text-blue-400">
+        <button 
+          onClick={() => setExpanded(!expanded)} 
+          className="inline-flex items-center hover:text-blue-400"
+          aria-label={expanded ? 'Collapse array' : 'Expand array'}
+          aria-expanded={expanded}
+        >
           {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
           <span className="text-zinc-500">[{data.length}]</span>
         </button>
         {expanded && (
-          <div style={{ marginLeft: indent }}>
+          <div className={indentClass}>
             {data.map((item, i) => (
               <div key={i}><JsonNode data={item} level={level + 1} /></div>
             ))}
@@ -48,12 +53,17 @@ function JsonNode({ data, level }: { data: unknown; level: number }) {
     if (entries.length === 0) return <span className="text-zinc-500">{'{}'}</span>
     return (
       <div>
-        <button onClick={() => setExpanded(!expanded)} className="inline-flex items-center hover:text-blue-400">
+        <button 
+          onClick={() => setExpanded(!expanded)} 
+          className="inline-flex items-center hover:text-blue-400"
+          aria-label={expanded ? 'Collapse object' : 'Expand object'}
+          aria-expanded={expanded}
+        >
           {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
           <span className="text-zinc-500">{'{...}'}</span>
         </button>
         {expanded && (
-          <div style={{ marginLeft: indent }}>
+          <div className={indentClass}>
             {entries.map(([key, value]) => (
               <div key={key} className="flex">
                 <span className="text-purple-400">{key}</span>

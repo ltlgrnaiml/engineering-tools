@@ -250,16 +250,16 @@ Per ADR-0043, plans support three granularity levels matched to AI model capabil
 
 **Target Models**: Claude Haiku, Gemini Flash 8B, Grok-fast, GPT-4o-mini (strict)
 
-**Template**: `.templates/L3_CHUNK_TEMPLATE.json`
+**Template**: `.templates/L3_FRAGMENT_TEMPLATE.json`
 
 **Task Schema** (L2 + these fields):
 - `steps[]` (REQUIRED) - Step-by-step instructions with code snippets
   - `step_number`, `instruction`, `verification_hint` (required per step)
   - `code_snippet`, `file_path`, `checkpoint` (optional)
 
-**Chunking**: L3 plans are split into 600-line chunks (800 soft limit)
+**Fragmentation**: L3 plans are split into 600-line fragments (800 soft limit)
 - Index file: `.plans/L3/<PLAN-ID>/INDEX.json`
-- Chunk files: `.plans/L3/<PLAN-ID>/PLAN-XXX_L3_<milestone>.json`
+- Fragment files: `.plans/L3/<PLAN-ID>/PLAN-XXX_L3_<milestone>.json`
 
 **Execution**: STOP and escalate to `.questions/` on failure (no log_and_continue).
 
@@ -279,9 +279,9 @@ Every plan SHOULD include an `EXECUTION.md` file with copy-paste prompts for AI 
 
 ```text
 .plans/L3/<PLAN-ID>/
-├── INDEX.json           # Chunk index and continuation context
+├── INDEX.json           # Fragment index and continuation context
 ├── EXECUTION.md         # Human/AI-readable execution prompts
-├── PLAN-XXX_L3_M1.json  # Chunk files
+├── PLAN-XXX_L3_M1.json  # Fragment files
 ├── PLAN-XXX_L3_M2.json
 └── ...
 ```
@@ -328,7 +328,7 @@ python scripts/workflow/verify_plan.py --all  # Validate all plans
 
 See `.templates/PLAN_TEMPLATE.json` for L1 schema.
 See `.templates/PLAN_TEMPLATE_L2.json` for L2 schema.
-See `.templates/L3_CHUNK_TEMPLATE.json` for L3 chunk schema.
+See `.templates/L3_FRAGMENT_TEMPLATE.json` for L3 fragment schema.
 
 Key sections:
 

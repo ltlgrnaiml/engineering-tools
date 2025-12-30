@@ -18,6 +18,14 @@ from shared.contracts.devtools.workflow import (
     RelationshipType,
     UpdateArtifactRequest,
 )
+from shared.contracts.devtools.fragment import (
+    Fragment,
+    FragmentExecution,
+    FragmentListResponse,
+    FragmentStatus,
+    MilestoneFragment,
+    VerificationResult,
+)
 from shared.contracts.devtools.api import (
     ADRContent,
     ADRDeleteRequest,
@@ -62,6 +70,13 @@ __all__ = [
     "GraphEdge",
     "GraphResponse",
     "RelationshipType",
+    # Fragment (T5 tier - ADR-0043)
+    "Fragment",
+    "FragmentStatus",
+    "FragmentExecution",
+    "FragmentListResponse",
+    "MilestoneFragment",
+    "VerificationResult",
     # DevTools State
     "DevToolsState",
     "DevToolsToggleRequest",

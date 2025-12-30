@@ -13,9 +13,18 @@ export { JsonRenderer } from './JsonRenderer'
 export { MarkdownRenderer } from './MarkdownRenderer'
 export { CodeRenderer } from './CodeRenderer'
 
+// Viewers (human-readable display)
+export { ADRViewer } from './ADRViewer'
+export { SpecViewer } from './SpecViewer'
+export { PlanViewer } from './PlanViewer'
+
 // Editor
 export { ArtifactEditor } from './ArtifactEditor'
 export { EditorForm } from './EditorForm'
+export { ADREditorForm } from './ADREditorForm'
+export { SpecEditorForm } from './SpecEditorForm'
+export { DiscussionEditorForm } from './DiscussionEditorForm'
+export { PlanEditorForm } from './PlanEditorForm'
 
 // Header & Command Palette
 export { WorkflowHeader } from './WorkflowHeader'

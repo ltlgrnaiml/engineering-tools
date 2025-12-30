@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Edit, Copy, Link, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { JsonRenderer } from './JsonRenderer'
 import { MarkdownRenderer } from './MarkdownRenderer'
 import { CodeRenderer } from './CodeRenderer'
+import { ADRViewer } from './ADRViewer'
+import { SpecViewer } from './SpecViewer'
+import { PlanViewer } from './PlanViewer'
 import type { ArtifactType } from './types'
 
 const API_BASE = 'http://localhost:8000/api/devtools'
@@ -56,10 +58,18 @@ export function ArtifactReader({ artifactId, artifactType, filePath, onEdit, cla
   }
 
   const renderContent = () => {
-    if (artifactType === 'adr' || artifactType === 'spec') {
-      return <JsonRenderer data={content as object} />
+    const contentStr = typeof content === 'string' ? content : JSON.stringify(content, null, 2)
+    
+    if (artifactType === 'adr') {
+      return <ADRViewer content={contentStr} />
     }
-    if (artifactType === 'discussion' || artifactType === 'plan') {
+    if (artifactType === 'spec') {
+      return <SpecViewer content={contentStr} />
+    }
+    if (artifactType === 'plan') {
+      return <PlanViewer content={contentStr} />
+    }
+    if (artifactType === 'discussion') {
       return <MarkdownRenderer content={content as string} />
     }
     if (artifactType === 'contract') {

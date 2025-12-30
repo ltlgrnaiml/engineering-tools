@@ -2,7 +2,10 @@ import { useState, useEffect, useCallback } from 'react'
 import { X, Save, Loader2 } from 'lucide-react'
 import Editor from '@monaco-editor/react'
 import { cn } from '@/lib/utils'
-import { EditorForm } from './EditorForm'
+import { ADREditorForm } from './ADREditorForm'
+import { SpecEditorForm } from './SpecEditorForm'
+import { DiscussionEditorForm } from './DiscussionEditorForm'
+import { PlanEditorForm } from './PlanEditorForm'
 import type { ArtifactType } from './types'
 
 const API_BASE = 'http://localhost:8000/api/devtools'
@@ -118,8 +121,14 @@ export function ArtifactEditor({ artifactId, artifactType, isOpen, onClose, onSa
       <div className="h-[calc(100%-56px)]">
         {loading ? (
           <div className="flex items-center justify-center h-full"><Loader2 className="animate-spin" /></div>
-        ) : artifactType === 'adr' || artifactType === 'spec' ? (
-          <EditorForm content={content} onChange={setContent} />
+        ) : artifactType === 'adr' ? (
+          <ADREditorForm content={content} onChange={setContent} />
+        ) : artifactType === 'spec' ? (
+          <SpecEditorForm content={content} onChange={setContent} />
+        ) : artifactType === 'discussion' ? (
+          <DiscussionEditorForm content={content} onChange={setContent} />
+        ) : artifactType === 'plan' ? (
+          <PlanEditorForm content={content} onChange={setContent} />
         ) : (
           <Editor
             height="100%"

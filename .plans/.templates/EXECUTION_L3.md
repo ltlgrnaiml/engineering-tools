@@ -1,13 +1,13 @@
 # {PLAN-ID}: {Plan Title} - L3 Execution Guide
 
-> **For AI Assistants**: This file contains prompts and instructions for executing L3 chunked plans.
+> **For AI Assistants**: This file contains prompts and instructions for executing L3 fragmented plans.
 > Copy the appropriate milestone section below into your AI chat to begin execution.
 
 ---
 
 ## Quick Start
 
-1. Read `INDEX.json` to find `current_chunk`
+1. Read `INDEX.json` to find `current_fragment`
 2. Copy the prompt for that milestone below
 3. Paste into your AI assistant
 4. Follow the L3 execution protocol
@@ -19,9 +19,9 @@
 Before starting any milestone:
 
 - [ ] Read `INDEX.json` completely
-- [ ] Check `current_chunk` field
+- [ ] Check `current_fragment` field
 - [ ] Review `continuation_context` for files already created
-- [ ] Create session file: `.sessions/SESSION_XXX_{PLAN-ID}_<chunk>_<summary>.md`
+- [ ] Create session file: `.sessions/SESSION_XXX_{PLAN-ID}_<fragment>_<summary>.md`
 - [ ] Run baseline tests: `pytest tests/ -v --tb=no -q`
 
 ---
@@ -96,10 +96,10 @@ After completing a milestone:
 - [ ] Acceptance criteria verified
 - [ ] Session file updated with handoff notes
 - [ ] INDEX.json updated:
-  - `current_chunk` → next milestone
+  - `current_fragment` → next milestone
   - `last_completed_task` → last task ID
   - `continuation_context.files_created` updated
-  - `chunks[completed].status` → "completed"
+  - `fragments[completed].status` → "completed"
 - [ ] Commit changes: `git add -A && git commit -m "{PLAN-ID} M<N>: <summary>"`
 
 ---

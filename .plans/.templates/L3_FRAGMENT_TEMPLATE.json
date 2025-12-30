@@ -1,15 +1,15 @@
 {
-  "_chunk_header": {
-    "chunk_meta": {
-      "chunk_id": "M1",
-      "chunk_file": "PLAN-XXX_L3_M1.json",
+  "_fragment_header": {
+    "fragment_meta": {
+      "fragment_id": "M1",
+      "fragment_file": "PLAN-XXX_L3_M1.json",
       "line_count": 0,
       "target_limit": 600,
       "soft_limit": 800,
       "warning_note": null
     },
     "continuation_from": {
-      "previous_chunk": null,
+      "previous_fragment": null,
       "last_completed_task": null,
       "files_created": [],
       "files_modified": [],
@@ -144,7 +144,7 @@
     }
   ],
 
-  "_chunk_footer": {
+  "_fragment_footer": {
     "handoff_to_next": "PLAN-XXX_L3_M2.json",
     "files_created": [
       "shared/contracts/new_module.py"
@@ -162,7 +162,7 @@
 
   "_template_notes": {
     "L3_purpose": "L3 (Procedural) plans are for budget models that need step-by-step instructions with copy-paste code.",
-    "chunk_limits": {
+    "fragment_limits": {
       "target": 600,
       "soft_limit": 800,
       "hard_limit": 1000
