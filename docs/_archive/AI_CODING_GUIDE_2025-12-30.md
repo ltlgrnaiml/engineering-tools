@@ -24,9 +24,9 @@ This platform is built on a **first-principles, AI-assisted, greenfield** develo
 | Category | Score | Notes |
 |----------|-------|-------|
 | **First-Principles Alignment** | 9.5/10 | Strong foundation; simplified versioning |
-| **AI-Assistant Optimization** | 9/10 | ADR-0033 makes codebase AI-native |
-| **Automation Depth** | 9.5/10 | ADR-0034, 0035, 0038 close automation gaps |
-| **Determinism & Reproducibility** | 9.5/10 | ADR-0004 is gold standard; lineage extends |
+| **AI-Assistant Optimization** | 9/10 | ADR-0034 makes codebase AI-native |
+| **Automation Depth** | 9.5/10 | ADR-0035, 0035, 0038 close automation gaps |
+| **Determinism & Reproducibility** | 9.5/10 | ADR-0005 is gold standard; lineage extends |
 | **Documentation Automation** | 9/10 | Doc pipeline + MkDocs integration |
 | **Contract Clarity** | 9.5/10 | Pydantic-first; test generation validates |
 | **Overall** | **94/100** | Excellent for solo-dev context |
@@ -66,87 +66,87 @@ The `.adrs/` folder is organized by domain:
 | ADR ID | Title | Status | Key Decision |
 |--------|-------|--------|--------------|
 | ADR-0001 | Guided Workflow FSM Orchestration | Accepted | Hybrid FSM: per-stage states + global orchestrator; forward gating, backward cascades; **lockable_with_acknowledgment model (UNLOCKED→LOCKED→COMPLETED)** |
-| ADR-0004 | Deterministic Content-Addressed IDs | Accepted | SHA-256 hash of inputs + seed=42, 8-char prefix; enables artifact reuse |
-| ADR-0008 | Audit Trail Timestamps | Accepted | ISO-8601 UTC (no microseconds) for all lifecycle events |
-| ADR-0012 | Cross-Platform Concurrency | Accepted | Spawn-safe API only; no raw multiprocessing; supports Windows/macOS/Linux |
-| ADR-0017 | Cross-Cutting Guardrails | Accepted | path-safety, concurrency, message-catalogs, contract-versioning, tier-boundaries, cancel-behavior |
+| ADR-0005 | Deterministic Content-Addressed IDs | Accepted | SHA-256 hash of inputs + seed=42, 8-char prefix; enables artifact reuse |
+| ADR-0009 | Audit Trail Timestamps | Accepted | ISO-8601 UTC (no microseconds) for all lifecycle events |
+| ADR-0013 | Cross-Platform Concurrency | Accepted | Spawn-safe API only; no raw multiprocessing; supports Windows/macOS/Linux |
+| ADR-0018 | Cross-Cutting Guardrails | Accepted | path-safety, concurrency, message-catalogs, contract-versioning, tier-boundaries, cancel-behavior |
 | ADR-0002 | Artifact Preservation on Unlock | Accepted | Never delete artifacts; modify metadata only; idempotent re-lock (shared scope) |
 
 #### Core ADRs - Contract & API Discipline (6)
 
 | ADR ID | Title | Status | Key Decision |
 |--------|-------|--------|--------------|
-| ADR-0005 | Swagger-Driven E2E Validation | Accepted | OpenAPI is contract source of truth; Swagger UI as test harness |
-| ADR-0009 | Type Safety & Contract Discipline | Accepted | Pydantic contracts are Tier 0; auto-generate JSON Schema/OpenAPI |
-| ADR-0016 | **Calendar Versioning** | Accepted | **YYYY.MM.PATCH format** (simplified from semver) |
-| ADR-0029 | **Simplified API Endpoint Naming** | Accepted | **/api/{tool}/{resource}** pattern; no version prefix by default |
-| ADR-0031 | HTTP Error Response Contracts | Accepted | Standardized ErrorResponse schema for all HTTP 4xx/5xx responses |
-| ADR-0032 | HTTP Request Idempotency Semantics | Accepted | Idempotency keys (X-Idempotency-Key) and retry-safe API design |
+| ADR-0007 | Swagger-Driven E2E Validation | Accepted | OpenAPI is contract source of truth; Swagger UI as test harness |
+| ADR-0010 | Type Safety & Contract Discipline | Accepted | Pydantic contracts are Tier 0; auto-generate JSON Schema/OpenAPI |
+| ADR-0017 | **Calendar Versioning** | Accepted | **YYYY.MM.PATCH format** (simplified from semver) |
+| ADR-0030 | **Simplified API Endpoint Naming** | Accepted | **/api/{tool}/{resource}** pattern; no version prefix by default |
+| ADR-0032 | HTTP Error Response Contracts | Accepted | Standardized ErrorResponse schema for all HTTP 4xx/5xx responses |
+| ADR-0033 | HTTP Request Idempotency Semantics | Accepted | Idempotency keys (X-Idempotency-Key) and retry-safe API design |
 
 #### Core ADRs - Data & Lineage (3)
 
 | ADR ID | Title | Status | Key Decision |
 |--------|-------|--------|--------------|
-| ADR-0025 | **DataSet Lineage & Version Tracking** | Accepted | **version_id (SHA-256) + parent_version_id** for cross-tool lineage |
-| ADR-0026 | Pipeline Error Handling | Accepted | Fail-fast semantics; preserve partial results; explicit resume |
-| ADR-0028 | Unified Rendering Engine | Accepted | Shared RenderSpec contracts; output adapters (web, PNG, PPTX) |
+| ADR-0026 | **DataSet Lineage & Version Tracking** | Accepted | **version_id (SHA-256) + parent_version_id** for cross-tool lineage |
+| ADR-0027 | Pipeline Error Handling | Accepted | Fail-fast semantics; preserve partial results; explicit resume |
+| ADR-0029 | Unified Rendering Engine | Accepted | Shared RenderSpec contracts; output adapters (web, PNG, PPTX) |
 
 #### Core ADRs - Documentation (4)
 
 | ADR ID | Title | Status | Key Decision |
 |--------|-------|--------|--------------|
-| ADR-0010 | Docs-as-Code Engineering Tenets | Accepted | MkDocs + mkdocstrings; Google-style docstrings; CI enforcement |
-| ADR-0015 | 3-Tier Document Model | Accepted | ADRs (why) → Specs (what) → Guides (how); schema validation |
-| ADR-0030 | Documentation Lifecycle Management | Accepted | 5-category doc classification, archival policy, CHANGELOG |
-| ADR-0034 | **Automated Documentation Pipeline** | Accepted | **Generate docs from code: JSON Schema, OpenAPI, mkdocstrings, git-cliff** |
+| ADR-0011 | Docs-as-Code Engineering Tenets | Accepted | MkDocs + mkdocstrings; Google-style docstrings; CI enforcement |
+| ADR-0016 | 3-Tier Document Model | Accepted | ADRs (why) → Specs (what) → Guides (how); schema validation |
+| ADR-0031 | Documentation Lifecycle Management | Accepted | 5-category doc classification, archival policy, CHANGELOG |
+| ADR-0035 | **Automated Documentation Pipeline** | Accepted | **Generate docs from code: JSON Schema, OpenAPI, mkdocstrings, git-cliff** |
 
 #### Core ADRs - Solo-Dev Optimizations (7) *(NEW)*
 
 | ADR ID | Title | Status | Key Decision |
 |--------|-------|--------|--------------|
-| **ADR-0033** | **AI-Assisted Development Patterns** | **Accepted** | **AI-parseable code: {verb}_{noun} naming, Google docstrings, flat structure** |
-| **ADR-0035** | **Contract-Driven Test Generation** | **Accepted** | **Pydantic → Hypothesis tests; FSM exhaustive path testing** |
-| **ADR-0036** | **Observability & Debugging First** | **Accepted** | **Structured JSON logging, request tracing (X-Request-ID), state snapshots** |
-| **ADR-0037** | **Single-Command Development Environment** | **Accepted** | **./start.ps1 starts everything; uv for deps; Docker Compose option** |
-| **ADR-0038** | **CI/CD Pipeline for Data & Code** | **Accepted** | **Pre-commit + PR checks + main deploy; GitHub Actions** |
-| **ADR-0039** | **Deployment Automation** | **Accepted** | **Pulumi IaC; environment parity (dev=staging=prod); feature flags** |
+| **ADR-0034** | **AI-Assisted Development Patterns** | **Accepted** | **AI-parseable code: {verb}_{noun} naming, Google docstrings, flat structure** |
+| **ADR-0036** | **Contract-Driven Test Generation** | **Accepted** | **Pydantic → Hypothesis tests; FSM exhaustive path testing** |
+| **ADR-0037** | **Observability & Debugging First** | **Accepted** | **Structured JSON logging, request tracing (X-Request-ID), state snapshots** |
+| **ADR-0038** | **Single-Command Development Environment** | **Accepted** | **./start.ps1 starts everything; uv for deps; Docker Compose option** |
+| **ADR-0039** | **CI/CD Pipeline for Data & Code** | **Accepted** | **Pre-commit + PR checks + main deploy; GitHub Actions** |
+| **ADR-0040** | **Deployment Automation** | **Accepted** | **Pulumi IaC; environment parity (dev=staging=prod); feature flags** |
 
 #### DAT ADRs (9)
 
 | ADR ID | Title | Status | Key Decision |
 |--------|-------|--------|--------------|
-| ADR-0001-DAT | Stage Graph Configuration | Accepted | 8-stage pipeline with lockable_with_artifacts model; unlock_cascade policy |
-| ADR-0003 | Optional Context/Preview Stages | Accepted | Context/Preview optional; Parse uses profile defaults if missing |
-| ADR-0004-DAT | Stage ID Configuration | Accepted | DAT-specific stage ID inputs per stage type |
-| ADR-0006 | Table Availability | Accepted | Status: available/partial/missing/empty; probe strategies |
-| ADR-0011 | **Profile-Driven Extraction** *(major update)* | Accepted | **Three-layer architecture (Profile→Adapter→Dataset); 10-section YAML schema; 6 extraction strategies; ProfileExecutor** |
-| ADR-0013 | Cancellation Semantics | Accepted | Preserve completed artifacts; no partial data; explicit cleanup |
-| ADR-0014 | Parse/Export Artifact Formats | Accepted | Parquet for parse; user-selectable formats for export |
-| **ADR-0040** | **Large File Streaming Strategy** | **Accepted** | **10MB threshold; tiered processing (eager < 10MB, streaming > 10MB)** |
-| **ADR-0041** | **DAT UI Horizontal Wizard Pattern** | **Accepted** | **Horizontal stepper with 8 stages; collapsible panels; state indicators** |
+| ADR-0004 | Stage Graph Configuration | Accepted | 8-stage pipeline with lockable_with_artifacts model; unlock_cascade policy |
+| ADR-0004 | Optional Context/Preview Stages | Accepted | Context/Preview optional; Parse uses profile defaults if missing |
+| ADR-0008 | Stage ID Configuration | Accepted | DAT-specific stage ID inputs per stage type |
+| ADR-0008 | Table Availability | Accepted | Status: available/partial/missing/empty; probe strategies |
+| ADR-0012 | **Profile-Driven Extraction** *(major update)* | Accepted | **Three-layer architecture (Profile→Adapter→Dataset); 10-section YAML schema; 6 extraction strategies; ProfileExecutor** |
+| ADR-0014 | Cancellation Semantics | Accepted | Preserve completed artifacts; no partial data; explicit cleanup |
+| ADR-0015 | Parse/Export Artifact Formats | Accepted | Parquet for parse; user-selectable formats for export |
+| **ADR-0041** | **Large File Streaming Strategy** | **Accepted** | **10MB threshold; tiered processing (eager < 10MB, streaming > 10MB)** |
+| **ADR-0043** | **DAT UI Horizontal Wizard Pattern** | **Accepted** | **Horizontal stepper with 8 stages; collapsible panels; state indicators** |
 
 #### PPTX ADRs (4)
 
 | ADR ID | Title | Status | Key Decision |
 |--------|-------|--------|--------------|
-| ADR-0018 | Template Processing Model | Accepted | Named shape discovery; {category}_{identifier} convention |
-| ADR-0019 | Guided Workflow | Accepted | 7-step workflow; reset_validation cascade; "Four Green Bars" |
-| ADR-0020 | Domain Configuration | Accepted | YAML config validated at startup; metric canonicalization |
-| ADR-0021 | Renderer Architecture | Accepted | Pluggable renderers; BaseRenderer interface; graceful degradation |
+| ADR-0019 | Template Processing Model | Accepted | Named shape discovery; {category}_{identifier} convention |
+| ADR-0020 | Guided Workflow | Accepted | 7-step workflow; reset_validation cascade; "Four Green Bars" |
+| ADR-0021 | Domain Configuration | Accepted | YAML config validated at startup; metric canonicalization |
+| ADR-0022 | Renderer Architecture | Accepted | Pluggable renderers; BaseRenderer interface; graceful degradation |
 
 #### SOV ADRs (3)
 
 | ADR ID | Title | Status | Key Decision |
 |--------|-------|--------|--------------|
-| ADR-0022 | Analysis Pipeline | Accepted | ANOVA Type III SS; 5-stage pipeline; Polars for computation |
-| ADR-0023 | DataSet Integration | Accepted | Input via DataSetRef; output with lineage tracking |
-| ADR-0024 | Visualization Contracts | Accepted | Typed Pydantic models per chart type; extends RenderSpec hierarchy |
+| ADR-0023 | Analysis Pipeline | Accepted | ANOVA Type III SS; 5-stage pipeline; Polars for computation |
+| ADR-0024 | DataSet Integration | Accepted | Input via DataSetRef; output with lineage tracking |
+| ADR-0025 | Visualization Contracts | Accepted | Typed Pydantic models per chart type; extends RenderSpec hierarchy |
 
 #### DevTools ADRs (1)
 
 | ADR ID | Title | Status | Key Decision |
 |--------|-------|--------|--------------|
-| ADR-0027 | DevTools Page Architecture | Accepted | Feature-flag pattern; localStorage persistence; ADR Editor utility |
+| ADR-0028 | DevTools Page Architecture | Accepted | Feature-flag pattern; localStorage persistence; ADR Editor utility |
 
 ### 1.2 ADR Orthogonality Matrix (Solo-Dev Lens)
 
@@ -159,17 +159,17 @@ Each ADR addresses a **distinct concern** without overlap. Clean composition ena
 │ Concern             │ Core ADR            │ Tool Extensions           │
 ├─────────────────────┼─────────────────────┼───────────────────────────┤
 │ Workflow State      │ ADR-0001 (FSM)      │ 0001-DAT, 0019, 0022, 0027│
-│ Identity/Hashing    │ ADR-0004 (SHA-256)  │ 0004-DAT                  │
-│ Contracts/Types     │ ADR-0009 (Pydantic) │ 0024 (viz), 0031 (errors) │
-│ Data Lineage        │ ADR-0025            │ 0023 (SOV)                │
-│ Timestamps          │ ADR-0008            │ 0014 (artifacts)          │
-│ Error Handling      │ ADR-0026, 0031      │ (none needed)             │
-│ API Design          │ ADR-0005, 0029, 0032│ (none needed)             │
-│ Documentation       │ ADR-0010, 0015, 0030│ (none needed)             │
-│ Rendering           │ ADR-0028            │ 0021, 0024                │
+│ Identity/Hashing    │ ADR-0005 (SHA-256)  │ 0004-DAT                  │
+│ Contracts/Types     │ ADR-0010 (Pydantic) │ 0024 (viz), 0031 (errors) │
+│ Data Lineage        │ ADR-0026            │ 0023 (SOV)                │
+│ Timestamps          │ ADR-0009            │ 0014 (artifacts)          │
+│ Error Handling      │ ADR-0027, 0031      │ (none needed)             │
+│ API Design          │ ADR-0007, 0029, 0032│ (none needed)             │
+│ Documentation       │ ADR-0011, 0015, 0030│ (none needed)             │
+│ Rendering           │ ADR-0029            │ 0021, 0024                │
 │ Safety/Preservation │ ADR-0002, 0012, 0017│ 0013                      │
-│ AI Optimization     │ ADR-0033, 0036      │ (none needed)             │
-│ Automation          │ ADR-0034, 0035, 0038│ (none needed)             │
+│ AI Optimization     │ ADR-0034, 0036      │ (none needed)             │
+│ Automation          │ ADR-0035, 0035, 0038│ (none needed)             │
 └─────────────────────┴─────────────────────┴───────────────────────────┘
 ```
 
@@ -181,9 +181,9 @@ These ADRs were **simplified from team-coordination patterns** to solo-dev patte
 
 | ADR | Original Pattern | Solo-Dev Simplification |
 |-----|------------------|-------------------------|
-| **ADR-0016** | Hybrid semver (pre-1.0/post-1.0) | Calendar versioning: `YYYY.MM.PATCH` |
-| **ADR-0029** | Two-tier `/api/v1/` + `/api/{tool}/v1/` | Single tier: `/api/{tool}/{resource}` |
-| **ADR-0030** | 5-category doc classification | 3 categories: Active, Reference, Archive |
+| **ADR-0017** | Hybrid semver (pre-1.0/post-1.0) | Calendar versioning: `YYYY.MM.PATCH` |
+| **ADR-0030** | Two-tier `/api/v1/` + `/api/{tool}/v1/` | Single tier: `/api/{tool}/{resource}` |
+| **ADR-0031** | 5-category doc classification | 3 categories: Active, Reference, Archive |
 
 ### 1.4 Key ADRs for AI Assistants
 
@@ -191,14 +191,14 @@ These ADRs were **simplified from team-coordination patterns** to solo-dev patte
 
 | Priority | ADR | Why AI Must Know |
 |----------|-----|------------------|
-| 🔴 Critical | ADR-0009 | Contracts are source of truth; never duplicate |
-| 🔴 Critical | ADR-0033 | AI-parseable patterns; follow exactly |
-| 🔴 Critical | ADR-0004 | Deterministic IDs; reproducibility matters |
+| 🔴 Critical | ADR-0010 | Contracts are source of truth; never duplicate |
+| 🔴 Critical | ADR-0034 | AI-parseable patterns; follow exactly |
+| 🔴 Critical | ADR-0005 | Deterministic IDs; reproducibility matters |
 | 🟡 Important | ADR-0002 | Never delete artifacts on unlock |
-| 🟡 Important | ADR-0017 | Cross-cutting guardrails; always check |
-| 🟡 Important | ADR-0031 | All errors use ErrorResponse contract |
-| 🟢 Reference | ADR-0015 | 3-tier doc model; don't duplicate content |
-| 🟢 Reference | ADR-0034 | Generate docs, don't write them |
+| 🟡 Important | ADR-0018 | Cross-cutting guardrails; always check |
+| 🟡 Important | ADR-0032 | All errors use ErrorResponse contract |
+| 🟢 Reference | ADR-0016 | 3-tier doc model; don't duplicate content |
+| 🟢 Reference | ADR-0035 | Generate docs, don't write them |
 
 ### 1.2 Core Architectural Principles
 
@@ -222,7 +222,7 @@ These ADRs were **simplified from team-coordination patterns** to solo-dev patte
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 1.3 Cross-Cutting Guardrails (ADR-0017)
+### 1.3 Cross-Cutting Guardrails (ADR-0018)
 
 | Guardrail ID | Rule | Enforcement |
 |--------------|------|-------------|
@@ -255,68 +255,68 @@ docs/specs/
 | SPEC ID | Title | Implements ADR |
 |---------|-------|----------------|
 | SPEC-0001 | Stage Orchestration FSM | ADR-0001 |
-| SPEC-0011 | Concurrency Determinism | ADR-0012 |
-| SPEC-0012 | Audit Trail Enforcement | ADR-0008 |
-| SPEC-0013 | Artifact Lifecycle Preservation | ADR-0002 |
-| SPEC-0014 | Deterministic Stage ID | ADR-0004 |
-| SPEC-0016 | Path Safety Normalization | ADR-0017 |
-| SPEC-0028 | DataSet Lineage | ADR-0025 |
-| SPEC-0029 | Pipeline Execution | ADR-0026 |
-| SPEC-0031 | Unified Rendering Contracts | ADR-0028 |
-| SPEC-0032 | Rendering Engine Architecture | ADR-0028 |
-| SPEC-0033 | Output Target Adapters | ADR-0028 |
-| SPEC-0034 | API Naming Convention | ADR-0029 |
-| **SPEC-0035** | **Error Response Implementation** | **ADR-0031** |
-| **SPEC-0036** | **Idempotency Implementation** | **ADR-0032** |
-| **SPEC-0037** | **AI-Assisted Development Patterns** | **ADR-0033** |
-| **SPEC-0038** | **Automated Documentation Pipeline** | **ADR-0034** |
-| **SPEC-0039** | **Contract-Driven Test Generation** | **ADR-0035** |
-| **SPEC-0040** | **Observability and Tracing** | **ADR-0036** |
-| **SPEC-0041** | **Development Environment Setup** | **ADR-0037** |
-| **SPEC-0042** | **CI/CD Pipeline Implementation** | **ADR-0038** |
-| **SPEC-0043** | **Deployment Infrastructure** | **ADR-0039** |
+| SPEC-0002 | Concurrency Determinism | ADR-0013 |
+| SPEC-0003 | Audit Trail Enforcement | ADR-0009 |
+| SPEC-0004 | Artifact Lifecycle Preservation | ADR-0002 |
+| SPEC-0005 | Deterministic Stage ID | ADR-0005 |
+| SPEC-0006 | Path Safety Normalization | ADR-0018 |
+| SPEC-0007 | DataSet Lineage | ADR-0026 |
+| SPEC-0008 | Pipeline Execution | ADR-0027 |
+| SPEC-0009 | Unified Rendering Contracts | ADR-0029 |
+| SPEC-0010 | Rendering Engine Architecture | ADR-0029 |
+| SPEC-0002 | Output Target Adapters | ADR-0029 |
+| SPEC-0003 | API Naming Convention | ADR-0030 |
+| **SPEC-0004** | **Error Response Implementation** | **ADR-0032** |
+| **SPEC-0005** | **Idempotency Implementation** | **ADR-0033** |
+| **SPEC-0015** | **AI-Assisted Development Patterns** | **ADR-0034** |
+| **SPEC-0006** | **Automated Documentation Pipeline** | **ADR-0035** |
+| **SPEC-0017** | **Contract-Driven Test Generation** | **ADR-0036** |
+| **SPEC-0018** | **Observability and Tracing** | **ADR-0037** |
+| **SPEC-0019** | **Development Environment Setup** | **ADR-0038** |
+| **SPEC-0020** | **CI/CD Pipeline Implementation** | **ADR-0039** |
+| **SPEC-0021** | **Deployment Infrastructure** | **ADR-0040** |
 
 #### DAT SPECs
 
 | SPEC ID | Title | Implements ADR |
 |---------|-------|----------------|
-| SPEC-DAT-0001 | Stage Graph | ADR-0001-DAT |
-| SPEC-DAT-0002 | Profile Extraction Flow | ADR-0011 |
-| SPEC-DAT-0003 | Adapter Interface Registry | ADR-0011 |
-| **SPEC-DAT-0004** | **Large File Streaming** | **ADR-0040** |
-| SPEC-DAT-0005 | Profile File Management | ADR-0011 |
-| SPEC-DAT-0006 | Table Availability | ADR-0006 |
-| **SPEC-DAT-0011** | **Profile YAML Schema** | **ADR-0011** |
-| **SPEC-DAT-0012** | **Extraction Strategies** | **ADR-0011** |
-| SPEC-DAT-0015 | Cancellation Cleanup | ADR-0013 |
+| SPEC-0024 | Stage Graph | ADR-0004 |
+| SPEC-0025 | Profile Extraction Flow | ADR-0012 |
+| SPEC-0026 | Adapter Interface Registry | ADR-0012 |
+| **SPEC-0027** | **Large File Streaming** | **ADR-0041** |
+| SPEC-0007 | Profile File Management | ADR-0012 |
+| SPEC-0008 | Table Availability | ADR-0008 |
+| **SPEC-0033** | **Profile YAML Schema** | **ADR-0012** |
+| **SPEC-0009** | **Extraction Strategies** | **ADR-0012** |
+| SPEC-0010 | Cancellation Cleanup | ADR-0014 |
 
 #### PPTX SPECs
 
 | SPEC ID | Title | Implements ADR |
 |---------|-------|----------------|
-| SPEC-PPTX-0019 | Template Schema | ADR-0018 |
-| SPEC-PPTX-0020 | Shape Discovery | ADR-0018 |
-| SPEC-PPTX-0023 | Renderer Interface | ADR-0021 |
+| SPEC-0004 | Template Schema | ADR-0019 |
+| SPEC-0005 | Shape Discovery | ADR-0019 |
+| SPEC-0015 | Renderer Interface | ADR-0022 |
 
 #### SOV SPECs
 
 | SPEC ID | Title | Implements ADR |
 |---------|-------|----------------|
-| SPEC-SOV-0024 | ANOVA Computation | ADR-0022 |
-| SPEC-SOV-0027 | Visualization Contracts | ADR-0024 |
+| SPEC-0006 | ANOVA Computation | ADR-0023 |
+| SPEC-0017 | Visualization Contracts | ADR-0025 |
 
 #### DevTools SPECs
 
 | SPEC ID | Title | Implements ADR |
 |---------|-------|----------------|
-| SPEC-0030 | DevTools API | ADR-0027 |
+| SPEC-0033 | DevTools API | ADR-0028 |
 
 ### 2.2 Key ADR Relationships
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                        CORE FOUNDATION ADRs                                  │
-│  ADR-0009 (Contracts) ─► ADR-0015 (3-Tier Docs) ─► ADR-0017 (Guardrails)   │
+│  ADR-0010 (Contracts) ─► ADR-0016 (3-Tier Docs) ─► ADR-0018 (Guardrails)   │
 │         │                        │                        │                 │
 │         └────────────────────────┴────────────────────────┘                 │
 │                                  │                                          │
@@ -327,7 +327,7 @@ docs/specs/
         ▼                          ▼                          ▼
 ┌───────────────┐        ┌─────────────────┐        ┌─────────────────┐
 │  DAT TOOL     │        │   SOV TOOL      │        │  PPTX TOOL      │
-│  ADR-0001-DAT │        │   ADR-0022-24   │        │  ADR-0018-21    │
+│  ADR-0004 │        │   ADR-0023-24   │        │  ADR-0019-21    │
 │  + 8 others   │        │                 │        │                 │
 └───────┬───────┘        └────────┬────────┘        └────────┬────────┘
         │                         │                          │
@@ -335,13 +335,13 @@ docs/specs/
                                   │
                     ┌─────────────▼─────────────┐
                     │   CROSS-TOOL ADRs         │
-                    │   ADR-0025 (Lineage)      │
-                    │   ADR-0026 (Pipelines)    │
-                    │   ADR-0028 (Rendering)    │
+                    │   ADR-0026 (Lineage)      │
+                    │   ADR-0027 (Pipelines)    │
+                    │   ADR-0029 (Rendering)    │
                     └───────────────────────────┘
 ```
 
-### 2.3 Critical Guardrails Summary (from ADR-0017)
+### 2.3 Critical Guardrails Summary (from ADR-0018)
 
 | Guardrail ID | Rule | Scope |
 |--------------|------|-------|
@@ -351,8 +351,8 @@ docs/specs/
 | `contract-versioning` | Breaking changes require version bump | Cross-cutting |
 | `tier-boundaries` | No content duplication across tiers | Cross-cutting |
 | `cancel-behavior` | Preserve artifacts; explicit cleanup only | Cross-cutting |
-| `http-error-response` | All 4xx/5xx use ErrorResponse (ADR-0031) | Core |
-| `idempotency` | POST endpoints support X-Idempotency-Key (ADR-0032) | Core |
+| `http-error-response` | All 4xx/5xx use ErrorResponse (ADR-0032) | Core |
+| `idempotency` | POST endpoints support X-Idempotency-Key (ADR-0033) | Core |
 
 ---
 
@@ -431,47 +431,47 @@ docs/specs/
 |-------|-----------|---------------|----------|
 | DAT-001 | FSM MUST enforce forward gating (upstream locks required) | ADR-0001 | P0 |
 | DAT-002 | Unlock MUST cascade to downstream stages | ADR-0001 | P0 |
-| DAT-003 | Context and Preview stages MUST be optional | ADR-0003 | P0 |
-| DAT-004 | Parse MUST use profile defaults if context.json missing | ADR-0003 | P0 |
-| DAT-005 | Table availability MUST use status: available/partial/missing/empty | ADR-0006 | P0 |
-| DAT-006 | Extraction MUST be profile-driven | ADR-0011 | P0 |
-| DAT-007 | Adapters MUST be selected via AdapterFactory | ADR-0011 | P0 |
-| DAT-008 | Cancel MUST preserve completed artifacts | ADR-0013 | P0 |
-| DAT-009 | Cancel MUST NOT persist partial tables/rows | ADR-0013 | P0 |
-| DAT-010 | Parse output MUST be Parquet | ADR-0014 | P0 |
-| DAT-011 | Export MUST support user-selectable formats | ADR-0014 | P1 |
-| **DAT-012** | **Files > 10MB MUST use streaming mode** | **ADR-0040** | **P0** |
-| **DAT-013** | **Schema probe MUST complete in < 5 seconds** | **ADR-0040** | **P0** |
-| **DAT-014** | **Preview MUST load in < 2 seconds (sampling for large files)** | **ADR-0040** | **P0** |
-| **DAT-015** | **Memory usage MUST NOT exceed configured max_memory_mb** | **ADR-0040** | **P0** |
-| **DAT-016** | **UI MUST use horizontal wizard stepper pattern** | **ADR-0041** | **P0** |
+| DAT-003 | Context and Preview stages MUST be optional | ADR-0004 | P0 |
+| DAT-004 | Parse MUST use profile defaults if context.json missing | ADR-0004 | P0 |
+| DAT-005 | Table availability MUST use status: available/partial/missing/empty | ADR-0008 | P0 |
+| DAT-006 | Extraction MUST be profile-driven | ADR-0012 | P0 |
+| DAT-007 | Adapters MUST be selected via AdapterFactory | ADR-0012 | P0 |
+| DAT-008 | Cancel MUST preserve completed artifacts | ADR-0014 | P0 |
+| DAT-009 | Cancel MUST NOT persist partial tables/rows | ADR-0014 | P0 |
+| DAT-010 | Parse output MUST be Parquet | ADR-0015 | P0 |
+| DAT-011 | Export MUST support user-selectable formats | ADR-0015 | P1 |
+| **DAT-012** | **Files > 10MB MUST use streaming mode** | **ADR-0041** | **P0** |
+| **DAT-013** | **Schema probe MUST complete in < 5 seconds** | **ADR-0041** | **P0** |
+| **DAT-014** | **Preview MUST load in < 2 seconds (sampling for large files)** | **ADR-0041** | **P0** |
+| **DAT-015** | **Memory usage MUST NOT exceed configured max_memory_mb** | **ADR-0041** | **P0** |
+| **DAT-016** | **UI MUST use horizontal wizard stepper pattern** | **ADR-0043** | **P0** |
 
 ### 4.2 PPTX Generator ACs
 
 | AC ID | Criterion | ADR Reference | Priority |
 |-------|-----------|---------------|----------|
-| PPTX-001 | Templates MUST use named shapes for placeholders | ADR-0018 | P0 |
-| PPTX-002 | 7-step workflow MUST be enforced | ADR-0019 | P0 |
-| PPTX-003 | Generate MUST be disabled until validation passes | ADR-0019 | P0 |
-| PPTX-004 | Domain config MUST be validated at startup | ADR-0020 | P0 |
-| PPTX-005 | Renderers MUST implement common interface | ADR-0021 | P0 |
+| PPTX-001 | Templates MUST use named shapes for placeholders | ADR-0019 | P0 |
+| PPTX-002 | 7-step workflow MUST be enforced | ADR-0020 | P0 |
+| PPTX-003 | Generate MUST be disabled until validation passes | ADR-0020 | P0 |
+| PPTX-004 | Domain config MUST be validated at startup | ADR-0021 | P0 |
+| PPTX-005 | Renderers MUST implement common interface | ADR-0022 | P0 |
 | PPTX-006 | DataSet input MUST be supported (in addition to file upload) | Platform integration | P1 |
 | PPTX-007 | Generated PPTX MUST be downloadable via API | API contract | P0 |
-| PPTX-008 | All user messages MUST come from message catalog | ADR-0017 | P1 |
-| **PPTX-009** | **All error responses MUST use ErrorResponse contract** | **ADR-0031** | **P0** |
+| PPTX-008 | All user messages MUST come from message catalog | ADR-0018 | P1 |
+| **PPTX-009** | **All error responses MUST use ErrorResponse contract** | **ADR-0032** | **P0** |
 
 ### 4.3 SOV Analyzer ACs
 
 | AC ID | Criterion | ADR Reference | Priority |
 |-------|-----------|---------------|----------|
-| SOV-001 | ANOVA computation MUST use Type III sum of squares | ADR-0022 | P0 |
-| SOV-002 | Variance percentages MUST sum to 100% | ADR-0022 | P0 |
-| SOV-003 | Input MUST accept DataSetRef from artifact store | ADR-0023 | P0 |
-| SOV-004 | Output MUST save results as DataSet with lineage | ADR-0023 | P0 |
-| SOV-005 | Visualization contracts MUST extend RenderSpec hierarchy | ADR-0024, ADR-0028 | P0 |
-| SOV-006 | All computations MUST be deterministic | ADR-0012 | P0 |
+| SOV-001 | ANOVA computation MUST use Type III sum of squares | ADR-0023 | P0 |
+| SOV-002 | Variance percentages MUST sum to 100% | ADR-0023 | P0 |
+| SOV-003 | Input MUST accept DataSetRef from artifact store | ADR-0024 | P0 |
+| SOV-004 | Output MUST save results as DataSet with lineage | ADR-0024 | P0 |
+| SOV-005 | Visualization contracts MUST extend RenderSpec hierarchy | ADR-0025, ADR-0029 | P0 |
+| SOV-006 | All computations MUST be deterministic | ADR-0013 | P0 |
 | SOV-007 | Health endpoint MUST exist at /health | API standard | P0 |
-| **SOV-008** | **All error responses MUST use ErrorResponse contract** | **ADR-0031** | **P0** |
+| **SOV-008** | **All error responses MUST use ErrorResponse contract** | **ADR-0032** | **P0** |
 
 ### 4.4 Gateway ACs
 
@@ -674,8 +674,8 @@ Gateway: POST /api/v1/pipelines/execute
 | OpenAPI generation | ✅ | FastAPI provides /openapi.json |
 | No contract duplication in docs | ✅ | ADRs reference contracts, don't duplicate |
 | Tier boundary enforcement | ✅ | **IMPLEMENTED**: CI runs `tools/check_contract_drift.py --fail-on-breaking` |
-| Rendering contracts (ADR-0028) | ✅ | Comprehensive RenderSpec hierarchy in rendering.py |
-| Audit trail contracts (ADR-0008) | ✅ | AuditTimestamp, AuditTrail, TimestampMixin |
+| Rendering contracts (ADR-0029) | ✅ | Comprehensive RenderSpec hierarchy in rendering.py |
+| Audit trail contracts (ADR-0009) | ✅ | AuditTimestamp, AuditTrail, TimestampMixin |
 
 **Recent Implementations:**
 - ✅ JSON Schema generation automated in `ci/steps/03-lint.ps1`
@@ -685,9 +685,9 @@ Gateway: POST /api/v1/pipelines/execute
 
 | Criterion | Status | Notes |
 |-----------|--------|---------|
-| /vN versioned routing | ✅ | Fixed: PPTX now uses /v1/ internally per ADR-0029 |
+| /vN versioned routing | ✅ | Fixed: PPTX now uses /v1/ internally per ADR-0030 |
 | Pydantic response models | ✅ | FastAPI enforces |
-| Standard error schema | ✅ | ErrorResponse contract implemented via ADR-0031 + SPEC-0035 |
+| Standard error schema | ✅ | ErrorResponse contract implemented via ADR-0032 + SPEC-0004 |
 | Path safety enforcement | ✅ | `shared/contracts/core/path_safety.py` exists |
 | Health endpoints | ✅ | All tools have /health |
 | CORS configuration | ✅ | Configured for dev |
@@ -695,8 +695,8 @@ Gateway: POST /api/v1/pipelines/execute
 | Error response consistency | ✅ | All tools (PPTX, DAT, SOV) have errors.py helper modules |
 
 **Recent Implementations:**
-- ✅ Standardized ErrorResponse contract (ADR-0031)
-- ✅ Fixed PPTX route mounting (/api/v1/ → /v1/ per ADR-0029)
+- ✅ Standardized ErrorResponse contract (ADR-0032)
+- ✅ Fixed PPTX route mounting (/api/v1/ → /v1/ per ADR-0030)
 - ✅ Created errors.py for PPTX, DAT, and SOV tools
 - ✅ **NEW**: Idempotency middleware in `shared/middleware/idempotency.py`
 
@@ -729,11 +729,11 @@ Gateway: POST /api/v1/pipelines/execute
 | CONTRIBUTING.md | ✅ | Comprehensive with code standards, commit conventions |
 | Tool-specific ADRs | ✅ | DAT (9), PPTX (4), SOV (3) all covered |
 | SPECs comprehensive | ✅ | **34 SPECs** covering all ADRs |
-| Solo-dev optimizations | ✅ | ADR-0033-0039 define AI patterns, CI/CD, deployment |
+| Solo-dev optimizations | ✅ | ADR-0034-0039 define AI patterns, CI/CD, deployment |
 
 **Recent Improvements:**
-- ✅ Added ADR-0033 through ADR-0039 (Solo-Dev Optimizations)
-- ✅ Added ADR-0040 (Large File Streaming) and ADR-0041 (DAT UI Wizard)
+- ✅ Added ADR-0034 through ADR-0040 (Solo-Dev Optimizations)
+- ✅ Added ADR-0041 (Large File Streaming) and ADR-0043 (DAT UI Wizard)
 - ✅ Created 34 SPECs implementing all ADRs
 
 #### 6.3.5 Artifact Management (15/15) 🟢
@@ -779,15 +779,15 @@ Gateway: POST /api/v1/pipelines/execute
 | ~~P0~~ | ~~Create DAT streaming ADRs (0040-0041)~~ | ✅ **COMPLETED** | ~~Low~~ | ~~High~~ |
 | ~~P0~~ | ~~Create SPECs for all ADRs~~ | ✅ **COMPLETED** | ~~High~~ | ~~High~~ |
 | ~~P0~~ | ~~Implement path safety utilities~~ | ✅ **EXISTS** | ~~Low~~ | ~~High~~ |
-| ~~P1~~ | ~~Implement idempotency middleware (ADR-0032)~~ | ✅ **COMPLETED** | ~~Medium~~ | ~~High~~ |
+| ~~P1~~ | ~~Implement idempotency middleware (ADR-0033)~~ | ✅ **COMPLETED** | ~~Medium~~ | ~~High~~ |
 | ~~P1~~ | ~~Extend error response to DAT/SOV tools~~ | ✅ **COMPLETED** | ~~Low~~ | ~~Medium~~ |
-| ~~P1~~ | ~~Implement JSON Schema auto-generation in CI (ADR-0034)~~ | ✅ **COMPLETED** | ~~Medium~~ | ~~Medium~~ |
+| ~~P1~~ | ~~Implement JSON Schema auto-generation in CI (ADR-0035)~~ | ✅ **COMPLETED** | ~~Medium~~ | ~~Medium~~ |
 | ~~P1~~ | ~~Add artifact preservation tests~~ | ✅ **COMPLETED** | ~~Medium~~ | ~~High~~ |
 | ~~P1~~ | ~~Implement SOV DataSet integration~~ | ✅ **VERIFIED** | ~~High~~ | ~~High~~ |
-| ~~P1~~ | ~~Add lineage tracking (version_id, parent_version_id per ADR-0025)~~ | ✅ **VERIFIED** | ~~Medium~~ | ~~Medium~~ |
-| P1 | Implement DAT large file streaming (ADR-0040) | Pending | High | High |
-| P2 | Implement CI/CD pipeline (ADR-0038) | Pending | Medium | Medium |
-| P2 | Set up deployment automation (ADR-0039) | Pending | High | Medium |
+| ~~P1~~ | ~~Add lineage tracking (version_id, parent_version_id per ADR-0026)~~ | ✅ **VERIFIED** | ~~Medium~~ | ~~Medium~~ |
+| P1 | Implement DAT large file streaming (ADR-0041) | Pending | High | High |
+| P2 | Implement CI/CD pipeline (ADR-0039) | Pending | Medium | Medium |
+| P2 | Set up deployment automation (ADR-0040) | Pending | High | Medium |
 
 **🎉 100% Compliance Achieved (2025-12-28)**
 
@@ -802,8 +802,8 @@ All P0 and core P1 items completed. Remaining items are feature implementations,
 1. **Check for existing contracts** in `shared/contracts/`
 2. **Review relevant ADRs** in `.adrs/` and SPECs in `docs/specs/`
 3. **Verify no tier boundary violations** (don't duplicate contracts in docs)
-4. **Check cross-cutting guardrails** in ADR-0017
-5. **Follow AI-parseable patterns** from ADR-0033 (naming, docstrings, structure)
+4. **Check cross-cutting guardrails** in ADR-0018
+5. **Follow AI-parseable patterns** from ADR-0034 (naming, docstrings, structure)
 
 ### 7.2 Code Patterns to Follow
 
@@ -845,14 +845,14 @@ class DataSetManifest(BaseModel):  # Don't duplicate!
 | Hardcoding user messages | Use message catalog |
 | Adding `__version__` to non-contract modules | Only Pydantic contracts need `__version__` |
 
-### 7.4 AI-Parseable Code Patterns (ADR-0033)
+### 7.4 AI-Parseable Code Patterns (ADR-0034)
 
 | Pattern | Rule | Example |
 |---------|------|---------|
 | **File naming** | `{domain}_{action}.py` | `dataset_loader.py`, `stage_orchestrator.py` |
 | **Function naming** | `{verb}_{noun}` | `load_dataset()`, `render_chart()`, `validate_manifest()` |
 | **Docstrings** | Google-style, required sections | `Args`, `Returns`, `Raises` |
-| **Comments** | Explain WHY, not WHAT | `# SHA-256 for collision resistance per ADR-0004` |
+| **Comments** | Explain WHY, not WHAT | `# SHA-256 for collision resistance per ADR-0005` |
 | **Directory depth** | Max 2 levels within modules | `adapters/csv_adapter.py` ✅, not `core/orchestration/stages/impl/` ❌ |
 | **Imports** | Absolute only, grouped by origin | stdlib → third-party → local |
 
@@ -865,7 +865,7 @@ class DataSetManifest(BaseModel):  # Don't duplicate!
 - [ ] Run `ruff check .` before committing
 - [ ] Run `pytest tests/` to verify all tests pass
 
-### 7.6 Development Environment (ADR-0037)
+### 7.6 Development Environment (ADR-0038)
 
 ```bash
 # Start everything with one command

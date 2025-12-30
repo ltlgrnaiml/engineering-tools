@@ -2,7 +2,7 @@
 # CDU-DAT Profile: CD-SEM Metrology Data Aggregation
 # =============================================================================
 # SSoT Profile for extracting tables from CD-SEM measurement JSON files.
-# Per ADR-0011: All extraction logic is governed by this versioned profile.
+# Per ADR-0012: All extraction logic is governed by this versioned profile.
 # =============================================================================
 
 schema_version: "1.0.0"

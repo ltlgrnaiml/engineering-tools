@@ -1,6 +1,6 @@
 """Message catalog contracts - user-facing messages and errors.
 
-Per ADR-0017#message-catalogs: All user-facing messages must be defined
+Per ADR-0018#message-catalogs: All user-facing messages must be defined
 in catalogs, never hardcoded in backend logic.
 
 This package contains Pydantic models for:

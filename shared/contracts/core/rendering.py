@@ -1,6 +1,6 @@
 """Unified Rendering Engine contracts.
 
-Per ADR-0028: Unified Rendering Engine for Cross-Tool Visualization.
+Per ADR-0029: Unified Rendering Engine for Cross-Tool Visualization.
 
 This module defines the core contracts for the shared rendering system:
 - RenderSpec hierarchy: Abstract specifications for WHAT to render
@@ -129,7 +129,7 @@ class RenderStyle(BaseModel):
     """Complete styling configuration for rendering.
 
     This is the single source of truth for default styling across all tools.
-    Per ADR-0028: PlotStyle must be centralized.
+    Per ADR-0029: PlotStyle must be centralized.
     """
 
     # Colors
@@ -325,7 +325,7 @@ class TableData(BaseModel):
 class RenderSpec(BaseModel, ABC):
     """Abstract base for all render specifications.
 
-    Per ADR-0028: RenderSpec contracts define WHAT to render,
+    Per ADR-0029: RenderSpec contracts define WHAT to render,
     not HOW (renderer-agnostic).
     """
 

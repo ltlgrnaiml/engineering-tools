@@ -1,11 +1,11 @@
 """DAT Stage contracts - pipeline stage state machine and configuration.
 
-Per ADR-0001-DAT: 8-stage pipeline with lockable artifacts.
-Per ADR-0003: Context and Preview are optional stages.
-Per ADR-0004-DAT: Stage IDs are deterministic (hash of inputs + config).
-Per ADR-0008: All timestamps are ISO-8601 UTC (no microseconds).
-Per ADR-0013: Cancellation preserves completed/checkpointed artifacts.
-Per ADR-0006: Table availability tracked per stage.
+Per ADR-0004: 8-stage pipeline with lockable artifacts.
+Per ADR-0004: Context and Preview are optional stages.
+Per ADR-0008: Stage IDs are deterministic (hash of inputs + config).
+Per ADR-0009: All timestamps are ISO-8601 UTC (no microseconds).
+Per ADR-0014: Cancellation preserves completed/checkpointed artifacts.
+Per ADR-0008: Table availability tracked per stage.
 
 This module defines the state machine for DAT's 8-stage pipeline:
   Discovery → Selection → Context → Table Availability →
@@ -27,8 +27,8 @@ __version__ = "1.0.0"
 class DATStageType(str, Enum):
     """The eight stages of the DAT pipeline.
 
-    Per ADR-0001-DAT: 8-stage pipeline with lockable artifacts.
-    Per ADR-0003: Context and Preview are optional stages.
+    Per ADR-0004: 8-stage pipeline with lockable artifacts.
+    Per ADR-0004: Context and Preview are optional stages.
 
     Stage order:
         1. DISCOVERY - Automatic file system scan (implicit)
@@ -52,7 +52,7 @@ class DATStageType(str, Enum):
 
     @classmethod
     def optional_stages(cls) -> set["DATStageType"]:
-        """Return stages that can be skipped per ADR-0003."""
+        """Return stages that can be skipped per ADR-0004."""
         return {cls.CONTEXT, cls.PREVIEW}
 
     @classmethod
@@ -86,7 +86,7 @@ class DATStageState(str, Enum):
         locked → unlocked → running (re-run)
 
     Per ADR-0002: Unlocking preserves previous artifacts with timestamp suffix.
-    Per ADR-0014: Cancellation preserves partial outputs.
+    Per ADR-0015: Cancellation preserves partial outputs.
     """
 
     PENDING = "pending"
@@ -155,7 +155,7 @@ class ParseStageConfig(BaseModel):
     @field_validator("source_paths")
     @classmethod
     def validate_relative_paths(cls, v: list[str]) -> list[str]:
-        """Ensure all paths are relative (per ADR-0017 path-safety)."""
+        """Ensure all paths are relative (per ADR-0018 path-safety)."""
         for path in v:
             if path.startswith("/") or (len(path) > 1 and path[1] == ":"):
                 raise ValueError(f"Absolute paths not allowed: {path}")
@@ -167,7 +167,7 @@ class ParseStageConfig(BaseModel):
 class DiscoveryStageConfig(BaseModel):
     """Configuration for the Discovery stage.
 
-    Per ADR-0001-DAT: Discovery is the first stage, performing file system scan.
+    Per ADR-0004: Discovery is the first stage, performing file system scan.
     Automatically discovers files matching patterns in the specified paths.
     """
 
@@ -197,7 +197,7 @@ class DiscoveryStageConfig(BaseModel):
     @field_validator("root_paths")
     @classmethod
     def validate_relative_paths(cls, v: list[str]) -> list[str]:
-        """Ensure all paths are relative (per ADR-0017 path-safety)."""
+        """Ensure all paths are relative (per ADR-0018 path-safety)."""
         for path in v:
             if path.startswith("/") or (len(path) > 1 and path[1] == ":"):
                 raise ValueError(f"Absolute paths not allowed: {path}")
@@ -209,7 +209,7 @@ class DiscoveryStageConfig(BaseModel):
 class SelectionStageConfig(BaseModel):
     """Configuration for the Selection stage.
 
-    Per ADR-0001-DAT: User selects which discovered files to include.
+    Per ADR-0004: User selects which discovered files to include.
     """
 
     discovery_stage_id: str = Field(
@@ -230,7 +230,7 @@ class SelectionStageConfig(BaseModel):
 class ContextStageConfig(BaseModel):
     """Configuration for the Context stage.
 
-    Per ADR-0003: Context is optional, providing hints and metadata.
+    Per ADR-0004: Context is optional, providing hints and metadata.
     Skipping uses lazy initialization with defaults.
     """
 
@@ -255,7 +255,7 @@ class ContextStageConfig(BaseModel):
 class TableAvailabilityStageConfig(BaseModel):
     """Configuration for the Table Availability stage.
 
-    Per ADR-0006: Probes files to detect available tables.
+    Per ADR-0008: Probes files to detect available tables.
     Status check must complete in < 1 second per table.
     """
 
@@ -283,7 +283,7 @@ class TableAvailabilityStageConfig(BaseModel):
 class TableSelectionStageConfig(BaseModel):
     """Configuration for the Table Selection stage.
 
-    Per ADR-0001-DAT: User selects which detected tables to extract.
+    Per ADR-0004: User selects which detected tables to extract.
     """
 
     table_availability_stage_id: str = Field(
@@ -304,8 +304,8 @@ class TableSelectionStageConfig(BaseModel):
 class PreviewStageConfig(BaseModel):
     """Configuration for the Preview stage.
 
-    Per ADR-0003: Preview is optional, showing sample extraction results.
-    Per ADR-0040: Uses sampled preview for large files.
+    Per ADR-0004: Preview is optional, showing sample extraction results.
+    Per ADR-0041: Uses sampled preview for large files.
     """
 
     table_selection_stage_id: str = Field(
@@ -327,7 +327,7 @@ class PreviewStageConfig(BaseModel):
 class ExportStageConfig(BaseModel):
     """Configuration for the Export stage.
 
-    Per ADR-0014: Export writes parsed data to user-selected formats.
+    Per ADR-0015: Export writes parsed data to user-selected formats.
     Supports multiple output formats in a single export.
     """
 
@@ -377,7 +377,7 @@ class ExportStageConfig(BaseModel):
 class DATStageConfig(BaseModel):
     """Union config for any DAT stage type.
 
-    Per ADR-0001-DAT: Exactly one stage-specific config must be set.
+    Per ADR-0004: Exactly one stage-specific config must be set.
     """
 
     stage_type: DATStageType
@@ -446,7 +446,7 @@ class DATStageResult(BaseModel):
     """Result of executing a DAT stage.
 
     Contains state, timing, metrics, and output references.
-    Per ADR-0004: stage_id is deterministic hash of inputs + config.
+    Per ADR-0005: stage_id is deterministic hash of inputs + config.
     """
 
     # Identity
@@ -463,7 +463,7 @@ class DATStageResult(BaseModel):
     # State
     state: DATStageState = DATStageState.PENDING
 
-    # Timestamps (per ADR-0008)
+    # Timestamps (per ADR-0009)
     created_at: datetime
     started_at: datetime | None = None
     completed_at: datetime | None = None

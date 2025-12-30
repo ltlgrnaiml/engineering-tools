@@ -14,7 +14,7 @@ And the downstream docs:
 - `docs/specs/dat/SPEC-DAT-0012_Extraction-Strategies.json`
 - `docs/specs/dat/SPEC-DAT-0002_Profile-Extraction.json`
 
-All three specs + ADR-0011 reference Tier-0 contracts that should live in `shared/contracts/dat/profile.py`:
+All three specs + ADR-0012 reference Tier-0 contracts that should live in `shared/contracts/dat/profile.py`:
 
 - `DATProfile`
 - `TableConfig`
@@ -57,7 +57,7 @@ Option A.
 It aligns with:
 
 - Your explicit instruction: “Contracts are Tier‑0 SSOT”
-- ADR-0009 contract discipline
+- ADR-0010 contract discipline
 - The stated bottom-up validation approach
 
 ## Questions

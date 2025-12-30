@@ -1,8 +1,8 @@
 """Main FastAPI application entry point.
 
-Per ADR-0029: Tool-specific routes use no version prefix.
+Per ADR-0030: Tool-specific routes use no version prefix.
 Gateway mounts this app at /api/pptx, yielding /api/pptx/{resource}.
-Per ADR-0031: All errors use ErrorResponse contract.
+Per ADR-0032: All errors use ErrorResponse contract.
 """
 
 import logging
@@ -81,9 +81,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Per ADR-0029: Health endpoints are unversioned (accessible at /health when mounted)
+# Per ADR-0030: Health endpoints are unversioned (accessible at /health when mounted)
 app.include_router(health.router, tags=["health"])
-# Per ADR-0029: Tool-specific routes use no version prefix
+# Per ADR-0030: Tool-specific routes use no version prefix
 # Gateway mounts at /api/pptx, so routes become /api/pptx/{resource}
 app.include_router(projects.router, prefix="/projects", tags=["projects"])
 app.include_router(templates.router, prefix="/templates", tags=["templates"])
@@ -118,7 +118,7 @@ async def global_exception_handler(_request: Any, exc: Exception) -> JSONRespons
     """
     Global exception handler for unhandled exceptions.
 
-    Per ADR-0031: Uses ErrorResponse contract for standardized error format.
+    Per ADR-0032: Uses ErrorResponse contract for standardized error format.
 
     Args:
         request: The incoming request.

@@ -1,6 +1,6 @@
 """Context stage - optional parsing hints and column configuration.
 
-Per ADR-0003: Context is an optional stage that does NOT cascade unlock.
+Per ADR-0004: Context is an optional stage that does NOT cascade unlock.
 Users can skip directly from Selection to Table Availability.
 """
 from dataclasses import dataclass, field
@@ -43,7 +43,7 @@ async def execute_context(
 ) -> ContextResult:
     """Execute context stage - save parsing configuration.
     
-    Per ADR-0003: Context is optional and does not cascade unlock.
+    Per ADR-0004: Context is optional and does not cascade unlock.
     This stage just validates and persists the configuration.
     
     Args:

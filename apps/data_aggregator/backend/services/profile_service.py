@@ -1,7 +1,7 @@
 """Profile CRUD service.
 
-Per SPEC-DAT-0005: Profile management with deterministic IDs.
-Per ADR-0011: Profile-driven extraction using Tier-0 DATProfile contracts.
+Per SPEC-0007: Profile management with deterministic IDs.
+Per ADR-0012: Profile-driven extraction using Tier-0 DATProfile contracts.
 """
 
 import json
@@ -21,8 +21,8 @@ PROFILES_DIR = Path("data/profiles")
 class ProfileService:
     """Service for managing DAT extraction profiles.
 
-    Per ADR-0011: Profile-driven extraction.
-    Per ADR-0004: Deterministic IDs.
+    Per ADR-0012: Profile-driven extraction.
+    Per ADR-0005: Deterministic IDs.
     """
 
     def __init__(self, profiles_dir: Path | None = None):
@@ -37,7 +37,7 @@ class ProfileService:
     def _compute_profile_id(self, profile: DATProfile) -> str:
         """Compute deterministic profile ID.
 
-        Per ADR-0004: SHA-256 based IDs.
+        Per ADR-0005: SHA-256 based IDs.
         """
         inputs = {
             "title": profile.title,

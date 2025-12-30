@@ -1,6 +1,6 @@
 """FlatObject extraction strategy.
 
-Per SPEC-DAT-0012: Extract flat JSON object as single-row DataFrame.
+Per SPEC-0009: Extract flat JSON object as single-row DataFrame.
 Object keys become column names, values become the single row.
 """
 
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class FlatObjectStrategy(ExtractionStrategy):
     """Extract flat JSON object as single-row DataFrame.
     
-    Per SPEC-DAT-0012:
+    Per SPEC-0009:
     - Object keys become column names
     - Values become the single row
     - Optionally flatten nested objects with separator

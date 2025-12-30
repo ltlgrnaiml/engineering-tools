@@ -167,12 +167,12 @@ Tier 3: docs/guides/          → Guides show HOW
 | ADR | Decision | Impact |
 |-----|----------|--------|
 | ADR-0001 | FSM-based workflows | All tools use state machines |
-| ADR-0004 | SHA-256 stage IDs | Reproducible, cacheable |
-| ADR-0009 | Pydantic contracts | Type safety, auto-generated schemas |
-| ADR-0011 | Profile-driven extraction | Declarative data pipelines |
-| ADR-0025 | DataSet lineage | Cross-tool data tracking |
-| ADR-0028 | Unified rendering | Shared visualization contracts |
-| ADR-0033 | AI-parseable patterns | Consistent naming, docstrings |
+| ADR-0005 | SHA-256 stage IDs | Reproducible, cacheable |
+| ADR-0010 | Pydantic contracts | Type safety, auto-generated schemas |
+| ADR-0012 | Profile-driven extraction | Declarative data pipelines |
+| ADR-0026 | DataSet lineage | Cross-tool data tracking |
+| ADR-0029 | Unified rendering | Shared visualization contracts |
+| ADR-0034 | AI-parseable patterns | Consistent naming, docstrings |
 
 ---
 

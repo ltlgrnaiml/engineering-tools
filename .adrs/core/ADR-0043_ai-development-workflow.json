@@ -1,0 +1,269 @@
+{
+  "schema_type": "adr",
+  "id": "ADR-0043_ai-development-workflow",
+  "title": "AI Development Workflow Orchestration",
+  "status": "active",
+  "date": "2025-12-30",
+  "author": "Mycahya Eggleston",
+  "context": {
+    "description": "As AI-assisted development matures, ad-hoc 'vibe coding' produces inconsistent results. Industry best practices (ThoughtWorks, JetBrains, GitHub Spec-kit) show that structured spec-driven development with explicit planning phases significantly improves code quality and reduces rework.",
+    "problem": "Need a structured workflow that: (1) captures design conversations before coding, (2) breaks work into verifiable fragments, (3) tracks execution state across sessions, (4) enforces verification gates before marking complete.",
+    "constraints": [
+      "Must integrate with existing 3-Tier Document Model (ADRs, SPECs, Contracts)",
+      "Must support both greenfield features and incremental changes",
+      "Must be AI-assistant agnostic at the schema level",
+      "Windsurf-specific instructions in AGENTS.md files must be easily removable"
+    ]
+  },
+  "decision": {
+    "summary": "Implement a 6-tier hierarchical AI Development Workflow with Discussion, Decision (ADR), Specification (SPEC), Contract, Plan, and Fragment tiers.",
+    "details": {
+      "tier_hierarchy": [
+        {
+          "tier": "T0",
+          "name": "Discussion",
+          "artifact": ".discussions/DISC-XXX.md",
+          "purpose": "Capture AI ↔ Human design conversation",
+          "trigger": "New feature, enhancement, or architectural exploration"
+        },
+        {
+          "tier": "T1",
+          "name": "Decision",
+          "artifact": ".adrs/ADR-XXXX.json",
+          "purpose": "Record WHY architectural decision was made",
+          "trigger": "Architecture choice required from discussion"
+        },
+        {
+          "tier": "T2",
+          "name": "Specification",
+          "artifact": "docs/specs/SPEC-XXX.json",
+          "purpose": "Define WHAT to build (behavioral requirements)",
+          "trigger": "Feature scope finalized"
+        },
+        {
+          "tier": "T3",
+          "name": "Contract",
+          "artifact": "shared/contracts/*.py",
+          "purpose": "Define data shapes (Pydantic SSOT)",
+          "trigger": "Data structures needed"
+        },
+        {
+          "tier": "T4",
+          "name": "Plan",
+          "artifact": ".plans/PLAN-XXX.md",
+          "purpose": "Milestones, tasks, and acceptance criteria",
+          "trigger": "Implementation begins"
+        },
+        {
+          "tier": "T5",
+          "name": "Fragment",
+          "artifact": "Per-task execution",
+          "purpose": "One verifiable unit of work",
+          "trigger": "During plan execution"
+        }
+      ],
+      "gate_enforcement": {
+        "description": "Each tier has explicit gates that must pass before proceeding",
+        "gates": {
+          "discussion_to_adr": "User approves that architectural decision is needed",
+          "adr_to_spec": "ADR status is 'active'",
+          "spec_to_contract": "SPEC status is 'active'",
+          "contract_to_plan": "Contract imports verified",
+          "plan_to_fragment": "Milestone prerequisites met",
+          "fragment_complete": "Verification command passes"
+        }
+      },
+      "fragment_execution_rules": {
+        "description": "Per SESSION_018 lessons learned",
+        "rules": [
+          "Implement one task at a time",
+          "Run verification command before marking complete",
+          "Document verification evidence in execution log",
+          "Never skip verification even for 'simple' changes"
+        ]
+      },
+      "plan_granularity_levels": {
+        "description": "Plans support tiered granularity matched to model capability. Evidence from EXP-001 (L1 vs L3 Experiment) showed L3 reduced code variation from 39% to 19%.",
+        "levels": {
+          "L1_STANDARD": {
+            "target_models": [
+              "Claude Opus",
+              "Claude Sonnet",
+              "GPT-5.2",
+              "Gemini Pro"
+            ],
+            "description": "Context + verification commands. Premium models handle ambiguity.",
+            "verification_on_failure": "log_and_continue"
+          },
+          "L2_ENHANCED": {
+            "target_models": [
+              "GPT-5.1",
+              "Gemini Pro"
+            ],
+            "description": "L1 + explicit constraints, hints, and negative examples.",
+            "verification_on_failure": "log_and_continue_with_caution"
+          },
+          "L3_PROCEDURAL": {
+            "target_models": [
+              "Claude Haiku",
+              "Gemini Flash",
+              "Grok Code Fast",
+              "GPT-4o-mini"
+            ],
+            "description": "L2 + step-by-step instructions with copy-paste code snippets.",
+            "verification_on_failure": "stop_and_escalate"
+          }
+        }
+      },
+      "l3_chunking_protocol": {
+        "description": "L3 plans are chunked for smaller context windows. Added based on EXP-001 findings and GPT-5.2 session discipline patterns.",
+        "chunk_limits": {
+          "target_lines": 600,
+          "soft_limit_lines": 800,
+          "rationale": "Ensures budget models have context room for code generation"
+        },
+        "chunk_structure": {
+          "index_file": ".plans/L3/<PLAN>/INDEX.json",
+          "chunk_files": ".plans/L3/<PLAN>/PLAN-XXX_L3_<chunk>.json",
+          "chunk_header": "Contains continuation_context, session_instruction, verification_strictness",
+          "chunk_footer": "Contains handoff_to_next, files_to_preserve, patterns_to_maintain"
+        },
+        "continuation_context": {
+          "purpose": "Handshake between chunks for session continuity",
+          "fields": [
+            "files_created",
+            "files_modified",
+            "architecture_rules",
+            "patterns_established",
+            "active_blockers"
+          ]
+        },
+        "execution_history": {
+          "purpose": "Track which model executed each chunk",
+          "model_self_report": "Models add their name to execution_history (fun experiment!)"
+        },
+        "session_required": true
+      }
+    }
+  },
+  "consequences": {
+    "positive": [
+      "Consistent, traceable development process",
+      "Reduced rework from incomplete implementations",
+      "Clear handoff between AI sessions",
+      "Verification prevents 'breadth over depth' anti-pattern"
+    ],
+    "negative": [
+      "Additional overhead for small changes",
+      "Learning curve for new workflow",
+      "More files to maintain"
+    ],
+    "mitigations": [
+      "Subset flows for simple changes (skip higher tiers)",
+      "Templates and automation scripts reduce friction",
+      "AI assistant handles most bookkeeping automatically"
+    ]
+  },
+  "implementation": {
+    "directory_structure": {
+      ".discussions/": {
+        "purpose": "Design conversation artifacts",
+        "files": [
+          "README.md",
+          "INDEX.md",
+          "AGENTS.md",
+          ".templates/DISC_TEMPLATE.md"
+        ]
+      },
+      ".plans/": {
+        "purpose": "Implementation plan artifacts",
+        "files": [
+          "README.md",
+          "INDEX.md",
+          "AGENTS.md",
+          ".templates/PLAN_TEMPLATE.md"
+        ]
+      }
+    },
+    "windsurf_specific_files": {
+      "marker": "WINDSURF_SPECIFIC",
+      "description": "Files containing Windsurf-specific instructions are marked with this string for easy removal when migrating to other AI tools",
+      "files": [
+        ".discussions/AGENTS.md",
+        ".plans/AGENTS.md",
+        "docs/guides/AI_DEVELOPMENT_WORKFLOW.md (sections marked)"
+      ]
+    },
+    "automation": {
+      "scripts": [
+        "scripts/workflow/new_discussion.py",
+        "scripts/workflow/new_plan.py",
+        "scripts/workflow/verify_plan.py"
+      ]
+    }
+  },
+  "subset_flows": {
+    "description": "Not all work requires full workflow. Use appropriate entry point.",
+    "flows": [
+      {
+        "scenario": "Bug fix",
+        "entry_tier": "T4 (Plan)",
+        "skip_tiers": [
+          "T0",
+          "T1",
+          "T2",
+          "T3"
+        ]
+      },
+      {
+        "scenario": "Simple enhancement",
+        "entry_tier": "T2 (SPEC)",
+        "skip_tiers": [
+          "T0",
+          "T1"
+        ]
+      },
+      {
+        "scenario": "New data structure only",
+        "entry_tier": "T3 (Contract)",
+        "skip_tiers": [
+          "T0",
+          "T1",
+          "T2"
+        ]
+      },
+      {
+        "scenario": "Refactor",
+        "entry_tier": "T4 (Plan)",
+        "skip_tiers": [
+          "T0",
+          "T1",
+          "T2",
+          "T3"
+        ]
+      },
+      {
+        "scenario": "Architectural change",
+        "entry_tier": "T0 (Discussion)",
+        "skip_tiers": []
+      }
+    ]
+  },
+  "related_adrs": [
+    "ADR-0045: AI-Assisted Development Patterns",
+    "ADR-0045: 3-Tier Document Model"
+  ],
+  "references": [
+    "ThoughtWorks: Spec-Driven Development (Dec 2025)",
+    "JetBrains Junie: Spec-Driven Approach for AI Coding",
+    "Martin Fowler: Understanding SDD Tools",
+    "GitHub Spec-Kit: Constitution-Driven Development"
+  ],
+  "tags": [
+    "workflow",
+    "ai-assisted",
+    "spec-driven",
+    "planning",
+    "verification"
+  ]
+}

@@ -1,6 +1,6 @@
 """Unit tests for PPTX renderers.
 
-Tests renderer functionality per ADR-0021 and ADR-0028.
+Tests renderer functionality per ADR-0022 and ADR-0029.
 """
 
 import pytest
@@ -76,7 +76,7 @@ class TestRenderContext:
 
 
 class TestTableRendererSpec:
-    """Tests for TableRenderer per ADR-0028."""
+    """Tests for TableRenderer per ADR-0029."""
 
     def test_table_renderer_imports_table_spec(self):
         """TableRenderer imports TableSpec from shared contracts."""
@@ -120,7 +120,7 @@ class TestTableRendererSpec:
 
 
 class TestPlotRendererSpec:
-    """Tests for PlotRenderer per ADR-0028."""
+    """Tests for PlotRenderer per ADR-0029."""
 
     def test_plot_renderer_imports_chart_spec(self):
         """PlotRenderer imports ChartSpec from shared contracts."""
@@ -167,7 +167,7 @@ class TestPlotRendererSpec:
 
 
 class TestImageRenderer:
-    """Tests for ImageRenderer per ADR-0021."""
+    """Tests for ImageRenderer per ADR-0022."""
 
     def test_image_renderer_can_render(self):
         """ImageRenderer handles image_ category shapes."""
@@ -211,7 +211,7 @@ class TestImageRenderer:
 
 
 class TestRendererFactory:
-    """Tests for renderer factory pattern per ADR-0021."""
+    """Tests for renderer factory pattern per ADR-0022."""
 
     def test_factory_exists(self):
         """Renderer factory module exists."""
@@ -240,7 +240,7 @@ class TestRendererFactory:
 
 
 class TestRendererGracefulDegradation:
-    """Tests for graceful degradation per ADR-0021."""
+    """Tests for graceful degradation per ADR-0022."""
 
     def test_renderer_logs_errors(self):
         """Renderers log errors without crashing."""

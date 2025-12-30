@@ -14,7 +14,7 @@ I have cross-referenced the 15 gaps identified in the TEAM_011 report against th
 ### 1. API Routing (GAP-A1, A2, A3) - **CONFIRMED**
 - **Evidence**: `apps/data_aggregator/backend/src/dat_aggregation/api/routes.py` explicitly uses `APIRouter(prefix="/v1")`.
 - **Evidence**: `gateway/services/pipeline_service.py` hardcodes `http://localhost:8000/api/{tool}/v1`.
-- **Constraint Violation**: ADR-0029 requires `/api/{tool}/{resource}` (unversioned default).
+- **Constraint Violation**: ADR-0030 requires `/api/{tool}/{resource}` (unversioned default).
 
 ### 2. Adapter Fragmentation (GAP-D1) - **CONFIRMED**
 - **Legacy Stack**: `apps/data_aggregator/backend/src/dat_aggregation/adapters/` contains `csv_adapter.py`, `excel_adapter.py`, etc. These are simple wrappers using `pl.read_csv`.
@@ -30,7 +30,7 @@ I have cross-referenced the 15 gaps identified in the TEAM_011 report against th
 - **Absolute Paths**: `state_machine.py` passes `{"root_path": str(source_path)}` to `lock_stage`. Since `source_path` is resolved to an absolute path in `routes.py`, the stage ID hash will differ across machines.
 
 ### 5. Streaming & Performance (GAP-D2, E1) - **CONFIRMED**
-- **Probe**: `execute_table_availability` calls `adapter.read()`, loading the full DataFrame into memory just to check existence/schema. This violates ADR-0006 (Fast Probe).
+- **Probe**: `execute_table_availability` calls `adapter.read()`, loading the full DataFrame into memory just to check existence/schema. This violates ADR-0008 (Fast Probe).
 - **Streaming**: While the *new* `CSVAdapter` supports `stream_dataframe`, the *active* legacy adapter does not. Code using the adapter (e.g. `parse.py`) does not implement the 10MB threshold logic.
 
 ### 6. Parquet Enforcement (GAP-E4) - **PARTIALLY CONFIRMED**

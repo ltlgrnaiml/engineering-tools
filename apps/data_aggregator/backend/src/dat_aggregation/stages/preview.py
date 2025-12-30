@@ -1,6 +1,6 @@
 """Preview stage - optional preview of data before full parse.
 
-Per ADR-0003: Preview is an optional stage that does NOT cascade unlock.
+Per ADR-0004: Preview is an optional stage that does NOT cascade unlock.
 Users can skip directly from Table Selection to Parse.
 """
 from dataclasses import dataclass
@@ -40,7 +40,7 @@ class PreviewResult:
     table_previews: list[TablePreview]
     total_rows: int
     total_columns: int
-    completed: bool = False  # Per SPEC-0044: manual_complete - user must acknowledge
+    completed: bool = False  # Per SPEC-0022: manual_complete - user must acknowledge
 
 
 async def execute_preview(
@@ -51,7 +51,7 @@ async def execute_preview(
 ) -> PreviewResult:
     """Execute preview stage - load sample data from selected tables.
     
-    Per ADR-0003: Preview is optional and does not cascade unlock.
+    Per ADR-0004: Preview is optional and does not cascade unlock.
     
     Args:
         run_id: DAT run ID

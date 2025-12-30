@@ -1,7 +1,7 @@
 """DAT API routes.
 
-Per ADR-0029: All routes use /api/{tool}/{resource} pattern (no version prefix).
-Per ADR-0013: Cancellation events are logged for audit.
+Per ADR-0030: All routes use /api/{tool}/{resource} pattern (no version prefix).
+Per ADR-0014: Cancellation events are logged for audit.
 """
 from datetime import datetime, timezone
 from pathlib import Path
@@ -43,7 +43,7 @@ from .schemas import (
     ExtractionResponse,
 )
 
-# Per ADR-0029: Tool-specific routes use no version prefix (mounted at /api/dat by gateway)
+# Per ADR-0030: Tool-specific routes use no version prefix (mounted at /api/dat by gateway)
 router = APIRouter()
 run_manager = RunManager()
 profile_service = ProfileService()
@@ -218,7 +218,7 @@ async def get_stage_status(run_id: str, stage: str):
 async def lock_discovery(run_id: str, request: ScanRequest):
     """Lock discovery stage - scan for files in a folder.
     
-    Per ADR-0001-DAT: Discovery is the first stage and must be locked before Selection.
+    Per ADR-0004: Discovery is the first stage and must be locked before Selection.
     """
     import logging
     logger = logging.getLogger(__name__)
@@ -272,7 +272,7 @@ async def lock_discovery(run_id: str, request: ScanRequest):
                 "completed": result.completed,
             }
 
-        # Per ADR-0004-DAT: Use relative paths for deterministic IDs
+        # Per ADR-0008: Use relative paths for deterministic IDs
         workspace_root = Path(run.get("workspace", source_path.parent))
         inputs = {"root_path": make_relative(source_path, workspace_root).path}
         status = await sm.lock_stage(Stage.DISCOVERY, inputs=inputs, execute_fn=execute)
@@ -552,13 +552,13 @@ async def lock_parse(run_id: str, request: ParseRequest | None = None, backgroun
 async def cancel_parse(run_id: str, reason: str = "user_requested", actor: str = "user"):
     """Cancel ongoing parse operation.
 
-    Per ADR-0013: Cancellation events are logged for audit.
+    Per ADR-0014: Cancellation events are logged for audit.
     """
     token = _cancel_tokens.get(run_id)
     if token:
         token.cancel()
 
-        # Create audit log entry per ADR-0013
+        # Create audit log entry per ADR-0014
         audit_log = CancellationAuditLog(job_id=run_id)
         audit_log = audit_log.add_entry(
             event_type="cancel_requested",
@@ -661,7 +661,7 @@ async def list_profiles():
 
 @router.get("/profiles/{profile_id}/tables")
 async def get_profile_tables(profile_id: str):
-    """Get tables defined in a profile per ADR-0011.
+    """Get tables defined in a profile per ADR-0012.
     
     Returns all table definitions from the profile YAML for UI display.
     Tables are grouped by level (run, image, etc.) per ui.table_selection config.
@@ -723,7 +723,7 @@ async def get_profile_tables(profile_id: str):
 
 @router.get("/profiles/{profile_id}/context")
 async def get_profile_context_config(profile_id: str):
-    """Get context configuration from a profile per ADR-0011.
+    """Get context configuration from a profile per ADR-0012.
     
     Returns context_defaults (regex patterns, defaults, content patterns)
     and contexts (run_context, image_context definitions) for UI display.
@@ -789,7 +789,7 @@ async def get_profile_context_config(profile_id: str):
 
 @router.post("/runs/{run_id}/stages/parse/profile-extract", response_model=ExtractionResponse)
 async def execute_profile_extraction(run_id: str, request: ParseRequest | None = None):
-    """Execute profile-driven extraction per ADR-0011.
+    """Execute profile-driven extraction per ADR-0012.
     
     Uses ProfileExecutor to extract tables defined in the profile YAML.
     Per DESIGN §4, §9: Returns tables and context SEPARATELY, allowing
@@ -985,7 +985,7 @@ async def apply_context_to_tables(
 async def scan_table_availability(run_id: str):
     """Scan for available tables from selected files.
     
-    Per ADR-0006: Table availability must show actual row/column counts.
+    Per ADR-0008: Table availability must show actual row/column counts.
     
     When a profile is selected (via context stage), returns profile-defined tables.
     Otherwise, returns file-based tables (legacy behavior).
@@ -1076,7 +1076,7 @@ async def scan_table_availability(run_id: str):
 async def lock_table_availability(run_id: str):
     """Lock table availability stage with discovered tables.
     
-    Per ADR-0006: Table availability must show actual row/column counts.
+    Per ADR-0008: Table availability must show actual row/column counts.
     
     When a profile is selected, stores profile table definitions.
     Otherwise, discovers tables from files (legacy behavior).
@@ -1202,7 +1202,7 @@ async def get_table_selection_tables(run_id: str):
     return discovered_tables
 
 
-# Complete stage endpoint - marks a locked stage as completed (per SPEC-0044)
+# Complete stage endpoint - marks a locked stage as completed (per SPEC-0022)
 @router.post("/runs/{run_id}/stages/{stage}/complete")
 async def complete_stage(run_id: str, stage: str):
     """Mark a locked stage as completed to advance the wizard."""
@@ -1264,7 +1264,7 @@ async def unlock_stage(run_id: str, stage: str):
 async def lock_preview(run_id: str):
     """Lock preview stage with generated preview data from selected tables.
     
-    Per ADR-0001-DAT: Preview is an optional stage BEFORE Parse.
+    Per ADR-0004: Preview is an optional stage BEFORE Parse.
     It shows a preview of selected tables to verify data before parsing.
     """
     import logging
@@ -1731,7 +1731,7 @@ async def start_parse(run_id: str):
 
 
 # =============================================================================
-# Cleanup Endpoints (M8: Cancellation Checkpointing per ADR-0013)
+# Cleanup Endpoints (M8: Cancellation Checkpointing per ADR-0014)
 # =============================================================================
 
 
@@ -1743,7 +1743,7 @@ async def cleanup_run(
 ):
     """Explicitly clean up partial artifacts from cancelled runs.
 
-    Per ADR-0013: Cleanup is user-initiated only, dry-run by default.
+    Per ADR-0014: Cleanup is user-initiated only, dry-run by default.
 
     Args:
         run_id: Run identifier.
@@ -1765,7 +1765,7 @@ async def cleanup_run(
 
 
 # =============================================================================
-# Profile CRUD Endpoints (M9: Profile Management per SPEC-DAT-0005)
+# Profile CRUD Endpoints (M9: Profile Management per SPEC-0007)
 # =============================================================================
 
 
@@ -1773,7 +1773,7 @@ async def cleanup_run(
 async def create_profile(data: dict = Body(...)):
     """Create a new extraction profile.
 
-    Per SPEC-DAT-0005: Profile management with deterministic IDs.
+    Per SPEC-0007: Profile management with deterministic IDs.
     Accepts DATProfile-compatible JSON body.
     """
     try:

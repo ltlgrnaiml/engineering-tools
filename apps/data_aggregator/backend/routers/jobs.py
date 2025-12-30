@@ -1,7 +1,7 @@
 """Background Jobs API Router for DAT.
 
-Per ADR-0040: Large File Streaming Strategy
-Per ADR-0029: API Versioning and Endpoint Naming
+Per ADR-0041: Large File Streaming Strategy
+Per ADR-0030: API Versioning and Endpoint Naming
 
 Provides REST endpoints for job management:
 - POST /api/dat/jobs - Submit a new job

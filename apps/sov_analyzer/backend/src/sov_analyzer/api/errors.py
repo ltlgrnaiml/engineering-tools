@@ -1,6 +1,6 @@
 """Standardized error handling for SOV (Sources of Variance) Analyzer API.
 
-Per ADR-0031: All HTTP errors MUST use ErrorResponse contract.
+Per ADR-0032: All HTTP errors MUST use ErrorResponse contract.
 Per API-003: Error responses MUST use standard error schema.
 
 This module provides a centralized error helper that all SOV API
@@ -28,7 +28,7 @@ def raise_error(
 ) -> None:
     """Raise HTTPException with standardized ErrorResponse.
 
-    Per ADR-0031: All SOV errors use ErrorResponse contract.
+    Per ADR-0032: All SOV errors use ErrorResponse contract.
 
     Args:
         status_code: HTTP status code (400, 404, 500, etc.).
@@ -165,7 +165,7 @@ def raise_analysis_error(analysis_id: str, message: str) -> None:
 def raise_dataset_error(dataset_id: str, message: str) -> None:
     """Raise error related to DataSet operations.
 
-    Per ADR-0023: SOV DataSet Integration.
+    Per ADR-0024: SOV DataSet Integration.
 
     Args:
         dataset_id: ID of the DataSet.
@@ -194,7 +194,7 @@ def raise_dataset_error(dataset_id: str, message: str) -> None:
 def raise_variance_validation_error(message: str, computed_sum: float) -> None:
     """Raise error when variance percentages don't sum to 100%.
 
-    Per ADR-0022: SOV Analysis Pipeline (variance percentages MUST sum to 100%).
+    Per ADR-0023: SOV Analysis Pipeline (variance percentages MUST sum to 100%).
 
     Args:
         message: Human-readable error message.

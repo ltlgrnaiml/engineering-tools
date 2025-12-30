@@ -1,6 +1,6 @@
 """Standardized error handling for PPTX API.
 
-Per ADR-0031: All HTTP errors MUST use ErrorResponse contract.
+Per ADR-0032: All HTTP errors MUST use ErrorResponse contract.
 Per API-003: Error responses MUST use standard error schema.
 
 This module provides a centralized error helper that all PPTX API
@@ -28,7 +28,7 @@ def raise_error(
 ) -> None:
     """Raise HTTPException with standardized ErrorResponse.
 
-    Per ADR-0031: All PPTX errors use ErrorResponse contract.
+    Per ADR-0032: All PPTX errors use ErrorResponse contract.
 
     Args:
         status_code: HTTP status code (400, 404, 500, etc.).

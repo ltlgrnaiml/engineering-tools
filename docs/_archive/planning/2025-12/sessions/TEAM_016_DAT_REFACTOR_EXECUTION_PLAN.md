@@ -22,7 +22,7 @@ This is the **executable change plan** for the DAT refactor. It contains file-le
 ### M1: Unify Adapter Implementations
 
 **Gap**: GAP-002 (Two parallel adapter stacks create SSoT drift risk)  
-**ADR**: ADR-0011  
+**ADR**: ADR-0012  
 **Criticality**: CRITICAL
 
 #### Task M1.1: Migrate Stage Imports to Contract-Style Adapters
@@ -73,8 +73,8 @@ pytest tests/dat/test_csv_adapter.py -v
 
 ### M2: API Path Normalization (Remove /v1)
 
-**Gap**: GAP-001 (API uses `/v1` prefix violating ADR-0029)  
-**ADR**: ADR-0029  
+**Gap**: GAP-001 (API uses `/v1` prefix violating ADR-0030)  
+**ADR**: ADR-0030  
 **Criticality**: CRITICAL
 
 #### Task M2.1: Gateway Cross-Tool Routes
@@ -217,7 +217,7 @@ pytest tests/integration/test_gateway_api.py -v
 
 **Gap**: GAP-003 (Hardcoded FORWARD_GATES/CASCADE_TARGETS)  
 **Gap**: GAP-011 (No Tier-0 StageGraphConfig contract)  
-**ADR**: ADR-0001-DAT, ADR-0009
+**ADR**: ADR-0004, ADR-0010
 
 #### Task M3.1: Create Tier-0 StageGraphConfig Contract
 
@@ -226,8 +226,8 @@ pytest tests/integration/test_gateway_api.py -v
 ```python
 """Stage graph configuration contract.
 
-Per ADR-0001-DAT: 8-stage pipeline with lockable artifacts.
-Per SPEC-DAT-0001: Dependencies and cascade targets defined.
+Per ADR-0004: 8-stage pipeline with lockable artifacts.
+Per SPEC-0024: Dependencies and cascade targets defined.
 """
 
 from enum import Enum
@@ -316,7 +316,7 @@ class StageGraphConfig(BaseModel):
                     DATStageType.PREVIEW, DATStageType.PARSE, DATStageType.EXPORT
                 ]),
                 CascadeRule(trigger_stage=DATStageType.PARSE, cascade_targets=[DATStageType.EXPORT]),
-                # Context and Preview do NOT cascade (per ADR-0003)
+                # Context and Preview do NOT cascade (per ADR-0004)
                 CascadeRule(trigger_stage=DATStageType.CONTEXT, cascade_targets=[]),
                 CascadeRule(trigger_stage=DATStageType.PREVIEW, cascade_targets=[]),
             ],
@@ -426,7 +426,7 @@ pytest tests/dat/test_optional_stages.py -v
 
 **Gap**: GAP-005 (Stage ID uses 16-char, contract says 8-char)  
 **Gap**: GAP-006 (Absolute paths in stage ID inputs)  
-**ADR**: ADR-0004-DAT, ADR-0017
+**ADR**: ADR-0008, ADR-0018
 
 #### Task M4.1: Update stage_id.py to Use 8-char Default
 
@@ -466,7 +466,7 @@ def _get_selection_inputs(self, discovery_id: str, selected_files: list[str], pr
         "profile_id": profile_id,
     }
 
-# ... similar for each stage per ADR-0004-DAT
+# ... similar for each stage per ADR-0008
 ```
 
 #### Task M4.3: Enforce Relative Paths in Discovery API
@@ -518,7 +518,7 @@ pytest tests/dat/test_path_safety.py -v
 ### M5: Table Availability Fast Probe
 
 **Gap**: GAP-007 (Table availability reads full dataframes)  
-**ADR**: ADR-0006, SPEC-DAT-0006
+**ADR**: ADR-0008, SPEC-0008
 
 #### Task M5.1: Create Table Probe Service
 
@@ -527,8 +527,8 @@ pytest tests/dat/test_path_safety.py -v
 ```python
 """Fast table probing service.
 
-Per ADR-0006: Probe must complete in <1s per table.
-Per SPEC-DAT-0006: Use adapter.probe_schema(), not full reads.
+Per ADR-0008: Probe must complete in <1s per table.
+Per SPEC-0008: Use adapter.probe_schema(), not full reads.
 """
 
 import asyncio
@@ -613,7 +613,7 @@ pytest tests/dat/test_table_probe_performance.py -v
 ### M6: Large File Streaming
 
 **Gap**: GAP-008 (No streaming for files >10MB)  
-**ADR**: ADR-0040, SPEC-DAT-0004
+**ADR**: ADR-0041, SPEC-0027
 
 #### Task M6.1: Add Streaming Threshold to Parse Stage
 
@@ -654,7 +654,7 @@ pytest tests/dat/test_memory_limits.py -v
 ### M7: Parse/Export Artifact Formats
 
 **Gap**: GAP-E4 (Parse Parquet enforcement)  
-**ADR**: ADR-0014
+**ADR**: ADR-0015
 
 #### Task M7.1: Enforce Parquet Output in Parse
 
@@ -663,7 +663,7 @@ pytest tests/dat/test_memory_limits.py -v
 Ensure output is always Parquet:
 
 ```python
-OUTPUT_FORMAT = "parquet"  # Enforced per ADR-0014
+OUTPUT_FORMAT = "parquet"  # Enforced per ADR-0015
 
 async def save_parse_output(df: pl.DataFrame, output_dir: Path) -> Path:
     output_path = output_dir / "dataset.parquet"
@@ -711,7 +711,7 @@ pytest tests/dat/test_export_formats.py -v
 ### M8: Cancellation Checkpointing
 
 **Gap**: GAP-010 (Cancellation checkpointing incomplete)  
-**ADR**: ADR-0013, SPEC-DAT-0015
+**ADR**: ADR-0014, SPEC-0010
 
 #### Task M8.1: Implement Checkpoint Registry
 
@@ -720,7 +720,7 @@ pytest tests/dat/test_export_formats.py -v
 ```python
 """Checkpoint registry for cancellation safety.
 
-Per ADR-0013: Checkpoints are safe points where data integrity is guaranteed.
+Per ADR-0014: Checkpoints are safe points where data integrity is guaranteed.
 """
 
 from enum import Enum
@@ -756,7 +756,7 @@ Add checkpoint calls after each table completion.
 ```python
 """Explicit cleanup service.
 
-Per ADR-0013: Cleanup is user-initiated only, dry-run by default.
+Per ADR-0014: Cleanup is user-initiated only, dry-run by default.
 """
 
 async def cleanup(
@@ -794,7 +794,7 @@ pytest tests/dat/test_cleanup.py -v
 ### M9: Profile CRUD
 
 **Gap**: GAP-009 (Profile CRUD missing)  
-**SPEC**: SPEC-DAT-0005
+**SPEC**: SPEC-0007
 
 #### Task M9.1: Add Profile CRUD Endpoints
 
@@ -840,7 +840,7 @@ pytest tests/dat/test_profile_api.py -v
 
 ## SSoT Conflict Resolution (GAP-012)
 
-### Task SSoT.1: Update SPEC-0044 to Match ADR-0029
+### Task SSoT.1: Update SPEC-0022 to Match ADR-0030
 
 **File**: `docs/specs/core/SPEC-0044_Stage-Completion-Semantics.json`
 
@@ -848,9 +848,9 @@ Replace all `/api/dat/v1/` references with `/api/dat/`.
 
 ### Task SSoT.2: Resolve Table Status Enum Mismatch
 
-**Decision Required**: ADR-0006 says `(available, partial, missing, empty)` but Tier-0 contract has `(pending, parsing, available, partial, failed, stale)`.
+**Decision Required**: ADR-0008 says `(available, partial, missing, empty)` but Tier-0 contract has `(pending, parsing, available, partial, failed, stale)`.
 
-**Recommendation**: Keep Tier-0 contract as authoritative. Update ADR-0006 to reference the contract.
+**Recommendation**: Keep Tier-0 contract as authoritative. Update ADR-0008 to reference the contract.
 
 ---
 

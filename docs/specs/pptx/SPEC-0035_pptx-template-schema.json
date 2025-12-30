@@ -1,0 +1,785 @@
+{
+  "schema_type": "spec",
+  "id": "SPEC-0035_pptx-template-schema",
+  "title": "PPTX Template Schema and Processing Specification",
+  "version": "1.0.0",
+  "status": "active",
+  "date": "2025-12-30",
+  "author": "Mycahya Eggleston",
+  "implements_adr": [
+    "ADR-0018_PPTX-Template-Processing-Model"
+  ],
+  "tier_0_contracts": [
+    {
+      "module": "shared.contracts.pptx.template",
+      "classes": [
+        "PPTXTemplate",
+        "PPTXTemplateRef",
+        "SlideTemplate",
+        "SlideLayout",
+        "TemplateValidationResult",
+        "RenderConfig",
+        "RenderRequest",
+        "RenderResult"
+      ]
+    },
+    {
+      "module": "shared.contracts.pptx.shape",
+      "classes": [
+        "ShapeType",
+        "ShapeDiscoveryResult",
+        "ShapePlaceholder",
+        "ShapeBinding"
+      ]
+    }
+  ],
+  "purpose": "Define how PPTX templates are structured, validated, and processed. Templates use PowerPoint's native shape naming feature to identify placeholders that can be bound to data. This spec covers the complete template lifecycle: upload, discovery, validation, configuration, and rendering.",
+  "scope": "subsystem:PPTX",
+  "template_lifecycle": {
+    "description": "Templates progress through a defined lifecycle from upload to use in report generation",
+    "stages": [
+      {
+        "stage": "upload",
+        "description": "User uploads .pptx file",
+        "actions": [
+          "Store file",
+          "Generate template_id (SHA-256)",
+          "Record created_at timestamp"
+        ],
+        "next": "discovery"
+      },
+      {
+        "stage": "discovery",
+        "description": "Automatically discover layouts and shapes",
+        "actions": [
+          "Parse .pptx structure",
+          "Extract slide layouts",
+          "Enumerate shapes",
+          "Parse shape names"
+        ],
+        "next": "validation"
+      },
+      {
+        "stage": "validation",
+        "description": "Validate template against naming conventions",
+        "actions": [
+          "Validate shape names against regex",
+          "Check uniqueness within slides",
+          "Identify required vs optional shapes"
+        ],
+        "next": "configuration"
+      },
+      {
+        "stage": "configuration",
+        "description": "User configures data bindings",
+        "actions": [
+          "Map shapes to data columns",
+          "Set render options",
+          "Configure conditional rendering"
+        ],
+        "next": "ready"
+      },
+      {
+        "stage": "ready",
+        "description": "Template ready for report generation",
+        "status": "valid",
+        "actions": [
+          "Available for selection in workflow Step 1"
+        ]
+      }
+    ]
+  },
+  "requirements": [
+    {
+      "id": "REQ-PPTX-001",
+      "description": "Templates MUST be .pptx format (Open XML)",
+      "enforcement": "File extension and MIME type validation on upload",
+      "error_response": "HTTP 400 with error code 'INVALID_FILE_FORMAT'"
+    },
+    {
+      "id": "REQ-PPTX-002",
+      "description": "Mappable shapes MUST have names following {category}_{identifier}[_{variant}] convention",
+      "enforcement": "Regex validation: ^(text|chart|table|image|metric|dimension)_([a-zA-Z0-9]+)(?:_([a-zA-Z0-9]+))?$",
+      "error_response": "HTTP 400 with list of invalid shape names"
+    },
+    {
+      "id": "REQ-PPTX-003",
+      "description": "Shape names MUST be unique within a single slide",
+      "enforcement": "Uniqueness check during discovery (case-insensitive)",
+      "error_response": "HTTP 400 with list of duplicate names and slide indices"
+    },
+    {
+      "id": "REQ-PPTX-004",
+      "description": "Templates MUST be versioned with semver format",
+      "enforcement": "Version field validated against ^\\d+\\.\\d+\\.\\d+$",
+      "error_response": "HTTP 400 with error code 'INVALID_VERSION_FORMAT'"
+    },
+    {
+      "id": "REQ-PPTX-005",
+      "description": "Shape discovery MUST handle grouped shapes by recursing into groups",
+      "enforcement": "Recursive traversal of group.shapes collection",
+      "warning": "Log warning if group recursion depth exceeds 10 levels"
+    },
+    {
+      "id": "REQ-PPTX-006",
+      "description": "Template file size MUST NOT exceed 100MB",
+      "enforcement": "File size check before processing",
+      "error_response": "HTTP 413 with error code 'FILE_TOO_LARGE'"
+    },
+    {
+      "id": "REQ-PPTX-007",
+      "description": "All file paths in template configuration MUST be relative",
+      "enforcement": "Path safety validation per ADR-0018",
+      "error_response": "HTTP 400 with error code 'ABSOLUTE_PATH_NOT_ALLOWED'"
+    }
+  ],
+  "shape_naming_convention": {
+    "format": "{category}_{identifier}[_{variant}]",
+    "regex": "^(text|chart|table|image|metric|dimension)_([a-zA-Z0-9]+)(?:_([a-zA-Z0-9]+))?$",
+    "categories": {
+      "text": {
+        "description": "Text boxes, labels, titles",
+        "examples": [
+          "text_title",
+          "text_subtitle_date",
+          "text_footer"
+        ],
+        "data_types": [
+          "string",
+          "formatted_text"
+        ]
+      },
+      "chart": {
+        "description": "Charts and visualizations",
+        "examples": [
+          "chart_revenue",
+          "chart_revenue_ytd",
+          "chart_trend"
+        ],
+        "data_types": [
+          "series_data",
+          "category_labels"
+        ]
+      },
+      "table": {
+        "description": "Data tables",
+        "examples": [
+          "table_summary",
+          "table_summary_q1",
+          "table_details"
+        ],
+        "data_types": [
+          "dataframe",
+          "row_data"
+        ]
+      },
+      "image": {
+        "description": "Images, logos, icons",
+        "examples": [
+          "image_logo",
+          "image_chart_export",
+          "image_signature"
+        ],
+        "data_types": [
+          "file_path",
+          "base64",
+          "url"
+        ]
+      },
+      "metric": {
+        "description": "Single numeric metric displays (KPIs)",
+        "examples": [
+          "metric_total_sales",
+          "metric_yield_pct",
+          "metric_defect_rate"
+        ],
+        "data_types": [
+          "number",
+          "formatted_number"
+        ]
+      },
+      "dimension": {
+        "description": "Categorical dimension labels",
+        "examples": [
+          "dimension_region",
+          "dimension_product",
+          "dimension_period"
+        ],
+        "data_types": [
+          "string",
+          "enum"
+        ]
+      }
+    },
+    "validation_rules": [
+      {
+        "id": "VAL-SHAPE-001",
+        "rule": "Category component MUST be lowercase",
+        "invalid_example": "Chart_Revenue",
+        "error_message": "Category must be lowercase, got 'Chart'"
+      },
+      {
+        "id": "VAL-SHAPE-002",
+        "rule": "Components MUST be separated by underscore only",
+        "invalid_example": "text-title",
+        "error_message": "Use underscore separator, not hyphen"
+      },
+      {
+        "id": "VAL-SHAPE-003",
+        "rule": "No spaces allowed in shape names",
+        "invalid_example": "text title",
+        "error_message": "No spaces allowed in shape names"
+      },
+      {
+        "id": "VAL-SHAPE-004",
+        "rule": "Identifier component MUST be alphanumeric",
+        "invalid_example": "text_title!",
+        "error_message": "Invalid characters in identifier, must be alphanumeric"
+      },
+      {
+        "id": "VAL-SHAPE-005",
+        "rule": "Category MUST be from allowed list",
+        "invalid_example": "unknown_revenue",
+        "error_message": "Invalid category 'unknown', must be one of: text, chart, table, image, metric, dimension"
+      }
+    ]
+  },
+  "template_schema": {
+    "description": "Complete schema for PPTXTemplate Pydantic model",
+    "sections": [
+      {
+        "section": "identity",
+        "fields": {
+          "template_id": {
+            "type": "string",
+            "required": true,
+            "description": "Deterministic SHA-256 hash of template content",
+            "example": "a1b2c3d4e5f6..."
+          },
+          "name": {
+            "type": "string",
+            "required": true,
+            "min_length": 1,
+            "max_length": 100,
+            "description": "Human-readable template name"
+          },
+          "description": {
+            "type": "string",
+            "required": false,
+            "description": "Optional template description"
+          },
+          "version": {
+            "type": "string",
+            "required": true,
+            "pattern": "^\\d+\\.\\d+\\.\\d+$",
+            "default": "1.0.0",
+            "description": "Template version (semver)"
+          }
+        }
+      },
+      {
+        "section": "status",
+        "fields": {
+          "status": {
+            "type": "enum",
+            "values": [
+              "draft",
+              "validating",
+              "valid",
+              "invalid",
+              "deprecated",
+              "archived"
+            ],
+            "required": true,
+            "default": "draft",
+            "description": "Current template status"
+          }
+        }
+      },
+      {
+        "section": "timestamps",
+        "description": "Per ADR-0009: ISO-8601 UTC, no microseconds",
+        "fields": {
+          "created_at": {
+            "type": "datetime",
+            "required": true,
+            "description": "When template was uploaded"
+          },
+          "updated_at": {
+            "type": "datetime",
+            "required": false,
+            "description": "When template was last modified"
+          },
+          "validated_at": {
+            "type": "datetime",
+            "required": false,
+            "description": "When template was last validated"
+          }
+        }
+      },
+      {
+        "section": "source",
+        "fields": {
+          "source_path": {
+            "type": "string",
+            "required": true,
+            "description": "Relative path to .pptx template file",
+            "validation": "Must be relative path, must end with .pptx"
+          },
+          "source_hash": {
+            "type": "string",
+            "required": false,
+            "description": "SHA-256 hash of source file for drift detection"
+          }
+        }
+      },
+      {
+        "section": "layouts",
+        "description": "Discovered slide layouts from template",
+        "fields": {
+          "layouts": {
+            "type": "array[SlideLayout]",
+            "required": true,
+            "description": "All layouts discovered from source template"
+          }
+        },
+        "slide_layout_schema": {
+          "layout_name": {
+            "type": "string",
+            "required": true
+          },
+          "layout_type": {
+            "type": "enum",
+            "values": [
+              "title",
+              "title_and_content",
+              "section_header",
+              "two_content",
+              "comparison",
+              "content_with_caption",
+              "picture_with_caption",
+              "blank",
+              "custom"
+            ]
+          },
+          "layout_index": {
+            "type": "integer",
+            "required": true,
+            "min": 0
+          },
+          "placeholder_count": {
+            "type": "integer",
+            "default": 0
+          },
+          "placeholder_names": {
+            "type": "array[string]",
+            "default": []
+          },
+          "width_emu": {
+            "type": "integer",
+            "description": "Width in English Metric Units"
+          },
+          "height_emu": {
+            "type": "integer",
+            "description": "Height in EMUs"
+          }
+        }
+      },
+      {
+        "section": "slides",
+        "description": "Configured slides for output deck",
+        "fields": {
+          "slides": {
+            "type": "array[SlideTemplate]",
+            "required": true,
+            "description": "Slide configuration for report generation"
+          }
+        },
+        "slide_template_schema": {
+          "slide_index": {
+            "type": "integer",
+            "required": true,
+            "min": 0,
+            "description": "Position in output deck"
+          },
+          "layout_name": {
+            "type": "string",
+            "required": true,
+            "description": "Layout to use from template"
+          },
+          "slide_title": {
+            "type": "string",
+            "required": false,
+            "description": "Override title text"
+          },
+          "condition": {
+            "type": "string",
+            "required": false,
+            "description": "Expression to evaluate for inclusion"
+          },
+          "repeat_for": {
+            "type": "string",
+            "required": false,
+            "description": "Column to iterate (creates multiple slides)"
+          },
+          "bindings": {
+            "type": "array[ShapeBindingRef]",
+            "default": [],
+            "description": "Shape binding references"
+          }
+        }
+      },
+      {
+        "section": "output",
+        "fields": {
+          "output_filename_pattern": {
+            "type": "string",
+            "default": "{name}_{date}.pptx",
+            "description": "Pattern for output filename with variables"
+          },
+          "include_notes": {
+            "type": "boolean",
+            "default": true,
+            "description": "Include speaker notes in output"
+          },
+          "include_hidden_slides": {
+            "type": "boolean",
+            "default": false,
+            "description": "Include hidden slides in output"
+          }
+        }
+      },
+      {
+        "section": "data_requirements",
+        "fields": {
+          "required_datasets": {
+            "type": "array[string]",
+            "default": [],
+            "description": "Dataset IDs required as input"
+          },
+          "optional_datasets": {
+            "type": "array[string]",
+            "default": [],
+            "description": "Optional dataset IDs"
+          }
+        }
+      },
+      {
+        "section": "metadata",
+        "fields": {
+          "domain": {
+            "type": "string",
+            "required": false,
+            "description": "Domain identifier (e.g., 'semiconductor')"
+          },
+          "tags": {
+            "type": "array[string]",
+            "default": []
+          },
+          "owner": {
+            "type": "string",
+            "required": false
+          }
+        }
+      }
+    ]
+  },
+  "discovery_algorithm": {
+    "description": "Algorithm for discovering shapes in a template",
+    "steps": [
+      {
+        "step": 1,
+        "action": "Iterate through presentation.slides (ordered by index)"
+      },
+      {
+        "step": 2,
+        "action": "For each slide, iterate through slide.shapes"
+      },
+      {
+        "step": 3,
+        "action": "For each shape, check shape type (has_text_frame, has_chart, has_table)"
+      },
+      {
+        "step": 4,
+        "action": "Extract shape.name and apply regex validation"
+      },
+      {
+        "step": 5,
+        "action": "Parse name into components (category, identifier, variant)"
+      },
+      {
+        "step": 6,
+        "action": "Check for duplicates within current slide (case-insensitive)"
+      },
+      {
+        "step": 7,
+        "action": "Validate category against allowed list"
+      },
+      {
+        "step": 8,
+        "action": "If shape is group, recurse into group.shapes"
+      },
+      {
+        "step": 9,
+        "action": "Build shape registry: {slide_index: {shape_name: ShapePlaceholder}}"
+      },
+      {
+        "step": 10,
+        "action": "Generate ShapeDiscoveryResult with all discovered shapes"
+      }
+    ],
+    "ignored_shapes": [
+      "Shapes with default PowerPoint names (e.g., 'Rectangle 1', 'TextBox 2')",
+      "Placeholder shapes (is_placeholder=True)",
+      "Shapes with empty names"
+    ]
+  },
+  "validation_result_schema": {
+    "description": "Schema for TemplateValidationResult",
+    "fields": {
+      "template_id": {
+        "type": "string",
+        "required": true
+      },
+      "valid": {
+        "type": "boolean",
+        "required": true
+      },
+      "errors": {
+        "type": "array[TemplateValidationError]",
+        "default": []
+      },
+      "warnings": {
+        "type": "array[TemplateValidationError]",
+        "default": []
+      },
+      "layouts_found": {
+        "type": "integer",
+        "default": 0
+      },
+      "placeholders_found": {
+        "type": "integer",
+        "default": 0
+      },
+      "shapes_found": {
+        "type": "integer",
+        "default": 0
+      },
+      "bindings_valid": {
+        "type": "integer",
+        "default": 0
+      },
+      "bindings_invalid": {
+        "type": "integer",
+        "default": 0
+      },
+      "unbound_placeholders": {
+        "type": "array[string]",
+        "default": []
+      },
+      "validation_duration_ms": {
+        "type": "float",
+        "default": 0.0
+      }
+    },
+    "error_codes": [
+      {
+        "code": "INVALID_FILE_FORMAT",
+        "severity": "error",
+        "description": "File is not a valid .pptx"
+      },
+      {
+        "code": "INVALID_SHAPE_NAME",
+        "severity": "error",
+        "description": "Shape name does not match naming convention"
+      },
+      {
+        "code": "DUPLICATE_SHAPE_NAME",
+        "severity": "error",
+        "description": "Duplicate shape name within slide"
+      },
+      {
+        "code": "INVALID_CATEGORY",
+        "severity": "error",
+        "description": "Shape category not in allowed list"
+      },
+      {
+        "code": "MISSING_IDENTIFIER",
+        "severity": "error",
+        "description": "Shape name missing identifier component"
+      },
+      {
+        "code": "REQUIRED_SHAPE_MISSING",
+        "severity": "error",
+        "description": "Required shape not found in template"
+      },
+      {
+        "code": "UNBOUND_PLACEHOLDER",
+        "severity": "warning",
+        "description": "Placeholder has no data binding"
+      },
+      {
+        "code": "ORPHAN_SHAPE",
+        "severity": "warning",
+        "description": "Valid shape name not mapped in domain config"
+      },
+      {
+        "code": "DEEP_GROUP_NESTING",
+        "severity": "warning",
+        "description": "Group recursion depth exceeded 10 levels"
+      }
+    ]
+  },
+  "api_endpoints": {
+    "description": "REST API endpoints for template management",
+    "base_path": "/api/pptx/templates",
+    "endpoints": [
+      {
+        "method": "POST",
+        "path": "/",
+        "description": "Upload and create new template",
+        "request": "multipart/form-data with .pptx file",
+        "response": "PPTXTemplate",
+        "status_codes": {
+          "201": "Created",
+          "400": "Validation error",
+          "413": "File too large"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/",
+        "description": "List all templates",
+        "response": "array[PPTXTemplateRef]",
+        "query_params": [
+          "status",
+          "domain",
+          "tags"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/{template_id}",
+        "description": "Get template details",
+        "response": "PPTXTemplate",
+        "status_codes": {
+          "200": "OK",
+          "404": "Not found"
+        }
+      },
+      {
+        "method": "PUT",
+        "path": "/{template_id}",
+        "description": "Update template configuration",
+        "request": "UpdateTemplateRequest",
+        "response": "PPTXTemplate"
+      },
+      {
+        "method": "DELETE",
+        "path": "/{template_id}",
+        "description": "Delete template",
+        "status_codes": {
+          "204": "Deleted",
+          "404": "Not found",
+          "409": "In use"
+        }
+      },
+      {
+        "method": "POST",
+        "path": "/{template_id}/validate",
+        "description": "Trigger validation",
+        "response": "TemplateValidationResult"
+      },
+      {
+        "method": "GET",
+        "path": "/{template_id}/shapes",
+        "description": "Get discovered shapes",
+        "response": "ShapeDiscoveryResult"
+      }
+    ]
+  },
+  "example_template_manifest": {
+    "template_id": "abc123def456...",
+    "name": "Quarterly Report Template",
+    "description": "Standard quarterly report with yield and defect metrics",
+    "version": "1.0.0",
+    "status": "valid",
+    "created_at": "2025-12-30T10:00:00Z",
+    "source_path": "templates/quarterly_report_v1.pptx",
+    "layouts": [
+      {
+        "layout_name": "Title Slide",
+        "layout_type": "title",
+        "layout_index": 0,
+        "placeholder_count": 2,
+        "placeholder_names": [
+          "text_title",
+          "text_subtitle_date"
+        ]
+      },
+      {
+        "layout_name": "Content Slide",
+        "layout_type": "title_and_content",
+        "layout_index": 1,
+        "placeholder_count": 4,
+        "placeholder_names": [
+          "text_title",
+          "chart_revenue",
+          "table_summary",
+          "metric_yield_pct"
+        ]
+      }
+    ],
+    "slides": [
+      {
+        "slide_index": 0,
+        "layout_name": "Title Slide",
+        "bindings": [
+          {
+            "placeholder_name": "text_title",
+            "binding_id": "title_binding"
+          },
+          {
+            "placeholder_name": "text_subtitle_date",
+            "binding_id": "date_binding"
+          }
+        ]
+      }
+    ],
+    "required_datasets": [
+      "quarterly_data"
+    ],
+    "domain": "semiconductor",
+    "tags": [
+      "quarterly",
+      "yield",
+      "defect"
+    ]
+  },
+  "implementation_checklist": [
+    "Template upload endpoint with file validation",
+    "Shape discovery using python-pptx library",
+    "Shape name parsing with regex validation",
+    "Duplicate name detection per slide",
+    "Group shape recursion with depth limit",
+    "Validation result generation with error codes",
+    "Template status lifecycle management",
+    "Integration with PPTX workflow Step 1"
+  ],
+  "references": [
+    "ADR-0018_PPTX-Template-Processing-Model: WHY named shapes and convention-based discovery",
+    "ADR-0008_Audit-Trail-Timestamps: ISO-8601 UTC timestamp requirements",
+    "ADR-0017_Cross-Cutting-Guardrails: Path safety requirements",
+    "shared/contracts/pptx/template.py: Tier-0 PPTXTemplate contract",
+    "shared/contracts/pptx/shape.py: Tier-0 shape discovery contracts",
+    "python-pptx documentation: https://python-pptx.readthedocs.io/"
+  ],
+  "tags": [
+    "pptx",
+    "template",
+    "schema",
+    "validation",
+    "discovery",
+    "specification"
+  ]
+}

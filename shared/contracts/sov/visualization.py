@@ -1,7 +1,7 @@
 """SOV Visualization contracts - chart and plot specifications.
 
-Per ADR-0024: Visualization contracts define what, not how.
-Per ADR-0028: Unified Rendering Engine - SOV contracts extend shared RenderSpec hierarchy.
+Per ADR-0025: Visualization contracts define what, not how.
+Per ADR-0029: Unified Rendering Engine - SOV contracts extend shared RenderSpec hierarchy.
 
 This module defines SOV-specific visualization contracts that extend
 the shared rendering primitives from core/rendering.py. This enables:

@@ -1,7 +1,7 @@
 """Visualization service for SOV tool.
 
-Per ADR-0024: Generate visualization-ready Pydantic contracts from ANOVA results.
-Per ADR-0028: Extend ChartSpec from shared rendering primitives.
+Per ADR-0025: Generate visualization-ready Pydantic contracts from ANOVA results.
+Per ADR-0029: Extend ChartSpec from shared rendering primitives.
 
 This module generates typed visualization specifications that can be:
 - Consumed directly by the frontend for rendering
@@ -38,7 +38,7 @@ __version__ = "0.1.0"
 class VisualizationService:
     """Generate visualization contracts from ANOVA results.
     
-    Per ADR-0024: SOV backend produces visualization-ready Pydantic contracts.
+    Per ADR-0025: SOV backend produces visualization-ready Pydantic contracts.
     The frontend renders these directly without recomputing chart data.
     """
 
@@ -265,7 +265,7 @@ class VisualizationService:
     ) -> list[VisualizationSpec]:
         """Generate all standard visualizations for ANOVA results.
         
-        Per ADR-0024: Produces a complete set of visualization contracts
+        Per ADR-0025: Produces a complete set of visualization contracts
         that can be included in the DataSet manifest.
         
         Args:

@@ -6,7 +6,7 @@ Endpoints for TOM v2 requirements management:
 - Four Bars validation
 - Plan building
 
-Per ADR-0031: All errors use ErrorResponse contract via errors.py helper.
+Per ADR-0032: All errors use ErrorResponse contract via errors.py helper.
 """
 
 import logging

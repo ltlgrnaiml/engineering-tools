@@ -45,7 +45,7 @@ app.add_middleware(
 )
 
 # Include API routes
-# Per ADR-0029: Router has / prefix, gateway mounts at /api/sov/
+# Per ADR-0030: Router has / prefix, gateway mounts at /api/sov/
 # Final routes: /api/sov/analyses, etc.
 app.include_router(router, tags=["sov"])
 

@@ -1,6 +1,6 @@
 """Tests for DevTools API contracts.
 
-Per ADR-0027: DevTools Page Architecture.
+Per ADR-0028: DevTools Page Architecture.
 Tests for DevTools state management and API contracts.
 """
 

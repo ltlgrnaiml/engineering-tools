@@ -1,6 +1,6 @@
 """HeadersData extraction strategy.
 
-Per SPEC-DAT-0012: Extract headers + data arrays as DataFrame.
+Per SPEC-0009: Extract headers + data arrays as DataFrame.
 Headers are in one array, data rows are in another.
 """
 
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class HeadersDataStrategy(ExtractionStrategy):
     """Extract headers + data arrays as DataFrame.
     
-    Per SPEC-DAT-0012:
+    Per SPEC-0009:
     - headers_key contains column names array
     - data_key contains data rows array
     - Handles mismatched lengths gracefully

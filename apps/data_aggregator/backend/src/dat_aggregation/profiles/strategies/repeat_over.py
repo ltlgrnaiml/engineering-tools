@@ -1,6 +1,6 @@
 """RepeatOver extraction strategy.
 
-Per SPEC-DAT-0012: Extract with iteration over array elements.
+Per SPEC-0009: Extract with iteration over array elements.
 Wraps a base strategy and applies it at each iteration.
 """
 
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 class RepeatOverStrategy(ExtractionStrategy):
     """Extract with iteration over array elements.
     
-    Per SPEC-DAT-0012:
+    Per SPEC-0009:
     - Iterate over array at repeat_over.path
     - Apply base strategy at each element
     - Inject context fields from parent element

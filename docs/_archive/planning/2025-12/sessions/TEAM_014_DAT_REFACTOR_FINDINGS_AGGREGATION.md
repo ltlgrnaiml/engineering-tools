@@ -24,34 +24,34 @@ This report will:
 
 Below is a consolidated list of refactorable findings from the session files of TEAM_006 to TEAM_010, focusing on misalignments and required changes for the DAT tool:
 
-- **API Routing Misalignment (ADR-0029)**:
+- **API Routing Misalignment (ADR-0030)**:
   - Identified in TEAM_006, TEAM_007, TEAM_009, TEAM_010 as using `/api/dat/v1/...` instead of the unversioned `/api/dat/...` pattern. This requires removing version prefixes from routes in `routes.py` and updating gateway mounts and frontend calls.
 
-- **Duplicate Adapter Implementations (ADR-0011)**:
+- **Duplicate Adapter Implementations (ADR-0012)**:
   - Noted in TEAM_006, TEAM_009, TEAM_010 as having two adapter stacks (`backend/adapters/*` and `backend/src/dat_aggregation/adapters/*`). The goal is to converge on a single contract-based implementation using `BaseFileAdapter`.
 
-- **Stage Graph and Optional Stages Issues (ADR-0001-DAT, ADR-0003)**:
+- **Stage Graph and Optional Stages Issues (ADR-0004, ADR-0004)**:
   - Highlighted in TEAM_006, TEAM_007, TEAM_009, TEAM_010. The current hardcoded `FORWARD_GATES` and `CASCADE_TARGETS` in `state_machine.py` do not reflect optional stages (Context, Preview) correctly, causing progression blocks. A configurable `StageGraphConfig` is needed.
 
-- **Deterministic Stage IDs and Path Safety (ADR-0004-DAT, ADR-0017)**:
+- **Deterministic Stage IDs and Path Safety (ADR-0008, ADR-0018)**:
   - Found in TEAM_006, TEAM_007, TEAM_009, TEAM_010. Current IDs use a different utility (`stage_id.py`) than the contract (`id_generator.py`), and absolute paths in inputs violate determinism. Stage-specific inputs and relative paths are required.
 
-- **Table Availability Probe Performance (ADR-0006, SPEC-DAT-0006)**:
+- **Table Availability Probe Performance (ADR-0008, SPEC-0008)**:
   - Identified in TEAM_006, TEAM_007, TEAM_009, TEAM_010. The current implementation reads full dataframes instead of fast probing, violating performance constraints. A probe-only approach using `probe_schema()` is needed.
 
-- **Large File Streaming (ADR-0040, SPEC-DAT-0004)**:
+- **Large File Streaming (ADR-0041, SPEC-0027)**:
   - Mentioned in TEAM_007, TEAM_009, TEAM_010. Files over 10MB should use streaming with Polars LazyFrame, but current implementations may not adhere to this, requiring adapter updates for `stream_dataframe()`.
 
-- **Parse and Export Artifact Formats (ADR-0014)**:
+- **Parse and Export Artifact Formats (ADR-0015)**:
   - Covered in TEAM_007, TEAM_009, TEAM_010. Parse stage must output Parquet with metadata in JSON/YAML, while Export should support multiple formats. Current implementation may not enforce this consistently.
 
-- **Cancellation Semantics (ADR-0013, SPEC-DAT-0015)**:
+- **Cancellation Semantics (ADR-0014, SPEC-0010)**:
   - Noted in TEAM_007, TEAM_009, TEAM_010. Cancellation must preserve completed artifacts and avoid partial data persistence, requiring checkpointing and soft cancellation logic.
 
-- **UI Horizontal Wizard Pattern (ADR-0041)**:
+- **UI Horizontal Wizard Pattern (ADR-0043)**:
   - Identified in TEAM_007, TEAM_009, TEAM_010. The frontend lacks a horizontal wizard UI with collapsible panels and state indicators for the 8-stage pipeline, needing implementation to reflect FSM gating rules.
 
-- **Profile Management (ADR-0011, SPEC-DAT-0005)**:
+- **Profile Management (ADR-0012, SPEC-0007)**:
   - Highlighted in TEAM_008. Profile CRUD and validation are missing or incomplete in the current API, requiring implementation for user and system profile handling.
 
 ## Gaps and Validity Scoring per Team

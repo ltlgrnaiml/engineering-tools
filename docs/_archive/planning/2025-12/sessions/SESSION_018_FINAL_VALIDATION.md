@@ -165,7 +165,7 @@ All three are distinct steps that must be verified separately.
 | Standard | Status |
 |----------|--------|
 | DESIGN_Profile-Driven-ETL-Architecture.md | **92%** |
-| ADR-0011 (Profile-Driven Extraction) | ✅ Compliant |
+| ADR-0012 (Profile-Driven Extraction) | ✅ Compliant |
 | SOLO-DEV ETHOS Rule 0 (Quality > Speed) | ✅ Applied |
 | SOLO-DEV ETHOS Rule 14 (Session Handoff) | ✅ Documented |
 

@@ -1,0 +1,249 @@
+{
+  "schema_type": "spec",
+  "id": "SPEC-0020_ci-cd-pipeline-implementation",
+  "title": "CI/CD Pipeline Implementation Specification",
+  "version": "2025.12.001",
+  "status": "active",
+  "implements": "ADR-0039",
+  "date": "2025-12-28",
+  "scope": "core",
+  "summary": "Technical specification for three-tier CI/CD pipeline: pre-commit hooks, PR checks, and main branch deployment using GitHub Actions.",
+  "pipeline_tiers": {
+    "tier_1_precommit": {
+      "trigger": "git commit (local)",
+      "tool": "pre-commit",
+      "config_file": ".pre-commit-config.yaml",
+      "target_duration": "< 30 seconds",
+      "hooks": [
+        {
+          "id": "ruff-format",
+          "repo": "https://github.com/astral-sh/ruff-pre-commit",
+          "hook": "ruff-format",
+          "args": [
+            "--check"
+          ]
+        },
+        {
+          "id": "ruff-lint",
+          "repo": "https://github.com/astral-sh/ruff-pre-commit",
+          "hook": "ruff",
+          "args": [
+            "--fix"
+          ]
+        },
+        {
+          "id": "trailing-whitespace",
+          "repo": "https://github.com/pre-commit/pre-commit-hooks",
+          "hook": "trailing-whitespace"
+        },
+        {
+          "id": "check-yaml",
+          "repo": "https://github.com/pre-commit/pre-commit-hooks",
+          "hook": "check-yaml"
+        },
+        {
+          "id": "check-json",
+          "repo": "https://github.com/pre-commit/pre-commit-hooks",
+          "hook": "check-json"
+        }
+      ],
+      "setup_command": "pre-commit install"
+    },
+    "tier_2_pr_checks": {
+      "trigger": "Pull request opened/updated",
+      "tool": "GitHub Actions",
+      "config_file": ".github/workflows/pr-checks.yml",
+      "target_duration": "< 10 minutes",
+      "jobs": {
+        "lint": {
+          "runs_on": "ubuntu-latest",
+          "steps": [
+            "Checkout code",
+            "Setup Python 3.11",
+            "Install uv",
+            "uv sync",
+            "ruff format --check .",
+            "ruff check ."
+          ]
+        },
+        "typecheck": {
+          "runs_on": "ubuntu-latest",
+          "steps": [
+            "Checkout code",
+            "Setup Python 3.11",
+            "Install uv",
+            "uv sync",
+            "mypy --strict shared/ gateway/"
+          ]
+        },
+        "test": {
+          "runs_on": "ubuntu-latest",
+          "steps": [
+            "Checkout code",
+            "Setup Python 3.11",
+            "Install uv",
+            "uv sync",
+            "pytest tests/ -v --hypothesis-profile=ci"
+          ]
+        },
+        "docs": {
+          "runs_on": "ubuntu-latest",
+          "steps": [
+            "Checkout code",
+            "Setup Python 3.11",
+            "Install uv",
+            "uv sync --group docs",
+            "mkdocs build --strict"
+          ]
+        },
+        "drift_detection": {
+          "runs_on": "ubuntu-latest",
+          "steps": [
+            "Checkout code",
+            "Setup Python 3.11",
+            "Install uv",
+            "uv sync",
+            "python tools/gen_json_schema.py --check",
+            "python tools/gen_adr_index.py --check"
+          ]
+        }
+      }
+    },
+    "tier_3_main_deploy": {
+      "trigger": "Push to main branch",
+      "tool": "GitHub Actions",
+      "config_file": ".github/workflows/main-deploy.yml",
+      "jobs": {
+        "verify": {
+          "note": "Re-run all tier 2 checks",
+          "steps": [
+            "Same as PR checks"
+          ]
+        },
+        "deploy_docs": {
+          "runs_on": "ubuntu-latest",
+          "needs": [
+            "verify"
+          ],
+          "steps": [
+            "Checkout code",
+            "Setup Python 3.11",
+            "Install uv",
+            "uv sync --group docs",
+            "mkdocs build",
+            "Deploy to GitHub Pages"
+          ]
+        },
+        "tag_release": {
+          "runs_on": "ubuntu-latest",
+          "needs": [
+            "verify"
+          ],
+          "condition": "if version changed in pyproject.toml",
+          "steps": [
+            "Extract version from pyproject.toml",
+            "Create git tag",
+            "Generate CHANGELOG via git-cliff",
+            "Create GitHub Release"
+          ]
+        }
+      }
+    }
+  },
+  "precommit_config": {
+    "file": ".pre-commit-config.yaml",
+    "content": "repos:\n  - repo: https://github.com/astral-sh/ruff-pre-commit\n    rev: v0.8.0\n    hooks:\n      - id: ruff-format\n        args: [--check]\n      - id: ruff\n        args: [--fix]\n  - repo: https://github.com/pre-commit/pre-commit-hooks\n    rev: v4.5.0\n    hooks:\n      - id: trailing-whitespace\n      - id: end-of-file-fixer\n      - id: check-yaml\n      - id: check-json"
+  },
+  "github_actions_config": {
+    "pr_checks_yml": ".github/workflows/pr-checks.yml",
+    "main_deploy_yml": ".github/workflows/main-deploy.yml",
+    "required_secrets": [],
+    "branch_protection": {
+      "require_status_checks": true,
+      "required_checks": [
+        "lint",
+        "typecheck",
+        "test",
+        "docs",
+        "drift_detection"
+      ]
+    }
+  },
+  "drift_detection": {
+    "json_schema": {
+      "script": "tools/gen_json_schema.py",
+      "command": "python tools/gen_json_schema.py --check",
+      "behavior": "Regenerate and compare to committed; exit 1 on diff"
+    },
+    "contract_drift": {
+      "script": "tools/check_contract_drift.py",
+      "command": "python tools/check_contract_drift.py --schemas-dir schemas",
+      "behavior": "Compare Pydantic models to committed schemas; exit 2 on breaking changes"
+    },
+    "reference_drift": {
+      "script": "tools/check_reference_drift.py",
+      "command": "python tools/check_reference_drift.py --json-output reference-drift-report.json",
+      "behavior": "Validate cross-references between ADRs, SPECs, and Contracts; exit 0 (clean), 1 (warnings), 2 (errors)",
+      "checks": [
+        "ADR → SPEC references (implementation_specs field)",
+        "ADR → ADR cross-references",
+        "SPEC → ADR references (implements_adr field)",
+        "SPEC → Contract references (tier_0_contracts field)",
+        "INDEX → ADR/SPEC file existence"
+      ]
+    },
+    "adr_index": {
+      "script": "tools/gen_adr_index.py",
+      "command": "python tools/gen_adr_index.py --check",
+      "behavior": "Regenerate and compare to committed; exit 1 on diff"
+    },
+    "openapi": {
+      "script": "ci/steps/openapi-drift.ps1",
+      "behavior": "Start server, fetch /openapi.json, compare to committed"
+    }
+  },
+  "requirements": [
+    {
+      "id": "REQ-CI-001",
+      "description": "Pre-commit hooks MUST be configured"
+    },
+    {
+      "id": "REQ-CI-002",
+      "description": "All PR checks MUST pass before merge"
+    },
+    {
+      "id": "REQ-CI-003",
+      "description": "Main branch MUST always be deployable"
+    },
+    {
+      "id": "REQ-CI-004",
+      "description": "Contract and doc drift MUST be detected"
+    },
+    {
+      "id": "REQ-CI-005",
+      "description": "Docs MUST auto-deploy on main merge"
+    }
+  ],
+  "validation_commands": {
+    "run_precommit": "pre-commit run --all-files",
+    "install_precommit": "pre-commit install",
+    "run_lint": "ruff check . && ruff format --check .",
+    "run_typecheck": "mypy --strict shared/ gateway/",
+    "run_tests": "pytest tests/ -v"
+  },
+  "references": [
+    "ADR-0038_CI-CD-Pipeline-for-Data-and-Code",
+    "GitHub Actions: https://docs.github.com/en/actions",
+    "pre-commit: https://pre-commit.com/",
+    "ruff: https://docs.astral.sh/ruff/",
+    ".pre-commit-config.yaml",
+    ".github/workflows/"
+  ],
+  "tags": [
+    "ci-cd",
+    "github-actions",
+    "pre-commit",
+    "automation",
+    "specification"
+  ]
+}

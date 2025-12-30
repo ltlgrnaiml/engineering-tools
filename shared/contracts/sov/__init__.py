@@ -4,8 +4,8 @@ This package contains Pydantic models for SOV-specific data structures:
 - ANOVA contracts for analysis of variance results
 - Variance components contracts for hierarchical variance decomposition
 - Visualization contracts for chart/plot specifications
-- Pipeline contracts for analysis pipeline stages (ADR-0022)
-- DataSet I/O contracts for data loading and output (ADR-0023)
+- Pipeline contracts for analysis pipeline stages (ADR-0023)
+- DataSet I/O contracts for data loading and output (ADR-0024)
 
 All contracts are domain-agnostic; user-specific knowledge (factor names,
 response columns, grouping levels) is injected via analysis configs.
@@ -109,7 +109,7 @@ __all__ = [
     "NormalProbabilityPlotConfig",
     "PlotStyle",
     "ColorPalette",
-    # Pipeline contracts (ADR-0022)
+    # Pipeline contracts (ADR-0023)
     "SOVStageId",
     "SOVStageState",
     "SOVPipelineState",
@@ -131,7 +131,7 @@ __all__ = [
     "StartPipelineRequest",
     "CancelPipelineRequest",
     "PipelineProgressUpdate",
-    # DataSet I/O contracts (ADR-0023)
+    # DataSet I/O contracts (ADR-0024)
     "SOVColumnRole",
     "SOVFactorType",
     "SignificanceLevel",

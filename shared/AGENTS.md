@@ -19,7 +19,7 @@ Everything in `shared/contracts/` is the **single source of truth** for data str
 | **No duplication** | NEVER create Pydantic models outside this directory for shared data |
 | **Version required** | ALL contracts MUST have `__version__` attribute (YYYY.MM.PATCH) |
 | **Exports required** | Add new contracts to `__init__.py` for public API |
-| **Breaking changes** | Require version bump per ADR-0016 |
+| **Breaking changes** | Require version bump per ADR-0017 |
 
 ---
 
@@ -35,7 +35,7 @@ shared/
 │   ├── messages/        # User-facing message catalogs
 │   └── devtools/        # DevTools contracts
 ├── middleware/          # Shared FastAPI middleware
-├── rendering/           # Unified rendering engine (ADR-0028)
+├── rendering/           # Unified rendering engine (ADR-0029)
 ├── storage/             # Artifact storage utilities
 └── utils/               # Shared utilities (stage_id, path_safety, etc.)
 ```
@@ -81,9 +81,9 @@ class MyContract(BaseModel):
 
 | Utility | Purpose | ADR |
 |---------|---------|-----|
-| `stage_id.py` | Deterministic SHA-256 stage IDs | ADR-0004 |
-| `path_safety.py` | Relative path validation | ADR-0017 |
-| `concurrency.py` | Spawn-safe parallel execution | ADR-0012 |
+| `stage_id.py` | Deterministic SHA-256 stage IDs | ADR-0005 |
+| `path_safety.py` | Relative path validation | ADR-0018 |
+| `concurrency.py` | Spawn-safe parallel execution | ADR-0013 |
 
 ---
 

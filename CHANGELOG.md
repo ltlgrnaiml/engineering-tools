@@ -6,18 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 > **Note**: During development (pre-1.0.0), minor version bumps may include breaking changes.
-> See ADR-0016 for versioning policy details.
+> See ADR-0017 for versioning policy details.
 
 ## [Unreleased]
 
 ### Added
 
-- ADR-0030: Documentation Lifecycle Management for multi-project monorepo
+- ADR-0031: Documentation Lifecycle Management for multi-project monorepo
 - CHANGELOG.md for release-level change tracking
 
 ### Changed
 
-- Documentation structure reorganization per ADR-0030
+- Documentation structure reorganization per ADR-0031
 
 ## [0.1.0] - 2025-12-28
 
@@ -38,7 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **PowerPoint Generator (PPTX)**
   - 7-step guided workflow
-  - Template shape discovery (ADR-0018 compliant)
+  - Template shape discovery (ADR-0019 compliant)
   - DataSet input integration
   - Chart, table, and text renderers
 
@@ -55,28 +55,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - DevTools page for ADR management
 
 - **Shared Infrastructure**
-  - Unified rendering engine (ADR-0028)
-  - Deterministic ID generation (ADR-0004)
-  - Cross-platform concurrency (ADR-0012)
-  - Message catalog system (ADR-0017)
+  - Unified rendering engine (ADR-0029)
+  - Deterministic ID generation (ADR-0005)
+  - Cross-platform concurrency (ADR-0013)
+  - Message catalog system (ADR-0018)
 
 ### Core ADRs Accepted
 
 - ADR-0001: Hybrid FSM Architecture
 - ADR-0002: Artifact Preservation on Unlock
-- ADR-0004: Deterministic Content-Addressed IDs
-- ADR-0005: Swagger/OpenAPI as Executable Contract
-- ADR-0008: Audit Trail Timestamps
-- ADR-0009: Type Safety & Contract Discipline
-- ADR-0010: Docs-as-Code Engineering Tenets
-- ADR-0012: Cross-Platform Concurrency
-- ADR-0015: 3-Tier Document Model
-- ADR-0016: Hybrid Semver Contract Versioning
-- ADR-0017: Cross-Cutting Guardrails
-- ADR-0025: DataSet Lineage Tracking
-- ADR-0026: Pipeline Error Handling
-- ADR-0028: Unified Rendering Engine
-- ADR-0029: API Versioning and Endpoint Naming
+- ADR-0005: Deterministic Content-Addressed IDs
+- ADR-0007: Swagger/OpenAPI as Executable Contract
+- ADR-0009: Audit Trail Timestamps
+- ADR-0010: Type Safety & Contract Discipline
+- ADR-0011: Docs-as-Code Engineering Tenets
+- ADR-0013: Cross-Platform Concurrency
+- ADR-0016: 3-Tier Document Model
+- ADR-0017: Hybrid Semver Contract Versioning
+- ADR-0018: Cross-Cutting Guardrails
+- ADR-0026: DataSet Lineage Tracking
+- ADR-0027: Pipeline Error Handling
+- ADR-0029: Unified Rendering Engine
+- ADR-0030: API Versioning and Endpoint Naming
 
 ---
 

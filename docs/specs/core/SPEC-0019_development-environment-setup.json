@@ -1,0 +1,281 @@
+{
+  "schema_type": "spec",
+  "id": "SPEC-0019_development-environment-setup",
+  "title": "Development Environment Setup Specification",
+  "version": "2025.12.001",
+  "status": "active",
+  "implements": "ADR-0038",
+  "date": "2025-12-28",
+  "scope": "core",
+  "summary": "Technical specification for single-command development environment setup: start scripts, uv dependency management, Docker Compose, and health checks.",
+  "start_scripts": {
+    "windows": {
+      "file": "start.ps1",
+      "location": "Repository root",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Check prerequisites",
+          "details": "Python 3.11+, uv, Node.js 18+"
+        },
+        {
+          "step": 2,
+          "action": "Create/activate venv",
+          "command": "uv venv .venv; .venv\\Scripts\\activate"
+        },
+        {
+          "step": 3,
+          "action": "Install Python deps",
+          "command": "uv sync"
+        },
+        {
+          "step": 4,
+          "action": "Install frontend deps",
+          "command": "foreach frontend: npm install"
+        },
+        {
+          "step": 5,
+          "action": "Start gateway",
+          "command": "Start-Process -NoNewWindow uvicorn gateway.main:app"
+        },
+        {
+          "step": 6,
+          "action": "Start frontends",
+          "command": "Start-Process -NoNewWindow npm run dev (each)"
+        },
+        {
+          "step": 7,
+          "action": "Start docs",
+          "command": "Start-Process -NoNewWindow mkdocs serve"
+        },
+        {
+          "step": 8,
+          "action": "Health checks",
+          "command": "Wait for /health endpoints"
+        },
+        {
+          "step": 9,
+          "action": "Print URLs",
+          "output": "Service URLs and status"
+        }
+      ]
+    },
+    "unix": {
+      "file": "start.sh",
+      "location": "Repository root",
+      "steps": "Same as Windows using bash equivalents",
+      "shebang": "#!/usr/bin/env bash"
+    }
+  },
+  "dependency_management": {
+    "python": {
+      "tool": "uv",
+      "url": "https://github.com/astral-sh/uv",
+      "files": {
+        "pyproject.toml": "Dependency definitions with version constraints",
+        "uv.lock": "Lockfile for deterministic installs"
+      },
+      "commands": {
+        "install": "uv sync",
+        "add_dependency": "uv add {package}",
+        "update_lock": "uv lock",
+        "create_venv": "uv venv .venv"
+      },
+      "rationale": "10-100x faster than pip; deterministic lockfile"
+    },
+    "javascript": {
+      "tool": "npm",
+      "files": {
+        "package.json": "Dependency definitions",
+        "package-lock.json": "Lockfile"
+      },
+      "locations": [
+        "apps/data_aggregator/frontend/",
+        "apps/sov_analyzer/frontend/",
+        "apps/pptx_generator/frontend/",
+        "apps/homepage/frontend/"
+      ]
+    }
+  },
+  "docker_compose": {
+    "file": "docker-compose.yml",
+    "location": "Repository root",
+    "services": {
+      "gateway": {
+        "build": "./gateway",
+        "ports": [
+          "8000:8000"
+        ],
+        "healthcheck": "curl -f http://localhost:8000/health"
+      },
+      "dat_frontend": {
+        "build": "./apps/data_aggregator/frontend",
+        "ports": [
+          "3001:3001"
+        ],
+        "depends_on": [
+          "gateway"
+        ]
+      },
+      "sov_frontend": {
+        "build": "./apps/sov_analyzer/frontend",
+        "ports": [
+          "3002:3002"
+        ],
+        "depends_on": [
+          "gateway"
+        ]
+      },
+      "pptx_frontend": {
+        "build": "./apps/pptx_generator/frontend",
+        "ports": [
+          "3003:3003"
+        ],
+        "depends_on": [
+          "gateway"
+        ]
+      },
+      "homepage": {
+        "build": "./apps/homepage/frontend",
+        "ports": [
+          "3000:3000"
+        ],
+        "depends_on": [
+          "gateway"
+        ]
+      },
+      "docs": {
+        "build": ".",
+        "command": "mkdocs serve -a 0.0.0.0:8080",
+        "ports": [
+          "8080:8080"
+        ]
+      }
+    },
+    "commands": {
+      "start_all": "docker compose up --build",
+      "start_detached": "docker compose up -d --build",
+      "stop_all": "docker compose down",
+      "logs": "docker compose logs -f"
+    }
+  },
+  "health_checks": {
+    "implementation": {
+      "location": "start.ps1, start.sh",
+      "pattern": "Poll endpoint until 200 or timeout"
+    },
+    "endpoints": {
+      "gateway": {
+        "url": "http://localhost:8000/health",
+        "timeout": "30s"
+      },
+      "dat_frontend": {
+        "url": "http://localhost:3001/",
+        "timeout": "60s"
+      },
+      "sov_frontend": {
+        "url": "http://localhost:3002/",
+        "timeout": "60s"
+      },
+      "pptx_frontend": {
+        "url": "http://localhost:3003/",
+        "timeout": "60s"
+      },
+      "homepage": {
+        "url": "http://localhost:3000/",
+        "timeout": "60s"
+      },
+      "docs": {
+        "url": "http://localhost:8080/",
+        "timeout": "30s"
+      }
+    },
+    "retry": {
+      "attempts": 5,
+      "backoff": "2 seconds between attempts"
+    }
+  },
+  "prerequisites": {
+    "required": [
+      {
+        "tool": "Python",
+        "version": "3.11+",
+        "check": "python --version"
+      },
+      {
+        "tool": "uv",
+        "version": "latest",
+        "check": "uv --version",
+        "install": "pip install uv"
+      },
+      {
+        "tool": "Node.js",
+        "version": "18+",
+        "check": "node --version"
+      }
+    ],
+    "optional": [
+      {
+        "tool": "Docker",
+        "version": "24+",
+        "check": "docker --version"
+      },
+      {
+        "tool": "Docker Compose",
+        "version": "2.0+",
+        "check": "docker compose version"
+      }
+    ]
+  },
+  "idempotency": {
+    "requirement": "Script MUST be safe to run multiple times",
+    "implementation": [
+      "Check if venv exists before creating",
+      "Check if services already running before starting",
+      "Gracefully handle partial state"
+    ]
+  },
+  "requirements": [
+    {
+      "id": "REQ-ENV-001",
+      "description": "./start.ps1 or ./start.sh MUST start entire stack"
+    },
+    {
+      "id": "REQ-ENV-002",
+      "description": "Script MUST be idempotent"
+    },
+    {
+      "id": "REQ-ENV-003",
+      "description": "Script MUST run health checks before returning"
+    },
+    {
+      "id": "REQ-ENV-004",
+      "description": "Python deps MUST be managed via uv with lockfile"
+    },
+    {
+      "id": "REQ-ENV-005",
+      "description": "Docker Compose MUST be available as alternative"
+    }
+  ],
+  "validation_commands": {
+    "start_local": "./start.ps1  # Windows\n./start.sh   # Unix",
+    "start_docker": "docker compose up --build",
+    "check_uv": "uv --version",
+    "verify_venv": "uv sync --dry-run"
+  },
+  "references": [
+    "ADR-0037_Single-Command-Development-Environment",
+    "uv: https://github.com/astral-sh/uv",
+    "Docker Compose: https://docs.docker.com/compose/",
+    "start.ps1",
+    "start.sh",
+    "docker-compose.yml"
+  ],
+  "tags": [
+    "devenv",
+    "docker",
+    "uv",
+    "automation",
+    "specification"
+  ]
+}

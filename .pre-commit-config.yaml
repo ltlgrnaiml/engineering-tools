@@ -1,6 +1,6 @@
 # Pre-commit hooks for Engineering Tools Platform
-# Per ADR-0009: Type Safety & Contract Discipline
-# Per ADR-0010: Docs-as-Code Engineering Tenets
+# Per ADR-0010: Type Safety & Contract Discipline
+# Per ADR-0011: Docs-as-Code Engineering Tenets
 #
 # Install: pip install pre-commit && pre-commit install
 # Run all: pre-commit run --all-files

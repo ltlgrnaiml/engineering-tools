@@ -3,7 +3,7 @@
 **Date**: 2025-12-29  
 **Status**: DRAFT - For Review  
 **Scope**: DAT Profile Extraction Implementation  
-**Related ADRs**: ADR-0011 (Profile-Driven Extraction), ADR-0001-DAT (8-Stage Pipeline)
+**Related ADRs**: ADR-0012 (Profile-Driven Extraction), ADR-0004 (8-Stage Pipeline)
 
 ---
 
@@ -804,13 +804,13 @@ EXPORT                   →   outputs, governance.limits
 
 | ADR | How This Design Aligns |
 |-----|------------------------|
-| ADR-0001-DAT | Profile execution slots into 8-stage pipeline |
-| ADR-0011 | This IS the implementation of profile-driven extraction |
-| ADR-0004 | Content-addressed IDs from profile + inputs |
-| ADR-0008 | ISO-8601 timestamps, provenance in manifest |
-| ADR-0014 | Output always Parquet, optional CSV/Excel |
-| ADR-0017 | Path safety enforced, deterministic execution |
-| ADR-0035 | Validation rules generate test cases |
+| ADR-0004 | Profile execution slots into 8-stage pipeline |
+| ADR-0012 | This IS the implementation of profile-driven extraction |
+| ADR-0005 | Content-addressed IDs from profile + inputs |
+| ADR-0009 | ISO-8601 timestamps, provenance in manifest |
+| ADR-0015 | Output always Parquet, optional CSV/Excel |
+| ADR-0018 | Path safety enforced, deterministic execution |
+| ADR-0036 | Validation rules generate test cases |
 
 ---
 
@@ -819,7 +819,7 @@ EXPORT                   →   outputs, governance.limits
 1. **Review this design** - Identify gaps or changes
 2. **Prioritize features** - Which capabilities are MVP?
 3. **Create implementation plan** - Milestone breakdown
-4. **Update ADR-0011** - Add concrete implementation details
+4. **Update ADR-0012** - Add concrete implementation details
 5. **Create SPEC-DAT-PROFILE** - Formal profile schema spec
 
 ---

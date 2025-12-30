@@ -1,7 +1,7 @@
 """DAT Table Availability Status contracts.
 
-Per ADR-0006: Track table availability status for each DAT job.
-Per ADR-0008: All timestamps are ISO-8601 UTC (no microseconds).
+Per ADR-0008: Track table availability status for each DAT job.
+Per ADR-0009: All timestamps are ISO-8601 UTC (no microseconds).
 
 Table availability tracking provides:
 - Real-time status of which tables are available
@@ -136,7 +136,7 @@ class TableAvailability(BaseModel):
     progress_pct: float = Field(0.0, ge=0.0, le=100.0)
     progress_message: str | None = None
 
-    # Timestamps (per ADR-0008)
+    # Timestamps (per ADR-0009)
     created_at: datetime
     started_at: datetime | None = None
     completed_at: datetime | None = None

@@ -1,6 +1,6 @@
 {
   "schema_type": "adr",
-  "id": "ADR-0002_Artifact-Preservation-on-Unlock",
+  "id": "ADR-0002_artifact-preservation-on-unlock",
   "title": "Artifact Preservation on State Changes for All Guided Workflows",
   "status": "accepted",
   "date": "2025-01-15",
@@ -99,7 +99,7 @@
     }
   ],
   "cross_cutting_guardrails": [
-    "Path Safety: All public paths must be relative (see ADR-0017#path-safety)",
+    "Path Safety: All public paths must be relative (see ADR-0045#path-safety)",
     "Idempotency: All mutating requests must be idempotent or safely retryable (see ADR-0017_Cross-Cutting-Guardrails#idempotency)"
   ],
   "references": [

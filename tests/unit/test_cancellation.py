@@ -1,6 +1,6 @@
 """Tests for DAT cancellation semantics contracts.
 
-Per ADR-0013: Cancellation Semantics for Parse & Export.
+Per ADR-0014: Cancellation Semantics for Parse & Export.
 Tests for soft cancellation, checkpointing, and audit trails.
 """
 
@@ -79,7 +79,7 @@ class TestCancellationResult:
         assert result.discarded_partial_data is True
 
     def test_artifact_preservation(self) -> None:
-        """Per ADR-0013: Completed artifacts must be preserved."""
+        """Per ADR-0014: Completed artifacts must be preserved."""
         result = CancellationResult(
             job_id="job_1",
             stage_id=None,
@@ -90,7 +90,7 @@ class TestCancellationResult:
             requested_at=datetime.now(timezone.utc),
         )
 
-        # Per ADR-0013: preserved_artifacts should contain completed work
+        # Per ADR-0014: preserved_artifacts should contain completed work
         assert "table_1" in result.preserved_artifacts
         assert len(result.preserved_checkpoints) > 0
 
@@ -174,7 +174,7 @@ class TestCheckpointRegistry:
         assert registry.last_checkpoint is not None
 
     def test_safe_point_detection(self) -> None:
-        """Per ADR-0013: TABLE_COMPLETE is a safe cancellation point."""
+        """Per ADR-0014: TABLE_COMPLETE is a safe cancellation point."""
         now = datetime.now(timezone.utc)
 
         # Table complete = safe
@@ -266,7 +266,7 @@ class TestCleanupRequest:
     """Tests for CleanupRequest model."""
 
     def test_default_cleanup_is_dry_run(self) -> None:
-        """Per ADR-0013: Cleanup should default to dry run."""
+        """Per ADR-0014: Cleanup should default to dry run."""
         request = CleanupRequest()
 
         assert request.dry_run is True
@@ -318,7 +318,7 @@ class TestCancellationAuditLog:
         assert len(log.entries) == 0
 
     def test_add_audit_entry(self) -> None:
-        """Per ADR-0008/ADR-0013: All events must be logged."""
+        """Per ADR-0009/ADR-0014: All events must be logged."""
         log = CancellationAuditLog(job_id="job_123")
 
         # Add entries (immutable pattern)
@@ -339,7 +339,7 @@ class TestCancellationAuditLog:
         assert log.entries[1].stage_id == "parse_1"
 
     def test_audit_entry_timestamps(self) -> None:
-        """Per ADR-0008: Timestamps must be ISO-8601 UTC."""
+        """Per ADR-0009: Timestamps must be ISO-8601 UTC."""
         entry = CancellationAuditEntry(
             event_id="evt_001",
             event_type="cancel_requested",
@@ -348,5 +348,5 @@ class TestCancellationAuditLog:
             actor="user",
         )
 
-        # Timestamp should have no microseconds (per ADR-0008)
+        # Timestamp should have no microseconds (per ADR-0009)
         assert entry.timestamp.microsecond == 0

@@ -5,7 +5,7 @@ Tracks all artifacts across tools for:
 - Lineage tracking
 - Garbage collection
 
-Per ADR-0008: All timestamps are ISO-8601 UTC.
+Per ADR-0009: All timestamps are ISO-8601 UTC.
 """
 
 import json
@@ -59,7 +59,7 @@ CREATE INDEX IF NOT EXISTS idx_artifacts_tool ON artifacts(created_by_tool);
 CREATE INDEX IF NOT EXISTS idx_artifacts_state ON artifacts(state);
 CREATE INDEX IF NOT EXISTS idx_artifacts_created_at ON artifacts(created_at);
 
--- Reverse index for efficient lineage children lookup (per ADR-0025)
+-- Reverse index for efficient lineage children lookup (per ADR-0026)
 CREATE TABLE IF NOT EXISTS lineage_edges (
     parent_id TEXT NOT NULL,
     child_id TEXT NOT NULL,
@@ -262,7 +262,7 @@ class RegistryDB:
             await db.commit()
     
     async def get_children(self, parent_id: str) -> list[str]:
-        """Get child artifact IDs efficiently using reverse index (per ADR-0025).
+        """Get child artifact IDs efficiently using reverse index (per ADR-0026).
         
         This uses O(1) index lookup instead of O(n) full scan.
         """

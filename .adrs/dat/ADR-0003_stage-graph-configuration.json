@@ -1,0 +1,183 @@
+{
+  "schema_type": "adr",
+  "id": "ADR-0003_stage-graph-configuration",
+  "title": "DAT-Specific Stage Graph: 8-Stage Pipeline with Lockable Artifacts",
+  "status": "accepted",
+  "date": "2025-01-15",
+  "review_date": "2025-07-15",
+  "deciders": "Mycahya Eggleston",
+  "scope": "subsystem:DAT",
+  "provenance": [
+    {
+      "at": "2025-01-15",
+      "by": "Mycahya Eggleston",
+      "note": "Initial decision extracted from stage orchestration vision document"
+    },
+    {
+      "at": "2025-11-22",
+      "by": "Mycahya Eggleston",
+      "note": "Refactored to explicitly include Export stage and all pipeline stages"
+    },
+    {
+      "at": "2024-12-27",
+      "by": "Mycahya Eggleston",
+      "note": "Refactored as tool-specific extension of core ADR-0001_Guided-Workflow-FSM-Orchestration"
+    }
+  ],
+  "context": "DAT manages multi-stage data pipelines (Discovery → Selection → Context → Table Availability → Table Selection → Preview → Parse → Export) where users invest significant effort in manual edits (context hints, file selections, JSONPath probes). This ADR defines DAT's specific stage graph configuration that plugs into the core FSM orchestration pattern (ADR-0001). DAT uses the 'lockable_with_artifacts' state model because each stage produces substantial artifacts that must be preserved across unlock/re-lock cycles.",
+  "decision_primary": "DAT implements the core Hybrid FSM pattern (ADR-0001) with an 8-stage pipeline using the 'lockable_with_artifacts' state model. Stages: Discovery (implicit), Selection, Context (optional), Table Availability, Table Selection, Preview (optional), Parse, Export (terminal). The cascade policy is 'unlock_cascade' - unlocking an upstream stage automatically unlocks all downstream stages while preserving artifacts. Context and Preview are marked optional and do not block downstream progression.",
+  "decision_details": {
+    "approach": "Extends core FSM orchestrator with DAT-specific StageGraphConfig. Uses 'lockable_with_artifacts' state model with 'unlock_cascade' policy.",
+    "stage_graph": {
+      "stages": [
+        {
+          "id": "discovery",
+          "name": "Discovery",
+          "optional": false,
+          "implicit": true,
+          "description": "Automatic file system scan"
+        },
+        {
+          "id": "selection",
+          "name": "Selection",
+          "optional": false,
+          "description": "User selects files to include"
+        },
+        {
+          "id": "context",
+          "name": "Context",
+          "optional": true,
+          "description": "Optional context hints and metadata"
+        },
+        {
+          "id": "table_availability",
+          "name": "Table Availability",
+          "optional": false,
+          "description": "Detect available tables in files"
+        },
+        {
+          "id": "table_selection",
+          "name": "Table Selection",
+          "optional": false,
+          "description": "User selects tables to extract"
+        },
+        {
+          "id": "preview",
+          "name": "Preview",
+          "optional": true,
+          "description": "Optional preview of extraction results"
+        },
+        {
+          "id": "parse",
+          "name": "Parse",
+          "optional": false,
+          "description": "Execute full extraction"
+        },
+        {
+          "id": "export",
+          "name": "Export",
+          "optional": false,
+          "terminal": true,
+          "description": "Generate deliverables from parse artifacts"
+        }
+      ],
+      "dependencies": [
+        {
+          "from": "discovery",
+          "to": "selection"
+        },
+        {
+          "from": "selection",
+          "to": "context"
+        },
+        {
+          "from": "selection",
+          "to": "table_availability"
+        },
+        {
+          "from": "table_availability",
+          "to": "table_selection"
+        },
+        {
+          "from": "table_selection",
+          "to": "preview"
+        },
+        {
+          "from": "table_selection",
+          "to": "parse"
+        },
+        {
+          "from": "parse",
+          "to": "export"
+        }
+      ],
+      "cascade_policy": "unlock_cascade"
+    },
+    "state_model": "lockable_with_artifacts",
+    "constraints": [
+      "Export requires Parse.locked == true AND Parse.completed == true",
+      "Context and Preview are optional; skipping them does not trigger cascades",
+      "Unlocking Selection cascades unlock to: Context, Table Availability, Table Selection, Preview, Parse, Export",
+      "Unlocking Table Availability cascades unlock to: Table Selection, Preview, Parse, Export",
+      "All artifacts preserved on unlock (see ADR-0002)",
+      "Stage IDs are deterministic hashes of inputs (see ADR-0007)"
+    ],
+    "implementation_specs": [
+      "SPEC-0001_Stage-Orchestration-State-Machine",
+      "SPEC-0013_Artifact-Lifecycle-Preservation-Spec"
+    ]
+  },
+  "consequences": [
+    "Users can skip optional stages (Context, Preview) without breaking workflow",
+    "Accidental unlocks preserve all artifacts (locked:false)",
+    "Power users get full validation (Context + Preview), quick-path users can skip",
+    "Deterministic re-locks reuse artifacts (same inputs → same stage ID)",
+    "Export is only lockable after Parse is locked and completed",
+    "Complexity in cascade logic (must maintain dependency graph consistency)"
+  ],
+  "alternatives_considered": [
+    {
+      "name": "Simple Linear Model (like PPTX)",
+      "pros": "Simpler implementation, no artifact management complexity",
+      "cons": "DAT stages produce large artifacts; linear model doesn't preserve user work",
+      "rejected_reason": "DAT users invest significant effort in curation; must preserve on unlock"
+    }
+  ],
+  "tradeoffs": "We accept cascade complexity for artifact preservation. We accept optional stage logic for workflow flexibility.",
+  "guardrails": [
+    {
+      "rule": "Export Gating: Export MUST require Parse.locked == true AND Parse.completed == true",
+      "enforcement": "Orchestrator validates Parse state before allowing Export lock; returns 400 if violated",
+      "scope": "subsystem:DAT",
+      "id": "dat-export-gating"
+    },
+    {
+      "rule": "Cascade Unlock: Unlocking Selection MUST cascade unlock to all downstream stages",
+      "enforcement": "DAT orchestrator extension triggers unlock_cascade policy on Selection unlock",
+      "scope": "subsystem:DAT",
+      "id": "dat-selection-cascade"
+    }
+  ],
+  "cross_cutting_guardrails": [
+    "Core FSM Forward Gating (see ADR-0001#core-fsm-forward-gating)",
+    "Core FSM Backward Cascade (see ADR-0001#core-fsm-backward-cascade)",
+    "Core FSM Artifact Preservation (see ADR-0001#core-fsm-artifact-preservation)"
+  ],
+  "references": [
+    "ADR-0001_Guided-Workflow-FSM-Orchestration: Core FSM pattern this extends",
+    "ADR-0002_Artifact-Preservation-on-Unlock: Detailed artifact preservation policy",
+    "ADR-0004_Deterministic-Stage-IDs: Stage identity hashing"
+  ],
+  "tags": [
+    "dat",
+    "fsm",
+    "stage-graph",
+    "lockable-artifacts",
+    "unlock-cascade"
+  ],
+  "affected_components": [
+    "apps/dat_aggregator/backend/core/state_machine.py",
+    "apps/dat_aggregator/backend/core/stage_graph_config.py",
+    "apps/dat_aggregator/backend/api/routes/"
+  ]
+}

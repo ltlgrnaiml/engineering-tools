@@ -1,6 +1,6 @@
 """Unit tests for ParquetAdapter.
 
-Per SPEC-DAT-0003: Adapter Interface & Registry specification.
+Per SPEC-0026: Adapter Interface & Registry specification.
 Tests P0-2.8: Parquet Adapter Requirements.
 """
 

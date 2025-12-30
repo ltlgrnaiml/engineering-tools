@@ -2,7 +2,7 @@
 
 Provides one-way and multi-way ANOVA with variance component estimation.
 
-Per ADR-0009: Uses shared Pydantic contracts for external interfaces.
+Per ADR-0010: Uses shared Pydantic contracts for external interfaces.
 Internal computation uses lightweight dataclasses for performance.
 """
 from dataclasses import dataclass
@@ -30,14 +30,14 @@ from shared.contracts.sov.anova import (
 class ANOVAConfig:
     """Configuration for ANOVA analysis.
     
-    Per ADR-0022: All computations MUST be deterministic. The seed parameter
+    Per ADR-0023: All computations MUST be deterministic. The seed parameter
     ensures reproducibility for any randomized operations.
     """
     factors: list[str]
     response_columns: list[str]
     alpha: float = 0.05
     anova_type: Literal["one-way", "two-way", "n-way"] = "one-way"
-    seed: int = 42  # Per ADR-0022: Deterministic computation seed
+    seed: int = 42  # Per ADR-0023: Deterministic computation seed
 
 
 @dataclass
@@ -64,7 +64,7 @@ class ANOVAResult:
     """Complete ANOVA result for a response variable.
     
     This is the internal representation. Use to_pydantic() to convert
-    to the shared contract for API responses per ADR-0009.
+    to the shared contract for API responses per ADR-0010.
     """
     response_column: str
     rows: list[ANOVAResultRow]
@@ -78,7 +78,7 @@ class ANOVAResult:
     def validate_variance_sum(self, tolerance: float = 0.01) -> bool:
         """Validate that variance percentages sum to 100%.
 
-        Per ADR-0022: Variance percentages MUST sum to 100%.
+        Per ADR-0023: Variance percentages MUST sum to 100%.
 
         Args:
             tolerance: Acceptable deviation from 100% (default 0.01 = 1%).
@@ -106,7 +106,7 @@ class ANOVAResult:
         input_dataset_id: str,
         config: "ANOVAConfig",
     ) -> ANOVAResultContract:
-        """Convert to shared Pydantic contract per ADR-0009.
+        """Convert to shared Pydantic contract per ADR-0010.
         
         Args:
             analysis_id: Unique analysis ID.
@@ -206,7 +206,7 @@ async def run_anova_analysis(
 ) -> list[ANOVAResult]:
     """Run ANOVA analysis on data.
 
-    Per ADR-0022: Uses Type III sum of squares and validates variance percentages.
+    Per ADR-0023: Uses Type III sum of squares and validates variance percentages.
 
     Args:
         data: Input DataFrame.
@@ -234,7 +234,7 @@ async def run_anova_analysis(
         else:
             result = _n_way_anova(data, config.factors, response_col, config.alpha)
 
-        # Validate variance percentages per ADR-0022
+        # Validate variance percentages per ADR-0023
         if validate_variance:
             result.validate_variance_sum(tolerance=variance_tolerance)
 
@@ -340,7 +340,7 @@ def _n_way_anova(
 ) -> ANOVAResult:
     """Perform n-way ANOVA with main effects and optional interaction terms.
     
-    Per ADR-0022: Includes A×B interaction terms when include_interactions=True.
+    Per ADR-0023: Includes A×B interaction terms when include_interactions=True.
     
     Args:
         data: Input DataFrame.

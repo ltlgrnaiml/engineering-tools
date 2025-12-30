@@ -1,7 +1,7 @@
 /**
  * VarianceBarChart - Reusable variance contribution chart component
  * 
- * Per ADR-0024: Consumes VarianceBarConfig contract from backend
+ * Per ADR-0025: Consumes VarianceBarConfig contract from backend
  */
 import type { ANOVATableRow, VarianceBarConfig } from '../types'
 

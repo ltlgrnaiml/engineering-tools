@@ -32,7 +32,7 @@ Reference: `shared/contracts/core/dataset.py::DataSetManifest`
 
 Key fields for integration:
 
-- **`dataset_id`**: Deterministic hash (per ADR-0004)
+- **`dataset_id`**: Deterministic hash (per ADR-0005)
 - **`created_by_tool`**: Source tool (`dat`, `sov`, `pptx`)
 - **`parent_dataset_ids`**: Lineage tracking for piped data
 - **`aggregation_levels`**: DAT-specific (e.g., `["wafer", "lot"]`)
@@ -185,7 +185,7 @@ draft → queued → running → completed
                 cancelled (preserves completed artifacts)
 ```
 
-### Cancellation Semantics (per ADR-0013)
+### Cancellation Semantics (per ADR-0014)
 
 When a pipeline is cancelled:
 

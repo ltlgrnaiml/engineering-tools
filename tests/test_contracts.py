@@ -1,6 +1,6 @@
 """Tests for shared contracts.
 
-Per ADR-0009: Contracts are the single source of truth.
+Per ADR-0010: Contracts are the single source of truth.
 These tests verify contract creation and validation.
 """
 import pytest

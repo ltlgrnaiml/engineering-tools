@@ -1,6 +1,6 @@
 """Adapter Registry for the Unified Rendering Engine.
 
-Per ADR-0028: Output Target Adapters.
+Per ADR-0029: Output Target Adapters.
 
 This module provides a registry pattern for output adapters,
 allowing dynamic registration of renderers for different targets.

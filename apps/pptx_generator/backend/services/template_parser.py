@@ -166,9 +166,9 @@ class TemplateParserService:
         template_path: Path,
         required_shapes: list[str] | None = None,
     ) -> ShapeDiscoveryResult:
-        """Discover shapes using ADR-0018 naming convention.
+        """Discover shapes using ADR-0019 naming convention.
 
-        Per ADR-0018: Uses {category}_{identifier}[_{variant}] convention.
+        Per ADR-0019: Uses {category}_{identifier}[_{variant}] convention.
         Regex: ^(text|chart|table|image|metric|dimension)_([a-zA-Z0-9]+)(?:_([a-zA-Z0-9]+))?$
 
         Args:
@@ -190,7 +190,7 @@ class TemplateParserService:
         except Exception as e:
             raise ValueError(f"Invalid PowerPoint template: {str(e)}") from e
 
-        # Use the ADR-0018 compliant shape discovery
+        # Use the ADR-0019 compliant shape discovery
         result = discover_shapes(list(prs.slides))
 
         # Validate required shapes if provided

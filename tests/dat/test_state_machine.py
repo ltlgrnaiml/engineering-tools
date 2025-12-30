@@ -18,7 +18,7 @@ class TestStageEnum:
     """Test Stage and StageState enums."""
     
     def test_all_stages_defined(self):
-        """Test all expected stages are defined per ADR-0001-DAT."""
+        """Test all expected stages are defined per ADR-0004."""
         expected_stages = [
             "discovery", "selection", "context", "table_availability",
             "table_selection", "preview", "parse", "export"
@@ -238,7 +238,7 @@ class TestDATStateMachine:
             execute_fn=execute,
         )
         
-        # Same stage_id due to same inputs (per ADR-0004)
+        # Same stage_id due to same inputs (per ADR-0005)
         assert status1.stage_id == status2.stage_id
     
     @pytest.mark.asyncio
@@ -427,7 +427,7 @@ class TestFSMTransitionValidation:
 
     @pytest.mark.asyncio
     async def test_context_and_preview_are_optional(self, state_machine):
-        """Test that context and preview stages are optional per ADR-0003."""
+        """Test that context and preview stages are optional per ADR-0004."""
         async def execute_complete():
             return {"completed": True}
 
@@ -495,7 +495,7 @@ class TestFSMTransitionValidation:
 
     @pytest.mark.asyncio
     async def test_context_unlock_does_not_cascade(self, state_machine):
-        """Test that unlocking context does not cascade per ADR-0003."""
+        """Test that unlocking context does not cascade per ADR-0004."""
         async def execute_complete():
             return {"completed": True}
 

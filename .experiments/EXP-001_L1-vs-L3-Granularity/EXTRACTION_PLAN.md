@@ -21,11 +21,11 @@
 
 | ADR | Title | Why Extract |
 |-----|-------|-------------|
-| ADR-0033 | AI-Assisted Development Patterns | **Core philosophy** |
-| ADR-0041 | AI Development Workflow | **6-tier hierarchy** |
-| ADR-0015 | 3-Tier Document Model | Documentation strategy |
-| ADR-0009 | Type-Safety & Contract Discipline | Pydantic patterns |
-| ADR-0016 | Calendar Versioning | Version format |
+| ADR-0034 | AI-Assisted Development Patterns | **Core philosophy** |
+| ADR-0043 | AI Development Workflow | **6-tier hierarchy** |
+| ADR-0016 | 3-Tier Document Model | Documentation strategy |
+| ADR-0010 | Type-Safety & Contract Discipline | Pydantic patterns |
+| ADR-0017 | Calendar Versioning | Version format |
 
 ### Tier 3: Workflow Infrastructure
 
@@ -57,7 +57,7 @@
 | `shared/contracts/sov/` | SOV-specific |
 | `apps/` | Tool implementations |
 | `gateway/` | API services (keep as example) |
-| Tool-specific ADRs | ADR-0001-DAT, ADR-0018, etc. |
+| Tool-specific ADRs | ADR-0004, ADR-0019, etc. |
 
 ---
 

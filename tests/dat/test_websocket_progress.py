@@ -1,4 +1,4 @@
-"""Tests for DAT WebSocket progress tracking per SPEC-DAT-0004."""
+"""Tests for DAT WebSocket progress tracking per SPEC-0027."""
 
 import pytest
 from datetime import datetime, timezone

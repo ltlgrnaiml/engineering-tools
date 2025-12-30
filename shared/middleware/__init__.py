@@ -1,7 +1,7 @@
 """Shared middleware for FastAPI applications.
 
-Per ADR-0032: HTTP Request Idempotency Semantics.
-Per ADR-0036: Observability & Debugging First.
+Per ADR-0033: HTTP Request Idempotency Semantics.
+Per ADR-0037: Observability & Debugging First.
 
 This package provides middleware components used across all tools.
 """

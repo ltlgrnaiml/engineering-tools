@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """Unified contract validation for the Engineering Tools platform.
 
-Per ADR-0009: Type Safety & Contract Discipline.
-Per ADR-0015: 3-Tier Document Model.
-Per ADR-0017: Cross-Cutting Guardrails.
+Per ADR-0010: Type Safety & Contract Discipline.
+Per ADR-0016: 3-Tier Document Model.
+Per ADR-0018: Cross-Cutting Guardrails.
 
 This script provides comprehensive validation:
 1. Contract schema validation (Pydantic models are valid)
@@ -162,7 +162,7 @@ def validate_contract_imports(report: ValidationReport) -> int:
 def validate_contract_versioning(report: ValidationReport) -> None:
     """Validate all contracts have __version__ attribute.
     
-    Per ADR-0016: Hybrid Semver Contract Versioning.
+    Per ADR-0017: Hybrid Semver Contract Versioning.
     """
     report.categories_checked.append("contract_versioning")
     
@@ -239,7 +239,7 @@ def validate_pydantic_models(report: ValidationReport) -> dict[str, list[str]]:
 def validate_message_catalog(report: ValidationReport) -> None:
     """Validate message catalog contracts.
     
-    Per ADR-0017#message-catalogs: All user messages from catalog.
+    Per ADR-0018#message-catalogs: All user messages from catalog.
     """
     report.categories_checked.append("message_catalog")
     
@@ -289,7 +289,7 @@ def validate_message_catalog(report: ValidationReport) -> None:
 def validate_adr_files(report: ValidationReport) -> int:
     """Validate ADR JSON files have required structure.
     
-    Per ADR-0015: 3-Tier Document Model.
+    Per ADR-0016: 3-Tier Document Model.
     Returns count of valid ADRs.
     """
     report.categories_checked.append("adr_files")

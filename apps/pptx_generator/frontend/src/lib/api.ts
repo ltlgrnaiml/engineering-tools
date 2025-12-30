@@ -575,7 +575,7 @@ export const previewApi = {
     return response.data
   },
 
-  // Per ADR-0019: Fetch backend workflow FSM state
+  // Per ADR-0020: Fetch backend workflow FSM state
   getWorkflowState: async (projectId: string): Promise<{
     project_id: string
     current_step: string

@@ -1,6 +1,6 @@
 """Plan schema contracts for AI Development Workflow.
 
-Per ADR-0041: AI Development Workflow Orchestration.
+Per ADR-0043: AI Development Workflow Orchestration.
 
 This module defines the Pydantic schemas for Plans (T4), including
 milestones, tasks, acceptance criteria, and progress tracking.
@@ -320,7 +320,7 @@ class SourceReference(BaseModel):
     type: Literal["discussion", "adr", "spec", "contract"] = Field(
         ..., description="Type of source artifact"
     )
-    id: str = Field(..., description="Artifact ID (e.g., DISC-001, ADR-0043)")
+    id: str = Field(..., description="Artifact ID (e.g., DISC-001, ADR-0045)")
     title: str = Field(..., description="Title of the artifact")
 
 
@@ -588,7 +588,7 @@ class PlanSchema(BaseModel):
     fragment-based development work. They contain milestones, tasks,
     acceptance criteria, and progress tracking.
 
-    Per ADR-0041: Plans are created from SPECs and executed via fragments.
+    Per ADR-0043: Plans are created from SPECs and executed via fragments.
     """
 
     schema_type: Literal["plan"] = Field(default="plan", description="Schema type")

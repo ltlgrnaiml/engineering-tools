@@ -1,0 +1,158 @@
+{
+  "schema_type": "spec",
+  "id": "SPEC-0004_artifact-lifecycle-preservation",
+  "title": "Artifact Lifecycle and Preservation Specification",
+  "version": "0.1.0",
+  "status": "draft",
+  "date": "2025-12-27",
+  "author": "Mycahya Eggleston",
+  "implements_adr": [
+    "ADR-0002_Artifact-Preservation-on-Unlock"
+  ],
+  "tier_0_contracts": [
+    {
+      "module": "shared.contracts.core.artifact_registry",
+      "classes": [
+        "ArtifactRecord",
+        "ArtifactState",
+        "ArtifactType",
+        "ArtifactQuery",
+        "ArtifactRegistryEntry"
+      ]
+    }
+  ],
+  "purpose": "Define the lifecycle management of artifacts across all tools. Artifacts are never deleted on state changes; instead, they are marked with appropriate state flags while preserving the underlying data.",
+  "scope": "core",
+  "requirements": [
+    {
+      "id": "REQ-ARTIFACT-001",
+      "description": "Artifacts MUST never be deleted on unlock/state change",
+      "rationale": "Per ADR-0002: Preserve user work",
+      "implementation": "Set locked=false, retain files"
+    },
+    {
+      "id": "REQ-ARTIFACT-002",
+      "description": "Each artifact MUST have a unique deterministic ID",
+      "format": "SHA-256 hash of inputs, 8-char prefix",
+      "reference": "ADR-0005"
+    },
+    {
+      "id": "REQ-ARTIFACT-003",
+      "description": "Artifact states MUST track full lifecycle",
+      "states": [
+        "PENDING",
+        "GENERATING",
+        "COMPLETE",
+        "STALE",
+        "ARCHIVED",
+        "ERROR"
+      ]
+    },
+    {
+      "id": "REQ-ARTIFACT-004",
+      "description": "Artifact registry MUST support querying by state, type, and date",
+      "implementation": "ArtifactQuery contract with filters"
+    },
+    {
+      "id": "REQ-ARTIFACT-005",
+      "description": "Stale artifacts MUST be marked, not deleted",
+      "behavior": "When upstream changes, downstream artifacts become STALE"
+    }
+  ],
+  "artifact_lifecycle": {
+    "states": [
+      {
+        "name": "PENDING",
+        "description": "Artifact creation requested but not started"
+      },
+      {
+        "name": "GENERATING",
+        "description": "Artifact actively being created"
+      },
+      {
+        "name": "COMPLETE",
+        "description": "Artifact successfully created and valid"
+      },
+      {
+        "name": "STALE",
+        "description": "Artifact exists but upstream data has changed"
+      },
+      {
+        "name": "ARCHIVED",
+        "description": "Artifact moved to archive storage"
+      },
+      {
+        "name": "ERROR",
+        "description": "Artifact creation failed"
+      }
+    ],
+    "transitions": {
+      "PENDING": [
+        "GENERATING"
+      ],
+      "GENERATING": [
+        "COMPLETE",
+        "ERROR"
+      ],
+      "COMPLETE": [
+        "STALE",
+        "ARCHIVED"
+      ],
+      "STALE": [
+        "PENDING",
+        "ARCHIVED"
+      ],
+      "ARCHIVED": [],
+      "ERROR": [
+        "PENDING"
+      ]
+    }
+  },
+  "artifact_types": [
+    {
+      "type": "PARQUET",
+      "description": "Columnar data files from DAT parse"
+    },
+    {
+      "type": "JSON_MANIFEST",
+      "description": "Metadata manifests for datasets"
+    },
+    {
+      "type": "PPTX",
+      "description": "Generated PowerPoint files"
+    },
+    {
+      "type": "ANOVA_RESULT",
+      "description": "SOV analysis results"
+    },
+    {
+      "type": "CHART_IMAGE",
+      "description": "Rendered visualization images"
+    },
+    {
+      "type": "EXPORT_FILE",
+      "description": "User-requested export files"
+    }
+  ],
+  "registry_operations": {
+    "register": "Add new artifact to registry with PENDING state",
+    "update_state": "Transition artifact to new state",
+    "query": "Find artifacts matching ArtifactQuery filters",
+    "mark_stale": "Bulk update downstream artifacts to STALE",
+    "archive": "Move artifact to archive storage, update state"
+  },
+  "cleanup_policy": {
+    "description": "Explicit cleanup only, never automatic deletion",
+    "triggers": [
+      "User request",
+      "Archive policy (configurable age)",
+      "Explicit purge command"
+    ],
+    "never_auto_delete": true
+  },
+  "references": [
+    "ADR-0002_Artifact-Preservation-on-Unlock: WHY we preserve artifacts",
+    "ADR-0004_Deterministic-Content-Addressed-IDs: HOW artifacts are identified",
+    "shared/contracts/core/artifact_registry.py: Tier-0 contracts"
+  ]
+}

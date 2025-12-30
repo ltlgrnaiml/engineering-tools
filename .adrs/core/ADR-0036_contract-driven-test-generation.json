@@ -1,0 +1,193 @@
+{
+  "schema_type": "adr",
+  "id": "ADR-0036_contract-driven-test-generation",
+  "title": "Contract-Driven Test Generation: Pydantic Models Auto-Generate Tests",
+  "status": "accepted",
+  "date": "2025-12-28",
+  "review_date": "2026-06-28",
+  "deciders": "Mycahya Eggleston",
+  "scope": "core",
+  "provenance": [
+    {
+      "at": "2025-12-28",
+      "by": "Mycahya Eggleston",
+      "note": "Initial draft to establish contract-driven test generation for deterministic validation"
+    }
+  ],
+  "context": "With Pydantic models as the single source of truth for contracts (ADR-0045), and a deterministic system design emphasizing clear inputs/outputs for each component, the codebase contains all information needed to auto-generate comprehensive test cases. Manual test writing is time-consuming and prone to gaps—especially for solo developers who may skip edge cases. Property-based testing (via Hypothesis) can automatically generate valid and invalid inputs based on JSON Schema derived from Pydantic models, ensuring contracts are exercised with diverse inputs. FSM stage transitions (ADR-0001) can be exhaustively tested via state graph exploration. This ADR mandates that contracts MUST auto-generate test cases, reducing manual effort while increasing test coverage.",
+  "decision_primary": "Pydantic models MUST auto-generate test cases via contract-driven testing. The approach consists of: (1) hypothesis-jsonschema generates property-based tests from Pydantic-derived JSON Schema, (2) Every contract in shared/contracts/ generates fuzz tests for validation, serialization, and round-trip consistency, (3) FSM stage transitions are tested via exhaustive path exploration using the stage graph configuration, (4) CI fails if a new contract lacks generated tests (enforced via test discovery). This ensures contracts are self-validating and edge cases are automatically covered.",
+  "decision_details": {
+    "approach": "Derive test cases from contract definitions; minimize manual test authoring",
+    "constraints": [
+      "Every Pydantic contract MUST have auto-generated property-based tests",
+      "Generated tests MUST cover: valid input acceptance, invalid input rejection, serialization round-trip",
+      "FSM stage graphs MUST have exhaustive transition tests (all valid paths, all invalid transitions rejected)",
+      "CI MUST fail if new contract in shared/contracts/ lacks corresponding test file",
+      "Manual tests are allowed for business logic but contract validation MUST be auto-generated",
+      "Test generation MUST be deterministic (same contract → same tests)"
+    ],
+    "test_categories": {
+      "contract_validation_tests": {
+        "description": "Test that contracts accept valid inputs and reject invalid inputs",
+        "tool": "hypothesis + hypothesis-jsonschema",
+        "generated_from": "Pydantic model → JSON Schema → Hypothesis strategy",
+        "coverage": [
+          "Valid inputs: Pydantic accepts without ValidationError",
+          "Invalid inputs: Pydantic raises ValidationError with correct field",
+          "Boundary values: min/max length, numeric ranges, enum constraints",
+          "Optional fields: present vs absent",
+          "Nested models: recursive validation"
+        ]
+      },
+      "serialization_roundtrip_tests": {
+        "description": "Test that contracts serialize and deserialize consistently",
+        "assertions": [
+          "model.model_dump_json() produces valid JSON",
+          "Model.model_validate_json(json_str) reconstructs original model",
+          "Round-trip: model == Model.model_validate(model.model_dump())"
+        ]
+      },
+      "fsm_transition_tests": {
+        "description": "Test that FSM stage transitions follow stage graph rules",
+        "tool": "Custom FSM test generator using stage graph config",
+        "coverage": [
+          "All valid forward transitions succeed",
+          "All invalid transitions (skipping stages) are rejected",
+          "Backward cascade triggers downstream resets",
+          "Optional stages can be skipped without blocking downstream"
+        ]
+      },
+      "api_endpoint_tests": {
+        "description": "Test that API endpoints accept/reject correct request/response shapes",
+        "tool": "schemathesis (OpenAPI-driven)",
+        "coverage": [
+          "All endpoints respond to valid requests",
+          "Invalid requests return appropriate 4xx errors",
+          "Response bodies match declared schemas"
+        ]
+      }
+    },
+    "tooling": {
+      "hypothesis_jsonschema": {
+        "purpose": "Generate Hypothesis strategies from JSON Schema",
+        "usage": "from_schema(schema) → strategy that generates valid instances",
+        "integration": "pytest fixtures auto-discover contracts and generate strategies"
+      },
+      "schemathesis": {
+        "purpose": "Generate API tests from OpenAPI spec",
+        "usage": "schemathesis run http://localhost:8000/openapi.json",
+        "integration": "CI step after server startup"
+      },
+      "fsm_test_generator": {
+        "purpose": "Generate exhaustive FSM transition tests from stage graph",
+        "location": "tools/gen_fsm_tests.py (to be created)",
+        "usage": "Reads StageGraphConfig, generates pytest test cases for all paths"
+      }
+    },
+    "test_file_structure": {
+      "pattern": "tests/contracts/test_{contract_module}.py",
+      "example": {
+        "contract": "shared/contracts/core/dataset.py",
+        "test_file": "tests/contracts/test_dataset.py",
+        "generated_content": "Property-based tests for DataSetManifest, ColumnMeta, DataSetRef"
+      }
+    },
+    "implementation_specs": []
+  },
+  "consequences": [
+    "✅ POSITIVE: Comprehensive test coverage with minimal manual effort",
+    "✅ POSITIVE: Edge cases automatically discovered by property-based testing",
+    "✅ POSITIVE: Contracts are self-validating (change contract → tests update)",
+    "✅ POSITIVE: FSM transitions exhaustively tested (no missed state paths)",
+    "✅ POSITIVE: API endpoints validated against OpenAPI spec",
+    "✅ POSITIVE: Solo-dev can rely on generated tests for confidence",
+    "❌ NEGATIVE: Initial setup of test generation infrastructure",
+    "❌ NEGATIVE: Property-based tests can be slow (mitigated: limit examples in CI)",
+    "❌ NEGATIVE: Generated tests may not cover business logic (manual tests still needed)",
+    "⚠️ NEUTRAL: Test output can be verbose (mitigated: pytest configuration)"
+  ],
+  "alternatives_considered": [
+    {
+      "name": "Manual Test Writing Only",
+      "pros": "Full control, targeted tests, no tooling overhead",
+      "cons": "Time-consuming, prone to gaps, solo-dev bottleneck",
+      "rejected_reason": "Solo-dev cannot manually write comprehensive tests for 40+ contracts"
+    },
+    {
+      "name": "Example-Based Tests Only (No Property-Based)",
+      "pros": "Simple, deterministic, easy to understand",
+      "cons": "Limited coverage, misses edge cases, requires manual example selection",
+      "rejected_reason": "Property-based testing finds edge cases humans miss"
+    },
+    {
+      "name": "AI-Generated Tests (LLM writes tests)",
+      "pros": "Can generate readable tests, handles business logic",
+      "cons": "Non-deterministic, may miss edge cases, requires review",
+      "rejected_reason": "Contract-driven generation is deterministic and complete for validation"
+    }
+  ],
+  "tradeoffs": "We trade test readability (generated tests are formulaic) for coverage (every contract path exercised). Manual tests remain for business logic validation, but contract validation is automated.",
+  "rollout_plan": [
+    "1. Add hypothesis and hypothesis-jsonschema to dev dependencies",
+    "2. Create tests/contracts/ directory structure",
+    "3. Implement pytest fixtures for auto-discovering contracts",
+    "4. Generate initial property-based tests for existing contracts",
+    "5. Add schemathesis to CI pipeline for API validation",
+    "6. Create tools/gen_fsm_tests.py for FSM transition tests",
+    "7. Add CI check for missing contract tests"
+  ],
+  "rollback_plan": "If generated tests prove too noisy or slow: (1) Reduce Hypothesis examples in CI (--hypothesis-seed, max_examples), (2) Fall back to example-based tests for specific contracts, (3) Keep schemathesis for API validation (high value, low cost). Incremental rollback possible.",
+  "metrics_to_watch": [
+    "Test coverage percentage (should increase with generated tests)",
+    "CI test duration (property-based tests can be slow; monitor)",
+    "Bugs caught by generated tests (track shrunk examples)",
+    "Time spent writing tests (should decrease significantly)"
+  ],
+  "guardrails": [
+    {
+      "id": "contract-test-required",
+      "rule": "Every Pydantic contract in shared/contracts/ MUST have corresponding test file",
+      "enforcement": "CI fails if tests/contracts/test_{module}.py missing for contract module",
+      "scope": "core"
+    },
+    {
+      "id": "contract-test-property-based",
+      "rule": "Contract tests MUST include property-based tests using Hypothesis",
+      "enforcement": "Test file must import hypothesis; CI validates presence",
+      "scope": "core"
+    },
+    {
+      "id": "fsm-transition-test-exhaustive",
+      "rule": "FSM stage graphs MUST have exhaustive transition tests",
+      "enforcement": "tools/gen_fsm_tests.py generates tests; CI runs them",
+      "scope": "core"
+    }
+  ],
+  "cross_cutting_guardrails": [
+    "ADR-0045#contracts-defined-pydantic-shared-contracts: Contracts are source for test generation",
+    "ADR-0001: FSM stage graphs are source for transition tests"
+  ],
+  "references": [
+    "Hypothesis: https://hypothesis.readthedocs.io/",
+    "hypothesis-jsonschema: https://github.com/Zac-HD/hypothesis-jsonschema",
+    "Schemathesis: https://schemathesis.readthedocs.io/",
+    "ADR-0009_Type-Safety-Contract-Discipline",
+    "ADR-0001_Guided-Workflow-FSM-Orchestration"
+  ],
+  "tags": [
+    "testing",
+    "contracts",
+    "property-based",
+    "hypothesis",
+    "automation",
+    "ci-cd",
+    "solo-dev"
+  ],
+  "affected_components": [
+    "tests/contracts/ (new directory)",
+    "pyproject.toml (dev dependencies)",
+    "tools/gen_fsm_tests.py (new)",
+    "ci/steps/ (test validation step)",
+    "conftest.py (pytest fixtures)"
+  ]
+}

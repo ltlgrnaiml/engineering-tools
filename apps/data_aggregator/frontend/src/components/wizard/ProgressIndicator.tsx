@@ -1,8 +1,8 @@
 /**
  * Progress Indicator with WebSocket Integration
  *
- * Per SPEC-DAT-0004: Real-time progress updates via WebSocket
- * Per ADR-0040: Large file streaming progress tracking
+ * Per SPEC-0027: Real-time progress updates via WebSocket
+ * Per ADR-0041: Large file streaming progress tracking
  *
  * This component connects to the backend WebSocket endpoint
  * to receive real-time progress updates during Parse/Export stages.

@@ -7,8 +7,8 @@ The registry is a SQLite database (workspace/.registry.db) that tracks:
 - Lineage relationships between artifacts
 
 Per ADR-0002: Artifacts are preserved on unlock (never deleted).
-Per ADR-0008: All timestamps are ISO-8601 UTC.
-Per ADR-0017#path-safety: All paths are relative.
+Per ADR-0009: All timestamps are ISO-8601 UTC.
+Per ADR-0018#path-safety: All paths are relative.
 """
 
 from datetime import datetime
@@ -53,13 +53,13 @@ class ArtifactRecord(BaseModel):
     artifact_type: ArtifactType
     name: str = Field(..., description="Human-readable name")
 
-    # Location (per ADR-0017#path-safety: always relative)
+    # Location (per ADR-0018#path-safety: always relative)
     relative_path: str = Field(
         ...,
         description="Path relative to workspace/ root",
     )
 
-    # Timestamps (per ADR-0008)
+    # Timestamps (per ADR-0009)
     created_at: datetime
     updated_at: datetime
     locked_at: datetime | None = None

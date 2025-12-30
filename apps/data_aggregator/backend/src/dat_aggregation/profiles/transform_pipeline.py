@@ -1,6 +1,6 @@
 """TransformPipeline - Normalization and column transformations.
 
-Per ADR-0011: Profiles define normalization rules and transforms.
+Per ADR-0012: Profiles define normalization rules and transforms.
 Applies NaN handling, type coercion, renames, and calculated columns.
 """
 
@@ -39,7 +39,7 @@ DEFAULT_UNIT_MAPPINGS: dict[str, dict[str, Any]] = {
 class TransformPipeline:
     """Applies normalization and column transformations.
     
-    Per ADR-0011: Profiles define how data is normalized and transformed
+    Per ADR-0012: Profiles define how data is normalized and transformed
     after extraction and before output.
     """
     

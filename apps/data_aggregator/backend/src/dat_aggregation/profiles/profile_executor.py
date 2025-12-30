@@ -1,6 +1,6 @@
 """ProfileExecutor - Core engine for profile-driven extraction.
 
-Per ADR-0011: All data extraction is governed by versioned profiles.
+Per ADR-0012: All data extraction is governed by versioned profiles.
 The ProfileExecutor interprets profiles and produces flat, tabular DataFrames.
 
 Context Separation (DESIGN §4, §9):
@@ -146,7 +146,7 @@ class ExtractionResult:
 
 
 class ProfileExecutor:
-    """Interprets profiles and executes extraction per ADR-0011.
+    """Interprets profiles and executes extraction per ADR-0012.
     
     The ProfileExecutor is the core engine that:
     1. Loads file content via adapters

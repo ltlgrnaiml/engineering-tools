@@ -1,6 +1,6 @@
 """ArrayOfObjects extraction strategy.
 
-Per SPEC-DAT-0012: Extract array of objects as DataFrame.
+Per SPEC-0009: Extract array of objects as DataFrame.
 Each object becomes a row, object keys become columns.
 """
 
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class ArrayOfObjectsStrategy(ExtractionStrategy):
     """Extract array of objects as DataFrame.
     
-    Per SPEC-DAT-0012:
+    Per SPEC-0009:
     - Each object in array becomes a row
     - Object keys become columns
     - Union of all keys used for columns

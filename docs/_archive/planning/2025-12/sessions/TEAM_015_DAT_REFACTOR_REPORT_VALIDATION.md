@@ -17,7 +17,7 @@ This validation will:
 After reviewing the content of `@c:\Users\Mycahya\CascadeProjects\engineering-tools\.sessions\TEAM_011_DAT_REFACTOR_CONSOLIDATED_REPORT.md`, I have validated its findings against the SSoT (ADRs, SPECs, Contracts) and the aggregated findings from TEAM_006 to TEAM_010. Below are the results:
 
 - **Accuracy of Gap Identification**:
-  - TEAM_011 identified 15 unique gaps, with 13 validated as real (86.7% validation rate). This aligns well with the aggregated findings in TEAM_014, confirming critical issues like API routing misalignment (ADR-0029), duplicate adapter stacks (ADR-0011), stage graph issues (ADR-0001-DAT, ADR-0003), deterministic IDs (ADR-0004-DAT), table availability performance (ADR-0006), and others.
+  - TEAM_011 identified 15 unique gaps, with 13 validated as real (86.7% validation rate). This aligns well with the aggregated findings in TEAM_014, confirming critical issues like API routing misalignment (ADR-0030), duplicate adapter stacks (ADR-0012), stage graph issues (ADR-0004, ADR-0004), deterministic IDs (ADR-0008), table availability performance (ADR-0008), and others.
   - Two gaps were marked as invalid or partial (e.g., TEAM_010's claim of 8-stage pipeline as a gap was incorrect as it exists). This matches my assessment in TEAM_014, where TEAM_010 scored lower (78%) due to such inaccuracies.
 
 - **Team Scoring and Analysis**:
@@ -25,22 +25,22 @@ After reviewing the content of `@c:\Users\Mycahya\CascadeProjects\engineering-to
   - Their observation that TEAM_006 provided the most thorough initial analysis (11 unique gaps) matches my TEAM_014 report, reinforcing the foundational value of that session.
 
 - **Consolidated Gap List**:
-  - The 15 gaps categorized into API Routing, Stage Graph & FSM, Determinism & Path Safety, Adapter Implementation, and Missing Implementations cover all critical areas identified in TEAM_014. Specific validations (e.g., `routes.py:39` for `/v1` prefix) add precision, confirming alignment with SSoT references like ADR-0029 and ADR-0001-DAT.
-  - Minor discrepancy: TEAM_011 missed emphasizing profile management depth (SPEC-DAT-0005) as a unique gap in TEAM_008, which was highlighted in TEAM_014 as a priority.
+  - The 15 gaps categorized into API Routing, Stage Graph & FSM, Determinism & Path Safety, Adapter Implementation, and Missing Implementations cover all critical areas identified in TEAM_014. Specific validations (e.g., `routes.py:39` for `/v1` prefix) add precision, confirming alignment with SSoT references like ADR-0030 and ADR-0004.
+  - Minor discrepancy: TEAM_011 missed emphasizing profile management depth (SPEC-0007) as a unique gap in TEAM_008, which was highlighted in TEAM_014 as a priority.
 
 - **Prioritized Implementation Order**:
   - The phased approach (Foundation → FSM Correctness → Determinism → Missing Features → Frontend) logically sequences dependencies, starting with adapter unification (GAP-D1) and API routing (GAP-A1/A2/A3), which aligns with TEAM_014 recommendations (M1 and M2 from TEAM_009).
   - The prioritization matches my TEAM_014 suggestions, though TEAM_011 adds more granularity by splitting into 5 phases, which is a useful refinement.
 
 - **Acceptance Criteria**:
-  - The criteria (e.g., no `/v1` in paths, single adapter stack, 8-char IDs) are directly testable and align with SSoT requirements (ADR-0029, ADR-0004). They are consistent with the aggregated criteria in TEAM_014, ensuring validation against core misalignments.
+  - The criteria (e.g., no `/v1` in paths, single adapter stack, 8-char IDs) are directly testable and align with SSoT requirements (ADR-0030, ADR-0005). They are consistent with the aggregated criteria in TEAM_014, ensuring validation against core misalignments.
 
 **Overall Assessment**: The TEAM_011 report is highly accurate and comprehensive, with a validation rate of 86.7% for identified gaps. It aligns closely with the SSoT documents and the aggregated findings in TEAM_014, with minor omissions (e.g., profile management emphasis) that do not detract from its utility. The prioritized implementation order and acceptance criteria are practical and aligned with the solo-dev ethos of quality and determinism.
 
 ## Recommendations
 
 - **Adopt the Report**: Use the TEAM_011 report as the basis for implementation, following the 5-phase structure for prioritization. It provides a clear, validated roadmap for the DAT refactor.
-- **Address Minor Omission**: Ensure profile management (SPEC-DAT-0005) is explicitly prioritized in Phase 4 (Missing Features), as highlighted in TEAM_014 and TEAM_008's detailed plan.
+- **Address Minor Omission**: Ensure profile management (SPEC-0007) is explicitly prioritized in Phase 4 (Missing Features), as highlighted in TEAM_014 and TEAM_008's detailed plan.
 - **Validation Commands**: Execute the acceptance criteria validation commands provided (e.g., `grep` for `/v1`, `pytest` for IDs) after each phase to ensure compliance with SSoT.
 - **Next Steps**: Proceed to implementation in the next session (TEAM_012 as suggested by TEAM_011), starting with unifying adapter implementations (GAP-D1) and removing `/v1` prefixes (GAP-A1/A2/A3).
 

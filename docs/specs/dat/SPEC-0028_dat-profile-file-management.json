@@ -1,0 +1,339 @@
+{
+  "schema_type": "tech_spec",
+  "id": "SPEC-0028_dat-profile-file-management",
+  "title": "DAT Profile File Management & DevTools Integration Specification",
+  "status": "draft",
+  "version": "1.0.0",
+  "created_at": "2025-12-28",
+  "updated_at": "2025-12-28",
+  "author": "Mycahya Eggleston",
+  "scope": "subsystem:DAT",
+  "implements_adrs": [
+    "ADR-0011_Profile-Driven-Extraction-and-Adapters",
+    "ADR-0027_DevTools-Page-Architecture"
+  ],
+  "tier_0_contracts": [
+    {
+      "module": "shared.contracts.dat.profile",
+      "classes": [
+        "ExtractionProfile",
+        "ExtractionProfileRef",
+        "FilePattern",
+        "ColumnMapping",
+        "AggregationLevel",
+        "AggregationRule",
+        "ValidationRule",
+        "CreateProfileRequest",
+        "UpdateProfileRequest",
+        "ProfileValidationResult"
+      ]
+    }
+  ],
+  "overview": "This specification defines how DAT extraction profiles are stored, managed, and edited. Profiles are stored as user-editable JSON files in the workspace, similar to ADRs and SPECs. The DevTools panel provides a visual editor for profiles with live validation, preview, and version tracking.",
+  "requirements": [
+    {
+      "id": "REQ-PROF-001",
+      "description": "Profiles MUST be stored as JSON files in workspace",
+      "priority": "must",
+      "acceptance_criteria": [
+        "Profile files stored in apps/data_aggregator/config/profiles/",
+        "File naming: {profile_id}.profile.json",
+        "Files are human-readable and version-controllable"
+      ]
+    },
+    {
+      "id": "REQ-PROF-002",
+      "description": "Profiles MUST have deterministic IDs based on content",
+      "priority": "must",
+      "acceptance_criteria": [
+        "Profile ID is SHA-256 hash of normalized content (first 16 chars)",
+        "ID regenerates when profile content changes",
+        "Duplicate detection via ID comparison"
+      ]
+    },
+    {
+      "id": "REQ-PROF-003",
+      "description": "DevTools MUST provide profile reader/editor UI",
+      "priority": "must",
+      "acceptance_criteria": [
+        "List all profiles with search/filter",
+        "View profile details in formatted display",
+        "Edit profiles with live validation",
+        "Preview profile against sample files"
+      ]
+    },
+    {
+      "id": "REQ-PROF-004",
+      "description": "Profile changes MUST be validated before save",
+      "priority": "must",
+      "acceptance_criteria": [
+        "JSON schema validation",
+        "Pydantic model validation",
+        "Cross-reference validation (column mappings reference valid columns)",
+        "Error messages with line numbers"
+      ]
+    },
+    {
+      "id": "REQ-PROF-005",
+      "description": "Profiles MUST support versioning",
+      "priority": "must",
+      "acceptance_criteria": [
+        "Version field follows semver (MAJOR.MINOR.PATCH)",
+        "Version bumped on save via bump_version parameter",
+        "Previous versions preserved in history (future)"
+      ]
+    },
+    {
+      "id": "REQ-PROF-006",
+      "description": "System profiles MUST be read-only, user profiles editable",
+      "priority": "must",
+      "acceptance_criteria": [
+        "System profiles in profiles/system/ (read-only)",
+        "User profiles in profiles/user/ (editable)",
+        "Clear visual distinction in DevTools"
+      ]
+    },
+    {
+      "id": "REQ-PROF-007",
+      "description": "Profile preview MUST show transformation results",
+      "priority": "should",
+      "acceptance_criteria": [
+        "Upload sample file for preview",
+        "Show column mapping results",
+        "Show aggregation preview",
+        "Show validation results"
+      ]
+    }
+  ],
+  "implementation_details": {
+    "file_structure": {
+      "base_path": "apps/data_aggregator/config/profiles/",
+      "structure": [
+        "profiles/",
+        "├── system/",
+        "│   ├── default.profile.json",
+        "│   └── semiconductor_wafer.profile.json",
+        "├── user/",
+        "│   └── custom_analysis.profile.json",
+        "└── _schema/",
+        "    └── profile.schema.json"
+      ],
+      "naming_convention": "{profile_id}.profile.json"
+    },
+    "profile_file_format": {
+      "description": "JSON file following ExtractionProfile schema",
+      "example": {
+        "profile_id": "abc123def456",
+        "name": "Semiconductor Wafer Data",
+        "description": "Extract wafer measurement data from CSV exports",
+        "version": "1.0.0",
+        "created_at": "2025-12-28T10:00:00Z",
+        "file_patterns": [
+          {
+            "pattern": "wafer_*.csv",
+            "pattern_type": "glob"
+          }
+        ],
+        "column_mappings": [
+          {
+            "source_name": "WAFER_ID",
+            "target_name": "wafer_id",
+            "data_type": "string"
+          }
+        ],
+        "aggregation_levels": [
+          {
+            "name": "wafer",
+            "group_by_columns": [
+              "wafer_id"
+            ]
+          }
+        ],
+        "domain": "semiconductor",
+        "tags": [
+          "wafer",
+          "measurement"
+        ]
+      }
+    },
+    "devtools_integration": {
+      "page_path": "/devtools/profiles",
+      "components": [
+        {
+          "name": "ProfileList",
+          "description": "List all profiles with filtering",
+          "features": [
+            "search",
+            "filter by domain",
+            "filter by tags",
+            "sort"
+          ]
+        },
+        {
+          "name": "ProfileViewer",
+          "description": "View profile details",
+          "features": [
+            "formatted JSON display",
+            "section navigation",
+            "copy to clipboard"
+          ]
+        },
+        {
+          "name": "ProfileEditor",
+          "description": "Edit profile with validation",
+          "features": [
+            "JSON editor with syntax highlighting",
+            "live validation",
+            "save/cancel"
+          ]
+        },
+        {
+          "name": "ProfilePreview",
+          "description": "Preview profile against sample data",
+          "features": [
+            "file upload",
+            "column mapping preview",
+            "aggregation preview"
+          ]
+        }
+      ],
+      "similar_to": "ADR Editor in DevTools (ADR-0028)"
+    },
+    "api_endpoints": [
+      {
+        "method": "GET",
+        "path": "/api/dat/profiles",
+        "description": "List all profiles",
+        "query_params": [
+          "domain",
+          "tags",
+          "search"
+        ],
+        "response": "list[ExtractionProfileRef]"
+      },
+      {
+        "method": "GET",
+        "path": "/api/dat/profiles/{profile_id}",
+        "description": "Get profile details",
+        "response": "ExtractionProfile"
+      },
+      {
+        "method": "POST",
+        "path": "/api/dat/profiles",
+        "description": "Create new profile",
+        "request": "CreateProfileRequest",
+        "response": "ExtractionProfile"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/dat/profiles/{profile_id}",
+        "description": "Update existing profile",
+        "request": "UpdateProfileRequest",
+        "response": "ExtractionProfile"
+      },
+      {
+        "method": "DELETE",
+        "path": "/api/dat/profiles/{profile_id}",
+        "description": "Delete user profile",
+        "response": "204 No Content"
+      },
+      {
+        "method": "POST",
+        "path": "/api/dat/profiles/{profile_id}/validate",
+        "description": "Validate profile against sample file",
+        "request": {
+          "sample_file_path": "string"
+        },
+        "response": "ProfileValidationResult"
+      },
+      {
+        "method": "POST",
+        "path": "/api/dat/profiles/{profile_id}/preview",
+        "description": "Preview profile transformation",
+        "request": {
+          "sample_file_path": "string",
+          "row_limit": 100
+        },
+        "response": {
+          "columns": [],
+          "sample_rows": [],
+          "aggregation_preview": {}
+        }
+      }
+    ],
+    "validation_pipeline": {
+      "steps": [
+        "1. JSON syntax validation",
+        "2. JSON Schema validation against profile.schema.json",
+        "3. Pydantic model validation (ExtractionProfile)",
+        "4. Cross-reference validation (column mappings exist)",
+        "5. Aggregation rule validation (columns exist)"
+      ],
+      "error_format": {
+        "valid": false,
+        "errors": [
+          {
+            "path": "$.column_mappings[0].source_name",
+            "message": "Required field missing"
+          }
+        ]
+      }
+    }
+  },
+  "frontend_components": {
+    "profile_list_page": {
+      "route": "/devtools/profiles",
+      "layout": "table with search/filter sidebar",
+      "columns": [
+        "name",
+        "version",
+        "domain",
+        "file_patterns",
+        "updated_at"
+      ]
+    },
+    "profile_detail_page": {
+      "route": "/devtools/profiles/{profile_id}",
+      "tabs": [
+        "Overview",
+        "File Patterns",
+        "Column Mappings",
+        "Aggregation",
+        "Validation Rules",
+        "Raw JSON"
+      ]
+    },
+    "profile_editor": {
+      "type": "Monaco editor with JSON schema",
+      "features": [
+        "autocomplete",
+        "inline validation",
+        "format on save"
+      ]
+    }
+  },
+  "validation_commands": [
+    "pytest tests/dat/test_profile_management.py -v",
+    "pytest tests/dat/test_profile_validation.py -v"
+  ],
+  "acceptance_criteria_summary": [
+    "Profiles stored as JSON files in config/profiles/",
+    "DevTools profile list shows all profiles",
+    "DevTools profile editor with live validation",
+    "Profile preview against sample files works",
+    "System profiles are read-only",
+    "User profiles can be created/edited/deleted"
+  ],
+  "related_specs": [
+    "SPEC-DAT-0003_Adapter-Interface-Registry",
+    "SPEC-DAT-0002_Profile-Extraction",
+    "SPEC-0027_DevTools-Architecture"
+  ],
+  "tags": [
+    "dat",
+    "profile",
+    "devtools",
+    "configuration",
+    "editor"
+  ]
+}

@@ -39,7 +39,7 @@ app.add_middleware(
 
 
 # === Cross-Tool APIs (gateway-level) ===
-# Per ADR-0029: Gateway cross-tool APIs use /api/{resource} pattern (no version prefix)
+# Per ADR-0030: Gateway cross-tool APIs use /api/{resource} pattern (no version prefix)
 app.include_router(dataset_router, prefix="/api/datasets", tags=["datasets"])
 app.include_router(pipeline_router, prefix="/api/pipelines", tags=["pipelines"])
 app.include_router(devtools_router, prefix="/api/devtools", tags=["devtools"])

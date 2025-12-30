@@ -1,6 +1,6 @@
 """SPEC schema contracts for AI Development Workflow.
 
-Per ADR-0041: AI Development Workflow Orchestration.
+Per ADR-0043: AI Development Workflow Orchestration.
 
 This module defines the Pydantic schemas for SPECs (T2), including
 requirements, acceptance criteria, API contracts, and test requirements.
@@ -46,7 +46,7 @@ class AcceptanceCriterion(BaseModel):
 class FunctionalRequirement(BaseModel):
     """A functional requirement in the SPEC."""
 
-    id: str = Field(..., description="Requirement ID (e.g., SPEC-0046-F01)")
+    id: str = Field(..., description="Requirement ID (e.g., SPEC-0003-F01)")
     category: str | None = Field(None, description="Category grouping (e.g., 'UI Layout')")
     description: str = Field(..., description="What this requirement specifies")
     acceptance_criteria: list[str | AcceptanceCriterion] = Field(
@@ -64,14 +64,14 @@ class FunctionalRequirement(BaseModel):
     @classmethod
     def validate_requirement_id(cls, v: str) -> str:
         if not v.startswith("SPEC-"):
-            raise ValueError("Requirement ID must start with 'SPEC-' (e.g., SPEC-0046-F01)")
+            raise ValueError("Requirement ID must start with 'SPEC-' (e.g., SPEC-0003-F01)")
         return v
 
 
 class NonFunctionalRequirement(BaseModel):
     """A non-functional requirement (performance, security, etc.)."""
 
-    id: str = Field(..., description="Requirement ID (e.g., SPEC-0046-NF01)")
+    id: str = Field(..., description="Requirement ID (e.g., SPEC-0003-NF01)")
     category: str = Field(..., description="Category (Performance, Security, Accessibility, etc.)")
     description: str = Field(..., description="What this requirement specifies")
     acceptance_criteria: list[str | AcceptanceCriterion] = Field(
@@ -82,14 +82,14 @@ class NonFunctionalRequirement(BaseModel):
     @classmethod
     def validate_requirement_id(cls, v: str) -> str:
         if not v.startswith("SPEC-"):
-            raise ValueError("Requirement ID must start with 'SPEC-' (e.g., SPEC-0046-NF01)")
+            raise ValueError("Requirement ID must start with 'SPEC-' (e.g., SPEC-0003-NF01)")
         return v
 
 
 class SecurityRequirement(BaseModel):
     """A security-specific requirement."""
 
-    id: str = Field(..., description="Requirement ID (e.g., SPEC-0046-S01)")
+    id: str = Field(..., description="Requirement ID (e.g., SPEC-0003-S01)")
     description: str = Field(..., description="Security requirement")
     acceptance_criteria: list[str] = Field(
         default_factory=list, description="Security ACs"
@@ -331,11 +331,11 @@ class SPECSchema(BaseModel):
     SPECs define WHAT to build with detailed behavioral requirements,
     API contracts, UI components, and test requirements.
 
-    Per ADR-0041: SPECs are created from ADRs and implemented via Plans.
+    Per ADR-0043: SPECs are created from ADRs and implemented via Plans.
     """
 
     schema_type: Literal["spec"] = Field(default="spec", description="Schema type")
-    id: str = Field(..., description="SPEC ID (e.g., SPEC-0046)")
+    id: str = Field(..., description="SPEC ID (e.g., SPEC-0003)")
     title: str = Field(..., min_length=10, description="Descriptive title")
     version: str = Field(default=__version__, description="SPEC version")
     status: SPECStatus = Field(default=SPECStatus.DRAFT, description="Current status")
@@ -395,7 +395,7 @@ class SPECSchema(BaseModel):
     @classmethod
     def validate_spec_id(cls, v: str) -> str:
         if not v.startswith("SPEC-"):
-            raise ValueError("SPEC ID must start with 'SPEC-' (e.g., SPEC-0046)")
+            raise ValueError("SPEC ID must start with 'SPEC-' (e.g., SPEC-0003)")
         return v
 
     @field_validator("created_date", "updated_date")

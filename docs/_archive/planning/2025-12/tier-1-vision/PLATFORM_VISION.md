@@ -23,8 +23,8 @@ The Engineering Tools Platform is a unified monorepo providing semiconductor man
 1. **Data Flows Freely** - Tools produce and consume standardized DataSets, enabling piping workflows
 2. **Solo-Dev Sustainable** - Architecture supports single-developer maintenance with strong CI guardrails
 3. **Local-First** - All tools run locally on engineer workstations (Windows primary, Mac secondary)
-4. **Contract-Driven** - Pydantic contracts are the single source of truth (per ADR-0009)
-5. **Fail-Safe** - Artifacts are preserved on cancel/unlock (per ADR-0002, ADR-0013)
+4. **Contract-Driven** - Pydantic contracts are the single source of truth (per ADR-0010)
+5. **Fail-Safe** - Artifacts are preserved on cancel/unlock (per ADR-0002, ADR-0014)
 
 ---
 
@@ -59,7 +59,7 @@ All tools share common UI components (DataSet picker, progress indicators, error
 - [ ] DataSets are stored in Parquet format with JSON manifests
 - [ ] All tools can list, read, and preview DataSets
 - [ ] DataSet lineage (parent/child relationships) is tracked
-- [ ] DataSets have deterministic IDs (per ADR-0004)
+- [ ] DataSets have deterministic IDs (per ADR-0005)
 
 ### AC-P3: Cross-Tool Piping
 - [ ] DAT can pipe output to SOV or PPTX
@@ -71,7 +71,7 @@ All tools share common UI components (DataSet picker, progress indicators, error
 - [ ] Pipelines can be created with multiple steps
 - [ ] Pipeline steps execute sequentially
 - [ ] Pipeline state is tracked (pending/running/completed/failed)
-- [ ] Cancellation preserves completed artifacts (per ADR-0013)
+- [ ] Cancellation preserves completed artifacts (per ADR-0014)
 
 ### AC-P5: Gateway Routing
 - [ ] Single API gateway routes to all tools
@@ -124,7 +124,7 @@ All tools share common UI components (DataSet picker, progress indicators, error
 ## Architecture Layers
 
 ### Layer 0: Shared Contracts (`shared/contracts/`)
-Per ADR-0009, Pydantic models are the source of truth:
+Per ADR-0010, Pydantic models are the source of truth:
 - `DataSetManifest` - Universal data format
 - `Pipeline` - Multi-tool workflow definition
 - `ArtifactRecord` - Registry entry for tracking
@@ -155,8 +155,8 @@ Per ADR-0009, Pydantic models are the source of truth:
 | Frontend | React, TypeScript, Vite | Modern, fast, type-safe |
 | UI Components | TailwindCSS, shadcn/ui | Consistent styling |
 | Testing | pytest, pytest-asyncio | Async-native testing |
-| CI | PowerShell scripts, Azure DevOps | Windows-first (per ADR-0012) |
-| Docs | MkDocs, mkdocstrings | Docs-as-code (per ADR-0010) |
+| CI | PowerShell scripts, Azure DevOps | Windows-first (per ADR-0013) |
+| Docs | MkDocs, mkdocstrings | Docs-as-code (per ADR-0011) |
 
 ---
 
@@ -221,8 +221,8 @@ Per ADR-0009, Pydantic models are the source of truth:
 | Scope creep | Strict acceptance criteria, phased rollout |
 | Integration complexity | Contract-first design, shared storage |
 | Solo-dev burnout | Strong CI guardrails, incremental progress |
-| Windows compatibility | Windows-first testing (per ADR-0012) |
-| Data loss on cancel | Artifact preservation (per ADR-0002, ADR-0013) |
+| Windows compatibility | Windows-first testing (per ADR-0013) |
+| Data loss on cancel | Artifact preservation (per ADR-0002, ADR-0014) |
 
 ---
 
@@ -232,16 +232,16 @@ Per ADR-0009, Pydantic models are the source of truth:
 |-----|-------|-------------|
 | ADR-0001 | Hybrid FSM Orchestration | DAT stage lifecycle |
 | ADR-0002 | Artifact Preservation | All tools preserve on unlock |
-| ADR-0004 | Deterministic IDs | DataSet and Pipeline IDs |
-| ADR-0008 | Audit Trail Timestamps | All artifacts timestamped |
-| ADR-0009 | Type Safety | Pydantic contracts |
-| ADR-0010 | Docs-as-Code | MkDocs documentation |
-| ADR-0012 | Windows-First | CI and concurrency |
-| ADR-0013 | Cancellation Semantics | Pipeline cancel behavior |
-| ADR-0014 | Artifact Formats | Parquet + JSON |
-| ADR-0015 | 3-Tier Document Model | Documentation structure |
-| ADR-0016 | Hybrid Semver | Contract versioning |
-| ADR-0017 | Cross-Cutting Guardrails | Path safety, concurrency |
+| ADR-0005 | Deterministic IDs | DataSet and Pipeline IDs |
+| ADR-0009 | Audit Trail Timestamps | All artifacts timestamped |
+| ADR-0010 | Type Safety | Pydantic contracts |
+| ADR-0011 | Docs-as-Code | MkDocs documentation |
+| ADR-0013 | Windows-First | CI and concurrency |
+| ADR-0014 | Cancellation Semantics | Pipeline cancel behavior |
+| ADR-0015 | Artifact Formats | Parquet + JSON |
+| ADR-0016 | 3-Tier Document Model | Documentation structure |
+| ADR-0017 | Hybrid Semver | Contract versioning |
+| ADR-0018 | Cross-Cutting Guardrails | Path safety, concurrency |
 
 ---
 

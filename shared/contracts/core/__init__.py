@@ -1,6 +1,6 @@
 """Core contracts shared across all tools.
 
-Per ADR-0009: Pydantic contracts are Tier 0, single source of truth.
+Per ADR-0010: Pydantic contracts are Tier 0, single source of truth.
 
 This package exports all core platform contracts used across tools.
 """

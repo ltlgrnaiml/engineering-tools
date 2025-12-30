@@ -1,8 +1,8 @@
 /**
  * Profile Editor Component
  *
- * Per SPEC-DAT-0005: Profile File Management
- * Per ADR-0027: DevTools Page Architecture
+ * Per SPEC-0007: Profile File Management
+ * Per ADR-0028: DevTools Page Architecture
  *
  * Features:
  * - JSON editor with syntax highlighting

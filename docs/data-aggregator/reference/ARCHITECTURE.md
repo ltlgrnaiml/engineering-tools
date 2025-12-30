@@ -42,7 +42,7 @@ The Data Aggregator is a **profile-driven data extraction tool** that processes 
 
 ---
 
-## Three-Layer Architecture (ADR-0011)
+## Three-Layer Architecture (ADR-0012)
 
 DAT follows a three-layer architecture for data extraction:
 
@@ -60,7 +60,7 @@ DAT follows a three-layer architecture for data extraction:
 │  File adapters execute the extraction                                    │
 │  - CSVAdapter, ExcelAdapter, JSONAdapter, XMLAdapter                    │
 │  - AdapterFactory selects based on file type                            │
-│  - Streaming mode for files > 10MB (ADR-0040)                           │
+│  - Streaming mode for files > 10MB (ADR-0041)                           │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  DATASET LAYER (OUTPUT)                                                  │
 │  ─────────────────────                                                   │
@@ -87,7 +87,7 @@ DAT follows a three-layer architecture for data extraction:
 │ (8)     │   │ (7)     │   │ (6)     │   │ (5)     │
 └─────────┘   └─────────┘   └─────────┘   └─────────┘
 
-* Context and Preview stages are optional (ADR-0003)
+* Context and Preview stages are optional (ADR-0004)
 ```
 
 ### Stage Descriptions
@@ -172,7 +172,7 @@ class BaseFileAdapter(ABC):
         ...
 ```
 
-### Large File Handling (ADR-0040)
+### Large File Handling (ADR-0041)
 
 | File Size | Mode | Behavior |
 |-----------|------|----------|
@@ -188,7 +188,7 @@ class BaseFileAdapter(ABC):
 
 ## Frontend Architecture
 
-### UI Pattern: Horizontal Wizard (ADR-0041)
+### UI Pattern: Horizontal Wizard (ADR-0043)
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -258,13 +258,13 @@ Profile YAML
 
 | ADR | Topic |
 |-----|-------|
-| ADR-0001-DAT | Stage Graph Configuration |
-| ADR-0003 | Optional Context/Preview Stages |
-| ADR-0011 | Profile-Driven Extraction |
-| ADR-0013 | Cancellation Semantics |
-| ADR-0014 | Parse/Export Artifact Formats |
-| ADR-0040 | Large File Streaming |
-| ADR-0041 | Horizontal Wizard UI |
+| ADR-0004 | Stage Graph Configuration |
+| ADR-0004 | Optional Context/Preview Stages |
+| ADR-0012 | Profile-Driven Extraction |
+| ADR-0014 | Cancellation Semantics |
+| ADR-0015 | Parse/Export Artifact Formats |
+| ADR-0041 | Large File Streaming |
+| ADR-0043 | Horizontal Wizard UI |
 
 ---
 

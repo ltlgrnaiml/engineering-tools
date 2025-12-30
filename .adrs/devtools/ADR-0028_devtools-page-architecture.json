@@ -1,0 +1,152 @@
+{
+  "schema_type": "adr",
+  "id": "ADR-0028_devtools-page-architecture",
+  "title": "DevTools Developer/Power-User Utility Page with Runtime Visibility Controls",
+  "status": "accepted",
+  "date": "2024-12-27",
+  "review_date": "2025-06-27",
+  "deciders": "Mycahya Eggleston",
+  "scope": "core",
+  "provenance": [
+    {
+      "at": "2024-12-27",
+      "by": "DAT Engineering",
+      "note": "Initial implementation of DevTools page with ADR Reader/Editor"
+    },
+    {
+      "at": "2025-12-27",
+      "by": "DevTools Editor",
+      "note": "Updated via DevTools ADR Editor"
+    },
+    {
+      "at": "2025-12-27",
+      "by": "DevTools Editor",
+      "note": "Updated via DevTools ADR Editor"
+    }
+  ],
+  "context": "The Engineering Tools platform needs a centralized location for developer and power-user utilities that should be hidden by default in production mode but accessible during development or in a \"Power-User\" mode during Production. These utilities include ADR management, config file editing, domain mapping tools, and other development aids. The challenge is providing easy access during development while preventing accidental exposure in production, and ensuring the debug panel is always available for power users who need to enable these features.",
+  "decision_primary": "DevTools is implemented as a hidden tool page accessible via: (1) URL query parameter ?devmode=true, (2) Debug panel toggle button always visible in bottom-right corner, (3) localStorage persistence of enabled state. The DevTools card appears on the Homepage grid when enabled. DevTools page provides tabbed utilities starting with ADR Reader/Editor featuring split-view (reader left, editor right) and fullscreen reading mode.",
+  "decision_details": {
+    "approach": "Feature-flag pattern with localStorage persistence. Debug panel always visible as Bug icon button. DevTools page is a full-page React component with sidebar navigation for utilities. Backend API at /api/devtools provides CRUD operations for ADRs and config files.",
+    "constraints": [
+      "Debug panel button MUST always be visible (even in production)",
+      "DevTools card on Homepage MUST only appear when enabled",
+      "DevTools state MUST persist across page refreshes (localStorage)",
+      "URL parameter ?devmode=true MUST enable DevTools and set localStorage",
+      "ADR operations MUST validate JSON before saving",
+      "Delete operations MUST create backup files (not permanent delete)",
+      "DevTools API endpoints MUST be at /api/devtools/*"
+    ],
+    "implementation_specs": [
+      "SPEC-0030_DevTools-API-Spec"
+    ]
+  },
+  "consequences": [
+    "Developers have centralized access to development utilities",
+    "Power users can enable DevTools via debug panel",
+    "Production users won't accidentally see DevTools unless enabled",
+    "ADR management is streamlined with visual editor",
+    "Risk: Debug panel button may confuse end users (mitigated by subtle styling)",
+    "Risk: LocalStorage can be cleared, losing enabled state (acceptable trade-off)"
+  ],
+  "alternatives_considered": [
+    {
+      "name": "Environment Variable Only",
+      "pros": "Simple, no runtime toggle needed",
+      "cons": "Requires rebuild to change, no power-user access",
+      "rejected_reason": "Power users need runtime access without rebuilds"
+    },
+    {
+      "name": "Separate DevTools App",
+      "pros": "Complete isolation from production",
+      "cons": "Duplicates infrastructure, harder to maintain",
+      "rejected_reason": "Integrated approach is more maintainable"
+    },
+    {
+      "name": "Authentication-Gated Access",
+      "pros": "Secure access control",
+      "cons": "Requires auth infrastructure, overkill for dev tools",
+      "rejected_reason": "Feature-flag pattern is sufficient for development tools"
+    }
+  ],
+  "tradeoffs": "We trade complete invisibility for always-present debug panel button. LocalStorage persistence is simple but can be cleared. Runtime toggle adds complexity but enables power-user workflows.",
+  "guardrails": [
+    {
+      "rule": "Debug panel button MUST always be visible regardless of DevTools state",
+      "enforcement": "Code review; visual regression tests",
+      "scope": "core",
+      "id": "devtools-debug-panel-always-visible"
+    },
+    {
+      "rule": "ADR delete operations MUST create backup files",
+      "enforcement": "Backend moves files to .backup/ directory instead of deleting",
+      "scope": "core",
+      "id": "devtools-adr-backup-on-delete"
+    },
+    {
+      "rule": "ADR saves MUST validate JSON structure",
+      "enforcement": "Backend returns 400 Bad Request on invalid JSON",
+      "scope": "core",
+      "id": "devtools-adr-validate-json"
+    }
+  ],
+  "cross_cutting_guardrails": [
+    "Path Safety: All file paths must be relative (see ADR-0045#path-safety)"
+  ],
+  "references": [
+    "gateway/services/devtools_service.py",
+    "apps/homepage/frontend/src/pages/DevToolsPage.tsx",
+    "apps/homepage/frontend/src/pages/HomePage.tsx"
+  ],
+  "tags": [
+    "devtools",
+    "developer-experience",
+    "utilities",
+    "adr-editor",
+    "power-user"
+  ],
+  "affected_components": [
+    "gateway/services/devtools_service.py",
+    "gateway/main.py",
+    "apps/homepage/frontend/src/pages/DevToolsPage.tsx",
+    "apps/homepage/frontend/src/pages/HomePage.tsx",
+    "apps/homepage/frontend/src/App.tsx"
+  ],
+  "utilities": {
+    "implemented": [
+      {
+        "name": "ADR Reader/Editor",
+        "description": "View and edit ADR files with split-view and fullscreen modes",
+        "features": [
+          "List all ADRs with search/filter",
+          "Reader view with formatted display",
+          "JSON editor with syntax highlighting",
+          "Validation before save",
+          "Fullscreen reading mode"
+        ]
+      }
+    ],
+    "earmarked": [
+      {
+        "name": "Config Editor",
+        "description": "Edit domain configuration files (domain_config.yaml, etc.)",
+        "status": "planned"
+      },
+      {
+        "name": "Domain Mapper",
+        "description": "Visual tool for mapping data columns to domain concepts",
+        "status": "planned"
+      },
+      {
+        "name": "Schema Validator",
+        "description": "Validate Pydantic contracts and JSON schemas",
+        "status": "planned"
+      },
+      {
+        "name": "API Tester",
+        "description": "Quick API testing interface for development",
+        "status": "planned"
+      }
+    ]
+  }
+}

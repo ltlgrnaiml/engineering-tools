@@ -1,6 +1,6 @@
 """Message catalog contracts - standardized user-facing messages.
 
-Per ADR-0017#message-catalogs: Wire payloads use 'user_message' field
+Per ADR-0018#message-catalogs: Wire payloads use 'user_message' field
 mapped from catalog 'message' field. All user-facing messages MUST be
 defined in catalogs, never hardcoded in backend logic.
 
@@ -135,7 +135,7 @@ class MessageCatalog(BaseModel):
     """A collection of message definitions.
 
     Catalogs are organized by domain/tool for maintainability.
-    Per ADR-0017: CI validates catalogs match wire contract expectations.
+    Per ADR-0018: CI validates catalogs match wire contract expectations.
     """
 
     # Identity
@@ -215,7 +215,7 @@ class LocalizedMessage(BaseModel):
 class ErrorMessage(BaseModel):
     """Standardized error message for API responses.
 
-    Per ADR-0017: All error messages follow this structure for consistency.
+    Per ADR-0018: All error messages follow this structure for consistency.
     """
 
     # Error identification

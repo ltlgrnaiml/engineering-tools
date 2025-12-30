@@ -1,9 +1,9 @@
 """SOV DataSet I/O contracts - data loading and output management.
 
-Per ADR-0023: SOV integrates with platform DataSet infrastructure.
-Per ADR-0025: DataSets have lineage tracking with version_id and parent_version_id.
-Per ADR-0014: Data stored as Parquet, metadata as JSON.
-Per ADR-0008: All timestamps are ISO-8601 UTC (no microseconds).
+Per ADR-0024: SOV integrates with platform DataSet infrastructure.
+Per ADR-0026: DataSets have lineage tracking with version_id and parent_version_id.
+Per ADR-0015: Data stored as Parquet, metadata as JSON.
+Per ADR-0009: All timestamps are ISO-8601 UTC (no microseconds).
 
 This module defines contracts for:
 - DataSet loading and validation
@@ -67,7 +67,7 @@ class SignificanceLevel(str, Enum):
 class SOVColumnMeta(BaseModel):
     """Extended column metadata with SOV-specific annotations.
 
-    Per ADR-0023: Column metadata from input is preserved and extended.
+    Per ADR-0024: Column metadata from input is preserved and extended.
     """
 
     # Base column info (from DataSetManifest.ColumnMeta)
@@ -202,7 +202,7 @@ class DataSetLoadResult(BaseModel):
     parent_dataset_ids: list[str] = Field(default_factory=list)
     version_id: str | None = Field(
         None,
-        description="SHA-256 hash of loaded data (per ADR-0025)",
+        description="SHA-256 hash of loaded data (per ADR-0026)",
     )
 
     # Validation
@@ -282,7 +282,7 @@ class OutputColumn(BaseModel):
 class DataSetOutputConfig(BaseModel):
     """Configuration for creating output DataSet.
 
-    Per ADR-0023: Output includes parent_ref for lineage.
+    Per ADR-0024: Output includes parent_ref for lineage.
     """
 
     name: str = Field(..., min_length=1, max_length=200)
@@ -291,7 +291,7 @@ class DataSetOutputConfig(BaseModel):
     # Output format
     format: Literal["parquet", "csv"] = Field(
         "parquet",
-        description="Output format (per ADR-0014: prefer Parquet)",
+        description="Output format (per ADR-0015: prefer Parquet)",
     )
     compression: Literal["snappy", "gzip", "zstd", "none"] = "snappy"
 
@@ -302,7 +302,7 @@ class DataSetOutputConfig(BaseModel):
     )
     parent_version_id: str | None = Field(
         None,
-        description="Specific version of parent (per ADR-0025)",
+        description="Specific version of parent (per ADR-0026)",
     )
 
     # Content selection
@@ -324,7 +324,7 @@ class DataSetOutputConfig(BaseModel):
 class DataSetOutputResult(BaseModel):
     """Result of creating output DataSet.
 
-    Per ADR-0023: Output includes lineage information.
+    Per ADR-0024: Output includes lineage information.
     """
 
     # Identity
@@ -335,7 +335,7 @@ class DataSetOutputResult(BaseModel):
     name: str
     version_id: str = Field(
         ...,
-        description="SHA-256 hash of output data (per ADR-0025)",
+        description="SHA-256 hash of output data (per ADR-0026)",
     )
 
     # Lineage
@@ -349,7 +349,7 @@ class DataSetOutputResult(BaseModel):
     bytes_written: int = Field(..., ge=0)
     write_duration_ms: float = Field(..., ge=0)
 
-    # Paths (relative, per ADR-0017)
+    # Paths (relative, per ADR-0018)
     data_path: str = Field(..., description="Relative path to data file")
     manifest_path: str = Field(..., description="Relative path to manifest.json")
 
@@ -359,7 +359,7 @@ class DataSetOutputResult(BaseModel):
     @field_validator("data_path", "manifest_path")
     @classmethod
     def validate_relative_path(cls, v: str) -> str:
-        """Ensure paths are relative (per ADR-0017 path-safety)."""
+        """Ensure paths are relative (per ADR-0018 path-safety)."""
         if v.startswith("/") or (len(v) > 1 and v[1] == ":"):
             raise ValueError(f"Absolute paths not allowed: {v}")
         return v

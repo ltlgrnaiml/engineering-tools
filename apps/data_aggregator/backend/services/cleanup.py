@@ -1,6 +1,6 @@
 """Explicit cleanup service.
 
-Per ADR-0013: Cleanup is user-initiated only, dry-run by default.
+Per ADR-0014: Cleanup is user-initiated only, dry-run by default.
 """
 
 import shutil
@@ -32,7 +32,7 @@ async def cleanup(
 ) -> CleanupResult:
     """Clean up partial artifacts from cancelled runs.
 
-    Per ADR-0013: Dry-run by default, explicit cleanup only.
+    Per ADR-0014: Dry-run by default, explicit cleanup only.
 
     Args:
         run_id: Run identifier.

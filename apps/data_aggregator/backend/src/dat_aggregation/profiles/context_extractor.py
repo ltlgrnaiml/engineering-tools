@@ -1,6 +1,6 @@
 """ContextExtractor - 4-level priority context extraction.
 
-Per ADR-0011: Context values are resolved using a 4-level priority system:
+Per ADR-0012: Context values are resolved using a 4-level priority system:
 1. User Override (highest) - Explicit user input
 2. Content Patterns - JSONPath from file content
 3. Regex Patterns - Regex from filename/path
@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 class ContextExtractor:
-    """4-level priority context extraction per ADR-0011.
+    """4-level priority context extraction per ADR-0012.
     
     Extracts context values from multiple sources and merges them
     according to priority (higher priority values override lower).

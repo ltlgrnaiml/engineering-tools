@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """Generate JSON Schema from Pydantic contracts.
 
-Per ADR-0009: Type Safety & Contract Discipline.
-Per ADR-0015: 3-Tier Document Model (Contracts are Tier 0).
+Per ADR-0010: Type Safety & Contract Discipline.
+Per ADR-0016: 3-Tier Document Model (Contracts are Tier 0).
 
 This script generates JSON Schema files from all Pydantic contracts
 in shared/contracts/ for external validation and documentation.

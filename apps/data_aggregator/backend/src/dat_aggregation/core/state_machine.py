@@ -1,9 +1,9 @@
 """Hybrid FSM for DAT stage orchestration.
 
-Per ADR-0001-DAT: 8-stage pipeline with lockable artifacts.
+Per ADR-0004: 8-stage pipeline with lockable artifacts.
 Per ADR-0002: Artifacts preserved on unlock (never deleted).
-Per ADR-0003: Context and Preview are optional, do not cascade.
-Per ADR-0004-DAT: Stage IDs are deterministic (same inputs = same ID).
+Per ADR-0004: Context and Preview are optional, do not cascade.
+Per ADR-0008: Stage IDs are deterministic (same inputs = same ID).
 
 Each stage manages its own lifecycle while a global orchestrator
 coordinates forward gating and unlock cascades.
@@ -42,7 +42,7 @@ class StageStatus:
 class DATStateMachine:
     """Hybrid FSM for DAT stage orchestration.
 
-    Per ADR-0001-DAT: Config-driven stage graph.
+    Per ADR-0004: Config-driven stage graph.
     """
 
     def __init__(
@@ -115,7 +115,7 @@ class DATStateMachine:
         stage_inputs = inputs or await self._get_stage_inputs(stage)
         stage_id = compute_stage_id(stage_inputs, prefix=f"{stage.value}_")
 
-        # Check for existing artifact (idempotent re-lock per ADR-0004)
+        # Check for existing artifact (idempotent re-lock per ADR-0005)
         existing = await self.store.get_artifact(self.run_id, stage, stage_id)
         if existing:
             # Reuse existing artifact

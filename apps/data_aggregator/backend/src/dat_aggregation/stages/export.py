@@ -1,6 +1,6 @@
 """Export stage - create DataSet from parsed data.
 
-Per ADR-0014: Output as Parquet with JSON manifest.
+Per ADR-0015: Output as Parquet with JSON manifest.
 Multi-format export support: Parquet (default), CSV, Excel.
 """
 from datetime import datetime, timezone
@@ -15,12 +15,12 @@ from shared.utils.stage_id import compute_dataset_id
 from .parse import ParseResult
 
 
-# Per ADR-0014: Supported export formats
+# Per ADR-0015: Supported export formats
 SUPPORTED_EXPORT_FORMATS = {"parquet", "csv", "excel", "json"}
 
 
 class ExportFormat(str, Enum):
-    """Supported export formats per ADR-0014."""
+    """Supported export formats per ADR-0015."""
     PARQUET = "parquet"  # Default, best for data pipelines
     CSV = "csv"          # Universal compatibility
     EXCEL = "excel"      # .xlsx for business users
@@ -39,7 +39,7 @@ async def execute_export(
 ) -> DataSetManifest:
     """Export parsed data as a shareable DataSet.
 
-    Per ADR-0014: Default is Parquet, with optional CSV and Excel.
+    Per ADR-0015: Default is Parquet, with optional CSV and Excel.
 
     Args:
         run_id: DAT run ID.

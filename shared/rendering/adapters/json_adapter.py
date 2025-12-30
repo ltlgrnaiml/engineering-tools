@@ -1,6 +1,6 @@
 """JSON Output Adapter for the Unified Rendering Engine.
 
-Per ADR-0028: Output Target Adapters.
+Per ADR-0029: Output Target Adapters.
 
 This adapter outputs render specs as JSON data suitable for
 frontend charting libraries (Chart.js, Recharts, ECharts, etc.).

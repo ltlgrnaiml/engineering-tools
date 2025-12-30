@@ -46,7 +46,7 @@ change-plan/
 
 All tiers reference the following foundational ADRs:
 
-- **ADR-0009**: Type Safety & Contract Discipline (Tier 0 contracts)
-- **ADR-0015**: 3-Tier Document Model (documentation hierarchy)
-- **ADR-0016**: Hybrid Semver Contract Versioning
-- **ADR-0017**: Cross-Cutting Guardrails
+- **ADR-0010**: Type Safety & Contract Discipline (Tier 0 contracts)
+- **ADR-0016**: 3-Tier Document Model (documentation hierarchy)
+- **ADR-0017**: Hybrid Semver Contract Versioning
+- **ADR-0018**: Cross-Cutting Guardrails

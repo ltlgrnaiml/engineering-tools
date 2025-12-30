@@ -1,0 +1,236 @@
+{
+  "schema_type": "adr",
+  "id": "ADR-0018_cross-cutting-guardrails",
+  "title": "Cross-Cutting Guardrails: Shared Architectural Constraints",
+  "status": "accepted",
+  "date": "2025-01-18",
+  "deciders": "Mycahya Eggleston",
+  "scope": "cross-cutting",
+  "provenance": [
+    {
+      "at": "2025-01-18T10:00:00Z",
+      "by": "Mycahya Eggleston",
+      "note": "Migrated from .adrs/cross-cutting/GUARDRAILS.json to align with 3-Tier Document Model. Converted catalog format to ADR schema."
+    },
+    {
+      "at": "2025-01-18T20:00:00Z",
+      "by": "Mycahya Eggleston",
+      "note": "Refactored to contain only cross-cutting guardrails. Moved subsystem-specific guardrails (no-bulk-data, idempotency, deterministic-artifacts) to ADR-0007. Added tier-boundaries guardrail to enforce 3-Tier Document Model separation."
+    }
+  ],
+  "context": "Multiple subsystems (DAT, SOV, Backend, Frontend, Shared) share common architectural constraints: path safety, concurrency discipline, message catalog usage, contract versioning, tier boundary discipline, and cancellation semantics. Duplicating these rules across individual ADRs creates maintenance burden, drift risk, and inconsistency. Without a central reference, each ADR must repeat the same guardrail definitions (50+ lines each × 5 guardrails = 250+ lines of duplication). This violates DRY principles and makes updates error-prone (must update 10+ ADRs simultaneously). A single ADR defining cross-cutting guardrails provides a central source of truth, ensures consistency, and enables individual ADRs to reference guardrails via cross_cutting_guardrails field instead of duplicating them. Subsystem-specific guardrails (e.g., DAT deterministic stage IDs, no-bulk-data responses) remain in their respective subsystem ADRs to maintain clear ownership and scope boundaries.",
+  "decision_primary": "Define all cross-cutting guardrails (constraints that apply to ALL subsystems) in a single ADR (ADR-0017_Cross-Cutting-Guardrails). Individual ADRs reference these guardrails via cross_cutting_guardrails field using format: 'Guardrail Name: Brief description (see ADR-0045#guardrail-id)'. Each guardrail includes: id, rule, enforcement (runtime + CI + tests), scope (must be 'cross-cutting' or 'core'), and references. Subsystem-specific guardrails (e.g., DAT idempotency, no-bulk-data) remain in individual subsystem ADRs (e.g., ADR-0007 for DAT stage IDs, ADR-0045 for Table Availability). This ADR serves as the canonical reference for all shared architectural constraints across the monorepo.",
+  "decision_details": {
+    "approach": "Centralized guardrail catalog in ADR format for cross-cutting constraints only. Individual ADRs use cross_cutting_guardrails field to reference specific guardrails. Each guardrail is structured as: {id, rule, enforcement, scope, references}. Guardrail IDs are stable (no renaming without migration plan). CI validates that individual ADRs do not duplicate guardrail definitions (tier boundary enforcement per SPEC-0009). Subsystem-specific guardrails are maintained in their respective subsystem ADRs to ensure clear ownership and avoid scope creep in ADR-0045.",
+    "constraints": [
+      "All cross-cutting guardrails (apply to ALL subsystems) MUST be defined in ADR-0045 (no duplication in individual ADRs).",
+      "Subsystem-specific guardrails (apply to ONE subsystem) MUST remain in individual subsystem ADRs (e.g., ADR-0007 for DAT, ADR-0045 for Table Availability).",
+      "Guardrail scope in ADR-0045 MUST be 'cross-cutting' or 'core' (no 'subsystem:*' scopes allowed).",
+      "Guardrail IDs MUST be stable (no renaming without migration plan and ADR update).",
+      "Individual ADRs MUST use cross_cutting_guardrails field to reference ADR-0045 guardrails (format: 'Name: Description (see ADR-0045#id)').",
+      "CI MUST validate that individual ADRs do not duplicate guardrail definitions (tier boundary enforcement).",
+      "CI MUST validate that ADR-0045 guardrails have scope='cross-cutting' or scope='core' (no subsystem-specific scopes)."
+    ],
+    "implementation_specs": [
+      "SPEC-0009_Engineering-Docs-Tenets-Spec",
+      "SPEC-0016_Path-Safety-Normalization",
+      "docs/_schema/adr_schema.json"
+    ],
+    "tier_0_contracts": [
+      "shared/contracts/core/path_safety.py: RelativePath, WorkspacePath, PathValidationError, normalize_path(), is_safe_relative_path()",
+      "shared/contracts/core/audit.py: AuditTimestamp, AuditTrail, LifecycleEvent",
+      "shared/contracts/core/concurrency.py: PlatformInfo, ConcurrencyConfig"
+    ]
+  },
+  "consequences": [
+    "POSITIVE: Single source of truth for cross-cutting constraints (no duplication across ADRs).",
+    "POSITIVE: Individual ADRs remain concise (reference guardrails instead of repeating 50+ lines each).",
+    "POSITIVE: Easier to update cross-cutting guardrails (change once in ADR-0045, affects all referencing ADRs).",
+    "POSITIVE: Consistent guardrail enforcement across all subsystems (same rules, same CI checks).",
+    "POSITIVE: Aligns with 3-Tier Document Model (ADRs explain 'why', Specs define 'what', Guides show 'how').",
+    "POSITIVE: CI tier boundary validation prevents duplication (SPEC-0009 enforcement).",
+    "POSITIVE: Clear separation between cross-cutting (ADR-0045) and subsystem-specific (ADR-0007, ADR-0045) guardrails.",
+    "POSITIVE: Subsystem ADRs maintain ownership of subsystem-specific constraints (no scope creep in ADR-0045).",
+    "NEGATIVE: ADR-0045 is moderately large (5 guardrails × 50+ lines each = 250+ lines total), but manageable.",
+    "NEGATIVE: If cross-cutting guardrails grow beyond 10 items, may need to split into multiple ADRs (e.g., ADR-0017a, ADR-0017b).",
+    "RISK: Guardrail ID changes require migration plan (update all referencing ADRs).",
+    "RISK: Solo-dev context: Must manually update all ADR references if guardrail IDs change (no automated refactoring)."
+  ],
+  "alternatives_considered": [
+    {
+      "name": "Keep GUARDRAILS.json as separate catalog file",
+      "pros": "Simpler structure (just id + rule + enforcement). No need to fit into ADR schema. Easier to parse programmatically (flat catalog).",
+      "cons": "Violates 3-Tier Document Model (not Tier 1, 2, or 3—orphaned file). No rationale or decision context (why do these guardrails exist?). Requires separate ADR to explain 'why' (duplication). Harder to validate (custom schema instead of reusing adr_schema.json). Inconsistent with other ADRs (different file format, different validation).",
+      "rejected_reason": "Violates 3-Tier Document Model. Guardrails have rationale, tradeoffs, and enforcement—these are ADR concerns (Tier 1: 'why'). Keeping them as a separate catalog creates two files (catalog + ADR) instead of one. Solo-dev cannot maintain two files in sync."
+    },
+    {
+      "name": "Duplicate guardrails in each ADR",
+      "pros": "Each ADR is self-contained (no external references). Easier to read (all info in one place). No risk of broken references.",
+      "cons": "Massive duplication (5 guardrails × 50+ lines each × 10 ADRs = 2500+ lines of duplicated content). High risk of drift (update one ADR, forget to update others). Violates DRY principles. Solo-dev cannot manually keep 10+ ADRs in sync. CI cannot detect drift (no source of truth).",
+      "rejected_reason": "Violates DRY principles and creates unsustainable maintenance burden. Solo-dev cannot manually sync 10+ ADRs. High risk of drift and inconsistency."
+    },
+    {
+      "name": "Guardrails as Tier 2 Specs",
+      "pros": "Specs define 'what' (guardrails are rules/constraints). Aligns with Tier 2 purpose. Could use tech_spec.schema.json.",
+      "cons": "Guardrails have rationale and tradeoffs (Tier 1 concerns, not Tier 2). Specs define 'what we're building' (contracts, APIs), not 'why we chose constraints'. Mixing guardrails with specs violates tier separation (SPEC-0009). Specs would become unreadable (500+ lines of guardrails + actual spec content).",
+      "rejected_reason": "Guardrails explain 'why' constraints exist (rationale, tradeoffs)—this is Tier 1 (ADRs), not Tier 2 (Specs). Violates tier separation per SPEC-0009."
+    },
+    {
+      "name": "Include subsystem-specific guardrails in ADR-0045",
+      "pros": "All guardrails in one place (easier to find). No need to search multiple ADRs for guardrails.",
+      "cons": "ADR-0045 becomes too large (8+ guardrails × 50+ lines each = 400+ lines). Mixes cross-cutting and subsystem-specific concerns (violates single responsibility). Subsystem ADRs lose ownership of their constraints. Harder to update subsystem guardrails (must edit ADR-0045 instead of subsystem ADR). Scope creep: ADR-0045 would need to track all subsystem-specific rules (unsustainable).",
+      "rejected_reason": "Violates single responsibility principle. Subsystem-specific guardrails belong in subsystem ADRs (clear ownership). Mixing cross-cutting and subsystem concerns creates maintenance burden and scope creep."
+    }
+  ],
+  "tradeoffs": "Higher up-front effort to migrate GUARDRAILS.json to ADR format (one-time cost). ADR-0045 is moderately large (250+ lines), but this is acceptable because it's a central reference (not duplicated across 10+ ADRs). Individual ADRs become more concise (reference guardrails instead of duplicating them). Subsystem-specific guardrails remain in subsystem ADRs (clear ownership, no scope creep). Trade-off is worth it for long-term maintainability, consistency, and clear separation of concerns.",
+  "rollout_plan": [
+    "Phase 1: Refactor ADR-0045 to contain only cross-cutting guardrails (remove subsystem-specific guardrails).",
+    "Phase 2: Move subsystem-specific guardrails (no-bulk-data, idempotency, deterministic-artifacts) to ADR-0007 (DAT Deterministic Stage IDs).",
+    "Phase 3: Add tier-boundaries guardrail to ADR-0045 (enforce 3-Tier Document Model separation).",
+    "Phase 4: Update all existing ADRs to use cross_cutting_guardrails field (replace inline guardrail definitions with references to ADR-0045).",
+    "Phase 5: Update CI tier boundary validation (ci/steps/step_docs_validate.ps1) to detect guardrail duplication in individual ADRs.",
+    "Phase 6: Update CI to validate ADR-0045 guardrails have scope='cross-cutting' or scope='core' (no subsystem-specific scopes).",
+    "Phase 7: Deprecate .adrs/cross-cutting/GUARDRAILS.json (add deprecation notice, keep for historical reference).",
+    "Phase 8: Update SPEC-0009 to document ADR-0045 as canonical cross-cutting guardrail reference.",
+    "Phase 9: Update README and developer guides to reference ADR-0045 instead of GUARDRAILS.json."
+  ],
+  "rollback_plan": "Revert to GUARDRAILS.json catalog format (not recommended). Would require: (1) Restore .adrs/cross-cutting/GUARDRAILS.json, (2) Remove ADR-0045, (3) Update all ADR references to use GUARDRAILS.json instead of ADR-0045, (4) Remove CI tier boundary validation for guardrails. High risk of reintroducing duplication and drift. Rollback should only be considered if ADR-0045 becomes unmaintainable (e.g., grows to >1000 lines and cannot be split).",
+  "metrics_to_watch": [
+    "Number of ADRs referencing ADR-0045 (target: all ADRs with cross-cutting constraints).",
+    "Number of guardrail duplication violations detected by CI (target: 0 after migration).",
+    "Size of ADR-0045 (monitor for growth; if >500 lines, consider splitting cross-cutting guardrails into multiple ADRs).",
+    "Number of subsystem-specific guardrails in ADR-0045 (target: 0—all subsystem guardrails should be in subsystem ADRs).",
+    "Time to update cross-cutting guardrails (should decrease after migration—change once in ADR-0045 instead of 10+ ADRs).",
+    "Developer feedback on guardrail reference format (solo-dev: self-assessment of workflow friction)."
+  ],
+  "guardrails": [
+    {
+      "id": "path-safety",
+      "rule": "All public filesystem paths in API responses MUST be relative paths, never absolute paths. This prevents leaking server-side directory structures and ensures portability across environments.",
+      "enforcement": "Runtime: shared.path_safety.assert_relpath_safe() validates all paths before exposing in API responses. CI: tools/check_path_safety.py scans codebase for violations. Tests: backend/tests/test_path_safety.py validates path_safety utilities.",
+      "scope": "cross-cutting",
+      "references": [
+        "shared/path_safety.py",
+        "backend/tests/test_path_safety.py",
+        "tools/check_path_safety.py"
+      ]
+    },
+    {
+      "id": "concurrency",
+      "rule": "All parallelism MUST use dramcdu.concurrent.api.run_map with spawn-safe settings and fixed thread caps. Raw multiprocessing or threading imports are prohibited.",
+      "enforcement": "Runtime: dramcdu.concurrent.api.run_map enforces max_workers cap and spawn-safe context. CI: tools/check_no_raw_multiprocessing.py fails on raw multiprocessing/threading imports. Tests: backend/tests/test_concurrent_api.py validates spawn-safety and thread caps.",
+      "scope": "core",
+      "references": [
+        "dramcdu/concurrent/api.py",
+        "backend/tests/test_concurrent_api.py",
+        "tools/check_no_raw_multiprocessing.py"
+      ]
+    },
+    {
+      "id": "message-catalogs",
+      "rule": "Wire payloads use 'user_message' field mapped from catalog 'message' field. All user-facing messages MUST be defined in shared/contracts/messages_*.json catalogs, never hardcoded in backend logic.",
+      "enforcement": "Runtime: Backend maps catalog 'message' to wire 'user_message' in response models. CI: tools/validate_message_catalogs.py checks for drift between catalogs and wire contracts. Tests: backend/tests/test_message_mapping.py validates catalog-to-wire mapping.",
+      "scope": "cross-cutting",
+      "references": [
+        "shared/contracts/messages_*.json",
+        "backend/tests/test_message_mapping.py",
+        "tools/validate_message_catalogs.py"
+      ]
+    },
+    {
+      "id": "contract-versioning",
+      "rule": "Breaking contract changes require semantic versioning in contract modules and ADR linkage. Non-breaking changes (adding optional fields) can be made in-place. Breaking changes (removing fields, changing types) require version bump in contract __version__.",
+      "enforcement": "Runtime: Contract modules have __version__ attribute. CI: ci/steps/step_openapi_client_drift.ps1 detects breaking schema changes. Tests: backend/tests/test_contract_versioning.py validates backward compatibility. API routes do NOT use /v1/ prefixes - versioning is at contract level only.",
+      "scope": "cross-cutting",
+      "references": [
+        "ADR-0016_Hybrid-Semver-Contract-Versioning",
+        "backend/tests/test_contract_versioning.py",
+        "ci/steps/step_openapi_client_drift.ps1"
+      ]
+    },
+    {
+      "id": "tier-boundaries",
+      "rule": "ADRs MUST NOT include code snippets, API signatures, or step-by-step instructions. Specs MUST NOT include ADR justifications or user workflows. Guides MUST NOT include contract definitions or architecture diagrams. Each tier has a specific purpose: Tier 1 (ADRs) explain WHY decisions were made, Tier 2 (Specs) define WHAT is being built, Tier 3 (Guides) show HOW to do it. Cross-tier references are encouraged (ADRs reference Specs, Specs reference Guides), but content duplication is forbidden.",
+      "enforcement": "CI: tools/validate_tier_boundaries.py scans for violations. ADRs checked for code blocks (```python, ```typescript), API signatures (class ContextRequest), step-by-step instructions ('Step 1: Do X'). Specs checked for ADR justifications ('We chose X because...'), user workflows ('Click the Lock button...'). Guides checked for contract definitions (Pydantic models), architecture diagrams (state machines). Tests: backend/tests/test_tier_boundaries.py validates tier separation.",
+      "scope": "cross-cutting",
+      "references": [
+        "SPEC-0009_Engineering-Docs-Tenets-Spec",
+        "docs/_schema/adr_schema.json",
+        "docs/_schema/tech_spec.schema.json",
+        "docs/_schema/how_to_guide.schema.json",
+        "tools/validate_tier_boundaries.py",
+        "backend/tests/test_tier_boundaries.py"
+      ]
+    },
+    {
+      "id": "cancel-behavior",
+      "rule": "Cancel operations (such as for Parse or Export) MUST preserve all partial artifacts and set job status to 'cancelled'. No automatic deletion of partial outputs is allowed; cleanup is always explicit and user-initiated.",
+      "enforcement": "Runtime: Cancel transitions job state to 'cancelled' and retains all partial outputs under a job-scoped directory. Cleanup is performed only via explicit user action (e.g., CLI or UI command). Tests: backend/tests/test_cancel_behavior.py validates that cancel preserves partial artifacts and cleanup is explicit.",
+      "scope": "cross-cutting",
+      "references": [
+        "ADR-0002_Artifact-Preservation-on-Unlock",
+        "ADR-0014_Cancellation-Semantics-for-Parse-and-Export",
+        "backend/src/dramcdu/dat_aggregation/core/state_machine.py",
+        "backend/src/dramcdu/dat_aggregation/core/snapshot_manager.py",
+        "backend/tests/test_cancel_behavior.py"
+      ]
+    }
+  ],
+  "cross_cutting_guardrails": [],
+  "references": [
+    "ADR-0002_Artifact-Preservation-on-Unlock",
+    "ADR-0004_Deterministic-Stage-IDs",
+    "ADR-0006_Table-Availability-Spec",
+    "ADR-0009_Type-Safety-Contract-Discipline",
+    "ADR-0014_Cancellation-Semantics-for-Parse-and-Export",
+    "ADR-0016_Hybrid-Semver-Contract-Versioning",
+    "SPEC-0009_Engineering-Docs-Tenets-Spec",
+    "docs/_schema/adr_schema.json",
+    "docs/_schema/tech_spec.schema.json",
+    "docs/_schema/how_to_guide.schema.json",
+    "shared/path_safety.py",
+    "dramcdu/concurrent/api.py",
+    "shared/contracts/messages_*.json",
+    "backend/tests/test_path_safety.py",
+    "backend/tests/test_concurrent_api.py",
+    "backend/tests/test_message_mapping.py",
+    "backend/tests/test_contract_versioning.py",
+    "backend/tests/test_tier_boundaries.py",
+    "backend/tests/test_cancel_behavior.py",
+    "tools/check_path_safety.py",
+    "tools/check_no_raw_multiprocessing.py",
+    "tools/validate_message_catalogs.py",
+    "tools/validate_tier_boundaries.py",
+    "ci/steps/step_openapi_client_drift.ps1"
+  ],
+  "tags": [
+    "guardrails",
+    "cross-cutting",
+    "constraints",
+    "path-safety",
+    "concurrency",
+    "message-catalogs",
+    "contract-versioning",
+    "tier-boundaries",
+    "cancel-behavior",
+    "3-tier-model"
+  ],
+  "affected_components": [
+    "all subsystems",
+    "shared/path_safety.py",
+    "dramcdu/concurrent/api.py",
+    "shared/contracts/messages_*.json",
+    "backend/src/dramcdu/dat_aggregation/core/state_machine.py",
+    "backend/src/dramcdu/dat_aggregation/core/snapshot_manager.py",
+    "backend/tests/*",
+    "tools/check_path_safety.py",
+    "tools/check_no_raw_multiprocessing.py",
+    "tools/validate_message_catalogs.py",
+    "tools/validate_tier_boundaries.py",
+    "ci/steps/step_openapi_client_drift.ps1",
+    "docs/_schema/adr_schema.json",
+    "docs/_schema/tech_spec.schema.json",
+    "docs/_schema/how_to_guide.schema.json"
+  ],
+  "review_date": "2026-01-18"
+}

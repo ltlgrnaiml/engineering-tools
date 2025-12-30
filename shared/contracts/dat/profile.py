@@ -1,7 +1,7 @@
 """Tier-0 Pydantic contracts for DAT profile schema (Option A, Contracts-as-SSOT).
 
-Per ADR-0009 and ADR-0015: contracts are the single source of truth.
-Per ADR-0011 and SPEC-DAT-0011/0012/0002: DAT profiles govern all extraction logic.
+Per ADR-0010 and ADR-0016: contracts are the single source of truth.
+Per ADR-0012 and SPEC-0033/0012/0002: DAT profiles govern all extraction logic.
 """
 
 from datetime import datetime
@@ -30,7 +30,7 @@ class OnFailBehavior(str, Enum):
 
 
 class StrategyType(str, Enum):
-    """Extraction strategy types per SPEC-DAT-0012."""
+    """Extraction strategy types per SPEC-0009."""
 
     FLAT_OBJECT = "flat_object"
     HEADERS_DATA = "headers_data"
@@ -95,7 +95,7 @@ class RepeatOverConfig(BaseModel):
     """Repeat-over iteration configuration.
 
     Note: The field `as_var` is named to avoid Python keyword `as`.
-    In YAML profiles, this field is written as `as` per SPEC-DAT-0012.
+    In YAML profiles, this field is written as `as` per SPEC-0009.
     """
 
     path: str = Field(..., description="JSONPath to array to iterate")
@@ -319,7 +319,7 @@ class DATProfile(BaseModel):
     include_populations: list[str] = Field(default_factory=list)
     population_strategies: dict[str, Any] = Field(
         default_factory=dict,
-        description="Named population/sampling strategies per SPEC-DAT-0011 §5",
+        description="Named population/sampling strategies per SPEC-0033 §5",
     )
 
     # Context
@@ -334,7 +334,7 @@ class DATProfile(BaseModel):
     units_policy: Literal["preserve", "normalize", "strip"] = "preserve"
     unit_mappings: dict[str, dict[str, Any]] = Field(
         default_factory=dict,
-        description="Unit conversion mappings per SPEC-DAT-0011 §9",
+        description="Unit conversion mappings per SPEC-0033 §9",
     )
     numeric_coercion: bool = True
     nan_replacement: Any | None = None
@@ -367,18 +367,18 @@ class DATProfile(BaseModel):
     # Governance
     governance: GovernanceConfig | None = None
 
-    # Overrides (per SPEC-DAT-0011 §11)
+    # Overrides (per SPEC-0033 §11)
     overrides_allow: dict[str, bool] = Field(
         default_factory=dict,
-        description="What users CAN override per SPEC-DAT-0011 §11",
+        description="What users CAN override per SPEC-0033 §11",
     )
     overrides_deny: dict[str, bool] = Field(
         default_factory=dict,
-        description="What users CANNOT override per SPEC-DAT-0011 §11",
+        description="What users CANNOT override per SPEC-0033 §11",
     )
     overrides_discovery: dict[str, Any] = Field(
         default_factory=dict,
-        description="Discovery stage override limits per SPEC-DAT-0011 §11",
+        description="Discovery stage override limits per SPEC-0033 §11",
     )
 
     def get_level(self, name: str) -> LevelConfig | None:

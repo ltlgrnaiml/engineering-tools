@@ -2,7 +2,7 @@
 
 **Date**: 2025-12-29  
 **Type**: Acceptance Criteria Validation  
-**Scope**: PATCH_PLAN Milestones M1-M9, ADR-0011, SPEC-DAT-0011/0012/0002
+**Scope**: PATCH_PLAN Milestones M1-M9, ADR-0012, SPEC-0033/0012/0002
 
 ---
 
@@ -154,27 +154,27 @@ The 9-milestone patch plan is successfully implemented:
 - **Status**: Accepted
 - **Last Updated**: 2025-12-29
 - **Content**: Major update with 10-section profile schema, 6 extraction strategies, three-layer architecture
-- **References**: SPEC-DAT-0002, SPEC-DAT-0011, SPEC-DAT-0012
+- **References**: SPEC-0025, SPEC-0033, SPEC-0009
 
 ### SPEC-DAT-0011_Profile-Schema ✅
 
 - **Status**: Accepted (v1.0.0)
 - **Date**: 2025-12-29
-- **Implements**: ADR-0011
+- **Implements**: ADR-0012
 - **Content**: Complete 11-section profile schema definition
 
 ### SPEC-DAT-0012_Extraction-Strategies ✅
 
 - **Status**: Accepted (v1.0.0)
 - **Date**: 2025-12-29
-- **Implements**: ADR-0011
+- **Implements**: ADR-0012
 - **Content**: 6 extraction strategies with examples
 
 ### SPEC-DAT-0002_Profile-Extraction ✅
 
 - **Status**: Accepted (v1.0.0)
 - **Date**: 2025-12-29
-- **Implements**: ADR-0011
+- **Implements**: ADR-0012
 - **Content**: End-to-end profile extraction flow
 
 ---

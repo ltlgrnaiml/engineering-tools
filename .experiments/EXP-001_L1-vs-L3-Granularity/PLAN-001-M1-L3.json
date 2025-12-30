@@ -266,7 +266,7 @@
       ],
       "references": [
         "gateway/routes/devtools.py",
-        "SPEC-0046 F04, F05, F06 for requirements"
+        "SPEC-0003 F04, F05, F06 for requirements"
       ],
       "steps": [
         {

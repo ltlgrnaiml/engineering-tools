@@ -1,0 +1,133 @@
+{
+  "schema_type": "adr",
+  "id": "ADR-0029_unified-rendering-engine",
+  "title": "Unified Rendering Engine for Cross-Tool Visualization and Output Generation",
+  "status": "accepted",
+  "date": "2025-12-27",
+  "review_date": "2026-06-27",
+  "deciders": "Mycahya Eggleston",
+  "scope": "cross-cutting",
+  "provenance": [
+    {
+      "at": "2025-12-27",
+      "by": "AI Architecture Analysis",
+      "note": "Initial draft consolidating rendering logic from DAT, SOV, and PPTX into unified shared engine"
+    }
+  ],
+  "context": "The engineering-tools platform has three tools that each require visualization and rendering capabilities: DAT (data table previews), SOV (statistical charts and ANOVA visualizations), and PPTX (charts, tables, images embedded in slides). Currently, rendering logic is fragmented: PPTX has its own renderer system (ADR-0045), SOV has visualization contracts (ADR-0045), and DAT lacks formal rendering contracts. This leads to: (1) Code duplication across matplotlib-based chart generation, (2) Inconsistent styling and theming, (3) Difficulty sharing visualizations between tools (e.g., SOV chart in PPTX report), (4) Multiple contracts describing similar concepts (ChartConfig in pptx/shape.py vs BoxPlotConfig in sov/visualization.py). A unified rendering engine would improve DRY, enable cross-tool visualization sharing, and provide consistent output across web previews, exported images, and PowerPoint slides.",
+  "decision_primary": "Create a Unified Rendering Engine in shared/ that provides: (1) Common render specification contracts (RenderSpec hierarchy) defining WHAT to render, (2) Output target adapters defining WHERE to render (web preview, PNG/SVG export, PPTX shape), (3) A shared rendering pipeline that transforms specs into outputs. All tools (DAT, SOV, PPTX) consume the same RenderSpec contracts. Tool-specific rendering logic (e.g., PPTX shape population) becomes a thin adapter layer over the unified engine. The engine uses matplotlib for static chart generation but contracts remain renderer-agnostic to support future backend swaps (e.g., Plotly, Vega).",
+  "decision_details": {
+    "approach": "Three-layer architecture: (1) Contracts layer (shared/contracts/core/rendering.py) defines RenderSpec types as Pydantic models, (2) Engine layer (shared/rendering/) implements rendering logic, (3) Adapter layer provides target-specific output (WebAdapter, ImageAdapter, PPTXAdapter). Tools create RenderSpecs and pass to engine with desired adapter.",
+    "constraints": [
+      "All render specifications MUST be Pydantic models in shared/contracts/core/rendering.py",
+      "RenderSpec contracts define WHAT, not HOW (renderer-agnostic)",
+      "Engine MUST support multiple output targets from same spec",
+      "Default styling comes from PlotStyle contract; tools can override",
+      "PPTX adapter wraps existing python-pptx logic; engine produces images",
+      "Web adapter produces JSON for frontend charting libraries (Recharts, Chart.js)",
+      "Image adapter produces PNG/SVG via matplotlib",
+      "Engine MUST NOT have tool-specific dependencies (no pptx, no FastAPI)",
+      "Tool-specific contracts (sov/visualization.py, pptx/shape.py) SHOULD import from core/rendering.py"
+    ],
+    "implementation_specs": [
+      "SPEC-0031_Unified-Rendering-Contracts",
+      "SPEC-0032_Rendering-Engine-Architecture",
+      "SPEC-0033_Output-Target-Adapters"
+    ],
+    "tier_0_contracts": [
+      "shared/contracts/core/rendering.py"
+    ]
+  },
+  "consequences": [
+    "DRY: Single implementation for chart/table rendering used by all tools",
+    "Consistency: Same styling and theming across DAT previews, SOV charts, PPTX slides",
+    "Composability: SOV can produce RenderSpecs that PPTX consumes directly",
+    "Testability: Rendering logic tested once in shared/, adapters tested per-target",
+    "Extensibility: New chart types added once, available to all tools",
+    "Migration: Existing PPTX renderers refactored to use shared engine (breaking change to internal API)",
+    "Migration: SOV visualization contracts refactored to extend RenderSpec hierarchy",
+    "Complexity: Additional abstraction layer between tools and rendering",
+    "Risk: Performance overhead if adapter layer is not optimized"
+  ],
+  "alternatives_considered": [
+    {
+      "name": "Keep Tool-Specific Renderers",
+      "pros": "No migration, tools remain independent",
+      "cons": "Continued duplication, inconsistent styling, no cross-tool sharing",
+      "rejected_reason": "Does not address DRY concerns or enable SOV->PPTX visualization flow"
+    },
+    {
+      "name": "Frontend-Only Rendering",
+      "pros": "Leverage React charting libraries, interactive charts",
+      "cons": "Cannot generate PPTX or static images, requires data transfer to frontend",
+      "rejected_reason": "PPTX generation requires backend rendering; static exports needed"
+    },
+    {
+      "name": "External Rendering Service (Microservice)",
+      "pros": "Complete decoupling, can scale independently",
+      "cons": "Operational complexity, latency, deployment overhead",
+      "rejected_reason": "Overkill for current scale; shared library sufficient"
+    }
+  ],
+  "tradeoffs": "We trade tool independence for unified implementation. Migration effort required but provides long-term maintainability. Abstraction adds indirection but enables output target flexibility. Matplotlib dependency is acceptable for static generation; contracts remain agnostic for future renderer swaps.",
+  "guardrails": [
+    {
+      "rule": "All visualization code MUST use RenderSpec contracts from shared/contracts/core/rendering.py",
+      "enforcement": "CI lint rule checking imports; code review",
+      "scope": "cross-cutting",
+      "id": "unified-render-contracts"
+    },
+    {
+      "rule": "RenderSpec contracts MUST NOT contain renderer-specific logic (e.g., no matplotlib axes objects)",
+      "enforcement": "Code review; type checking",
+      "scope": "cross-cutting",
+      "id": "render-spec-agnostic"
+    },
+    {
+      "rule": "Tools MUST NOT directly import from shared/rendering/ engine internals; use public API only",
+      "enforcement": "Module __all__ exports; code review",
+      "scope": "cross-cutting",
+      "id": "render-engine-encapsulation"
+    },
+    {
+      "rule": "PlotStyle from contracts MUST be the single source of truth for default styling",
+      "enforcement": "Engine reads PlotStyle; no hardcoded style values in renderers",
+      "scope": "cross-cutting",
+      "id": "centralized-styling"
+    }
+  ],
+  "cross_cutting_guardrails": [
+    "ADR-0045: Contract Discipline - RenderSpec in shared/contracts/ is Tier 0",
+    "ADR-0045: Path Safety - All file outputs use RelativePath contracts",
+    "ADR-0045: Timestamps - Render results include UTC timestamps"
+  ],
+  "supersedes": [],
+  "superseded_by": null,
+  "related_adrs": [
+    "ADR-0021_PPTX-Renderer-Architecture",
+    "ADR-0024_SOV-Visualization-Contracts",
+    "ADR-0009_Type-Safety-Contract-Discipline"
+  ],
+  "references": [
+    "apps/pptx_generator/backend/renderers/",
+    "shared/contracts/sov/visualization.py",
+    "shared/contracts/pptx/shape.py"
+  ],
+  "tags": [
+    "rendering",
+    "visualization",
+    "charts",
+    "unified",
+    "cross-cutting",
+    "DRY"
+  ],
+  "affected_components": [
+    "shared/contracts/core/rendering.py",
+    "shared/rendering/",
+    "shared/contracts/sov/visualization.py",
+    "shared/contracts/pptx/shape.py",
+    "apps/pptx_generator/backend/renderers/",
+    "apps/sov_analyzer/backend/",
+    "apps/data_aggregator/backend/"
+  ]
+}

@@ -1,6 +1,6 @@
 """Base Output Adapter for the Unified Rendering Engine.
 
-Per ADR-0028: Output Target Adapters.
+Per ADR-0029: Output Target Adapters.
 
 This module defines the abstract base class for all output adapters.
 Concrete adapters (PNG, SVG, PPTX, etc.) inherit from this class.
@@ -28,7 +28,7 @@ __version__ = "0.1.0"
 class BaseOutputAdapter(ABC):
     """Abstract base class for output adapters.
 
-    Per ADR-0028: All renderers implement this interface.
+    Per ADR-0029: All renderers implement this interface.
     Each adapter is responsible for:
     1. Receiving a RenderSpec
     2. Applying styles

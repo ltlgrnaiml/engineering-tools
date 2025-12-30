@@ -1,6 +1,6 @@
 """Project management endpoints.
 
-Per ADR-0031: All errors use ErrorResponse contract via errors.py helper.
+Per ADR-0032: All errors use ErrorResponse contract via errors.py helper.
 """
 
 from uuid import UUID
@@ -30,7 +30,7 @@ async def create_project(project_data: ProjectCreate) -> Project:
     """
     Create a new PowerPoint generation project.
 
-    Per ADR-0019: Creates workflow state for 7-step guided workflow.
+    Per ADR-0020: Creates workflow state for 7-step guided workflow.
 
     Args:
         project_data: Project creation data.
@@ -44,7 +44,7 @@ async def create_project(project_data: ProjectCreate) -> Project:
     )
     projects_db[project.project_id] = project
 
-    # Initialize workflow state per ADR-0019
+    # Initialize workflow state per ADR-0020
     workflow_states_db[project.project_id] = create_workflow_state(project.project_id)
 
     return project
@@ -234,7 +234,7 @@ async def clear_project_state(project_id: UUID, step_name: str) -> dict:
 
 @router.get("/{project_id}/workflow-state")
 async def get_workflow_state(project_id: UUID) -> dict:
-    """Get workflow FSM state for a project per ADR-0019.
+    """Get workflow FSM state for a project per ADR-0020.
 
     Returns the backend workflow state for frontend consumption.
 

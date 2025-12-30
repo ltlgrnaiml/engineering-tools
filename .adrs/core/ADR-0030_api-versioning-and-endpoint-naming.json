@@ -1,0 +1,248 @@
+{
+  "schema_type": "adr",
+  "id": "ADR-0030_api-versioning-and-endpoint-naming",
+  "title": "Simplified API Endpoint Naming (Solo-Dev Greenfield)",
+  "status": "accepted",
+  "date": "2025-12-28",
+  "review_date": "2026-06-28",
+  "deciders": "Mycahya Eggleston",
+  "scope": "core",
+  "provenance": [
+    {
+      "at": "2025-12-28",
+      "by": "Mycahya Eggleston",
+      "note": "Initial draft to resolve API versioning inconsistencies across tools"
+    },
+    {
+      "at": "2025-12-28",
+      "by": "Mycahya Eggleston",
+      "note": "SIMPLIFIED: Removed two-tier versioning for solo-dev greenfield context. Single pattern: /api/{tool}/{resource}. Version suffix added only on breaking changes."
+    }
+  ],
+  "context": "The engineering-tools platform consists of multiple tools (DAT, PPTX, SOV) accessed through a unified API Gateway. As a solo developer in a greenfield project with no external API consumers, the original two-tier versioning strategy (/api/v1/{resource} for gateway, /api/{tool}/v1/{resource} for tools) was over-engineered. Version prefixes add URL complexity without benefit when: (1) there are no external consumers requiring backward compatibility, (2) all code is under single developer control, (3) breaking changes can be applied directly. The simplified approach uses unversioned URLs by default, adding version suffixes only when a breaking change necessitates maintaining parallel implementations.",
+  "decision_primary": "Adopt a simplified single-tier URL pattern: /api/{tool}/{resource} for tool-specific APIs and /api/{resource} for cross-tool APIs. No version prefix by default. When a breaking change is required, introduce versioned endpoint alongside (e.g., /api/dat/runs-v2) rather than path-based versioning. This eliminates URL complexity while preserving the ability to version when actually needed.",
+  "decision_details": {
+    "approach": "Unversioned by default; suffix-based versioning on breaking changes only",
+    "url_anatomy": {
+      "pattern": "/api/{tool}/{resource}",
+      "components": {
+        "api_prefix": "Always '/api' for all routes",
+        "tool": "Tool name (dat, sov, pptx) or omitted for cross-tool",
+        "resource": "Resource name (runs, analyses, datasets, projects)",
+        "version_suffix": "Optional '-v2', '-v3' suffix on breaking changes"
+      }
+    },
+    "route_categories": {
+      "cross_tool": {
+        "description": "APIs that span multiple tools, served directly by gateway",
+        "pattern": "/api/{resource}",
+        "examples": [
+          "/api/datasets - Cross-tool DataSet discovery",
+          "/api/datasets/{id} - Get any DataSet by ID",
+          "/api/datasets/{id}/preview - Preview DataSet contents",
+          "/api/pipelines - Multi-tool workflow orchestration",
+          "/api/pipelines/{id}/execute - Execute pipeline",
+          "/api/devtools - Developer tooling APIs"
+        ]
+      },
+      "tool_specific": {
+        "description": "APIs specific to a single tool, mounted under /api/{tool}",
+        "pattern": "/api/{tool}/{resource}",
+        "examples": [
+          "/api/dat/runs - DAT run management",
+          "/api/dat/runs/{id}/stages/{stage} - DAT stage operations",
+          "/api/sov/analyses - SOV analysis management",
+          "/api/sov/analyses/{id}/anova - Run ANOVA",
+          "/api/pptx/projects - PPTX project management",
+          "/api/pptx/templates - Template operations"
+        ]
+      },
+      "health_checks": {
+        "description": "Health and readiness endpoints",
+        "pattern": "/health or /api/{tool}/health",
+        "examples": [
+          "/health - Gateway health",
+          "/api/dat/health - DAT tool health",
+          "/api/sov/health - SOV tool health"
+        ]
+      }
+    },
+    "versioning_on_breaking_change": {
+      "trigger": "When a breaking change is required and old behavior must be preserved",
+      "approach": "Add suffix-versioned endpoint alongside original",
+      "example": {
+        "original": "/api/dat/runs",
+        "new_version": "/api/dat/runs-v2",
+        "rationale": "Suffix versioning keeps related endpoints visually grouped; avoids deep path restructuring"
+      },
+      "deprecation": "Original endpoint marked deprecated via OpenAPI; removed after migration complete"
+    },
+    "implementation_specs": [
+      "SPEC-0008_Contract-Discipline-Api-Spec"
+    ],
+    "constraints": [
+      "Default URLs MUST NOT include version prefix",
+      "Cross-tool routes MUST use '/api/{resource}' pattern",
+      "Tool-specific routes MUST use '/api/{tool}/{resource}' pattern",
+      "Breaking changes MAY introduce suffix-versioned endpoints (e.g., /runs-v2)",
+      "Health endpoints remain at /health and /api/{tool}/health",
+      "OpenAPI specs MUST reflect actual paths"
+    ],
+    "naming_conventions": {
+      "resources": {
+        "rule": "Use plural nouns for collections, singular for singletons",
+        "examples": {
+          "correct": [
+            "/runs",
+            "/analyses",
+            "/datasets",
+            "/templates"
+          ],
+          "incorrect": [
+            "/run",
+            "/analysis",
+            "/dataset"
+          ]
+        }
+      },
+      "actions": {
+        "rule": "Use HTTP verbs for CRUD, verb paths for non-CRUD actions",
+        "examples": {
+          "crud": {
+            "create": "POST /api/dat/runs",
+            "read": "GET /api/dat/runs/{id}",
+            "update": "PUT /api/dat/runs/{id}",
+            "delete": "DELETE /api/dat/runs/{id}",
+            "list": "GET /api/dat/runs"
+          },
+          "non_crud": {
+            "execute": "POST /api/pipelines/{id}/execute",
+            "cancel": "POST /api/dat/runs/{id}/cancel",
+            "lock": "POST /api/dat/runs/{id}/stages/{stage}/lock",
+            "unlock": "POST /api/dat/runs/{id}/stages/{stage}/unlock",
+            "preview": "GET /api/dat/runs/{id}/preview"
+          }
+        }
+      },
+      "path_parameters": {
+        "rule": "Use snake_case for path parameters, descriptive names",
+        "examples": {
+          "correct": [
+            "{run_id}",
+            "{dataset_id}",
+            "{stage_name}"
+          ],
+          "incorrect": [
+            "{id}",
+            "{runId}",
+            "{STAGE}"
+          ]
+        }
+      },
+      "query_parameters": {
+        "rule": "Use snake_case, provide sensible defaults",
+        "examples": [
+          "?limit=50",
+          "?source_tool=dat",
+          "?include_metadata=true"
+        ]
+      }
+    }
+  },
+  "consequences": [
+    "✅ POSITIVE: Simpler, shorter URLs (/api/dat/runs vs /api/dat/v1/runs)",
+    "✅ POSITIVE: No version management overhead for greenfield development",
+    "✅ POSITIVE: Clear, predictable URL patterns across all tools",
+    "✅ POSITIVE: Tests can reliably target correct endpoints",
+    "✅ POSITIVE: OpenAPI specs accurately reflect paths",
+    "✅ POSITIVE: Solo-dev can make breaking changes directly without version ceremony",
+    "✅ POSITIVE: Suffix versioning available when parallel implementations needed",
+    "❌ NEGATIVE: If external consumers added later, may need to retrofit versioning",
+    "⚠️ NEUTRAL: Health checks remain simple (/health)"
+  ],
+  "alternatives_considered": [
+    {
+      "name": "Two-Tier Path Versioning (/api/v1/{tool}/v1/{resource})",
+      "pros": "Maximum flexibility, independent tool versioning, enterprise-ready",
+      "cons": "Over-engineered for solo-dev, longer URLs, unnecessary complexity",
+      "rejected_reason": "No external consumers; solo-dev controls entire codebase; version ceremony is pure overhead"
+    },
+    {
+      "name": "Header-Based Versioning (Accept header)",
+      "pros": "Clean URLs, version hidden from path",
+      "cons": "Harder to test, not visible in browser, poor cache behavior",
+      "rejected_reason": "Path-based is simpler for debugging and testing"
+    },
+    {
+      "name": "Query Parameter Versioning (?version=1)",
+      "pros": "URLs remain clean, explicit",
+      "cons": "Mixes versioning with query concerns, not RESTful",
+      "rejected_reason": "Query parameters should be for filtering/pagination"
+    }
+  ],
+  "tradeoffs": "We trade enterprise-ready versioning flexibility for simplicity. Solo-dev greenfield context means no backward compatibility burden. If external consumers are added later, versioning can be retrofitted (suffix approach is additive).",
+  "rollout_plan": [
+    "1. Update gateway/main.py to mount routes at '/api/{resource}' (remove /v1/)",
+    "2. Update DAT router to use direct resource paths",
+    "3. Update SOV router to use direct resource paths",
+    "4. Update PPTX routers to use direct resource paths",
+    "5. Update all tests to use simplified paths",
+    "6. Regenerate OpenAPI specs and validate",
+    "7. Remove conflicting version comments from route files"
+  ],
+  "rollback_plan": "If versioning is later required: (1) Add /v1/ prefix to all existing routes, (2) New breaking changes get /v2/ prefix. Low risk since adding version prefix is non-breaking.",
+  "metrics_to_watch": [
+    "Number of 404 errors in API calls (should decrease after standardization)",
+    "Test pass rate (should improve with consistent URLs)",
+    "URL length reduction (measurable improvement)"
+  ],
+  "guardrails": [
+    {
+      "id": "api-no-version-prefix-default",
+      "rule": "Default API routes MUST NOT include version prefix",
+      "enforcement": "Code review; OpenAPI validation",
+      "scope": "core"
+    },
+    {
+      "id": "api-resource-naming",
+      "rule": "Resource paths MUST use plural nouns (e.g., /runs not /run)",
+      "enforcement": "Code review; naming convention linter",
+      "scope": "core"
+    },
+    {
+      "id": "api-suffix-versioning-on-breaking",
+      "rule": "Breaking changes requiring parallel implementations MUST use suffix versioning (e.g., /runs-v2)",
+      "enforcement": "Code review",
+      "scope": "core"
+    }
+  ],
+  "cross_cutting_guardrails": [
+    "ADR-0007#api-endpoints-defined-openapi-specs: All endpoints must be in OpenAPI specs"
+  ],
+  "references": [
+    "ADR-0005_Swagger-Driven-E2E-Validation: API documentation",
+    "gateway/main.py: Gateway routing configuration",
+    "apps/*/backend/main.py: Tool-specific routing",
+    "RFC 7231: HTTP Semantics (resource naming)"
+  ],
+  "tags": [
+    "api",
+    "routing",
+    "rest",
+    "gateway",
+    "naming-convention",
+    "url-design",
+    "solo-dev",
+    "greenfield"
+  ],
+  "affected_components": [
+    "gateway/main.py",
+    "gateway/services/dataset_service.py",
+    "gateway/services/pipeline_service.py",
+    "gateway/services/devtools_service.py",
+    "apps/data_aggregator/backend/main.py",
+    "apps/sov_analyzer/backend/main.py",
+    "apps/pptx_generator/backend/main.py",
+    "tests/**/*.py (URL patterns)"
+  ]
+}

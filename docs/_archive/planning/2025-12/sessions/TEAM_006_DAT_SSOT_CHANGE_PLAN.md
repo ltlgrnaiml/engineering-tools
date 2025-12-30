@@ -18,7 +18,7 @@
 
 - `.adrs/dat/ADR-0001-DAT_Stage-Graph-Configuration.json`
 - `.adrs/dat/ADR-0003_Optional-Context-Preview-Stages.json`
-- `.adrs/dat/ADR-0004-DAT_Stage-ID-Configuration.json`
+- `.adrs/dat/ADR-0005-DAT_Stage-ID-Configuration.json`
 - `.adrs/dat/ADR-0006_Table-Availability.json`
 - `.adrs/dat/ADR-0011_Profile-Driven-Extraction-and-Adapters.json`
 - `.adrs/dat/ADR-0013_Cancellation-Semantics-Parse-Export.json`
@@ -54,12 +54,12 @@
 
 ## Confirmed Decisions (User)
 
-- **ADR-0029 alignment**: Include gateway + tool API path normalization to the simplified pattern (unversioned by default).
+- **ADR-0030 alignment**: Include gateway + tool API path normalization to the simplified pattern (unversioned by default).
 - **Discovery UX semantics**: Discovery = user chooses a location to scan; Selection appears below on the same page as a list to pick from.
 
 ## Current Findings (Req → Code Map)
 
-### API routing + versioning (ADR-0029)
+### API routing + versioning (ADR-0030)
 
 - **Gateway mounts (cross-tool)**: `gateway/main.py` mounts cross-tool routers at `/api/v1/*` (e.g., `/api/v1/datasets`, `/api/v1/pipelines`, `/api/v1/devtools`).
 - **Gateway mounts (tool apps)**: `gateway/main.py` mounts tools at `/api/dat`, `/api/sov`, `/api/pptx`.
@@ -68,9 +68,9 @@
 - **PPTX tool routers**: `apps/pptx_generator/backend/main.py` includes routers under `/v1/*`, making effective paths `/api/pptx/v1/...`.
 - **Gateway pipeline dispatch**: `gateway/services/pipeline_service.py` hardcodes tool base URLs with `/api/{tool}/v1`.
 - **Frontend**: DAT frontend currently calls `/api/dat/v1/...` (e.g., `apps/data_aggregator/frontend/src/hooks/useRun.ts`).
-- **Misalignment**: ADR-0029 requires unversioned `/api/{resource}` and `/api/{tool}/{resource}` by default (suffix versioning only on breaking changes).
+- **Misalignment**: ADR-0030 requires unversioned `/api/{resource}` and `/api/{tool}/{resource}` by default (suffix versioning only on breaking changes).
 
-### Stage graph + optional stages (ADR-0001-DAT, ADR-0003, ADR-0001 core)
+### Stage graph + optional stages (ADR-0004, ADR-0004, ADR-0001 core)
 
 - **Backend orchestrator**: `apps/data_aggregator/backend/src/dat_aggregation/core/state_machine.py` hardcodes `FORWARD_GATES` and `CASCADE_TARGETS`.
 - **Config module exists but unused**: `apps/data_aggregator/backend/src/dat_aggregation/core/stage_graph_config.py` defines `StageGraphConfig.default()` with gate/cascade rules; it is not currently consumed by `DATStateMachine`.
@@ -80,27 +80,27 @@
 - **Skip semantics not implemented**: `docs/specs/core/SPEC-0044_Stage-Completion-Semantics.json` defines `skip_complete` for optional stages (lock with `completed=true` on skip); current Preview skip does not set `completed=true`.
 - **Preview acknowledgment**: Preview lock returns `completed=False`; a generic `POST /runs/{run_id}/stages/{stage}/complete` endpoint exists and sets `completed=True`.
 
-### Deterministic stage IDs + path safety (ADR-0004, ADR-0004-DAT, ADR-0017)
+### Deterministic stage IDs + path safety (ADR-0005, ADR-0008, ADR-0018)
 
 - **Current ID util**: `shared/utils/stage_id.py` produces 16-hex IDs; backend uses this in `DATStateMachine.lock_stage`.
 - **Contract ID util**: `shared/contracts/core/id_generator.py` produces 8-hex IDs by default and defines typed `*StageInputs` models.
 - **Discovery inputs include absolute paths**: `POST /runs/{run_id}/stages/discovery/lock` hashes `{"root_path": str(source_path)}` (currently absolute), violating cross-machine determinism and path-safety expectations.
 
-### Table availability (ADR-0006, SPEC-DAT-0006)
+### Table availability (ADR-0008, SPEC-0008)
 
 - **Current implementation**: `GET /runs/{run_id}/stages/table_availability/scan` reads full tables (`adapter.read`) to compute row/column counts; this may violate the “fast probe” intent and large-file streaming constraints.
 
-### Adapters / profiles / streaming (ADR-0011, SPEC-DAT-0003/0004/0005)
+### Adapters / profiles / streaming (ADR-0012, SPEC-0026/0004/0005)
 
 - **Adapters**: two parallel implementations exist:
   - `apps/data_aggregator/backend/src/dat_aggregation/adapters/*` (sync protocol in `adapters/base.py`) used by current pipeline endpoints.
   - `apps/data_aggregator/backend/adapters/*` (contract-style adapters with `probe_schema/read_dataframe/stream_dataframe`) plus registry tests.
-- **Profiles**: DAT API exposes `GET /profiles` only; profile CRUD + validation flows from SPEC-DAT-0005 are not implemented in the current router.
+- **Profiles**: DAT API exposes `GET /profiles` only; profile CRUD + validation flows from SPEC-0007 are not implemented in the current router.
 - **Progress / jobs**: WebSocket progress infra exists (`api/websocket.py`) and a background `JobService` exists, but parse currently runs inline and the progress endpoint is minimal (`GET /runs/{run_id}/stages/parse/progress`).
 
 ## Deterministic Change Plan (Draft)
 
-### Milestone M1: ADR-0029 API Path Normalization (Gateway + Tools + Frontends + Tests)
+### Milestone M1: ADR-0030 API Path Normalization (Gateway + Tools + Frontends + Tests)
 
 **Goal**: Remove default `/v1` prefixes across gateway + tool APIs so the canonical paths are:
 - cross-tool: `/api/{resource}`
@@ -141,7 +141,7 @@
 
 #### Acceptance Criteria
 
-- All gateway routes exist at the unversioned paths described in ADR-0029.
+- All gateway routes exist at the unversioned paths described in ADR-0030.
 - No production code references `/api/*/v1` or `/api/v1/*` as default routes.
 - All affected frontends load successfully without 404s due to path changes.
 - OpenAPI specs served by gateway + tools reflect the actual, unversioned paths.

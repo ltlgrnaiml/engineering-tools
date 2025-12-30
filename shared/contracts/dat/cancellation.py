@@ -1,6 +1,6 @@
 """DAT Cancellation semantics contracts.
 
-Per ADR-0013: Cancellation Semantics for Parse & Export.
+Per ADR-0014: Cancellation Semantics for Parse & Export.
 
 This module defines contracts for cancellation behavior including:
 - Soft cancellation with artifact preservation
@@ -54,7 +54,7 @@ class CleanupState(str, Enum):
 
 
 # =============================================================================
-# Checkpoint Contracts (Per ADR-0013: No partial data)
+# Checkpoint Contracts (Per ADR-0014: No partial data)
 # =============================================================================
 
 
@@ -70,7 +70,7 @@ class CheckpointType(str, Enum):
 class Checkpoint(BaseModel):
     """A checkpoint marking completed work.
 
-    Per ADR-0013: Only fully completed work is persisted.
+    Per ADR-0014: Only fully completed work is persisted.
     Checkpoints mark safe points where data integrity is guaranteed.
     """
 
@@ -127,7 +127,7 @@ class CheckpointRegistry(BaseModel):
 class CancellationRequest(BaseModel):
     """Request to cancel an operation.
 
-    Per ADR-0013: Cancellation preserves completed artifacts.
+    Per ADR-0014: Cancellation preserves completed artifacts.
     """
 
     job_id: str = Field(..., description="ID of the job to cancel")
@@ -150,7 +150,7 @@ class CancellationRequest(BaseModel):
 class CancellationResult(BaseModel):
     """Result of a cancellation operation.
 
-    Per ADR-0013: No partial data persisted after cancellation.
+    Per ADR-0014: No partial data persisted after cancellation.
     """
 
     job_id: str
@@ -194,7 +194,7 @@ class CancellationResult(BaseModel):
 
 
 # =============================================================================
-# Cleanup Contracts (Per ADR-0013: Explicit cleanup)
+# Cleanup Contracts (Per ADR-0014: Explicit cleanup)
 # =============================================================================
 
 
@@ -211,7 +211,7 @@ class CleanupTarget(str, Enum):
 class CleanupRequest(BaseModel):
     """Request for explicit cleanup of temporary/orphaned data.
 
-    Per ADR-0013: Cleanup is explicit and user-initiated.
+    Per ADR-0014: Cleanup is explicit and user-initiated.
     """
 
     job_id: str | None = Field(
@@ -287,7 +287,7 @@ class CancellableOperationState(str, Enum):
 class CancellableOperation(BaseModel):
     """Tracks a cancellable operation with checkpointing.
 
-    Per ADR-0013: Operations support soft cancellation with
+    Per ADR-0014: Operations support soft cancellation with
     checkpoint-based data integrity guarantees.
     """
 
@@ -333,15 +333,15 @@ class CancellableOperation(BaseModel):
 
 
 # =============================================================================
-# Audit Trail for Cancellation (Per ADR-0008, ADR-0013)
+# Audit Trail for Cancellation (Per ADR-0009, ADR-0014)
 # =============================================================================
 
 
 class CancellationAuditEntry(BaseModel):
     """Audit trail entry for cancellation events.
 
-    Per ADR-0008: ISO-8601 UTC timestamps for all lifecycle events.
-    Per ADR-0013: All cancellation events must be logged and auditable.
+    Per ADR-0009: ISO-8601 UTC timestamps for all lifecycle events.
+    Per ADR-0014: All cancellation events must be logged and auditable.
     """
 
     event_id: str

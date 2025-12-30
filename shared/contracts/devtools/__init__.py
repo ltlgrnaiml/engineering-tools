@@ -1,6 +1,6 @@
 """DevTools contracts package.
 
-Per ADR-0027: DevTools Page Architecture.
+Per ADR-0028: DevTools Page Architecture.
 
 Exports all DevTools-related Pydantic contracts.
 """

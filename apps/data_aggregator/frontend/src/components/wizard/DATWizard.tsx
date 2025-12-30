@@ -1,8 +1,8 @@
 /**
  * DAT Wizard - Horizontal Stepper Component
  *
- * Per ADR-0041: DAT UI Horizontal Wizard Pattern
- * Per SPEC-DAT-0003: 8-stage pipeline mapped to UI
+ * Per ADR-0043: DAT UI Horizontal Wizard Pattern
+ * Per SPEC-0026: 8-stage pipeline mapped to UI
  *
  * Features:
  * - Horizontal stepper with 8 visible stages
@@ -351,7 +351,7 @@ export function DATWizard({
 
 /**
  * Default DAT stages configuration.
- * Per ADR-0041: 8-stage pipeline
+ * Per ADR-0043: 8-stage pipeline
  */
 export const DEFAULT_DAT_STAGES: StageConfig[] = [
   {

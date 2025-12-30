@@ -1,4 +1,4 @@
-"""PPTX Workflow FSM - 7-step guided workflow per ADR-0019.
+"""PPTX Workflow FSM - 7-step guided workflow per ADR-0020.
 
 Implements the 'simple_linear' state model with 'reset_validation' cascade policy.
 
@@ -11,7 +11,7 @@ Steps:
 6. Validate
 7. Generate
 
-Per ADR-0019: Generate button MUST be disabled until Step 6 passes.
+Per ADR-0020: Generate button MUST be disabled until Step 6 passes.
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ __version__ = "0.1.0"
 
 
 class WorkflowStep(str, Enum):
-    """The 7 steps in PPTX workflow per ADR-0019."""
+    """The 7 steps in PPTX workflow per ADR-0020."""
 
     UPLOAD_TEMPLATE = "upload_template"
     CONFIGURE_ENV = "configure_env"
@@ -75,7 +75,7 @@ class WorkflowState:
                 self.steps[step] = StepState(step=step)
 
 
-# Step dependencies per ADR-0019
+# Step dependencies per ADR-0020
 STEP_DEPENDENCIES: dict[WorkflowStep, list[WorkflowStep]] = {
     WorkflowStep.UPLOAD_TEMPLATE: [],
     WorkflowStep.CONFIGURE_ENV: [WorkflowStep.UPLOAD_TEMPLATE],
@@ -120,7 +120,7 @@ class WorkflowValidationError(Exception):
 class WorkflowFSM:
     """Finite State Machine for PPTX 7-step workflow.
 
-    Per ADR-0019: Implements forward gating and reset_validation cascade.
+    Per ADR-0020: Implements forward gating and reset_validation cascade.
     """
 
     def __init__(self, state: WorkflowState) -> None:
@@ -130,7 +130,7 @@ class WorkflowFSM:
     def can_transition_to(self, target_step: WorkflowStep) -> bool:
         """Check if transition to target step is allowed.
 
-        Per ADR-0019: Forward gating requires all dependencies complete.
+        Per ADR-0020: Forward gating requires all dependencies complete.
 
         Args:
             target_step: Step to transition to.
@@ -201,7 +201,7 @@ class WorkflowFSM:
     def modify_step(self, step: WorkflowStep) -> list[WorkflowStep]:
         """Handle modification of a completed step (reset downstream).
 
-        Per ADR-0019: Cascade policy is 'reset_validation' - changes reset
+        Per ADR-0020: Cascade policy is 'reset_validation' - changes reset
         downstream validation status.
 
         Args:
@@ -244,7 +244,7 @@ class WorkflowFSM:
     def pass_validation(self, validation_results: list[str] | None = None) -> None:
         """Mark validation step as passed ('Four Green Bars').
 
-        Per ADR-0019: Generate requires validation to pass.
+        Per ADR-0020: Generate requires validation to pass.
 
         Args:
             validation_results: Optional list of validation warnings (not errors).
@@ -262,7 +262,7 @@ class WorkflowFSM:
     def can_generate(self) -> bool:
         """Check if Generate step is allowed.
 
-        Per ADR-0019: Generate MUST be disabled until Step 6 passes.
+        Per ADR-0020: Generate MUST be disabled until Step 6 passes.
 
         Returns:
             True if generation is allowed.
@@ -322,7 +322,7 @@ def create_workflow_state(project_id: UUID) -> WorkflowState:
 
 
 def check_generate_allowed(state: WorkflowState) -> tuple[bool, str | None]:
-    """Check if generation is allowed per ADR-0019.
+    """Check if generation is allowed per ADR-0020.
 
     Args:
         state: Current workflow state.

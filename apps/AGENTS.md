@@ -31,7 +31,7 @@ apps/{tool}/
 - Mount at `/api/{tool}/` via gateway
 - Use versioned routes internally: `/v1/{resource}`
 - Return Pydantic models (import from `shared.contracts`)
-- Use `ErrorResponse` contract for all errors (ADR-0031)
+- Use `ErrorResponse` contract for all errors (ADR-0032)
 
 ### Error Handling
 
@@ -55,9 +55,9 @@ from shared.contracts.core.error_response import ErrorResponse
 
 | Tool | Purpose | Key ADRs |
 |------|---------|----------|
-| **data_aggregator** | Multi-source data extraction | ADR-0011 (Profiles), ADR-0040 (Streaming) |
-| **pptx_generator** | Automated PowerPoint reports | ADR-0018-0021 (Templates, Renderers) |
-| **sov_analyzer** | Source of Variation analysis | ADR-0022-0024 (ANOVA, Visualization) |
+| **data_aggregator** | Multi-source data extraction | ADR-0012 (Profiles), ADR-0041 (Streaming) |
+| **pptx_generator** | Automated PowerPoint reports | ADR-0019-0021 (Templates, Renderers) |
+| **sov_analyzer** | Source of Variation analysis | ADR-0023-0024 (ANOVA, Visualization) |
 
 ---
 

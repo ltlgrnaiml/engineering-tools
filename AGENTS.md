@@ -23,16 +23,16 @@ This platform follows a **first-principles, AI-assisted, greenfield** developmen
 
 | Priority | ADR | Key Rule |
 |----------|-----|----------|
-| 🔴 | **ADR-0009** | Contracts in `shared/contracts/` are SSOT. Never duplicate. |
-| 🔴 | **ADR-0033** | AI-parseable patterns: `{verb}_{noun}()`, Google docstrings |
-| 🔴 | **ADR-0004** | Deterministic SHA-256 IDs for reproducibility |
+| 🔴 | **ADR-0010** | Contracts in `shared/contracts/` are SSOT. Never duplicate. |
+| 🔴 | **ADR-0034** | AI-parseable patterns: `{verb}_{noun}()`, Google docstrings |
+| 🔴 | **ADR-0005** | Deterministic SHA-256 IDs for reproducibility |
 | 🟡 | **ADR-0002** | Never delete artifacts on unlock. Preserve user work. |
-| 🟡 | **ADR-0017** | Cross-cutting guardrails (see below) |
-| 🟡 | **ADR-0031** | All HTTP errors use `ErrorResponse` contract |
+| 🟡 | **ADR-0018** | Cross-cutting guardrails (see below) |
+| 🟡 | **ADR-0032** | All HTTP errors use `ErrorResponse` contract |
 
 ---
 
-## Guardrails Checklist (ADR-0017)
+## Guardrails Checklist (ADR-0018)
 
 Before any code change, verify:
 
@@ -44,7 +44,7 @@ Before any code change, verify:
 
 ---
 
-## Contract Discipline (ADR-0009)
+## Contract Discipline (ADR-0010)
 
 ```python
 # ✅ CORRECT: Import from shared.contracts
@@ -59,12 +59,12 @@ class DataSetManifest(BaseModel):  # NEVER DO THIS
 **Rules**:
 
 - ALL shared data structures → `shared/contracts/`
-- ALL contracts have `__version__` attribute (YYYY.MM.PATCH per ADR-0016)
+- ALL contracts have `__version__` attribute (YYYY.MM.PATCH per ADR-0017)
 - Import, never duplicate
 
 ---
 
-## Code Patterns (ADR-0033)
+## Code Patterns (ADR-0034)
 
 ### Naming Conventions
 
@@ -108,7 +108,7 @@ def compute_stage_id(inputs: dict[str, Any], seed: int = 42) -> str:
 |---------|------------------|
 | Using absolute file paths in API responses | Use relative paths; call `assert_relpath_safe()` |
 | Deleting artifacts on unlock/cancel | Set `locked: false`; preserve files |
-| Using raw `multiprocessing` | Use spawn-safe concurrency API (ADR-0012) |
+| Using raw `multiprocessing` | Use spawn-safe concurrency API (ADR-0013) |
 | Hardcoding user messages | Use message catalog |
 | Creating backward compatibility shims | Delete old, fix all call sites directly |
 
@@ -132,7 +132,7 @@ engineering-tools/
 
 ---
 
-## 3-Tier Document Model (ADR-0015)
+## 3-Tier Document Model (ADR-0016)
 
 ```
 Tier 0: shared/contracts/     → Pydantic models (SSOT)
@@ -172,7 +172,7 @@ Every AI session must:
 
 <!-- WINDSURF_SPECIFIC: AI Development Workflow section -->
 
-## AI Development Workflow (ADR-0041)
+## AI Development Workflow (ADR-0043)
 
 ### 6-Tier Hierarchy
 

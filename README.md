@@ -73,7 +73,7 @@ engineering-tools/
 
 ## Documentation Hierarchy (3-Tier Model)
 
-Per [ADR-0015](/.adrs/ADR-0015_3-Tier-Document-Model.json):
+Per [ADR-0016](/.adrs/ADR-0015_3-Tier-Document-Model.json):
 
 - **Tier 0**: `shared/contracts/` - Pydantic models (source of truth)
 - **Tier 1**: `.adrs/` - ADRs explain WHY decisions were made
@@ -84,10 +84,10 @@ Per [ADR-0015](/.adrs/ADR-0015_3-Tier-Document-Model.json):
 
 | ADR | Topic |
 |-----|-------|
-| ADR-0009 | Type Safety & Contract Discipline |
-| ADR-0015 | 3-Tier Document Model |
-| ADR-0016 | Hybrid Semver Contract Versioning |
-| ADR-0017 | Cross-Cutting Guardrails |
+| ADR-0010 | Type Safety & Contract Discipline |
+| ADR-0016 | 3-Tier Document Model |
+| ADR-0017 | Hybrid Semver Contract Versioning |
+| ADR-0018 | Cross-Cutting Guardrails |
 
 ## Development
 

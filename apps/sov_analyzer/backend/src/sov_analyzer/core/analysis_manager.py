@@ -1,6 +1,6 @@
 """Analysis manager for SOV tool.
 
-Per ADR-0023: Input via DataSetRef; output with lineage tracking.
+Per ADR-0024: Input via DataSetRef; output with lineage tracking.
 """
 import uuid
 import json
@@ -49,12 +49,12 @@ class AnalysisManager:
     ) -> dict:
         """Create a new SOV analysis.
 
-        Per ADR-0023: Input via DataSetRef for lineage tracking.
+        Per ADR-0024: Input via DataSetRef for lineage tracking.
 
         Args:
             name: Optional human-readable name.
             dataset_id: Optional input DataSet ID (legacy).
-            dataset_ref: Optional DataSetRef for input (preferred per ADR-0023).
+            dataset_ref: Optional DataSetRef for input (preferred per ADR-0024).
 
         Returns:
             Analysis metadata dict.
@@ -144,7 +144,7 @@ class AnalysisManager:
     ) -> list[ANOVAResult]:
         """Run ANOVA analysis.
         
-        Per ADR-0023: Input column metadata is preserved for output.
+        Per ADR-0024: Input column metadata is preserved for output.
         
         Args:
             analysis_id: Analysis ID
@@ -165,7 +165,7 @@ class AnalysisManager:
             if not dataset_id:
                 raise ValueError("No data provided and no dataset_id set")
             data, manifest = await self.store.read_dataset_with_manifest(dataset_id)
-            # Preserve input column metadata per ADR-0023
+            # Preserve input column metadata per ADR-0024
             if manifest:
                 input_column_meta = {col.name: col for col in manifest.columns}
                 metadata["input_column_meta"] = [
@@ -191,7 +191,7 @@ class AnalysisManager:
         with open(analysis_dir / "results.json", "w") as f:
             json.dump(results_data, f, indent=2)
         
-        # Generate visualization specs per ADR-0024
+        # Generate visualization specs per ADR-0025
         viz_specs = self.viz_service.generate_all_visualizations(
             results=results,
             analysis_id=analysis_id,
@@ -256,7 +256,7 @@ class AnalysisManager:
             row_count=len(data),
         )
         
-        # Create manifest with lineage per ADR-0023
+        # Create manifest with lineage per ADR-0024
         now = datetime.now(timezone.utc)
         parent_ids = metadata.get("parent_dataset_ids", [])
         if not parent_ids and metadata.get("dataset_id"):
@@ -265,7 +265,7 @@ class AnalysisManager:
         # Get visualization specs from metadata (generated during run_analysis)
         viz_specs = metadata.get("visualization_specs", [])
         
-        # Build column metadata with SOV annotations per ADR-0023
+        # Build column metadata with SOV annotations per ADR-0024
         input_column_meta = metadata.get("input_column_meta", [])
         input_meta_map = {c["name"]: c for c in input_column_meta} if input_column_meta else {}
         
@@ -306,7 +306,7 @@ class AnalysisManager:
             analysis_type="anova",
             factors=metadata["results"][0]["factors"] if metadata["results"] else None,
             response_columns=[r["response_column"] for r in metadata["results"]],
-            visualization_specs=viz_specs,  # Per ADR-0024: Include viz contracts
+            visualization_specs=viz_specs,  # Per ADR-0025: Include viz contracts
         )
         
         # Write to shared storage

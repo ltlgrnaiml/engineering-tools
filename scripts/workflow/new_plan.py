@@ -9,7 +9,7 @@ This script:
 2. Creates a new plan file from template
 3. Updates INDEX.md with the new plan
 
-Per ADR-0041: AI Development Workflow Orchestration.
+Per ADR-0043: AI Development Workflow Orchestration.
 """
 
 import re

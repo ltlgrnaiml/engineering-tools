@@ -1,6 +1,6 @@
 """Tests for deterministic ID generation.
 
-Per ADR-0004: IDs must be deterministic (same inputs = same ID).
+Per ADR-0005: IDs must be deterministic (same inputs = same ID).
 """
 import pytest
 
@@ -30,7 +30,7 @@ class TestStageIdGeneration:
         stage_id = compute_stage_id(inputs, prefix="stg_")
         
         assert stage_id.startswith("stg_")
-        assert len(stage_id) == 4 + 8  # prefix + 8 hex chars per ADR-0004-DAT
+        assert len(stage_id) == 4 + 8  # prefix + 8 hex chars per ADR-0008
 
     def test_compute_stage_id_different_inputs(self):
         """Test that different inputs produce different IDs."""

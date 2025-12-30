@@ -1,6 +1,6 @@
 """Standardized error handling for DAT (Data Aggregator) API.
 
-Per ADR-0031: All HTTP errors MUST use ErrorResponse contract.
+Per ADR-0032: All HTTP errors MUST use ErrorResponse contract.
 Per API-003: Error responses MUST use standard error schema.
 
 This module provides a centralized error helper that all DAT API
@@ -27,7 +27,7 @@ def raise_error(
 ) -> None:
     """Raise HTTPException with standardized ErrorResponse.
 
-    Per ADR-0031: All DAT errors use ErrorResponse contract.
+    Per ADR-0032: All DAT errors use ErrorResponse contract.
 
     Args:
         status_code: HTTP status code (400, 404, 500, etc.).
@@ -183,7 +183,7 @@ def raise_stage_error(stage_id: str, message: str) -> None:
 def raise_cancellation_error(job_id: str, message: str) -> None:
     """Raise error related to cancellation operations.
 
-    Per ADR-0013: Cancellation semantics.
+    Per ADR-0014: Cancellation semantics.
 
     Args:
         job_id: ID of the job.

@@ -3,7 +3,7 @@
 <!-- WINDSURF_SPECIFIC: This guide contains Windsurf-specific sections.
      Search for "WINDSURF_SPECIFIC" to find and remove/replace when migrating. -->
 
-> **ADR Reference**: ADR-0041 (AI Development Workflow Orchestration)
+> **ADR Reference**: ADR-0043 (AI Development Workflow Orchestration)
 > **Version**: 1.0.0
 > **Last Updated**: 2025-12-30
 
@@ -161,7 +161,7 @@ python -c "from shared.contracts.plan_schema import PlanSchema; import json; Pla
 
 ### Plan Granularity Levels
 
-Plans support **tiered granularity** for cost-effective AI execution (per ADR-0043):
+Plans support **tiered granularity** for cost-effective AI execution (per ADR-0045):
 
 | Level | Detail | Model Tier | Task Fields |
 |-------|--------|------------|-------------|
@@ -214,7 +214,7 @@ Plans support **tiered granularity** for cost-effective AI execution (per ADR-00
 
 For L3 plans targeting budget models (Haiku, Flash, Grok, GPT-4o-mini), plans are **chunked** to fit smaller context windows.
 
-**Chunk Limits** (per ADR-0041):
+**Chunk Limits** (per ADR-0043):
 
 | Limit | Lines | Rationale |
 |-------|-------|-----------|

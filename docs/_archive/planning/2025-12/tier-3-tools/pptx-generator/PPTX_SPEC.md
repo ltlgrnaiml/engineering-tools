@@ -322,6 +322,6 @@ mapping = {
 | ADR | Application in PPTX |
 |-----|---------------------|
 | ADR-0002 | Preserve outputs on cancel |
-| ADR-0004 | Deterministic run IDs |
-| ADR-0008 | Timestamps in report metadata |
-| ADR-0013 | Render cancellation semantics |
+| ADR-0005 | Deterministic run IDs |
+| ADR-0009 | Timestamps in report metadata |
+| ADR-0014 | Render cancellation semantics |

@@ -10,7 +10,7 @@
 
 ## Summary
 
-Extend the existing DevTools panel to support the full AI Development Workflow (ADR-0041). The DevTools already has a robust ADR reader/editor with folder organization, search, and form-based editing. This proposal extends it to support SPECs, Discussions, and Plans — providing a unified UI for the 6-tier workflow.
+Extend the existing DevTools panel to support the full AI Development Workflow (ADR-0043). The DevTools already has a robust ADR reader/editor with folder organization, search, and form-based editing. This proposal extends it to support SPECs, Discussions, and Plans — providing a unified UI for the 6-tier workflow.
 
 ---
 
@@ -26,14 +26,14 @@ The DevTools panel (`apps/homepage/frontend/src/pages/DevToolsPage.tsx`) current
 - **Create new ADR** with folder selection
 - **API integration** at `/api/devtools/adrs`
 
-The AI Development Workflow (ADR-0041) introduces:
+The AI Development Workflow (ADR-0043) introduces:
 - `.discussions/` - Design conversation capture (T0)
 - `.plans/` - Implementation tracking (T4)
 - Existing `.adrs/` (T1) and `docs/specs/` (T2)
 
 ### Trigger
 
-After implementing ADR-0041's file-based workflow, the USER recognized that the DevTools panel is the perfect place for a comprehensive UI to manage all workflow artifacts — making the AI-assisted development process more accessible and visual.
+After implementing ADR-0043's file-based workflow, the USER recognized that the DevTools panel is the perfect place for a comprehensive UI to manage all workflow artifacts — making the AI-assisted development process more accessible and visual.
 
 ---
 
@@ -183,8 +183,8 @@ After implementing ADR-0041's file-based workflow, the USER recognized that the 
 
 | Artifact Type | ID | Title | Status |
 |---------------|----|-------|--------|
-| ADR | ADR-0042 | DevTools AI Workflow UI | `pending` |
-| SPEC | SPEC-0031 | DevTools Workflow Manager | `pending` |
+| ADR | ADR-0044 | DevTools AI Workflow UI | `pending` |
+| SPEC | SPEC-0009 | DevTools Workflow Manager | `pending` |
 | Contract | `shared/contracts/devtools/workflow.py` | Workflow artifact contracts | `pending` |
 | Plan | PLAN-001 | DevTools Workflow Integration | `pending` |
 
@@ -195,7 +195,7 @@ After implementing ADR-0041's file-based workflow, the USER recognized that the 
 ### 2025-12-30 - Session Part 1
 
 **Topics Discussed**:
-- AI Development Workflow (ADR-0041) implementation completed
+- AI Development Workflow (ADR-0043) implementation completed
 - User proposed integrating workflow into DevTools panel
 - Explored existing DevToolsPage.tsx structure
 
@@ -274,7 +274,7 @@ Our artifact relationship graph will be:
                     [DISC-001] ←──────────────────┐
                         │                         │
                         ▼                         │
-                    [ADR-0042]                    │
+                    [ADR-0044]                    │
                         │                         │
             ┌───────────┼───────────┐             │
             ▼           ▼           ▼             │
@@ -411,15 +411,15 @@ function ArtifactGraph({ graphData }) {
 │              │  ┌─────────────────────────────────────────────────┐ │
 │  📁 ADRs     │  │         INTERACTIVE MAP (2D/3D Toggle)         │ │
 │  ├─ ADR-0001 │  │                                                 │ │
-│  ├─ ADR-0041 │  │      [DISC]──▶[ADR-0041]──▶[SPEC]──▶[Plan]     │ │
-│  └─ ADR-0042 │  │                    ⬇                            │ │
+│  ├─ ADR-0043 │  │      [DISC]──▶[ADR-0043]──▶[SPEC]──▶[Plan]     │ │
+│  └─ ADR-0044 │  │                    ⬇                            │ │
 │              │  │               [Contract]                        │ │
 │  📋 SPECs    │  │                                                 │ │
 │  ├─ SPEC-001 │  └─────────────────────────────────────────────────┘ │
 │  └─ SPEC-031 │  ┌─────────────────────────────────────────────────┐ │
 │              │  │              READER VIEW                        │ │
 │  💬 Discuss  │  │  ═══════════════════════════════════════════    │ │
-│  └─ DISC-001 │  │  # ADR-0041: AI Development Workflow           │ │
+│  └─ DISC-001 │  │  # ADR-0043: AI Development Workflow           │ │
 │              │  │                                                 │ │
 │  📑 Plans    │  │  **Status**: Active                            │ │
 │  └─ PLAN-001 │  │  **Context**: This ADR establishes...          │ │
@@ -438,8 +438,8 @@ function ArtifactGraph({ graphData }) {
 │              │  ┌─────────────────────────────────────────────────┐ │
 │  📁 ADRs     │  │  ◀ Back to Viewer          EDITOR PANEL        │ │
 │  ├─ ADR-0001 │  ├─────────────────────────────────────────────────┤ │
-│  ├─ ADR-0041◀│  │  Title: [ADR-0041: AI Development Workflow   ] │ │
-│  └─ ADR-0042 │  │  Status: [Active ▼]                            │ │
+│  ├─ ADR-0043◀│  │  Title: [ADR-0043: AI Development Workflow   ] │ │
+│  └─ ADR-0044 │  │  Status: [Active ▼]                            │ │
 │              │  │  Context:                                       │ │
 │  📋 SPECs    │  │  ┌───────────────────────────────────────────┐ │ │
 │  ...         │  │  │ This ADR establishes the 6-tier...       │ │ │
@@ -829,8 +829,8 @@ DevTools Panel
 #### TENTATIVE AGREEMENT ✅
 
 **Phased Delivery**:
-- **Phase 1**: Workflow Manager (this DISC → ADR-0042 → SPEC-0031 → PLAN-001)
-- **Phase 2**: Config Manager (DISC-002 → ADR-0043 → SPEC-0032 → PLAN-002)
+- **Phase 1**: Workflow Manager (this DISC → ADR-0044 → SPEC-0009 → PLAN-001)
+- **Phase 2**: Config Manager (DISC-002 → ADR-0045 → SPEC-0010 → PLAN-002)
 
 ---
 
@@ -852,10 +852,10 @@ DevTools Panel
 | D-6 | Automation | UI orchestration + AI content engine, file-based SSOT |
 | D-7 | Config Manager | Deferred to Phase 2 (DISC-002) |
 
-**Next Steps** (per ADR-0041 workflow):
+**Next Steps** (per ADR-0043 workflow):
 1. ✅ Discussion complete (DISC-001)
-2. ✅ **ADR-0043**: DevTools Workflow Manager UI Architecture (active)
-3. ✅ **SPEC-0046**: DevTools Workflow Manager (draft)
+2. ✅ **ADR-0045**: DevTools Workflow Manager UI Architecture (active)
+3. ✅ **SPEC-0003**: DevTools Workflow Manager (draft)
 4. → **Create PLAN-001**: DevTools Workflow Integration (implementation tasks)
 5. → (Phase 2) Create DISC-002: Config Manager
 

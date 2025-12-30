@@ -6,7 +6,7 @@
 
 > **Applies to**: All files in `.discussions/` directory
 > **AI Tool**: Windsurf Cascade
-> **ADR Reference**: ADR-0041 (AI Development Workflow)
+> **ADR Reference**: ADR-0043 (AI Development Workflow)
 
 ---
 

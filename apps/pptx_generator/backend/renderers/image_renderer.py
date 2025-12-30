@@ -1,7 +1,7 @@
 """Image renderer for inserting images into PowerPoint shapes.
 
-Per ADR-0021: ImageRenderer handles 'image_' category shapes.
-Per ADR-0028: Uses shared ImageSpec contract.
+Per ADR-0022: ImageRenderer handles 'image_' category shapes.
+Per ADR-0029: Uses shared ImageSpec contract.
 """
 
 import io
@@ -301,7 +301,7 @@ class ImageRenderer(BaseRenderer):
         name: str,
         fit_mode: str = "contain",
     ) -> ImageSpec:
-        """Build an ImageSpec from configuration per ADR-0028.
+        """Build an ImageSpec from configuration per ADR-0029.
 
         Args:
             source_path: Path to image file.

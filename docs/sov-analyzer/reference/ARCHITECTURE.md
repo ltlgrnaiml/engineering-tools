@@ -37,7 +37,7 @@ The SOV Analyzer performs **ANOVA-based variance decomposition** to identify sou
 
 ---
 
-## Analysis Pipeline (ADR-0022)
+## Analysis Pipeline (ADR-0023)
 
 ### 5-Stage Flow
 
@@ -65,7 +65,7 @@ The SOV Analyzer performs **ANOVA-based variance decomposition** to identify sou
 
 ---
 
-## ANOVA Computation (ADR-0022)
+## ANOVA Computation (ADR-0023)
 
 ### Requirements
 
@@ -164,13 +164,13 @@ def compute_anova(
         ANOVAResult with variance components summing to 100%.
     """
     # Type III SS computation
-    # Ensure deterministic results (ADR-0012)
+    # Ensure deterministic results (ADR-0013)
     ...
 ```
 
 ---
 
-## DataSet Integration (ADR-0023)
+## DataSet Integration (ADR-0024)
 
 ### Input: Load Existing DataSet
 
@@ -225,9 +225,9 @@ def compute_anova(
 
 ---
 
-## Visualization Contracts (ADR-0024)
+## Visualization Contracts (ADR-0025)
 
-All visualizations extend the `RenderSpec` hierarchy (ADR-0028):
+All visualizations extend the `RenderSpec` hierarchy (ADR-0029):
 
 ### Chart Types
 
@@ -329,9 +329,9 @@ apps/sov_analyzer/frontend/src/
 
 | ADR | Topic |
 |-----|-------|
-| ADR-0022 | SOV Analysis Pipeline |
-| ADR-0023 | DataSet Integration |
-| ADR-0024 | Visualization Contracts |
+| ADR-0023 | SOV Analysis Pipeline |
+| ADR-0024 | DataSet Integration |
+| ADR-0025 | Visualization Contracts |
 
 ---
 

@@ -1,6 +1,6 @@
 """ValidationEngine - Stable columns and schema validation.
 
-Per ADR-0011: Stable column policies enforce schema expectations.
+Per ADR-0012: Stable column policies enforce schema expectations.
 Validates extracted DataFrames against profile-defined rules.
 """
 
@@ -47,7 +47,7 @@ class ProfileValidationSummary:
 class ValidationEngine:
     """Validates extracted DataFrames against profile rules.
     
-    Per ADR-0011: Enforces stable column policies and schema constraints.
+    Per ADR-0012: Enforces stable column policies and schema constraints.
     """
     
     def validate_table(

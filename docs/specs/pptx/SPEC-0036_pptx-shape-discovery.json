@@ -1,0 +1,85 @@
+{
+  "schema_type": "spec",
+  "id": "SPEC-0036_pptx-shape-discovery",
+  "title": "PPTX Shape Discovery and Binding Specification",
+  "version": "0.1.0",
+  "status": "draft",
+  "date": "2025-12-27",
+  "author": "Mycahya Eggleston",
+  "implements_adr": [
+    "ADR-0018_PPTX-Template-Processing-Model",
+    "ADR-0021_PPTX-Renderer-Architecture"
+  ],
+  "tier_0_contracts": [
+    {
+      "module": "shared.contracts.pptx.shape",
+      "classes": [
+        "ShapeDiscoveryResult",
+        "ShapePlaceholder",
+        "ShapeBinding",
+        "ShapeType",
+        "DataBindingType"
+      ]
+    }
+  ],
+  "purpose": "Define how shapes are discovered in templates and bound to data sources. Shape discovery extracts named shapes and their properties; binding maps data to shapes.",
+  "scope": "subsystem:PPTX",
+  "requirements": [
+    {
+      "id": "REQ-SHAPE-001",
+      "description": "Discovery MUST extract all named shapes from template",
+      "output": "ShapeDiscoveryResult with list of ShapePlaceholder"
+    },
+    {
+      "id": "REQ-SHAPE-002",
+      "description": "Binding MUST validate data compatibility with shape type",
+      "validation": "Chart shapes require DataSeries, tables require TableData"
+    },
+    {
+      "id": "REQ-SHAPE-003",
+      "description": "Orphan shapes (unmapped) MUST generate warnings, not errors",
+      "reference": "ADR-0019"
+    }
+  ],
+  "shape_types": [
+    {
+      "type": "TEXT",
+      "binds_to": "string or template expression"
+    },
+    {
+      "type": "TABLE",
+      "binds_to": "TableData from rendering contracts"
+    },
+    {
+      "type": "CHART",
+      "binds_to": "ChartSpec from rendering contracts"
+    },
+    {
+      "type": "IMAGE",
+      "binds_to": "ImageSpec from rendering contracts"
+    }
+  ],
+  "binding_modes": [
+    {
+      "mode": "DIRECT",
+      "description": "Single value binding"
+    },
+    {
+      "mode": "COLUMN",
+      "description": "Bind to DataFrame column"
+    },
+    {
+      "mode": "AGGREGATE",
+      "description": "Aggregation function result"
+    },
+    {
+      "mode": "TEMPLATE",
+      "description": "String template with placeholders"
+    }
+  ],
+  "references": [
+    "ADR-0018_PPTX-Template-Processing-Model: Template structure",
+    "ADR-0028_Unified-Rendering-Engine: Rendering contracts",
+    "shared/contracts/pptx/shape.py: Tier-0 contracts"
+  ]
+}

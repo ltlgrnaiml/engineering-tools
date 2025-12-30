@@ -62,7 +62,7 @@ Verify the contract layer is complete before implementation.
 
 ### Phase 1: Adapter Layer [PHASE-1]
 
-Implement file adapters per ADR-0011 and SPEC-DAT-0003.
+Implement file adapters per ADR-0012 and SPEC-0026.
 
 #### TASK-1.1: Adapter Registry Implementation
 
@@ -75,8 +75,8 @@ Implement file adapters per ADR-0011 and SPEC-DAT-0003.
 class AdapterRegistry:
     """Central registry for file adapters.
     
-    Per ADR-0011: Adapters are selected via handles-first pattern.
-    Per SPEC-DAT-0003: Registry provides automatic adapter selection.
+    Per ADR-0012: Adapters are selected via handles-first pattern.
+    Per SPEC-0026: Registry provides automatic adapter selection.
     """
     
     def register(self, adapter: BaseFileAdapter) -> None: ...
@@ -101,7 +101,7 @@ class AdapterRegistry:
 - Implements all 4 abstract methods: `probe_schema`, `read_dataframe`, `stream_dataframe`, `validate_file`
 - Uses Polars `read_csv` for eager loading, `scan_csv` for streaming
 - Supports `.csv` and `.tsv` extensions
-- Streaming threshold: 10MB (per ADR-0040)
+- Streaming threshold: 10MB (per ADR-0041)
 
 **Acceptance Criteria**:
 - [ ] AC-1.2.1: `probe_schema()` returns `SchemaProbeResult` with columns, row estimate
@@ -145,7 +145,7 @@ class AdapterRegistry:
 
 ### Phase 2: FSM Orchestration [PHASE-2]
 
-Implement stage state machine per ADR-0001-DAT and SPEC-DAT-0001.
+Implement stage state machine per ADR-0004 and SPEC-0024.
 
 #### TASK-2.1: Stage Graph Configuration
 
@@ -159,8 +159,8 @@ Implement stage state machine per ADR-0001-DAT and SPEC-DAT-0001.
 class StageGraphConfig:
     """DAT 8-stage pipeline configuration.
     
-    Per ADR-0001-DAT: 8 stages with lockable artifacts.
-    Per SPEC-DAT-0001: Dependencies and cascade targets defined.
+    Per ADR-0004: 8 stages with lockable artifacts.
+    Per SPEC-0024: Dependencies and cascade targets defined.
     """
     
     stages: list[StageDefinition]
@@ -171,9 +171,9 @@ class StageGraphConfig:
 
 **Acceptance Criteria**:
 - [ ] AC-2.1.1: All 8 stages defined: DISCOVERY, SELECTION, CONTEXT, TABLE_AVAILABILITY, TABLE_SELECTION, PREVIEW, PARSE, EXPORT
-- [ ] AC-2.1.2: Dependencies match SPEC-DAT-0001 `stage_dependencies`
-- [ ] AC-2.1.3: Cascade targets match SPEC-DAT-0001 `cascade_targets`
-- [ ] AC-2.1.4: Optional stages = {CONTEXT, PREVIEW} per ADR-0003
+- [ ] AC-2.1.2: Dependencies match SPEC-0024 `stage_dependencies`
+- [ ] AC-2.1.3: Cascade targets match SPEC-0024 `cascade_targets`
+- [ ] AC-2.1.4: Optional stages = {CONTEXT, PREVIEW} per ADR-0004
 
 #### TASK-2.2: DAT State Machine Refactor
 
@@ -183,8 +183,8 @@ class StageGraphConfig:
 
 **Implementation Requirements**:
 - Accept `StageGraphConfig` in constructor (not global dicts)
-- Implement forward gating per ADR-0001-DAT
-- Implement unlock cascade per ADR-0001-DAT
+- Implement forward gating per ADR-0004
+- Implement unlock cascade per ADR-0004
 - Preserve artifacts on unlock per ADR-0002
 
 **Key Methods**:
@@ -215,7 +215,7 @@ class DATStateMachine:
 - Same inputs → Same ID across machines
 - Collision detection before artifact reuse
 
-**Per-Stage ID Inputs** (per ADR-0004-DAT):
+**Per-Stage ID Inputs** (per ADR-0008):
 | Stage | ID Inputs |
 |:------|:----------|
 | SELECTION | `[sorted(relative_file_paths), profile_id]` |
@@ -236,7 +236,7 @@ class DATStateMachine:
 
 ### Phase 3: Table Availability [PHASE-3]
 
-Implement table probing per ADR-0006 and SPEC-DAT-0006.
+Implement table probing per ADR-0008 and SPEC-0008.
 
 #### TASK-3.1: Table Probe Service
 
@@ -247,7 +247,7 @@ Implement table probing per ADR-0006 and SPEC-DAT-0006.
 **Implementation Requirements**:
 - Use adapter's `probe_schema()` for fast probing
 - Status model: AVAILABLE, PARTIAL, MISSING, EMPTY, ERROR
-- Timeout: 1 second per table (per ADR-0006)
+- Timeout: 1 second per table (per ADR-0008)
 - Parallel probing for multiple files
 
 **Acceptance Criteria**:
@@ -274,7 +274,7 @@ Implement table probing per ADR-0006 and SPEC-DAT-0006.
 
 ### Phase 4: Profile Management [PHASE-4]
 
-Implement profile CRUD per ADR-0011 and SPEC-DAT-0005.
+Implement profile CRUD per ADR-0012 and SPEC-0007.
 
 #### TASK-4.1: Profile File Service
 
@@ -316,7 +316,7 @@ Implement profile CRUD per ADR-0011 and SPEC-DAT-0005.
 
 ### Phase 5: Parse & Export Stages [PHASE-5]
 
-Implement core data processing per ADR-0014.
+Implement core data processing per ADR-0015.
 
 #### TASK-5.1: Parse Stage Implementation
 
@@ -325,7 +325,7 @@ Implement core data processing per ADR-0014.
 **Contract Reference**: `shared.contracts.dat.stage.ParseStageConfig`
 
 **Implementation Requirements**:
-- Output format: Parquet only (per ADR-0014)
+- Output format: Parquet only (per ADR-0015)
 - Use adapter streaming for files > 10MB
 - Generate manifest.json with provenance
 - Support cancellation with checkpointing
@@ -368,7 +368,7 @@ Implement core data processing per ADR-0014.
 
 ### Phase 6: Cancellation & Cleanup [PHASE-6]
 
-Implement cancellation per ADR-0013 and SPEC-DAT-0015.
+Implement cancellation per ADR-0014 and SPEC-0010.
 
 #### TASK-6.1: Cancellation Handler
 
@@ -409,7 +409,7 @@ Implement cancellation per ADR-0013 and SPEC-DAT-0015.
 
 ### Phase 7: API Routes [PHASE-7]
 
-Complete API implementation per ADR-0029.
+Complete API implementation per ADR-0030.
 
 #### TASK-7.1: DAT API Routes
 
@@ -440,8 +440,8 @@ Complete API implementation per ADR-0029.
 **Acceptance Criteria**:
 - [ ] AC-7.1.1: All endpoints return Pydantic-validated responses
 - [ ] AC-7.1.2: Error responses follow `StandardizedErrorResponse` schema
-- [ ] AC-7.1.3: No `/v1` in any path (per ADR-0029)
-- [ ] AC-7.1.4: Idempotency keys supported on POST/PUT (per ADR-0032)
+- [ ] AC-7.1.3: No `/v1` in any path (per ADR-0030)
+- [ ] AC-7.1.4: Idempotency keys supported on POST/PUT (per ADR-0033)
 
 ---
 
@@ -530,15 +530,15 @@ Phase 0 (Contracts) → Phase 1 (Adapters) → Phase 2 (FSM)
 
 ### ADR Compliance Gates
 
-- [ ] **ADR-0001-DAT**: 8-stage FSM with lockable artifacts
-- [ ] **ADR-0003**: Context/Preview are optional
-- [ ] **ADR-0004-DAT**: Deterministic stage IDs
-- [ ] **ADR-0006**: Fast table probe (< 1 second per table)
-- [ ] **ADR-0011**: Profile-driven adapters
-- [ ] **ADR-0013**: Soft cancellation with checkpointing
-- [ ] **ADR-0014**: Parquet for Parse, multi-format for Export
-- [ ] **ADR-0040**: Streaming for files > 10MB
-- [ ] **ADR-0041**: Horizontal wizard UI (frontend)
+- [ ] **ADR-0004**: 8-stage FSM with lockable artifacts
+- [ ] **ADR-0004**: Context/Preview are optional
+- [ ] **ADR-0008**: Deterministic stage IDs
+- [ ] **ADR-0008**: Fast table probe (< 1 second per table)
+- [ ] **ADR-0012**: Profile-driven adapters
+- [ ] **ADR-0014**: Soft cancellation with checkpointing
+- [ ] **ADR-0015**: Parquet for Parse, multi-format for Export
+- [ ] **ADR-0041**: Streaming for files > 10MB
+- [ ] **ADR-0043**: Horizontal wizard UI (frontend)
 
 ---
 
@@ -554,8 +554,8 @@ Phase 0 (Contracts) → Phase 1 (Adapters) → Phase 2 (FSM)
 ### Remaining Work
 - [ ] Implement Phase 1-7 tasks
 - [ ] Create test fixtures for adapters
-- [ ] Implement frontend horizontal wizard (ADR-0041)
-- [ ] DevTools profile editor integration (SPEC-DAT-0005)
+- [ ] Implement frontend horizontal wizard (ADR-0043)
+- [ ] DevTools profile editor integration (SPEC-0007)
 
 ### Next Session Should
 1. Start with TASK-1.1 (Adapter Registry)

@@ -1,8 +1,8 @@
 """Tests for DAT file adapters.
 
 Updated for contract-style async adapters per M1 refactor.
-Per ADR-0011: Profile-Driven Extraction & AdapterFactory Pattern.
-Per SPEC-DAT-0003: Adapter Interface & Registry specification.
+Per ADR-0012: Profile-Driven Extraction & AdapterFactory Pattern.
+Per SPEC-0026: Adapter Interface & Registry specification.
 """
 import json
 import pytest

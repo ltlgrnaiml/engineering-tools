@@ -1,6 +1,6 @@
 """Unpivot extraction strategy.
 
-Per SPEC-DAT-0012: Transform wide-format data to long-format.
+Per SPEC-0009: Transform wide-format data to long-format.
 Converts multiple value columns into parameter/value pairs.
 """
 
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class UnpivotStrategy(ExtractionStrategy):
     """Transform wide-format data to long-format by unpivoting.
     
-    Per SPEC-DAT-0012:
+    Per SPEC-0009:
     - id_vars: Columns to keep as identifiers
     - value_vars: Columns to unpivot
     - var_name: Name for parameter column (default: "variable")

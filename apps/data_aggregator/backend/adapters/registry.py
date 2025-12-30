@@ -1,7 +1,7 @@
 """Adapter Registry for DAT file adapters.
 
-Per ADR-0011: AdapterFactory pattern for extensible file format support.
-Per SPEC-DAT-0003: Adapter Interface & Registry specification.
+Per ADR-0012: AdapterFactory pattern for extensible file format support.
+Per SPEC-0026: Adapter Interface & Registry specification.
 
 This module provides the central registry for file adapters. Adapters are
 registered at startup and selected via file extension or MIME type.
@@ -59,7 +59,7 @@ class AdapterNotFoundError(Exception):
 class AdapterRegistry:
     """Central registry for file adapters.
 
-    Per ADR-0011: Adapters are selected via handles-first pattern.
+    Per ADR-0012: Adapters are selected via handles-first pattern.
     The registry uses file extensions and MIME types to auto-select adapters.
 
     Attributes:

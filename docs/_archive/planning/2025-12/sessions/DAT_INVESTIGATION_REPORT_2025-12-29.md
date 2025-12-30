@@ -45,7 +45,7 @@ The "Complete Export" button calls `onNext`, but this callback **may not be wire
 
 ### Expected per ADRs
 
-Per ADR-0001-DAT (8-stage pipeline), the Export stage should:
+Per ADR-0004 (8-stage pipeline), the Export stage should:
 - Lock the stage with export execution
 - Create a DataSet in shared storage
 - Mark the workflow complete
@@ -92,7 +92,7 @@ The DAT frontend runs inside an **iframe** embedded in the Homepage. When clicki
 
 ### Expected per ADRs
 
-Per ADR-0042 (Frontend Iframe Integration Pattern):
+Per ADR-0044 (Frontend Iframe Integration Pattern):
 - Tool UIs embedded via iframes need to communicate with parent for cross-tool navigation
 - Links to other tools/pages should use `window.parent.location` or `postMessage`
 
@@ -167,14 +167,14 @@ The **profile extraction logic is NOT being applied**. Here's the chain:
 
 ### Expected per ADRs
 
-Per ADR-0011 (Profile-Driven Extraction):
+Per ADR-0012 (Profile-Driven Extraction):
 - Profiles are the **Single Source of Truth** for extraction logic
 - The profile's `select.strategy` and `select.path` should be used to:
   - Navigate JSONPath to find tables
   - Flatten nested objects per strategy (`flat_object` or `headers_data`)
   - Extract only the specified columns
 
-Per SPEC-DAT-0002 (Profile-Driven Extraction):
+Per SPEC-0025 (Profile-Driven Extraction):
 - `column_mappings` should define source→target transformations
 - Profile structure defines how to parse source data
 
@@ -206,7 +206,7 @@ The dataset should have **flat columns**:
 **Option A: Implement Profile Extraction Logic**
 - Modify `parse.py` to use profile's `select` config for JSONPath extraction
 - Implement `flat_object` and `headers_data` strategies
-- This aligns with ADR-0011 but requires significant work
+- This aligns with ADR-0012 but requires significant work
 
 **Option B: Simplify Profile to Match Current Behavior**
 - Accept that raw data is read directly
@@ -231,7 +231,7 @@ GET http://localhost:5175/api/v1/projects api.ts:88
 
 ### Root Cause
 
-PPTX frontend is calling `/api/v1/projects` but per ADR-0029 (Simplified API Naming):
+PPTX frontend is calling `/api/v1/projects` but per ADR-0030 (Simplified API Naming):
 - No version prefix should be used
 - Correct endpoint: `/api/pptx/projects`
 
@@ -303,7 +303,7 @@ grep -r "cdsem" apps/data_aggregator/
 The profile YAML defines sophisticated table extraction logic (JSONPath, strategies, column mappings) that is NOT implemented in the parse stage.
 
 **Options**:
-- A) **Implement full profile extraction**: Parse stage applies JSONPath selectors, flattens nested data per strategy. Aligns with ADR-0011.
+- A) **Implement full profile extraction**: Parse stage applies JSONPath selectors, flattens nested data per strategy. Aligns with ADR-0012.
 - B) **Simplify expectations**: Accept raw data reads, handle flattening elsewhere. Update ADRs/Contracts to match reality.
 - C) **Defer profile extraction**: Focus on getting basic flow working, implement profile logic later as enhancement.
 

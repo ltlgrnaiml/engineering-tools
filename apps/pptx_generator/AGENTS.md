@@ -27,10 +27,10 @@ Upload Template → Upload Data → Map Context → Map Metrics → Validate →
 
 | ADR | Topic | Key Points |
 |-----|-------|------------|
-| **ADR-0018** | Template Processing | Named shape discovery, `{category}_{identifier}` |
-| **ADR-0019** | Guided Workflow | 7-step FSM, "Four Green Bars" validation |
-| **ADR-0020** | Domain Configuration | YAML config, metric canonicalization |
-| **ADR-0021** | Renderer Architecture | Pluggable renderers, BaseRenderer interface |
+| **ADR-0019** | Template Processing | Named shape discovery, `{category}_{identifier}` |
+| **ADR-0020** | Guided Workflow | 7-step FSM, "Four Green Bars" validation |
+| **ADR-0021** | Domain Configuration | YAML config, metric canonicalization |
+| **ADR-0022** | Renderer Architecture | Pluggable renderers, BaseRenderer interface |
 
 ---
 
@@ -62,7 +62,7 @@ Shapes in templates use the pattern: `{category}_{identifier}`
 
 ---
 
-## Workflow Stages (ADR-0019)
+## Workflow Stages (ADR-0020)
 
 ```
 Step 1: Upload Template    → Template validated, shapes discovered
@@ -78,7 +78,7 @@ Step 7: Download           → User downloads result
 
 ---
 
-## Renderer Interface (ADR-0021)
+## Renderer Interface (ADR-0022)
 
 All renderers implement `BaseRenderer`:
 

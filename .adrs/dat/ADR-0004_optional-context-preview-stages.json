@@ -1,0 +1,103 @@
+{
+  "schema_type": "adr",
+  "id": "ADR-0004_optional-context-preview-stages",
+  "title": "Optional Context and Preview Stages for Flexible DAT Workflows",
+  "status": "accepted",
+  "date": "2025-01-15",
+  "review_date": "2025-07-15",
+  "deciders": "Mycahya Eggleston",
+  "scope": "subsystem:DAT",
+  "provenance": [
+    {
+      "at": "2025-01-15",
+      "by": "Mycahya Eggleston",
+      "note": "Initial decision extracted from stage orchestration vision document"
+    },
+    {
+      "at": "2025-11-22",
+      "by": "Mycahya Eggleston",
+      "note": "Refactored for explicit workflow flexibility, lazy/greedy initialization, and independence from Parse/Export"
+    }
+  ],
+  "context": "DAT serves two distinct user personas: quick-path users (experienced analysts who trust profile defaults and want to skip validation overhead) and power users (who need to verify structure and customize parsing hints before full parse). Making Context and Preview optional enables both fast and cautious workflows, reduces friction for experienced users, and supports automation. The orchestration must ensure that Parse and Export can proceed without requiring Context or Preview, while still allowing full validation when desired.",
+  "decision_primary": "Make Context and Preview stages optional in the DAT pipeline. Users may skip these stages entirely (quick-path) or engage them for validation and customization (power-path). Parse and Export must not require context.json or preview.json to exist; they use profile defaults or proceed without validation if these artifacts are missing. Context and Preview have independent lifecycles and do not cascade unlocks to other stages.",
+  "decision_details": {
+    "approach": "Optional stages with lazy (on-demand) and greedy (on-access) initialization. Context and Preview are validation utilities, not data dependencies. Parse and Export fallback to profile defaults if context.json is missing and ignore preview.json entirely.",
+    "constraints": [
+      "Parse and Export MUST NOT require context.json or preview.json to exist.",
+      "Context and Preview MUST NOT cascade unlocks to Table Availability, Parse, or Export.",
+      "Frontend MUST allow users to skip Context and Preview panels.",
+      "Lazy Initialization: Parse mints context.json with profile defaults if missing.",
+      "Greedy Initialization: Context panel mints context.json on first access."
+    ],
+    "implementation_specs": [
+      "SPEC-0002_Profile-Context-Orchestration",
+      "SPEC-0003_Frontend-Panel-Status-Integration"
+    ]
+  },
+  "consequences": [
+    "Quick-path users can skip validation overhead for faster workflows.",
+    "Power users can engage Context and Preview for peace-of-mind validation and customization.",
+    "Automated pipelines can skip Context/Preview without mocking edits.",
+    "Flexible workflows accommodate diverse user personas.",
+    "Parse and Export must handle two code paths (context.json exists vs missing).",
+    "Frontend must conditionally render Context/Preview panels (UX complexity).",
+    "Users might skip Preview and encounter unexpected data issues in Parse (no validation)."
+  ],
+  "alternatives_considered": [
+    {
+      "name": "Mandatory Context and Preview",
+      "pros": "Forces validation before Parse, simpler Parse logic (context.json always exists).",
+      "cons": "Slows quick-path users, breaks automation (must mock Context/Preview edits).",
+      "rejected_reason": "Unacceptable friction for experienced users and automation."
+    },
+    {
+      "name": "No Validation Stages",
+      "pros": "Simplest workflow, no optional stage complexity.",
+      "cons": "No peace-of-mind for first-time datasets, no way to customize parsing hints.",
+      "rejected_reason": "Too risky for first-time datasets and cautious analysts."
+    },
+    {
+      "name": "Context Required, Preview Optional",
+      "pros": "Ensures custom hints are always available, Preview remains optional.",
+      "cons": "Still forces quick-path users to engage Context panel, doesn't solve automation problem.",
+      "rejected_reason": "Partial solution; better to make both optional and use profile defaults."
+    }
+  ],
+  "tradeoffs": "We trade Parse/Export implementation complexity (handling context.json present or missing) for workflow flexibility. We accept the risk of users skipping Preview and encountering data issues to gain speed for experienced users. We trade a forcing function for validation for user autonomy.",
+  "guardrails": [
+    {
+      "rule": "Parse and Export MUST NOT require context.json or preview.json to exist.",
+      "enforcement": "Backend logic falls back to profile defaults if context.json is missing; ignores preview.json.",
+      "scope": "subsystem:DAT"
+    },
+    {
+      "rule": "Context and Preview MUST NOT cascade unlocks to Table Availability, Parse, or Export.",
+      "enforcement": "Unlocking Context or Preview does not affect downstream stage lock states.",
+      "scope": "subsystem:DAT"
+    }
+  ],
+  "cross_cutting_guardrails": [
+    "Path Safety: All public paths must be relative (see ADR-0045#path-safety)",
+    "Cancel Behavior: Cancel operations preserve artifacts (see ADR-0045#cancel-behavior)"
+  ],
+  "references": [
+    "ADR-0001_Guided-Workflow-FSM-Orchestration: Core FSM pattern with optional stage support",
+    "ADR-0003_stage-graph-configuration: DAT-specific stage graph",
+    "ADR-0002_Artifact-Preservation-on-Unlock: Artifact preservation policy",
+    "ADR-0005_deterministic-content-addressed-ids: Deterministic ID generation",
+    "ADR-0017_Cross-Cutting-Guardrails"
+  ],
+  "tags": [
+    "workflow-flexibility",
+    "optional-stages",
+    "user-experience",
+    "validation"
+  ],
+  "affected_components": [
+    "backend/src/dramcdu/dat_aggregation/stages/context.py",
+    "backend/src/dramcdu/dat_aggregation/stages/parse.py",
+    "frontend/src/components/stages/ContextPanel.tsx",
+    "frontend/src/components/stages/PreviewPanel.tsx"
+  ]
+}

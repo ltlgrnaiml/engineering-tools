@@ -1,6 +1,6 @@
 """Join extraction strategy.
 
-Per SPEC-DAT-0012: Join data from two different JSONPath locations.
+Per SPEC-0009: Join data from two different JSONPath locations.
 Useful for enriching data with metadata from another part of the document.
 """
 
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class JoinStrategy(ExtractionStrategy):
     """Join data from two different JSONPath locations.
     
-    Per SPEC-DAT-0012:
+    Per SPEC-0009:
     - left: Left table source (path + key)
     - right: Right table source (path + key)
     - how: Join type (left, right, inner, outer)

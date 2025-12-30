@@ -1,0 +1,102 @@
+{
+  "schema_type": "adr",
+  "id": "ADR-0007_swagger-driven-e2e-validation",
+  "title": "Swagger/OpenAPI as Executable Contract and E2E Validation Harness",
+  "status": "accepted",
+  "date": "2025-11-22",
+  "deciders": "Mycahya Eggleston",
+  "scope": "core",
+  "provenance": [
+    {
+      "at": "2025-11-22",
+      "by": "Mycahya Eggleston",
+      "note": "Initial draft"
+    },
+    {
+      "at": "2025-12-27",
+      "by": "DevTools Editor",
+      "note": "Updated via DevTools ADR Editor"
+    }
+  ],
+  "context": "Maintaining API contract integrity is critical for reliability, client compatibility, and developer velocity. Manual documentation and ad-hoc tests are error-prone and allow drift between implementation and contract. We require an approach that ensures contracts are executable, validated, and easily exercised on real data, while minimizing redundant or hard-to-maintain test code.",
+  "decision_primary": "Swagger/OpenAPI specifications are the single source of truth for all API contracts. The Swagger UI serves as the primary test harness for validating API functionality on real data. CI gates contract drift by validating that implementation and spec remain in sync. Automated tests are reserved for cases not easily exercised via Swagger UI (e.g., error conditions, edge cases, or complex multi-step flows). All endpoints use handles-first payloads and /vN versioned routing.",
+  "decision_details": {
+    "approach": "Author and maintain OpenAPI (Swagger) specs for all public APIs. Use Swagger UI as the main interface for functional validation on real data. CI pipelines enforce contract/implementation sync and block drift. Automated tests supplement Swagger UI for scenarios not easily validated interactively.",
+    "implementation_specs": [
+      "SPEC-0008_Contract-Discipline-Api-Spec",
+      "SPEC-0009_Engineering-Docs-Tenets-Spec"
+    ],
+    "constraints": [
+      "Swagger/OpenAPI spec is the executable contract; implementation must not diverge.",
+      "Swagger UI must be available for all deployed environments.",
+      "Automated tests are required only for scenarios not easily validated in Swagger UI.",
+      "All endpoints must use handles-first payloads and /vN routing."
+    ]
+  },
+  "consequences": [
+    "API contracts are always executable and validated on real data.",
+    "Developers and users can interactively test APIs without writing redundant test code.",
+    "Contract drift is caught early by CI gates.",
+    "Edge cases and error handling are still covered by targeted automated tests.",
+    "Requires discipline to keep OpenAPI specs up-to-date."
+  ],
+  "alternatives_considered": [
+    {
+      "name": "Manual Documentation and Ad-Hoc Tests",
+      "pros": "Lower initial setup cost.",
+      "cons": "High risk of drift, poor developer experience, hard to validate on real data.",
+      "rejected_reason": "Fails contract integrity and maintainability goals."
+    },
+    {
+      "name": "Full Automation for All Scenarios",
+      "pros": "Maximum coverage.",
+      "cons": "High maintenance burden, redundant with Swagger UI, slower iteration.",
+      "rejected_reason": "Unnecessary for scenarios easily validated in Swagger UI."
+    }
+  ],
+  "tradeoffs": "Relies on developer discipline to keep specs and implementation in sync, but minimizes redundant test code and maximizes real-data validation. Some edge cases require additional automation.",
+  "rollout_plan": [
+    "Ensure all APIs have up-to-date OpenAPI specs.",
+    "Deploy Swagger UI for all environments.",
+    "Integrate contract validation into CI pipelines.",
+    "Audit existing tests and migrate redundant cases to Swagger UI validation.",
+    "Document workflow for adding new endpoints and updating specs."
+  ],
+  "rollback_plan": "Revert to manual documentation and ad-hoc tests (not recommended).",
+  "metrics_to_watch": [
+    "Number of contract drift issues detected in CI.",
+    "Percentage of endpoints covered by OpenAPI specs.",
+    "Developer-reported issues with Swagger UI validation."
+  ],
+  "guardrails": [
+    {
+      "rule": "All API endpoints MUST be defined in OpenAPI specs and validated in Swagger UI.",
+      "enforcement": "CI blocks merges if implementation and spec diverge.",
+      "scope": "core",
+      "id": "api-endpoints-defined-openapi-specs"
+    }
+  ],
+  "cross_cutting_guardrails": [
+    "Contract Versioning: All APIs must use /vN routing (see ADR-0045#contract-versioning)"
+  ],
+  "references": [
+    "ADR-0009_Type-Safety-Contract-Discipline: Pydantic contracts validated via OpenAPI",
+    "ADR-0017_Cross-Cutting-Guardrails: Contract versioning guardrails",
+    "ADR-0029_API-Versioning-and-Endpoint-Naming: Defines /vN routing patterns",
+    "gateway/: FastAPI routers with OpenAPI spec generation for all tools"
+  ],
+  "tags": [
+    "swagger",
+    "openapi",
+    "api-contract",
+    "validation",
+    "ci"
+  ],
+  "affected_components": [
+    "api specs",
+    "swagger ui",
+    "ci pipeline",
+    "test harness"
+  ],
+  "review_date": "2026-05-22"
+}

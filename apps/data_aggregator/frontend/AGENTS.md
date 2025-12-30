@@ -16,7 +16,7 @@
 
 ---
 
-## UI Pattern: Horizontal Wizard (ADR-0041)
+## UI Pattern: Horizontal Wizard (ADR-0043)
 
 DAT uses a horizontal stepper pattern for the 8-stage pipeline:
 

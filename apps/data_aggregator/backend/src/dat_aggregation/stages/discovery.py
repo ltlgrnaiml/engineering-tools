@@ -1,6 +1,6 @@
 """Discovery stage - scan and discover available files.
 
-Per ADR-0001-DAT: Discovery is the first stage in the 8-stage pipeline,
+Per ADR-0004: Discovery is the first stage in the 8-stage pipeline,
 making the implicit file scan explicit.
 
 This stage scans a directory for supported files and returns metadata
@@ -63,7 +63,7 @@ async def execute_discovery(
 ) -> DiscoveryResult:
     """Execute discovery stage to scan for files.
 
-    Per ADR-0001-DAT: Discovery scans the root path and returns
+    Per ADR-0004: Discovery scans the root path and returns
     metadata about discovered files.
 
     Args:

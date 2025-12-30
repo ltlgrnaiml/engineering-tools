@@ -1,6 +1,6 @@
 """SOV API routes.
 
-Per ADR-0029: All routes use versioned / prefix.
+Per ADR-0030: All routes use versioned / prefix.
 Per API-003: Error responses MUST use standard error schema.
 """
 from fastapi import APIRouter, HTTPException, Request
@@ -26,7 +26,7 @@ from .schemas import (
     ExportRequest,
 )
 
-# Per ADR-0029: Tool-specific routes use / prefix
+# Per ADR-0030: Tool-specific routes use / prefix
 router = APIRouter(prefix="")
 manager = AnalysisManager()
 
@@ -157,7 +157,7 @@ async def run_analysis(analysis_id: str, request: RunAnalysisRequest):
         response_columns=request.response_columns,
         alpha=request.alpha,
         anova_type=request.anova_type,
-        seed=request.seed,  # Per ADR-0022: Deterministic computation
+        seed=request.seed,  # Per ADR-0023: Deterministic computation
     )
     
     try:

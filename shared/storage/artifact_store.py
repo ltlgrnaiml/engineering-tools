@@ -5,8 +5,8 @@ Provides read/write operations for:
 - Pipeline definitions
 - Other artifacts
 
-Per ADR-0014: Uses Parquet for data, JSON for metadata.
-Per ADR-0017#path-safety: All external paths are relative.
+Per ADR-0015: Uses Parquet for data, JSON for metadata.
+Per ADR-0018#path-safety: All external paths are relative.
 """
 
 import json
@@ -121,7 +121,7 @@ class ArtifactStore:
     ) -> tuple[pl.DataFrame, DataSetManifest | None]:
         """Read a DataSet's data and manifest together.
         
-        Per ADR-0023: Provides access to column metadata for preservation.
+        Per ADR-0024: Provides access to column metadata for preservation.
         
         Args:
             dataset_id: Dataset identifier.
@@ -212,7 +212,7 @@ class ArtifactStore:
     def get_relative_path(self, absolute_path: Path) -> str:
         """Convert absolute path to workspace-relative path.
         
-        Per ADR-0017#path-safety: All public paths must be relative.
+        Per ADR-0018#path-safety: All public paths must be relative.
         """
         try:
             return str(absolute_path.relative_to(self.workspace))

@@ -1,4 +1,4 @@
-"""Workflow FSM tests per ADR-0019.
+"""Workflow FSM tests per ADR-0020.
 
 Tests for the 7-step guided workflow state machine.
 """
@@ -54,7 +54,7 @@ class TestWorkflowFSM:
         return WorkflowFSM(state)
 
     def test_initial_step_has_no_dependencies(self, fsm):
-        """Test first step has no dependencies per ADR-0019."""
+        """Test first step has no dependencies per ADR-0020."""
         assert fsm.can_transition_to(WorkflowStep.UPLOAD_TEMPLATE)
         assert fsm.get_blocking_dependencies(WorkflowStep.UPLOAD_TEMPLATE) == []
 
@@ -87,7 +87,7 @@ class TestWorkflowFSM:
         assert "dependencies incomplete" in str(exc_info.value)
 
     def test_sequential_workflow(self, fsm):
-        """Test completing steps 1-3 sequentially per ADR-0019."""
+        """Test completing steps 1-3 sequentially per ADR-0020."""
         # Step 1
         fsm.complete_step(WorkflowStep.UPLOAD_TEMPLATE)
         assert fsm.can_transition_to(WorkflowStep.CONFIGURE_ENV)
@@ -104,7 +104,7 @@ class TestWorkflowFSM:
 
 
 class TestParallelSteps:
-    """Tests for parallel step execution per ADR-0019."""
+    """Tests for parallel step execution per ADR-0020."""
 
     @pytest.fixture
     def fsm_at_step3(self):
@@ -117,7 +117,7 @@ class TestParallelSteps:
         return fsm
 
     def test_steps_4_5_parallel(self, fsm_at_step3):
-        """ADR-0019: Steps 4-5 may be completed in any order after Step 3."""
+        """ADR-0020: Steps 4-5 may be completed in any order after Step 3."""
         # Both should be available
         assert fsm_at_step3.can_transition_to(WorkflowStep.MAP_CONTEXT)
         assert fsm_at_step3.can_transition_to(WorkflowStep.MAP_METRICS)
@@ -131,7 +131,7 @@ class TestParallelSteps:
         assert fsm_at_step3.can_transition_to(WorkflowStep.VALIDATE)
 
     def test_validation_requires_both_mappings(self, fsm_at_step3):
-        """ADR-0019: Step 6 requires both Steps 4 and 5 complete."""
+        """ADR-0020: Step 6 requires both Steps 4 and 5 complete."""
         # Only MAP_CONTEXT done
         fsm_at_step3.complete_step(WorkflowStep.MAP_CONTEXT)
         assert not fsm_at_step3.can_transition_to(WorkflowStep.VALIDATE)
@@ -142,7 +142,7 @@ class TestParallelSteps:
 
 
 class TestResetTriggers:
-    """Tests for reset cascade policy per ADR-0019."""
+    """Tests for reset cascade policy per ADR-0020."""
 
     @pytest.fixture
     def fsm_complete(self):
@@ -158,7 +158,7 @@ class TestResetTriggers:
         return fsm
 
     def test_modify_template_resets_downstream(self, fsm_complete):
-        """ADR-0019: Modifying template resets steps 2-6."""
+        """ADR-0020: Modifying template resets steps 2-6."""
         reset_steps = fsm_complete.modify_step(WorkflowStep.UPLOAD_TEMPLATE)
 
         # Should reset configure_env through validate
@@ -169,7 +169,7 @@ class TestResetTriggers:
         assert not fsm_complete.state.validation_passed
 
     def test_modify_data_resets_mappings(self, fsm_complete):
-        """ADR-0019: Modifying data upload resets mapping steps."""
+        """ADR-0020: Modifying data upload resets mapping steps."""
         reset_steps = fsm_complete.modify_step(WorkflowStep.UPLOAD_DATA)
 
         assert WorkflowStep.MAP_CONTEXT in reset_steps
@@ -177,7 +177,7 @@ class TestResetTriggers:
         assert WorkflowStep.VALIDATE in reset_steps
 
     def test_modify_mapping_resets_validation_only(self, fsm_complete):
-        """ADR-0019: Modifying mapping only resets validation."""
+        """ADR-0020: Modifying mapping only resets validation."""
         reset_steps = fsm_complete.modify_step(WorkflowStep.MAP_CONTEXT)
 
         assert WorkflowStep.VALIDATE in reset_steps
@@ -185,7 +185,7 @@ class TestResetTriggers:
 
 
 class TestGenerateGating:
-    """Tests for Generate step gating per ADR-0019."""
+    """Tests for Generate step gating per ADR-0020."""
 
     @pytest.fixture
     def fsm_validated(self):
@@ -201,7 +201,7 @@ class TestGenerateGating:
         return fsm
 
     def test_generate_requires_validation_pass(self):
-        """ADR-0019: Generate MUST be disabled until Step 6 passes."""
+        """ADR-0020: Generate MUST be disabled until Step 6 passes."""
         state = create_workflow_state(uuid4())
         fsm = WorkflowFSM(state)
 

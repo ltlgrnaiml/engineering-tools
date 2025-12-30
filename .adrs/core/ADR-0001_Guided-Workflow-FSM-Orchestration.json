@@ -1,6 +1,6 @@
 {
   "schema_type": "adr",
-  "id": "ADR-0001_Guided-Workflow-FSM-Orchestration",
+  "id": "ADR-0001_guided-workflow-fsm-orchestration",
   "title": "Hybrid FSM Architecture for Guided Workflow Orchestration Across All Tools",
   "status": "accepted",
   "date": "2025-01-15",
@@ -41,28 +41,61 @@
       "Determinism: Given the same inputs and stage graph, state transitions MUST be deterministic and reproducible",
       "Optional Stages: Tools MAY define stages as optional; optional stages do not block downstream progression and do not trigger cascades when skipped",
       "Stage Graph: Dependencies between stages MUST be defined as a directed acyclic graph (DAG); cycles are prohibited",
-      "Stage Identity: Each stage instance SHOULD have a deterministic ID derived from inputs (see ADR-0004 pattern) to enable idempotent re-computation"
+      "Stage Identity: Each stage instance SHOULD have a deterministic ID derived from inputs (see ADR-0007 pattern) to enable idempotent re-computation"
     ],
     "stage_state_models": {
       "simple_linear": {
-        "states": ["PENDING", "ACTIVE", "COMPLETED"],
+        "states": [
+          "PENDING",
+          "ACTIVE",
+          "COMPLETED"
+        ],
         "description": "For tools with simple step-by-step progression (e.g., PPTX Generator). User advances through steps; completing a step unlocks the next.",
-        "transitions": ["PENDING → ACTIVE (user enters step)", "ACTIVE → COMPLETED (user completes step)", "COMPLETED → ACTIVE (user revisits step)"]
+        "transitions": [
+          "PENDING → ACTIVE (user enters step)",
+          "ACTIVE → COMPLETED (user completes step)",
+          "COMPLETED → ACTIVE (user revisits step)"
+        ]
       },
       "lockable_with_artifacts": {
-        "states": ["UNLOCKED", "LOCKED"],
+        "states": [
+          "UNLOCKED",
+          "LOCKED"
+        ],
         "description": "For tools with significant per-stage computation/artifacts (e.g., DAT). Locking commits the stage; unlocking preserves artifacts but marks as mutable.",
-        "transitions": ["UNLOCKED → LOCKED (user locks stage)", "LOCKED → UNLOCKED (user unlocks stage, artifacts preserved)"]
+        "transitions": [
+          "UNLOCKED → LOCKED (user locks stage)",
+          "LOCKED → UNLOCKED (user unlocks stage, artifacts preserved)"
+        ]
       },
       "hybrid": {
-        "states": ["PENDING", "ACTIVE", "LOCKED", "UNLOCKED"],
+        "states": [
+          "PENDING",
+          "ACTIVE",
+          "LOCKED",
+          "UNLOCKED"
+        ],
         "description": "Combines linear progression with lockable artifacts. Stages progress PENDING → ACTIVE → LOCKED, can be unlocked for revision.",
-        "transitions": ["PENDING → ACTIVE (dependencies satisfied)", "ACTIVE → LOCKED (user commits)", "LOCKED → UNLOCKED (user unlocks)", "UNLOCKED → LOCKED (user re-locks)"]
+        "transitions": [
+          "PENDING → ACTIVE (dependencies satisfied)",
+          "ACTIVE → LOCKED (user commits)",
+          "LOCKED → UNLOCKED (user unlocks)",
+          "UNLOCKED → LOCKED (user re-locks)"
+        ]
       },
       "lockable_with_acknowledgment": {
-        "states": ["UNLOCKED", "LOCKED", "COMPLETED"],
+        "states": [
+          "UNLOCKED",
+          "LOCKED",
+          "COMPLETED"
+        ],
         "description": "For stages where user must acknowledge results before advancing (e.g., Preview). Distinguishes data-ready (LOCKED) from user-acknowledged (COMPLETED). Backend controls current_stage based on COMPLETED status.",
-        "transitions": ["UNLOCKED → LOCKED (stage computation done, data ready for review)", "LOCKED → COMPLETED (user acknowledges, ready to advance)", "LOCKED → UNLOCKED (user unlocks for revision)", "COMPLETED → UNLOCKED (user unlocks for revision)"],
+        "transitions": [
+          "UNLOCKED → LOCKED (stage computation done, data ready for review)",
+          "LOCKED → COMPLETED (user acknowledges, ready to advance)",
+          "LOCKED → UNLOCKED (user unlocks for revision)",
+          "COMPLETED → UNLOCKED (user unlocks for revision)"
+        ],
         "completion_semantics": {
           "auto_complete": "Stages where lock implies completion (no user review needed). Lock operation returns completed=true.",
           "manual_complete": "Stages requiring user acknowledgment. Lock returns completed=false. Separate /complete endpoint marks stage done.",
@@ -85,7 +118,7 @@
     "implementation_specs": [
       "SPEC-0001_Stage-Orchestration-State-Machine",
       "SPEC-0028_Core-FSM-Interface-Spec",
-      "SPEC-0044_Stage-Completion-Semantics"
+      "SPEC-0022_stage-completion-semantics"
     ],
     "shared_implementation": {
       "location": "shared/workflows/fsm_orchestrator.py",
@@ -171,9 +204,9 @@
     }
   ],
   "cross_cutting_guardrails": [
-    "Path Safety: All public paths must be relative (see ADR-0017#path-safety)",
-    "Idempotency: All mutating requests must be idempotent or safely retryable (see ADR-0017#idempotency)",
-    "Deterministic Artifacts: All outputs must be reproducible given same inputs (see ADR-0017#deterministic-artifacts)"
+    "Path Safety: All public paths must be relative (see ADR-0045#path-safety)",
+    "Idempotency: All mutating requests must be idempotent or safely retryable (see ADR-0045#idempotency)",
+    "Deterministic Artifacts: All outputs must be reproducible given same inputs (see ADR-0045#deterministic-artifacts)"
   ],
   "references": [
     "ADR-0002_Artifact-Preservation-on-Unlock: Detailed artifact preservation policy (originally DAT, applicable to all)",

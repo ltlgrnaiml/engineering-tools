@@ -1,6 +1,6 @@
 """Extraction strategies for profile-driven data extraction.
 
-Per SPEC-DAT-0012: Six extraction strategies for table definitions.
+Per SPEC-0009: Six extraction strategies for table definitions.
 Each strategy transforms nested JSON/data structures into flat DataFrames.
 """
 

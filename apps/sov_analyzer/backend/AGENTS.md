@@ -37,7 +37,7 @@ backend/
 
 ---
 
-## ANOVA Computation (ADR-0022)
+## ANOVA Computation (ADR-0023)
 
 ```python
 import polars as pl
@@ -60,7 +60,7 @@ def compute_anova(
         ANOVAResult with variance components summing to 100%.
     """
     # Use Type III SS (partial)
-    # Ensure deterministic computation (ADR-0012)
+    # Ensure deterministic computation (ADR-0013)
     ...
 ```
 

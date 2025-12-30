@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """Check for contract drift between Pydantic models and existing schemas.
 
-Per ADR-0009: Type Safety & Contract Discipline.
-Per ADR-0016: Hybrid Semver Contract Versioning.
+Per ADR-0010: Type Safety & Contract Discipline.
+Per ADR-0017: Hybrid Semver Contract Versioning.
 
 This script compares current Pydantic contracts against previously
 generated JSON schemas to detect breaking changes and drift.

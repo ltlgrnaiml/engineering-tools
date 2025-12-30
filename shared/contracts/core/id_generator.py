@@ -1,7 +1,7 @@
 """Deterministic ID generation contracts.
 
-Per ADR-0004: Deterministic Content-Addressed IDs.
-Per ADR-0004-DAT: DAT Stage ID Configuration.
+Per ADR-0005: Deterministic Content-Addressed IDs.
+Per ADR-0008: DAT Stage ID Configuration.
 
 This module defines contracts for generating deterministic, content-addressed
 IDs using SHA-256 hashing of stable JSON serialization of inputs.
@@ -35,7 +35,7 @@ class IDAlgorithm(str, Enum):
 class IDConfig(BaseModel):
     """Configuration for ID generation.
 
-    Per ADR-0004: SHA-256 hash of inputs with seed=42, 8-char prefix default.
+    Per ADR-0005: SHA-256 hash of inputs with seed=42, 8-char prefix default.
     """
 
     algorithm: IDAlgorithm = IDAlgorithm.SHA256_SHORT
@@ -57,14 +57,14 @@ class IDConfig(BaseModel):
 
 
 # =============================================================================
-# Stage ID Inputs (Per ADR-0004-DAT)
+# Stage ID Inputs (Per ADR-0008)
 # =============================================================================
 
 
 class StageIDInputs(BaseModel):
     """Base class for stage-specific ID inputs.
 
-    Per ADR-0004-DAT: Each stage has specific inputs that determine its ID.
+    Per ADR-0008: Each stage has specific inputs that determine its ID.
     Same inputs must always yield same ID (idempotent re-computation).
     """
 
@@ -201,7 +201,7 @@ class IDGenerationResult(BaseModel):
 class ArtifactIDRequest(BaseModel):
     """Request to generate an artifact ID.
 
-    Per ADR-0004: Artifact IDs are content-addressed.
+    Per ADR-0005: Artifact IDs are content-addressed.
     """
 
     artifact_type: str = Field(
@@ -274,7 +274,7 @@ def compute_deterministic_id(
 ) -> str:
     """Compute a deterministic ID from inputs.
 
-    Per ADR-0004:
+    Per ADR-0005:
     - SHA-256 hash of stable JSON serialization
     - Fixed seed for determinism
     - 8-char prefix by default
@@ -331,7 +331,7 @@ def verify_id_determinism(
 ) -> bool:
     """Verify that inputs produce the expected ID.
 
-    Per ADR-0004: Same inputs must always yield same ID.
+    Per ADR-0005: Same inputs must always yield same ID.
 
     Args:
         inputs: Inputs to hash

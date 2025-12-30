@@ -2,7 +2,7 @@
 
 **Date**: 2025-12-29  
 **Status**: APPROVED FOR IMPLEMENTATION  
-**Implements**: ADR-0011, SPEC-DAT-0011, SPEC-DAT-0012  
+**Implements**: ADR-0012, SPEC-0033, SPEC-0009  
 **Goal**: Bridge the gap between beautiful profile YAML and actual code execution
 
 ---
@@ -96,7 +96,7 @@ from typing import Any, Protocol
 import polars as pl
 
 class ExtractionStrategy(Protocol):
-    """Protocol for extraction strategies per SPEC-DAT-0012."""
+    """Protocol for extraction strategies per SPEC-0009."""
     
     def extract(self, data: Any, config: SelectConfig, context: dict) -> pl.DataFrame:
         """Execute extraction and return DataFrame."""
@@ -112,7 +112,7 @@ class ExtractionStrategy(Protocol):
 class FlatObjectStrategy:
     """Extract flat JSON object as single-row DataFrame.
     
-    Per SPEC-DAT-0012: Object keys become column names, values become single row.
+    Per SPEC-0009: Object keys become column names, values become single row.
     """
     
     def extract(self, data: Any, config: SelectConfig, context: dict) -> pl.DataFrame:
@@ -127,7 +127,7 @@ class FlatObjectStrategy:
 class HeadersDataStrategy:
     """Extract headers + data arrays as DataFrame.
     
-    Per SPEC-DAT-0012: headers_key contains column names, data_key contains rows.
+    Per SPEC-0009: headers_key contains column names, data_key contains rows.
     """
     
     def extract(self, data: Any, config: SelectConfig, context: dict) -> pl.DataFrame:
@@ -142,7 +142,7 @@ class HeadersDataStrategy:
 class RepeatOverStrategy:
     """Extract with iteration over array elements.
     
-    Per SPEC-DAT-0012: Iterate over array, apply base strategy at each element,
+    Per SPEC-0009: Iterate over array, apply base strategy at each element,
     inject context fields from parent, concatenate results.
     """
     
@@ -162,7 +162,7 @@ class RepeatOverStrategy:
 **5. ProfileExecutor** (`profile_executor.py`):
 ```python
 class ProfileExecutor:
-    """Interprets profiles and executes extraction per ADR-0011."""
+    """Interprets profiles and executes extraction per ADR-0012."""
     
     def __init__(self):
         self.strategies = {
@@ -344,7 +344,7 @@ print(f'Tables defined: {len(profile.get_all_tables())}')
 
 **Goal**: Implement the 4-level context extraction priority system.
 
-#### Priority Levels (per ADR-0011)
+#### Priority Levels (per ADR-0012)
 
 1. **User Override** (highest): Explicit values from UI
 2. **Content Patterns**: JSONPath extraction from file content
@@ -370,7 +370,7 @@ print(f'Tables defined: {len(profile.get_all_tables())}')
 **ContextExtractor** (`context_extractor.py`):
 ```python
 class ContextExtractor:
-    """4-level priority context extraction per ADR-0011."""
+    """4-level priority context extraction per ADR-0012."""
     
     def extract(
         self,
@@ -885,7 +885,7 @@ Baseline outputs captured for:
 | Risk | Impact | Mitigation |
 |------|--------|------------|
 | JSONPath complexity | HIGH | Start with simple paths, add complex patterns incrementally |
-| Performance on large files | MEDIUM | Use streaming (ADR-0040), chunk processing |
+| Performance on large files | MEDIUM | Use streaming (ADR-0041), chunk processing |
 | Backward compatibility | HIGH | Legacy path preserved when no profile specified |
 | Profile schema evolution | MEDIUM | Forward-compatible schema (ignore unknown fields) |
 
@@ -912,4 +912,4 @@ Baseline outputs captured for:
 ---
 
 *Implementation plan prepared for Profile-Driven ETL Architecture*
-*Per ADR-0011, SPEC-DAT-0011, SPEC-DAT-0012*
+*Per ADR-0012, SPEC-0033, SPEC-0009*

@@ -5,7 +5,7 @@ Provides gateway-level APIs for:
 - Executing pipeline steps across tools
 - Tracking pipeline state and progress
 
-Per ADR-0026: Pipeline error handling with fail-fast semantics.
+Per ADR-0027: Pipeline error handling with fail-fast semantics.
 """
 
 import logging
@@ -28,7 +28,7 @@ from shared.utils.stage_id import compute_pipeline_id
 logger = logging.getLogger(__name__)
 
 # Tool API base URLs (internal routing via gateway mounts)
-# Per ADR-0029: Tool-specific APIs use /api/{tool}/ pattern (no version prefix)
+# Per ADR-0030: Tool-specific APIs use /api/{tool}/ pattern (no version prefix)
 TOOL_BASE_URLS = {
     "dat": "http://localhost:8000/api/dat",
     "sov": "http://localhost:8000/api/sov",
@@ -134,7 +134,7 @@ async def execute_pipeline(
 
 @router.post("/{pipeline_id}/cancel", response_model=Pipeline)
 async def cancel_pipeline(pipeline_id: str) -> Pipeline:
-    """Cancel a running pipeline (per ADR-0013: preserves completed artifacts)."""
+    """Cancel a running pipeline (per ADR-0014: preserves completed artifacts)."""
     if pipeline_id not in _pipelines:
         raise HTTPException(status_code=404, detail=f"Pipeline not found: {pipeline_id}")
     
@@ -229,7 +229,7 @@ def _resolve_step_inputs(pipeline: Pipeline, step: PipelineStep) -> list[str]:
 async def _dispatch_step(step: PipelineStep, input_dataset_ids: list[str]) -> str:
     """Dispatch a step to the appropriate tool and return output dataset ID.
 
-    Per ADR-0026: Fail-fast semantics with explicit error handling.
+    Per ADR-0027: Fail-fast semantics with explicit error handling.
 
     Args:
         step: Pipeline step to execute.

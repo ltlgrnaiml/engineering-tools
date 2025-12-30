@@ -1,7 +1,7 @@
 """PPTX Renderer contracts - pluggable shape rendering interface.
 
-Per ADR-0021: PPTX uses a pluggable renderer system with a common interface.
-Per ADR-0028: Renderers SHOULD consume RenderSpec contracts from shared rendering.
+Per ADR-0022: PPTX uses a pluggable renderer system with a common interface.
+Per ADR-0029: Renderers SHOULD consume RenderSpec contracts from shared rendering.
 
 This module defines contracts for:
 - Base renderer interface and registry
@@ -31,7 +31,7 @@ __version__ = "0.1.0"
 class RendererCategory(str, Enum):
     """Categories of shape renderers.
 
-    Per ADR-0018: Shape categories from naming convention.
+    Per ADR-0019: Shape categories from naming convention.
     """
 
     TEXT = "text"  # Text boxes, labels, titles
@@ -90,7 +90,7 @@ class TextRenderConfig(BaseModel):
 class ChartRenderConfig(BaseModel):
     """Configuration for chart shape rendering.
 
-    Per ADR-0028: Delegates to unified rendering engine for chart generation.
+    Per ADR-0029: Delegates to unified rendering engine for chart generation.
     """
 
     chart_type: str = Field(
@@ -238,7 +238,7 @@ class ImageRenderConfig(BaseModel):
     @field_validator("source_path", "placeholder_path")
     @classmethod
     def validate_relative_path(cls, v: str | None) -> str | None:
-        """Ensure paths are relative (per ADR-0017 path-safety)."""
+        """Ensure paths are relative (per ADR-0018 path-safety)."""
         if v is None:
             return v
         if v.startswith("/") or (len(v) > 1 and v[1] == ":"):
@@ -336,7 +336,7 @@ class RenderInput(BaseModel):
 class ShapeRenderResult(BaseModel):
     """Result of rendering a single shape.
 
-    Per ADR-0021: Failed renders log errors but do not abort generation.
+    Per ADR-0022: Failed renders log errors but do not abort generation.
     """
 
     shape_name: str
@@ -387,7 +387,7 @@ class RendererResult(BaseModel):
 class RendererMetadata(BaseModel):
     """Metadata about a renderer for registry.
 
-    Per ADR-0021: Renderers are registered in RendererRegistry.
+    Per ADR-0022: Renderers are registered in RendererRegistry.
     """
 
     renderer_id: str = Field(
@@ -458,7 +458,7 @@ class RendererRegistryState(BaseModel):
 class BaseRenderer(ABC):
     """Base class for all shape renderers.
 
-    Per ADR-0021: All renderers MUST implement this interface.
+    Per ADR-0022: All renderers MUST implement this interface.
     Renderers MUST NOT raise exceptions that abort generation.
 
     Implementation notes:
@@ -500,7 +500,7 @@ class BaseRenderer(ABC):
     ) -> ShapeRenderResult:
         """Render content into a shape.
 
-        Per ADR-0021: MUST NOT raise exceptions that abort generation.
+        Per ADR-0022: MUST NOT raise exceptions that abort generation.
         Catch all exceptions and return failed ShapeRenderResult.
 
         Args:

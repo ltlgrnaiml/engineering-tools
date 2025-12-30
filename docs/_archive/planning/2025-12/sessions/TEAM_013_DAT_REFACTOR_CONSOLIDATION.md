@@ -19,10 +19,10 @@ We evaluated each team's contribution to identifying valid gaps and defining the
 
 | Team Session | Focus Area | Key Findings / Contributions | Score (Valid Gaps) |
 | :--- | :--- | :--- | :--- |
-| **TEAM_006** | **SSoT Gap Analysis** | • Identified `/v1` API violation (ADR-0029). • Found hardcoded FSM logic vs Configurable Graph. • Discovered absolute paths in Stage IDs (Determinism fail). • Flagged duplicate adapter stacks. | **10/10** (Found root causes) |
+| **TEAM_006** | **SSoT Gap Analysis** | • Identified `/v1` API violation (ADR-0030). • Found hardcoded FSM logic vs Configurable Graph. • Discovered absolute paths in Stage IDs (Determinism fail). • Flagged duplicate adapter stacks. | **10/10** (Found root causes) |
 | **TEAM_007** | **High-Level Planning** | • Defined "Lazy Initialization" for optional stages. • Proposed "Fast Probe" for Table Availability. • Mapped tasks to CORE/SAFE/STAGE categories. | **9/10** (Strong architectural plan) |
 | **TEAM_008** | **Implementation Details** | • Detailed missing contracts (Profile CRUD, Jobs). • Defined class-level implementation for Adapter Registry. • Spec'd out CSV/Excel/JSON adapter logic. | **9/10** (Excellent low-level detail) |
-| **TEAM_009** | **Deterministic Plan** | • Refined ID inputs per stage (ADR-0004-DAT). • Defined Streaming threshold strategies (ADR-0040). • Created the most actionable Milestone sequence (M0-M9). | **10/10** (Best actionable roadmap) |
+| **TEAM_009** | **Deterministic Plan** | • Refined ID inputs per stage (ADR-0008). • Defined Streaming threshold strategies (ADR-0041). • Created the most actionable Milestone sequence (M0-M9). | **10/10** (Best actionable roadmap) |
 | **TEAM_010** | **Summary & Alignment** | • Validated alignment with Core ADRs/Solo-Dev Ethos. • Synthesized previous plans. • Re-affirmed Acceptance Criteria. | **8/10** (Good summary, mostly derivative) |
 
 ---
@@ -33,15 +33,15 @@ These are the validated issues that **must** be resolved.
 
 | Component | Current State (The Problem) | SSoT Requirement (The Fix) | Criticality |
 | :--- | :--- | :--- | :--- |
-| **API Routing** | `APIRouter(prefix="/v1")` resulting in `/api/dat/v1/...` | Unversioned `/api/dat/...` by default (ADR-0029) | **CRITICAL** |
-| **Adapters** | Split stack: Legacy `src/dat_aggregation/adapters` vs New `backend/adapters` | Single `AdapterRegistry` using Contract-style `BaseFileAdapter` (ADR-0011) | **CRITICAL** |
-| **Stage Graph** | Hardcoded `FORWARD_GATES` and `CASCADE_TARGETS` dicts | Instance-based `StageGraphConfig` injected into FSM (ADR-0001-DAT) | **HIGH** |
-| **Determinism** | Stage IDs use 16-char hex; Inputs include absolute paths | 8-char IDs; Inputs use relative paths & stage-specific data (ADR-0004) | **CRITICAL** |
-| **Table Probe** | Reads full dataframe (slow) | Metadata-only probe (`probe_schema`) returning `TableStatus` (ADR-0006) | **HIGH** |
-| **Large Files** | Eager loading default | Streaming for >10MB via `scan_csv`/`LazyFrame` (ADR-0040) | **MEDIUM** |
-| **Optionality** | Implicit; Preview "skips" but stays locked/incomplete | Explicit `CONTEXT`/`PREVIEW` optionality; Lazy init for downstream (ADR-0003) | **HIGH** |
-| **Cancellation** | No checkpointing guarantees | Soft-cancel; rollback partials; preserve completed (ADR-0013) | **MEDIUM** |
-| **Artifacts** | Mixed output formats | Parse=Parquet (Strict); Export=Multi-format (ADR-0014) | **HIGH** |
+| **API Routing** | `APIRouter(prefix="/v1")` resulting in `/api/dat/v1/...` | Unversioned `/api/dat/...` by default (ADR-0030) | **CRITICAL** |
+| **Adapters** | Split stack: Legacy `src/dat_aggregation/adapters` vs New `backend/adapters` | Single `AdapterRegistry` using Contract-style `BaseFileAdapter` (ADR-0012) | **CRITICAL** |
+| **Stage Graph** | Hardcoded `FORWARD_GATES` and `CASCADE_TARGETS` dicts | Instance-based `StageGraphConfig` injected into FSM (ADR-0004) | **HIGH** |
+| **Determinism** | Stage IDs use 16-char hex; Inputs include absolute paths | 8-char IDs; Inputs use relative paths & stage-specific data (ADR-0005) | **CRITICAL** |
+| **Table Probe** | Reads full dataframe (slow) | Metadata-only probe (`probe_schema`) returning `TableStatus` (ADR-0008) | **HIGH** |
+| **Large Files** | Eager loading default | Streaming for >10MB via `scan_csv`/`LazyFrame` (ADR-0041) | **MEDIUM** |
+| **Optionality** | Implicit; Preview "skips" but stays locked/incomplete | Explicit `CONTEXT`/`PREVIEW` optionality; Lazy init for downstream (ADR-0004) | **HIGH** |
+| **Cancellation** | No checkpointing guarantees | Soft-cancel; rollback partials; preserve completed (ADR-0014) | **MEDIUM** |
+| **Artifacts** | Mixed output formats | Parse=Parquet (Strict); Export=Multi-format (ADR-0015) | **HIGH** |
 
 ---
 

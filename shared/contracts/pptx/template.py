@@ -1,9 +1,9 @@
 """PPTX Template contracts - slide deck templates and configuration.
 
-Per ADR-0018: Templates are discoverable, version-controlled configurations.
-Per ADR-0019: Guided workflow for template configuration.
-Per ADR-0020: Domain configuration separates domain knowledge from code.
-Per ADR-0008: All timestamps are ISO-8601 UTC (no microseconds).
+Per ADR-0019: Templates are discoverable, version-controlled configurations.
+Per ADR-0020: Guided workflow for template configuration.
+Per ADR-0021: Domain configuration separates domain knowledge from code.
+Per ADR-0009: All timestamps are ISO-8601 UTC (no microseconds).
 
 A PPTXTemplate defines:
 - Slide layouts and their shapes
@@ -121,7 +121,7 @@ class PPTXTemplate(BaseModel):
     """Complete PPTX template definition.
 
     This is the top-level contract for template configuration.
-    Per ADR-0018: Templates are discoverable and version-controlled.
+    Per ADR-0019: Templates are discoverable and version-controlled.
     """
 
     # Identity
@@ -136,7 +136,7 @@ class PPTXTemplate(BaseModel):
     # Status
     status: TemplateStatus = TemplateStatus.DRAFT
 
-    # Timestamps (per ADR-0008)
+    # Timestamps (per ADR-0009)
     created_at: datetime
     updated_at: datetime | None = None
     validated_at: datetime | None = None

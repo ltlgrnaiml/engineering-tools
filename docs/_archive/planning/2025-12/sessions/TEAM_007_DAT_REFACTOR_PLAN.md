@@ -10,13 +10,13 @@
 
 | Component | Current State | SSoT Requirement | Reference |
 | :--- | :--- | :--- | :--- |
-| **API Routing** | `/api/dat/v1/...` | `/api/dat/...` (Simplified) | ADR-0029 |
-| **Stage Graph** | Hardcoded `FORWARD_GATES` | Configurable `StageGraphConfig` | ADR-0001-DAT |
-| **Orchestration** | Global Dicts | Instance-based FSM | SPEC-DAT-0001 |
-| **Optionality** | Implicit/Unclear | Context/Preview Explicitly Optional | ADR-0003 |
-| **Determinism** | Absolute Paths in IDs | Relative/Content-based IDs | ADR-0004-DAT |
-| **Table Scan** | Full Read (presumed) | Fast Probe (Headers/Metadata) | ADR-0006 |
-| **Adapters** | Split Implementation | Unified Contract Adapters | ADR-0011 |
+| **API Routing** | `/api/dat/v1/...` | `/api/dat/...` (Simplified) | ADR-0030 |
+| **Stage Graph** | Hardcoded `FORWARD_GATES` | Configurable `StageGraphConfig` | ADR-0004 |
+| **Orchestration** | Global Dicts | Instance-based FSM | SPEC-0024 |
+| **Optionality** | Implicit/Unclear | Context/Preview Explicitly Optional | ADR-0004 |
+| **Determinism** | Absolute Paths in IDs | Relative/Content-based IDs | ADR-0008 |
+| **Table Scan** | Full Read (presumed) | Fast Probe (Headers/Metadata) | ADR-0008 |
+| **Adapters** | Split Implementation | Unified Contract Adapters | ADR-0012 |
 
 ## 2. Change Plan
 
@@ -55,7 +55,7 @@
 
 - **[STAGE-002] Table Availability Fast Probe**
   - **Action**: Refactor `TableAvailability` execution to use `adapter.probe_schema()` instead of full read.
-  - **Action**: Ensure 10MB+ files are handled via streaming check (ADR-0040).
+  - **Action**: Ensure 10MB+ files are handled via streaming check (ADR-0041).
   - **Validation**: `TableAvailability` completes in <1s for 1GB file.
 
 - **[STAGE-003] Unified Adapter Integration**
@@ -63,12 +63,12 @@
   - **Action**: Wire `backend/adapters/*` (Contract-style) into Stage execution logic.
   - **Validation**: Pipeline runs using new adapter registry.
 
-- **[STAGE-004] Cancellation Checkpointing (ADR-0013)**
+- **[STAGE-004] Cancellation Checkpointing (ADR-0014)**
   - **Action**: Implement "soft cancellation" in `Parse` and `Export` stages.
   - **Action**: Ensure cancellation triggers rollback of partial artifacts (no incomplete Parquet files).
   - **Validation**: Cancelled job leaves no data file, only audit log.
 
-- **[STAGE-005] Artifact Format Enforcement (ADR-0014)**
+- **[STAGE-005] Artifact Format Enforcement (ADR-0015)**
   - **Action**: Enforce Parquet output for `Parse` stage (no CSV/JSON options at this stage).
   - **Action**: Implement multi-format handlers (Parquet, CSV, JSON) for `Export` stage.
   - **Validation**: Parse always yields `.parquet`; Export yields selected format.

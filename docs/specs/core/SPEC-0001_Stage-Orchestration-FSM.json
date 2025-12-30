@@ -1,6 +1,6 @@
 {
   "schema_type": "spec",
-  "id": "SPEC-0001_Stage-Orchestration-FSM",
+  "id": "SPEC-0001_stage-orchestration-fsm",
   "title": "Stage Orchestration Finite State Machine Specification",
   "version": "0.1.0",
   "status": "draft",
@@ -12,7 +12,13 @@
   "tier_0_contracts": [
     {
       "module": "shared.contracts.core.pipeline",
-      "classes": ["Pipeline", "PipelineStep", "PipelineStepState", "PipelineStepType", "PipelineState"]
+      "classes": [
+        "Pipeline",
+        "PipelineStep",
+        "PipelineStepState",
+        "PipelineStepType",
+        "PipelineState"
+      ]
     }
   ],
   "purpose": "Define the Finite State Machine pattern for stage orchestration across all tools. Each tool (DAT, PPTX, SOV) implements guided workflows using this common FSM pattern with tool-specific stage graphs.",
@@ -21,18 +27,41 @@
     {
       "id": "REQ-FSM-001",
       "description": "All guided workflows MUST use PipelineStep state machine",
-      "states": ["PENDING", "IN_PROGRESS", "COMPLETED", "FAILED", "CANCELLED", "SKIPPED"]
+      "states": [
+        "PENDING",
+        "IN_PROGRESS",
+        "COMPLETED",
+        "FAILED",
+        "CANCELLED",
+        "SKIPPED"
+      ]
     },
     {
       "id": "REQ-FSM-002",
       "description": "Stage transitions MUST follow allowed_transitions graph",
       "transitions": {
-        "PENDING": ["IN_PROGRESS", "SKIPPED"],
-        "IN_PROGRESS": ["COMPLETED", "FAILED", "CANCELLED"],
-        "COMPLETED": ["PENDING"],
-        "FAILED": ["PENDING", "IN_PROGRESS"],
-        "CANCELLED": ["PENDING"],
-        "SKIPPED": ["PENDING"]
+        "PENDING": [
+          "IN_PROGRESS",
+          "SKIPPED"
+        ],
+        "IN_PROGRESS": [
+          "COMPLETED",
+          "FAILED",
+          "CANCELLED"
+        ],
+        "COMPLETED": [
+          "PENDING"
+        ],
+        "FAILED": [
+          "PENDING",
+          "IN_PROGRESS"
+        ],
+        "CANCELLED": [
+          "PENDING"
+        ],
+        "SKIPPED": [
+          "PENDING"
+        ]
       }
     },
     {
@@ -53,15 +82,36 @@
   ],
   "state_machine": {
     "states": [
-      {"name": "PENDING", "description": "Stage not started, awaiting dependencies"},
-      {"name": "IN_PROGRESS", "description": "Stage actively executing"},
-      {"name": "COMPLETED", "description": "Stage finished successfully with artifacts"},
-      {"name": "FAILED", "description": "Stage encountered error, can retry"},
-      {"name": "CANCELLED", "description": "Stage was cancelled by user"},
-      {"name": "SKIPPED", "description": "Optional stage was bypassed"}
+      {
+        "name": "PENDING",
+        "description": "Stage not started, awaiting dependencies"
+      },
+      {
+        "name": "IN_PROGRESS",
+        "description": "Stage actively executing"
+      },
+      {
+        "name": "COMPLETED",
+        "description": "Stage finished successfully with artifacts"
+      },
+      {
+        "name": "FAILED",
+        "description": "Stage encountered error, can retry"
+      },
+      {
+        "name": "CANCELLED",
+        "description": "Stage was cancelled by user"
+      },
+      {
+        "name": "SKIPPED",
+        "description": "Optional stage was bypassed"
+      }
     ],
     "initial_state": "PENDING",
-    "terminal_states": ["COMPLETED", "SKIPPED"]
+    "terminal_states": [
+      "COMPLETED",
+      "SKIPPED"
+    ]
   },
   "orchestrator_responsibilities": [
     "Track state of all stages in pipeline",

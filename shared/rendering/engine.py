@@ -1,6 +1,6 @@
 """Unified Rendering Engine implementation.
 
-Per ADR-0028: Unified Rendering Engine for Cross-Tool Visualization.
+Per ADR-0029: Unified Rendering Engine for Cross-Tool Visualization.
 
 This module provides the core rendering engine that:
 - Accepts RenderSpec contracts
@@ -36,7 +36,7 @@ __version__ = "0.1.0"
 class RenderEngine:
     """Unified rendering engine for all visualization tasks.
 
-    Per ADR-0028: This is the single entry point for all rendering operations
+    Per ADR-0029: This is the single entry point for all rendering operations
     across DAT, SOV, and PPTX tools.
 
     Usage:
@@ -216,7 +216,7 @@ class RenderEngine:
     ) -> BatchRenderResult:
         """Render multiple specs in batch.
 
-        Per ADR-0012: Uses asyncio for concurrent rendering.
+        Per ADR-0013: Uses asyncio for concurrent rendering.
 
         Args:
             request: Batch render request with multiple specs.

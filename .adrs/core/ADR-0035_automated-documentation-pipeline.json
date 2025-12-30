@@ -1,0 +1,225 @@
+{
+  "schema_type": "adr",
+  "id": "ADR-0035_automated-documentation-pipeline",
+  "title": "Automated Documentation Pipeline: Generate, Don't Write",
+  "status": "accepted",
+  "date": "2025-12-28",
+  "review_date": "2026-06-28",
+  "deciders": "Mycahya Eggleston",
+  "scope": "core",
+  "provenance": [
+    {
+      "at": "2025-12-28",
+      "by": "Mycahya Eggleston",
+      "note": "Initial draft to establish documentation automation for solo-dev workflow"
+    }
+  ],
+  "context": "Documentation maintenance is a significant burden for solo developers. Manual documentation quickly drifts from code, creating inconsistencies and confusion. With Pydantic models as contracts (ADR-0045), FastAPI for APIs, and Google-style docstrings (ADR-0045), the codebase contains all information needed to generate documentation automatically. The challenge is establishing a pipeline that extracts this information and produces consistent, up-to-date documentation without manual intervention. This ADR mandates that documentation MUST be generated from source code, not written manually, ensuring documentation is always accurate and reducing maintenance burden.",
+  "decision_primary": "Documentation MUST be generated, not written. The pipeline consists of: (1) Pydantic models → JSON Schema via tools/gen_json_schema.py, (2) FastAPI → OpenAPI spec (automatic via FastAPI), (3) Docstrings → MkDocs API reference via mkdocstrings, (4) Conventional Commits → CHANGELOG via git-cliff, (5) ADR JSON → ADR_INDEX.md via custom script. CI enforces that generated artifacts are up-to-date; PRs fail if regeneration produces different output than committed files.",
+  "decision_details": {
+    "approach": "Source code is the single source of truth; all documentation artifacts are derived automatically",
+    "constraints": [
+      "JSON Schema MUST be auto-generated from Pydantic models (never hand-edited)",
+      "OpenAPI spec MUST be auto-generated from FastAPI (never hand-edited)",
+      "API reference docs MUST be auto-generated from docstrings via mkdocstrings",
+      "CHANGELOG MUST be auto-generated from Conventional Commits via git-cliff",
+      "ADR_INDEX.md MUST be auto-generated from ADR JSON files",
+      "CI MUST fail if generated artifacts differ from committed versions",
+      "Manual documentation is allowed ONLY for: README, guides, tutorials (Tier 3)"
+    ],
+    "pipeline_components": {
+      "json_schema_generation": {
+        "source": "shared/contracts/**/*.py (Pydantic models)",
+        "tool": "tools/gen_json_schema.py",
+        "output": "docs/schemas/*.json",
+        "trigger": "CI on every commit; pre-commit hook optional",
+        "validation": "CI compares generated vs committed; fails on diff"
+      },
+      "openapi_generation": {
+        "source": "FastAPI app definitions (gateway/main.py, apps/*/backend/main.py)",
+        "tool": "FastAPI auto-generation (GET /openapi.json)",
+        "output": "docs/api/openapi.json",
+        "trigger": "CI extracts from running app; compares to committed",
+        "validation": "CI fails if live OpenAPI differs from committed"
+      },
+      "api_reference_docs": {
+        "source": "Python docstrings (Google-style per ADR-0045)",
+        "tool": "mkdocstrings with mkdocs-material",
+        "output": "docs/reference/ (generated HTML/Markdown)",
+        "trigger": "mkdocs build during CI and local dev",
+        "configuration": "mkdocs.yml includes mkdocstrings plugin"
+      },
+      "changelog_generation": {
+        "source": "Git commit history (Conventional Commits format)",
+        "tool": "git-cliff",
+        "output": "CHANGELOG.md",
+        "trigger": "CI on release branch; manual for pre-release",
+        "configuration": "cliff.toml defines commit parsing rules"
+      },
+      "adr_index_generation": {
+        "source": ".adrs/**/*.json (ADR JSON files)",
+        "tool": "tools/gen_adr_index.py (to be created)",
+        "output": ".adrs/ADR_INDEX.md",
+        "trigger": "CI on every commit touching .adrs/",
+        "validation": "CI compares generated vs committed; fails on diff"
+      }
+    },
+    "mkdocstrings_configuration": {
+      "plugin": "mkdocstrings[python]",
+      "options": {
+        "docstring_style": "google",
+        "show_source": true,
+        "show_signature_annotations": true,
+        "members_order": "source",
+        "separate_signature": true
+      },
+      "usage": "In Markdown: ::: shared.contracts.core.dataset.DataSetManifest"
+    },
+    "git_cliff_configuration": {
+      "commit_parsers": [
+        {
+          "message": "^feat",
+          "group": "Features"
+        },
+        {
+          "message": "^fix",
+          "group": "Bug Fixes"
+        },
+        {
+          "message": "^docs",
+          "group": "Documentation"
+        },
+        {
+          "message": "^refactor",
+          "group": "Refactoring"
+        },
+        {
+          "message": "^test",
+          "group": "Testing"
+        },
+        {
+          "message": "^chore",
+          "group": "Miscellaneous"
+        }
+      ],
+      "tag_pattern": "v[0-9]*",
+      "skip_tags": "v0.0.*"
+    },
+    "implementation_specs": []
+  },
+  "consequences": [
+    "✅ POSITIVE: Documentation is always accurate (generated from source)",
+    "✅ POSITIVE: Zero manual documentation maintenance for API reference",
+    "✅ POSITIVE: CHANGELOG is consistent and complete (no forgotten entries)",
+    "✅ POSITIVE: ADR index is always up-to-date",
+    "✅ POSITIVE: CI catches documentation drift before merge",
+    "✅ POSITIVE: Solo-dev can focus on code; docs update automatically",
+    "✅ POSITIVE: Onboarding is easier (docs match code)",
+    "❌ NEGATIVE: Requires tooling setup (mkdocstrings, git-cliff, custom scripts)",
+    "❌ NEGATIVE: CI pipeline is more complex (multiple generation steps)",
+    "❌ NEGATIVE: Generated docs may lack narrative flow (mitigated: manual guides allowed)",
+    "⚠️ NEUTRAL: Developers must write good docstrings (also enforced by ADR-0045)"
+  ],
+  "alternatives_considered": [
+    {
+      "name": "Manual Documentation (Write Everything)",
+      "pros": "Full control over narrative, no tooling required",
+      "cons": "Drifts from code, high maintenance burden, solo-dev bottleneck",
+      "rejected_reason": "Unsustainable for solo-dev; drift is inevitable"
+    },
+    {
+      "name": "Wiki-Based Documentation (Confluence, Notion)",
+      "pros": "Easy editing, collaboration features, rich formatting",
+      "cons": "Disconnected from code, no CI validation, manual sync required",
+      "rejected_reason": "Docs-as-code principle (ADR-0045) requires version control"
+    },
+    {
+      "name": "Inline Documentation Only (No External Docs)",
+      "pros": "Single source of truth, always up-to-date",
+      "cons": "Hard to discover, no navigation, poor onboarding experience",
+      "rejected_reason": "External docs site needed for discoverability; mkdocstrings bridges the gap"
+    },
+    {
+      "name": "AI-Generated Documentation (LLM writes docs)",
+      "pros": "Minimal effort, can generate narrative",
+      "cons": "May hallucinate, requires review, not deterministic",
+      "rejected_reason": "AI assists but source code remains ground truth; generated docs are verifiable"
+    }
+  ],
+  "tradeoffs": "We trade documentation flexibility for accuracy and maintainability. Generated docs may lack narrative polish, but they are always correct. Manual guides (Tier 3) remain for tutorials and conceptual explanations.",
+  "rollout_plan": [
+    "1. Add mkdocstrings to requirements-docs.txt (DONE - verify)",
+    "2. Configure mkdocstrings in mkdocs.yml",
+    "3. Create tools/gen_adr_index.py for ADR index generation",
+    "4. Add git-cliff configuration (cliff.toml)",
+    "5. Add CI steps for documentation drift detection",
+    "6. Generate initial CHANGELOG.md from commit history",
+    "7. Update docs/reference/ with mkdocstrings directives",
+    "8. Verify all generation scripts work in CI"
+  ],
+  "rollback_plan": "If automated docs prove insufficient: (1) Keep JSON Schema and OpenAPI generation (high value), (2) Allow manual API reference (fallback), (3) Keep CHANGELOG generation (low effort). Rollback is incremental; each component can be disabled independently.",
+  "metrics_to_watch": [
+    "Documentation freshness (days since last doc update vs code update)",
+    "CI failures due to doc drift (should be rare after initial setup)",
+    "Time spent on documentation (should decrease significantly)",
+    "User/developer feedback on doc quality (self-assessment)"
+  ],
+  "guardrails": [
+    {
+      "id": "doc-json-schema-generated",
+      "rule": "JSON Schema files MUST be auto-generated from Pydantic; never hand-edited",
+      "enforcement": "CI regenerates and compares; fails on diff",
+      "scope": "core"
+    },
+    {
+      "id": "doc-openapi-generated",
+      "rule": "OpenAPI spec MUST be auto-generated from FastAPI; never hand-edited",
+      "enforcement": "CI extracts from running app and compares; fails on diff",
+      "scope": "core"
+    },
+    {
+      "id": "doc-changelog-generated",
+      "rule": "CHANGELOG MUST be auto-generated from Conventional Commits",
+      "enforcement": "git-cliff in CI; manual edits rejected",
+      "scope": "core"
+    },
+    {
+      "id": "doc-adr-index-generated",
+      "rule": "ADR_INDEX.md MUST be auto-generated from ADR JSON files",
+      "enforcement": "CI regenerates and compares; fails on diff",
+      "scope": "core"
+    }
+  ],
+  "cross_cutting_guardrails": [
+    "ADR-0045#contracts-defined-pydantic-shared-contracts: Pydantic is source for JSON Schema",
+    "ADR-0045: Docs-as-code principle enables this pipeline",
+    "ADR-0045#ai-docstring-required: Docstrings are source for API reference"
+  ],
+  "references": [
+    "mkdocstrings: https://mkdocstrings.github.io/",
+    "git-cliff: https://git-cliff.org/",
+    "MkDocs Material: https://squidfunk.github.io/mkdocs-material/",
+    "Conventional Commits: https://www.conventionalcommits.org/",
+    "ADR-0010_Docs-as-Code-Engineering-Tenets",
+    "ADR-0009_Type-Safety-Contract-Discipline"
+  ],
+  "tags": [
+    "documentation",
+    "automation",
+    "ci-cd",
+    "mkdocs",
+    "openapi",
+    "changelog",
+    "solo-dev"
+  ],
+  "affected_components": [
+    "mkdocs.yml",
+    "requirements-docs.txt",
+    "tools/gen_json_schema.py",
+    "tools/gen_adr_index.py (new)",
+    "cliff.toml (new)",
+    "ci/steps/ (new doc validation steps)",
+    "CHANGELOG.md",
+    ".adrs/ADR_INDEX.md"
+  ]
+}

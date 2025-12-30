@@ -1,7 +1,7 @@
 """Background Job System Contracts for DAT.
 
-Per ADR-0040: Large File Streaming Strategy
-Per SPEC-DAT-0004: Large File Streaming
+Per ADR-0041: Large File Streaming Strategy
+Per SPEC-0027: Large File Streaming
 
 This module defines contracts for background job processing
 of large files that exceed the streaming threshold.

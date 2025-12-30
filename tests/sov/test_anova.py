@@ -1,6 +1,6 @@
 """ANOVA computation correctness tests.
 
-Per ADR-0022: Verify ANOVA computation against known results.
+Per ADR-0023: Verify ANOVA computation against known results.
 These tests ensure the statistical computations are mathematically correct.
 """
 
@@ -153,7 +153,7 @@ class TestNWayANOVA:
 
 
 class TestVarianceValidation:
-    """Tests for variance percentage validation per ADR-0022."""
+    """Tests for variance percentage validation per ADR-0023."""
 
     @pytest.mark.asyncio
     async def test_variance_sum_validation_passes(self, one_way_known_dataset: pl.DataFrame):

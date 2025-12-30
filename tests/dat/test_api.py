@@ -173,7 +173,7 @@ class TestSelectionEndpoint:
         response = client.post("/runs", json={"name": "Test Run"})
         run_id = response.json()["run_id"]
         
-        # Lock discovery first (per ADR-0001-DAT stage dependencies)
+        # Lock discovery first (per ADR-0004 stage dependencies)
         client.post(
             f"/runs/{run_id}/stages/discovery/lock",
             json={"folder_path": str(temp_files), "recursive": True}

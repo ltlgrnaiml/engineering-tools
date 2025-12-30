@@ -1,4 +1,4 @@
-"""Shape discovery module per ADR-0018.
+"""Shape discovery module per ADR-0019.
 
 Implements the {category}_{identifier}[_{variant}] naming convention for
 PowerPoint shape discovery. All mappable shapes MUST have names following
@@ -19,13 +19,13 @@ if TYPE_CHECKING:
 
 __version__ = "0.1.0"
 
-# ADR-0018 compliant regex pattern for shape naming
+# ADR-0019 compliant regex pattern for shape naming
 SHAPE_NAME_PATTERN = re.compile(
     r"^(text|chart|table|image|metric|dimension)_([a-zA-Z0-9]+)(?:_([a-zA-Z0-9]+))?$",
     re.IGNORECASE,
 )
 
-# Valid categories per ADR-0018
+# Valid categories per ADR-0019
 VALID_CATEGORIES = frozenset({"text", "chart", "table", "image", "metric", "dimension"})
 
 # Default PowerPoint shape names to ignore
@@ -37,7 +37,7 @@ DEFAULT_SHAPE_NAMES = re.compile(
 
 
 class ShapeNamingError(Exception):
-    """Base exception for shape naming errors per ADR-0018."""
+    """Base exception for shape naming errors per ADR-0019."""
 
     pass
 
@@ -76,7 +76,7 @@ class DuplicateShapeNameError(ShapeNamingError):
 
 @dataclass
 class ParsedShapeName:
-    """Parsed components of a shape name per ADR-0018 convention.
+    """Parsed components of a shape name per ADR-0019 convention.
 
     Attributes:
         category: Shape category (text, chart, table, image, metric, dimension).
@@ -125,7 +125,7 @@ class DiscoveredShape:
 
 @dataclass
 class ShapeDiscoveryResult:
-    """Result of shape discovery from a template per ADR-0018.
+    """Result of shape discovery from a template per ADR-0019.
 
     Attributes:
         shapes: List of discovered shapes with valid names.
@@ -168,7 +168,7 @@ class ShapeDiscoveryResult:
 
 
 def parse_shape_name_adr0018(shape_name: str) -> ParsedShapeName:
-    """Parse a shape name per ADR-0018 convention.
+    """Parse a shape name per ADR-0019 convention.
 
     Args:
         shape_name: Shape name to parse.
@@ -218,7 +218,7 @@ def parse_shape_name_adr0018(shape_name: str) -> ParsedShapeName:
 def is_default_shape_name(shape_name: str) -> bool:
     """Check if shape name is a PowerPoint default (should be ignored).
 
-    Per ADR-0018: Reserved PowerPoint default names are automatically ignored.
+    Per ADR-0019: Reserved PowerPoint default names are automatically ignored.
 
     Args:
         shape_name: Shape name to check.
@@ -230,13 +230,13 @@ def is_default_shape_name(shape_name: str) -> bool:
 
 
 def is_valid_shape_name(shape_name: str) -> bool:
-    """Check if shape name follows ADR-0018 convention.
+    """Check if shape name follows ADR-0019 convention.
 
     Args:
         shape_name: Shape name to validate.
 
     Returns:
-        True if name is valid per ADR-0018.
+        True if name is valid per ADR-0019.
     """
     if not shape_name or is_default_shape_name(shape_name):
         return False
@@ -248,9 +248,9 @@ def discover_shapes(
     validate_duplicates: bool = True,
     max_group_depth: int = 10,
 ) -> ShapeDiscoveryResult:
-    """Discover all shapes in a presentation per ADR-0018.
+    """Discover all shapes in a presentation per ADR-0019.
 
-    Implements the discovery algorithm from ADR-0018:
+    Implements the discovery algorithm from ADR-0019:
     1. Iterate through slides in order
     2. For each slide, iterate through shapes
     3. Parse and validate shape names
@@ -280,7 +280,7 @@ def discover_shapes(
                 )
                 return
 
-            # Handle grouped shapes per ADR-0018
+            # Handle grouped shapes per ADR-0019
             if hasattr(shape, "shapes"):
                 for child_shape in shape.shapes:
                     process_shape(child_shape, depth + 1)
@@ -290,7 +290,7 @@ def discover_shapes(
             if not shape_name:
                 return
 
-            # Skip placeholder shapes per ADR-0018
+            # Skip placeholder shapes per ADR-0019
             if getattr(shape, "is_placeholder", False):
                 return
 
@@ -367,7 +367,7 @@ def validate_required_shapes(
 ) -> tuple[list[str], list[str]]:
     """Validate that all required shapes are present.
 
-    Per ADR-0018: Template validation MUST fail if required shapes are missing.
+    Per ADR-0019: Template validation MUST fail if required shapes are missing.
 
     Args:
         discovery_result: Result from discover_shapes().

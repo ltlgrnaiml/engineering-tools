@@ -1,12 +1,12 @@
 """SOV Pipeline contracts - analysis pipeline stages and orchestration.
 
-Per ADR-0022: SOV implements ANOVA-based variance decomposition using a
+Per ADR-0023: SOV implements ANOVA-based variance decomposition using a
 5-stage pipeline: Data Ingestion, Factor Identification, ANOVA Computation,
 Variance Decomposition, Visualization Preparation.
 
 Per ADR-0001: Pipeline follows core FSM pattern.
-Per ADR-0004: Pipeline IDs are deterministic (SHA-256 hash of inputs).
-Per ADR-0008: All timestamps are ISO-8601 UTC (no microseconds).
+Per ADR-0005: Pipeline IDs are deterministic (SHA-256 hash of inputs).
+Per ADR-0009: All timestamps are ISO-8601 UTC (no microseconds).
 
 This module defines contracts for:
 - Pipeline stage definitions and states
@@ -32,7 +32,7 @@ __version__ = "0.1.0"
 class SOVStageId(str, Enum):
     """Stage identifiers for the SOV 5-stage pipeline.
 
-    Per ADR-0022: 5-stage pipeline for ANOVA analysis.
+    Per ADR-0023: 5-stage pipeline for ANOVA analysis.
     """
 
     DATA_INGESTION = "data_ingestion"  # Stage 1: Load from DataSet
@@ -72,7 +72,7 @@ class SOVPipelineState(str, Enum):
 class DataIngestionConfig(BaseModel):
     """Configuration for Stage 1: Data Ingestion.
 
-    Per ADR-0023: Input loaded via DataSetRef.
+    Per ADR-0024: Input loaded via DataSetRef.
     """
 
     dataset_id: str = Field(..., description="Input DataSet ID to load")
@@ -133,7 +133,7 @@ class ANOVAComputationConfig(BaseModel):
     )
     ss_type: Literal["type_i", "type_ii", "type_iii"] = Field(
         "type_iii",
-        description="Sum of squares type (per ADR-0022: Type III for unbalanced data)",
+        description="Sum of squares type (per ADR-0023: Type III for unbalanced data)",
     )
     include_interactions: bool = Field(True, description="Include interaction terms")
     max_interaction_order: int = Field(2, ge=1, le=4)
@@ -343,10 +343,10 @@ class SOVPipelineConfig(BaseModel):
 class SOVPipeline(BaseModel):
     """Complete SOV analysis pipeline.
 
-    Per ADR-0022: 5-stage pipeline for ANOVA-based variance decomposition.
+    Per ADR-0023: 5-stage pipeline for ANOVA-based variance decomposition.
     """
 
-    # Identity (per ADR-0004: deterministic hash)
+    # Identity (per ADR-0005: deterministic hash)
     pipeline_id: str = Field(
         ...,
         description="Deterministic SHA-256 hash of inputs + config",
@@ -354,7 +354,7 @@ class SOVPipeline(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     description: str | None = None
 
-    # Timestamps (per ADR-0008)
+    # Timestamps (per ADR-0009)
     created_at: datetime
     updated_at: datetime | None = None
     started_at: datetime | None = None

@@ -60,7 +60,7 @@ Changes made:
 9. Updated all test files (6 files)
 10. Updated devtools API contract example
 
-New API pattern per ADR-0029:
+New API pattern per ADR-0030:
 - `/api/{tool}/{resource}` (e.g., `/api/dat/runs`, `/api/sov/analyses`)
 - `/api/{resource}` for cross-tool (e.g., `/api/datasets`, `/api/pipelines`)
 
@@ -90,7 +90,7 @@ Changes made:
 
 Changes made:
 1. Updated `shared/utils/stage_id.py`:
-   - Changed hash truncation from 16 chars to 8 chars per ADR-0004-DAT
+   - Changed hash truncation from 16 chars to 8 chars per ADR-0008
    - Updated docstring and example
 2. Updated `apps/data_aggregator/backend/src/dat_aggregation/api/routes.py`:
    - Added `to_relative_path` import from path_safety
@@ -104,7 +104,7 @@ Changes made:
 
 Changes made:
 1. Created `apps/data_aggregator/backend/services/table_probe.py`:
-   - `probe_table()` - async function to probe single table with 1s timeout per ADR-0006
+   - `probe_table()` - async function to probe single table with 1s timeout per ADR-0008
    - `probe_tables_batch()` - parallel probe for multiple tables
    - Uses `adapter.probe_schema()` for fast probing without full reads
 
@@ -116,8 +116,8 @@ Changes made:
 
 Changes made:
 1. Updated `apps/data_aggregator/backend/src/dat_aggregation/stages/parse.py`:
-   - Added `STREAMING_THRESHOLD_BYTES = 10 * 1024 * 1024` (10MB) constant per ADR-0040
-   - Updated module docstring to reference ADR-0040
+   - Added `STREAMING_THRESHOLD_BYTES = 10 * 1024 * 1024` (10MB) constant per ADR-0041
+   - Updated module docstring to reference ADR-0041
    - **GAP FIX**: Implemented streaming logic in `execute_parse()` - checks file size and uses `adapter.stream_dataframe()` for files >10MB
 
 ---
@@ -128,7 +128,7 @@ Changes made:
 
 Changes made:
 1. Updated `apps/data_aggregator/backend/src/dat_aggregation/stages/parse.py`:
-   - Added `OUTPUT_FORMAT = "parquet"` constant per ADR-0014
+   - Added `OUTPUT_FORMAT = "parquet"` constant per ADR-0015
 2. Updated `apps/data_aggregator/backend/src/dat_aggregation/stages/export.py`:
    - Added `SUPPORTED_EXPORT_FORMATS = {"parquet", "csv", "excel", "json"}` constant
    - Added `JSON` to `ExportFormat` enum for API integration
@@ -142,10 +142,10 @@ Changes made:
 Changes made:
 1. Created `apps/data_aggregator/backend/services/checkpoint.py`:
    - `Checkpoint` dataclass for marking safe points
-   - `CheckpointRegistry` class for tracking checkpoints per ADR-0013
+   - `CheckpointRegistry` class for tracking checkpoints per ADR-0014
 2. Created `apps/data_aggregator/backend/services/cleanup.py`:
    - `CleanupAction` dataclass for cleanup operations
-   - `cleanup()` async function with dry-run default per ADR-0013
+   - `cleanup()` async function with dry-run default per ADR-0014
 3. **GAP FIX**: Added `POST /runs/{run_id}/cleanup` endpoint to `routes.py` per AC-M8-003
 
 ---
@@ -156,8 +156,8 @@ Changes made:
 
 Changes made:
 1. Created `apps/data_aggregator/backend/services/profile_service.py`:
-   - `ProfileService` class with CRUD methods per SPEC-DAT-0005
-   - Deterministic profile IDs via `compute_stage_id()` per ADR-0004
+   - `ProfileService` class with CRUD methods per SPEC-0007
+   - Deterministic profile IDs via `compute_stage_id()` per ADR-0005
    - Methods: `create()`, `get()`, `update()`, `delete()`, `list_all()`
 2. **GAP FIX**: Added CRUD endpoints to `routes.py` per AC-M9-001:
    - `POST /profiles` - create profile
@@ -181,14 +181,14 @@ Changes made:
 
 **All 9 Milestones Completed:**
 - M1: Unified adapter implementations (async API, deleted legacy)
-- M2: API path normalization (removed /v1 prefix per ADR-0029)
+- M2: API path normalization (removed /v1 prefix per ADR-0030)
 - M3: Stage graph config externalization (StageGraphConfig contract)
-- M4: Stage ID alignment (8-char hashes, relative paths per ADR-0004-DAT)
-- M5: Table availability fast probe (probe_table service per ADR-0006)
-- M6: Large file streaming (10MB threshold per ADR-0040)
-- M7: Parse/export formats (Parquet default, multi-format per ADR-0014)
-- M8: Cancellation checkpointing (checkpoint registry per ADR-0013)
-- M9: Profile CRUD (ProfileService per SPEC-DAT-0005)
+- M4: Stage ID alignment (8-char hashes, relative paths per ADR-0008)
+- M5: Table availability fast probe (probe_table service per ADR-0008)
+- M6: Large file streaming (10MB threshold per ADR-0041)
+- M7: Parse/export formats (Parquet default, multi-format per ADR-0015)
+- M8: Cancellation checkpointing (checkpoint registry per ADR-0014)
+- M9: Profile CRUD (ProfileService per SPEC-0007)
 
 ---
 

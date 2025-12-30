@@ -1,8 +1,8 @@
 """CSV file adapter for DAT.
 
-Per ADR-0011: Profile-Driven Extraction & AdapterFactory Pattern.
-Per ADR-0040: Large File Streaming Strategy (10MB threshold).
-Per SPEC-DAT-0003: Adapter Interface & Registry specification.
+Per ADR-0012: Profile-Driven Extraction & AdapterFactory Pattern.
+Per ADR-0041: Large File Streaming Strategy (10MB threshold).
+Per SPEC-0026: Adapter Interface & Registry specification.
 
 This adapter handles CSV and TSV file formats using Polars for efficient
 data processing. Supports both eager loading and streaming for large files.
@@ -480,7 +480,7 @@ class CSVAdapter(BaseFileAdapter):
     ) -> AsyncIterator[tuple[pl.DataFrame, StreamChunk]]:
         """Stream CSV file as chunks for large file processing.
 
-        Per ADR-0040: This is the preferred method for files > 10MB.
+        Per ADR-0041: This is the preferred method for files > 10MB.
 
         Args:
             file_path: Relative path to the CSV file.

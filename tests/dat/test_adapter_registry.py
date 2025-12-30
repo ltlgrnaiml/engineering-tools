@@ -1,6 +1,6 @@
 """Unit tests for AdapterRegistry.
 
-Per SPEC-DAT-0003: Adapter Interface & Registry specification.
+Per SPEC-0026: Adapter Interface & Registry specification.
 Tests AC-2: AdapterRegistry Requirements from ACCEPTANCE_CRITERIA_ADAPTERS.md
 """
 

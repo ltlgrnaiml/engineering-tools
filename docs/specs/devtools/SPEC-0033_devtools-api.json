@@ -1,0 +1,154 @@
+{
+  "id": "SPEC-0033_devtools-api",
+  "title": "DevTools API Specification",
+  "version": "1.0.0",
+  "status": "accepted",
+  "created_date": "2024-12-27",
+  "updated_date": "2024-12-27",
+  "implements_adr": [
+    "ADR-0028"
+  ],
+  "tier_0_contracts": [
+    {
+      "module": "shared.contracts.devtools.api",
+      "classes": ["DevToolsState", "ADRListResponse", "ADRSaveRequest", "SchemaValidationRequest", "APITestRequest"]
+    }
+  ],
+  "overview": {
+    "purpose": "Define the DevTools page API for ADR management, config editing, and developer utilities",
+    "scope": "Developer and power-user utilities accessible via hidden DevTools page"
+  },
+  "requirements": {
+    "functional": [
+      {
+        "id": "SPEC-0033-F1",
+        "description": "DevTools state management via feature flags",
+        "acceptance_criteria": [
+          "DevTools disabled by default",
+          "Can be enabled via URL param (?devtools=true)",
+          "Can be enabled via localStorage",
+          "Can be enabled via debug panel toggle"
+        ]
+      },
+      {
+        "id": "SPEC-0033-F2",
+        "description": "ADR Reader/Editor utility",
+        "acceptance_criteria": [
+          "List all ADRs by scope (core, dat, pptx, sov, shared, devtools)",
+          "Read ADR content as JSON",
+          "Edit and save ADRs with validation",
+          "Backup existing ADR before overwrite"
+        ]
+      },
+      {
+        "id": "SPEC-0033-F3",
+        "description": "Config file management",
+        "acceptance_criteria": [
+          "List config files by type (domain_config, profile, message_catalog)",
+          "Read config file contents (YAML/JSON)",
+          "Save config files with backup"
+        ]
+      },
+      {
+        "id": "SPEC-0033-F4",
+        "description": "Schema validation utility",
+        "acceptance_criteria": [
+          "Validate arbitrary data against Pydantic schemas",
+          "Return validation errors with field paths",
+          "Return validated/coerced data on success"
+        ]
+      },
+      {
+        "id": "SPEC-0033-F5",
+        "description": "API tester utility",
+        "acceptance_criteria": [
+          "Test any API endpoint (GET, POST, PUT, DELETE, PATCH)",
+          "Configure headers, query params, and body",
+          "Return status code, headers, body, and timing"
+        ]
+      }
+    ],
+    "security": [
+      {
+        "id": "SPEC-0033-S1",
+        "description": "DevTools MUST NOT be accessible in production without explicit enable",
+        "acceptance_criteria": [
+          "Feature flag controls visibility",
+          "No sensitive data exposed without authentication (future)"
+        ]
+      }
+    ]
+  },
+  "api_contracts": {
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": "/api/devtools/state",
+        "response": "DevToolsState"
+      },
+      {
+        "method": "POST",
+        "path": "/api/devtools/toggle",
+        "request": "DevToolsToggleRequest",
+        "response": "DevToolsToggleResponse"
+      },
+      {
+        "method": "GET",
+        "path": "/api/devtools/adrs",
+        "response": "ADRListResponse"
+      },
+      {
+        "method": "GET",
+        "path": "/api/devtools/adrs/{adr_id}",
+        "response": "ADRReadResponse"
+      },
+      {
+        "method": "PUT",
+        "path": "/api/devtools/adrs/{adr_id}",
+        "request": "ADRSaveRequest",
+        "response": "ADRSaveResponse"
+      },
+      {
+        "method": "POST",
+        "path": "/api/devtools/validate/schema",
+        "request": "SchemaValidationRequest",
+        "response": "SchemaValidationResponse"
+      },
+      {
+        "method": "POST",
+        "path": "/api/devtools/api-test",
+        "request": "APITestRequest",
+        "response": "APITestResponse"
+      }
+    ],
+    "models": [
+      "DevToolsState",
+      "DevToolsToggleRequest",
+      "DevToolsToggleResponse",
+      "DevToolsInfo",
+      "ADRScope",
+      "ADRStatus",
+      "ADRListItem",
+      "ADRListResponse",
+      "ADRContent",
+      "ADRReadResponse",
+      "ADRSaveRequest",
+      "ADRSaveResponse",
+      "ADRValidationRequest",
+      "ADRValidationResponse",
+      "ConfigFileType",
+      "ConfigFileInfo",
+      "SchemaValidationRequest",
+      "SchemaValidationResponse",
+      "APITestRequest",
+      "APITestResponse"
+    ]
+  },
+  "test_requirements": [
+    "test_devtools_disabled_by_default",
+    "test_adr_list_by_scope",
+    "test_adr_save_with_backup",
+    "test_schema_validation",
+    "test_api_tester"
+  ]
+}

@@ -3,9 +3,9 @@
 A Pipeline defines a sequence of steps across tools, enabling workflows like:
   DAT (aggregate) → SOV (analyze) → PPTX (generate report)
 
-Per ADR-0004: Pipeline IDs are deterministic.
-Per ADR-0008: All timestamps are ISO-8601 UTC.
-Per ADR-0013: Cancellation preserves completed artifacts.
+Per ADR-0005: Pipeline IDs are deterministic.
+Per ADR-0009: All timestamps are ISO-8601 UTC.
+Per ADR-0014: Cancellation preserves completed artifacts.
 """
 
 from datetime import datetime

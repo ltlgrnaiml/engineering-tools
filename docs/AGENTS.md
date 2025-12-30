@@ -4,7 +4,7 @@
 
 ---
 
-## Documentation Hierarchy (ADR-0015)
+## Documentation Hierarchy (ADR-0016)
 
 ```text
 Tier 0: shared/contracts/     → Pydantic models (SSOT)
@@ -84,7 +84,7 @@ mkdocs build
 
 ---
 
-## Auto-Generated Documentation (ADR-0034)
+## Auto-Generated Documentation (ADR-0035)
 
 Some documentation is generated from code:
 

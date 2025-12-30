@@ -1,6 +1,6 @@
 """PPTX Domain Configuration contracts - domain-specific report settings.
 
-Per ADR-0020: Domain configuration defines job contexts, canonical metrics,
+Per ADR-0021: Domain configuration defines job contexts, canonical metrics,
 and rendering rules. Config is validated at startup (fail-fast) and immutable
 at runtime.
 
@@ -67,7 +67,7 @@ class MetricFormat(str, Enum):
 class CanonicalMetric(BaseModel):
     """Definition of a canonical metric with aliases.
 
-    Per ADR-0020: All metric aliases resolve to canonical names.
+    Per ADR-0021: All metric aliases resolve to canonical names.
     """
 
     canonical_name: str = Field(
@@ -136,7 +136,7 @@ class CanonicalMetric(BaseModel):
 class MetricRegistry(BaseModel):
     """Registry of all canonical metrics in a domain.
 
-    Per ADR-0020: All metric aliases MUST resolve to canonical metrics.
+    Per ADR-0021: All metric aliases MUST resolve to canonical metrics.
     """
 
     metrics: list[CanonicalMetric] = Field(
@@ -359,7 +359,7 @@ class RenderingRule(BaseModel):
 class DomainConfig(BaseModel):
     """Complete domain configuration for PPTX Generator.
 
-    Per ADR-0020: Validated at startup, immutable at runtime.
+    Per ADR-0021: Validated at startup, immutable at runtime.
     """
 
     # Identity
@@ -490,7 +490,7 @@ class DomainConfigRef(BaseModel):
 class DomainConfigValidationResult(BaseModel):
     """Result of validating a domain configuration.
 
-    Per ADR-0020: Invalid config causes startup failure (fail-fast).
+    Per ADR-0021: Invalid config causes startup failure (fail-fast).
     """
 
     valid: bool

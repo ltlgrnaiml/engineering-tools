@@ -22,13 +22,13 @@ class CreateAnalysisResponse(BaseModel):
 class RunAnalysisRequest(BaseModel):
     """Request to run ANOVA analysis.
     
-    Per ADR-0022: seed parameter ensures deterministic computation.
+    Per ADR-0023: seed parameter ensures deterministic computation.
     """
     factors: list[str]
     response_columns: list[str]
     alpha: float = 0.05
     anova_type: Literal["one-way", "two-way", "n-way"] = "one-way"
-    seed: int = Field(42, description="Random seed for reproducibility per ADR-0022")
+    seed: int = Field(42, description="Random seed for reproducibility per ADR-0023")
 
 
 class ANOVARowResponse(BaseModel):

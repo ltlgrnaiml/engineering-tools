@@ -1,0 +1,118 @@
+{
+  "schema_type": "spec",
+  "id": "SPEC-0002_concurrency-determinism",
+  "title": "Cross-Platform Concurrency and Determinism Specification",
+  "version": "0.1.0",
+  "status": "draft",
+  "date": "2025-12-27",
+  "author": "Mycahya Eggleston",
+  "implements_adr": [
+    "ADR-0012_Cross-Platform-Concurrency"
+  ],
+  "tier_0_contracts": [
+    {
+      "module": "shared.contracts.core.concurrency",
+      "classes": [
+        "PlatformInfo",
+        "ConcurrencyConfig",
+        "TaskResult",
+        "BatchResult",
+        "OSType",
+        "ShellType",
+        "ConcurrencyTier"
+      ],
+      "functions": [
+        "get_platform_info"
+      ]
+    }
+  ],
+  "purpose": "Define the implementation details for cross-platform concurrency. This spec describes WHAT concurrency patterns are available, HOW to configure them, and WHERE platform-specific logic lives.",
+  "scope": "core",
+  "requirements": [
+    {
+      "id": "REQ-CONC-001",
+      "description": "All process pools MUST use spawn start method",
+      "rationale": "Per ADR-0013: spawn is consistent across Windows, macOS, Linux",
+      "implementation": "multiprocessing.set_start_method('spawn', force=True) at app startup"
+    },
+    {
+      "id": "REQ-CONC-002",
+      "description": "No raw multiprocessing.Process or threading.Thread allowed",
+      "allowed_apis": [
+        "asyncio",
+        "concurrent.futures.ThreadPoolExecutor",
+        "concurrent.futures.ProcessPoolExecutor"
+      ],
+      "enforcement": "CI lint rule blocks raw imports outside shared/concurrent/"
+    },
+    {
+      "id": "REQ-CONC-003",
+      "description": "All subprocess calls MUST use shell=False",
+      "rationale": "Security and cross-platform consistency",
+      "enforcement": "CI lint rule blocks shell=True"
+    },
+    {
+      "id": "REQ-CONC-004",
+      "description": "Deterministic seeding MUST be passed explicitly to workers",
+      "default_seed": 42,
+      "config_env_var": "ET_SEED"
+    },
+    {
+      "id": "REQ-CONC-005",
+      "description": "Thread/process caps MUST be configurable",
+      "defaults": {
+        "max_threads": "4 * CPU count",
+        "max_processes": "CPU count"
+      },
+      "config_env_vars": [
+        "ET_MAX_THREADS",
+        "ET_MAX_PROCESSES"
+      ]
+    }
+  ],
+  "api_surface": {
+    "module": "shared.concurrent",
+    "functions": [
+      {
+        "name": "run_in_threads",
+        "signature": "def run_in_threads(fn: Callable, items: Iterable, max_workers: int | None = None) -> list",
+        "description": "Map function over items using ThreadPoolExecutor"
+      },
+      {
+        "name": "run_in_processes",
+        "signature": "def run_in_processes(fn: Callable, items: Iterable, max_workers: int | None = None, seed: int = 42) -> list",
+        "description": "Map function over items using ProcessPoolExecutor with spawn"
+      },
+      {
+        "name": "run_shell_command",
+        "signature": "def run_shell_command(args: list[str], cwd: Path | None = None, timeout: float = 300) -> subprocess.CompletedProcess",
+        "description": "Execute shell command with shell=False and auto-detected executable"
+      },
+      {
+        "name": "get_platform_info",
+        "signature": "def get_platform_info() -> PlatformInfo",
+        "description": "Return cached platform information"
+      }
+    ]
+  },
+  "platform_detection": {
+    "os_detection": "sys.platform and platform.system()",
+    "shell_detection": "shutil.which() for pwsh, powershell, bash, zsh, sh",
+    "windows_cmd": "os.environ.get('COMSPEC')"
+  },
+  "validation_rules": [
+    "CI MUST run tests on Windows, macOS, AND Linux",
+    "CI MUST block merges with raw multiprocessing/threading imports",
+    "CI MUST block merges with shell=True in subprocess calls"
+  ],
+  "examples": {
+    "run_in_threads": "results = run_in_threads(process_file, file_paths, max_workers=8)",
+    "run_in_processes": "results = run_in_processes(compute_hash, data_chunks, seed=42)",
+    "run_shell_command": "result = run_shell_command(['python', '-m', 'pytest', 'tests/'])"
+  },
+  "references": [
+    "ADR-0012_Cross-Platform-Concurrency: WHY we need unified concurrency",
+    "shared/contracts/core/concurrency.py: Tier-0 contracts",
+    "ADR-0017_Cross-Cutting-Guardrails#concurrency: Cross-cutting guardrail"
+  ]
+}

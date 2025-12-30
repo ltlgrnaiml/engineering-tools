@@ -1,7 +1,7 @@
 """Memory manager for DAT large file streaming.
 
-This module implements memory management for large file processing per ADR-0040
-and SPEC-DAT-0004. It tracks memory usage, enforces limits, and triggers
+This module implements memory management for large file processing per ADR-0041
+and SPEC-0027. It tracks memory usage, enforces limits, and triggers
 garbage collection when needed.
 
 Key features:
@@ -28,7 +28,7 @@ __version__ = "1.0.0"
 
 
 class MemoryTier(str, Enum):
-    """File size tiers per SPEC-DAT-0004."""
+    """File size tiers per SPEC-0027."""
 
     SMALL = "small"  # 0-100KB: eager load
     MEDIUM = "medium"  # 100KB-10MB: eager load with progress
@@ -39,7 +39,7 @@ class MemoryTier(str, Enum):
 
 @dataclass
 class MemoryConfig:
-    """Configuration for memory management per SPEC-DAT-0004.
+    """Configuration for memory management per SPEC-0027.
 
     Attributes:
         max_memory_mb: Maximum memory usage allowed (default: 200MB).
@@ -116,7 +116,7 @@ class MemorySnapshot:
 
 @dataclass
 class FileSizeStrategy:
-    """Strategy for handling files based on size per SPEC-DAT-0004.
+    """Strategy for handling files based on size per SPEC-0027.
 
     Attributes:
         tier: The file size tier.
@@ -133,7 +133,7 @@ class FileSizeStrategy:
     memory_cap_mb: int
 
 
-# File size tier configurations per SPEC-DAT-0004
+# File size tier configurations per SPEC-0027
 FILE_SIZE_STRATEGIES: dict[MemoryTier, FileSizeStrategy] = {
     MemoryTier.SMALL: FileSizeStrategy(
         tier=MemoryTier.SMALL,
@@ -173,7 +173,7 @@ FILE_SIZE_STRATEGIES: dict[MemoryTier, FileSizeStrategy] = {
 }
 
 
-# Threshold in bytes (10MB per ADR-0040)
+# Threshold in bytes (10MB per ADR-0041)
 STREAMING_THRESHOLD_BYTES = 10 * 1024 * 1024
 
 
@@ -181,7 +181,7 @@ STREAMING_THRESHOLD_BYTES = 10 * 1024 * 1024
 class MemoryManager:
     """Manages memory usage for DAT file processing.
 
-    Per ADR-0040 and SPEC-DAT-0004, this class:
+    Per ADR-0041 and SPEC-0027, this class:
     - Tracks current memory usage
     - Enforces memory limits
     - Triggers garbage collection
@@ -244,7 +244,7 @@ class MemoryManager:
     def get_strategy_for_file(self, file_path: Path) -> FileSizeStrategy:
         """Determine processing strategy based on file size.
 
-        Per ADR-0040: Files > 10MB use streaming mode.
+        Per ADR-0041: Files > 10MB use streaming mode.
 
         Args:
             file_path: Path to the file.
@@ -269,7 +269,7 @@ class MemoryManager:
     def should_stream(self, file_path: Path) -> bool:
         """Check if file should use streaming mode.
 
-        Per ADR-0040: Files > 10MB use streaming.
+        Per ADR-0041: Files > 10MB use streaming.
 
         Args:
             file_path: Path to the file.
@@ -294,7 +294,7 @@ class MemoryManager:
     def get_preview_rows(self, file_path: Path) -> int | None:
         """Get preview row count for file.
 
-        Per SPEC-DAT-0004:
+        Per SPEC-0027:
         - 10-100MB: 10,000 row preview
         - 100MB-1GB: 5,000 row preview
         - > 1GB: 1,000 row preview

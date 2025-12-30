@@ -16,7 +16,7 @@
 
 ---
 
-## UI Pattern: 7-Step Workflow (ADR-0019)
+## UI Pattern: 7-Step Workflow (ADR-0020)
 
 ```text
 Step 1: Upload Template    ──►

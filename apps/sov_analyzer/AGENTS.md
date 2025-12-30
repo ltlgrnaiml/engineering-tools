@@ -27,9 +27,9 @@ Load DataSet → Configure Factors → Run Analysis → Visualize → Export Res
 
 | ADR | Topic | Key Points |
 |-----|-------|------------|
-| **ADR-0022** | Analysis Pipeline | Type III SS, 5-stage pipeline, Polars |
-| **ADR-0023** | DataSet Integration | Input via DataSetRef, output with lineage |
-| **ADR-0024** | Visualization Contracts | Typed Pydantic models, extends RenderSpec |
+| **ADR-0023** | Analysis Pipeline | Type III SS, 5-stage pipeline, Polars |
+| **ADR-0024** | DataSet Integration | Input via DataSetRef, output with lineage |
+| **ADR-0025** | Visualization Contracts | Typed Pydantic models, extends RenderSpec |
 
 ---
 
@@ -48,14 +48,14 @@ class ANOVAResult(BaseModel): ...  # NO!
 
 ---
 
-## ANOVA Requirements (ADR-0022)
+## ANOVA Requirements (ADR-0023)
 
 | Requirement | Implementation |
 |-------------|----------------|
 | Sum of Squares | **Type III** (partial SS) |
 | Computation Engine | **Polars** (NOT pandas) |
 | Variance Sum | Must equal 100% |
-| Determinism | All computations reproducible (ADR-0012) |
+| Determinism | All computations reproducible (ADR-0013) |
 
 ---
 
@@ -71,7 +71,7 @@ class ANOVAResult(BaseModel): ...  # NO!
 
 ---
 
-## DataSet Integration (ADR-0023)
+## DataSet Integration (ADR-0024)
 
 ### Input
 
@@ -98,9 +98,9 @@ result_manifest = DataSetManifest(
 
 ---
 
-## Visualization Contracts (ADR-0024)
+## Visualization Contracts (ADR-0025)
 
-All visualizations extend `RenderSpec` hierarchy (ADR-0028):
+All visualizations extend `RenderSpec` hierarchy (ADR-0029):
 
 | Visualization | Contract | Use Case |
 |---------------|----------|----------|

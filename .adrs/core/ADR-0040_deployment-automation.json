@@ -1,0 +1,222 @@
+{
+  "schema_type": "adr",
+  "id": "ADR-0040_deployment-automation",
+  "title": "Deployment Automation: Infrastructure as Code and Environment Parity",
+  "status": "accepted",
+  "date": "2025-12-28",
+  "review_date": "2026-06-28",
+  "deciders": "Mycahya Eggleston",
+  "scope": "core",
+  "provenance": [
+    {
+      "at": "2025-12-28",
+      "by": "Mycahya Eggleston",
+      "note": "Initial draft to establish deployment automation for future production readiness"
+    }
+  ],
+  "context": "While the engineering-tools platform is currently in development, planning for deployment automation now prevents technical debt later. Manual deployments are error-prone, undocumented, and unrepeatable. Infrastructure as Code (IaC) ensures environments are reproducible, version-controlled, and auditable. Environment parity (dev = staging = prod) reduces 'works on my machine' issues. Feature flags enable gradual rollout and quick rollback even for a solo developer. This ADR establishes deployment patterns for when the platform reaches production readiness.",
+  "decision_primary": "Deployment MUST be automated via Infrastructure as Code. Pulumi (Python SDK) is the IaC tool for defining cloud resources. Environment parity is enforced via shared configuration with environment-specific overrides. Feature flags (via environment variables or config) enable gradual rollout and debugging. Deployments are triggered automatically on main branch merge (for staging) and manually promoted to production. All infrastructure changes go through PR review like code.",
+  "decision_details": {
+    "approach": "Pulumi for IaC; environment parity via shared config; feature flags for gradual rollout",
+    "constraints": [
+      "All infrastructure MUST be defined in code (no manual cloud console changes)",
+      "Infrastructure code MUST be version-controlled alongside application code",
+      "Environment configuration MUST follow: base config + environment overrides",
+      "Dev, staging, and production MUST use identical infrastructure definitions",
+      "Feature flags MUST be configurable per environment",
+      "Deployments MUST be idempotent (running twice produces same result)",
+      "Rollback MUST be possible via git revert + redeploy"
+    ],
+    "iac_tool": {
+      "choice": "Pulumi with Python SDK",
+      "rationale": [
+        "Python SDK aligns with codebase language (no HCL learning curve)",
+        "Strong typing with Pydantic-like resource definitions",
+        "State management built-in (Pulumi Cloud or self-hosted)",
+        "Supports Azure, AWS, GCP (cloud-agnostic)",
+        "Active development and community"
+      ],
+      "alternatives_rejected": {
+        "Terraform": "HCL is another language to learn; Pulumi Python is more natural",
+        "AWS CDK": "AWS-specific; limits cloud portability",
+        "Manual scripts": "Not declarative; drift-prone; hard to audit"
+      }
+    },
+    "environment_configuration": {
+      "structure": {
+        "base": "infra/config/base.py - shared configuration for all environments",
+        "dev": "infra/config/dev.py - development overrides (smaller instances, debug enabled)",
+        "staging": "infra/config/staging.py - staging overrides (production-like, limited scale)",
+        "prod": "infra/config/prod.py - production overrides (full scale, monitoring enabled)"
+      },
+      "parity_principle": "All environments use same resource types; only scale/flags differ"
+    },
+    "feature_flags": {
+      "purpose": "Enable gradual rollout, A/B testing, and quick disable of problematic features",
+      "implementation": {
+        "simple": "Environment variables (FEATURE_X_ENABLED=true/false)",
+        "advanced": "Config file (features.json) or feature flag service (future)"
+      },
+      "examples": [
+        "FEATURE_SOV_ANOVA_V2=false - disable new ANOVA implementation",
+        "FEATURE_PPTX_NEW_RENDERER=true - enable new chart renderer",
+        "FEATURE_DEBUG_LOGGING=true - enable verbose logging (dev only)"
+      ],
+      "rationale": "Even solo-dev benefits from quick feature disable without code change"
+    },
+    "deployment_workflow": {
+      "to_staging": {
+        "trigger": "Automatic on main branch merge",
+        "steps": [
+          "1. CI builds and tests pass",
+          "2. Pulumi preview (show planned changes)",
+          "3. Pulumi up (apply changes to staging)",
+          "4. Health checks verify deployment",
+          "5. Notify on success/failure"
+        ]
+      },
+      "to_production": {
+        "trigger": "Manual promotion (GitHub Action workflow_dispatch)",
+        "steps": [
+          "1. Verify staging is healthy",
+          "2. Pulumi preview (show planned changes)",
+          "3. Manual approval (GitHub environment protection)",
+          "4. Pulumi up (apply changes to production)",
+          "5. Health checks verify deployment",
+          "6. Notify on success/failure"
+        ]
+      },
+      "rollback": {
+        "method": "Git revert + redeploy",
+        "steps": [
+          "1. git revert <commit> on main",
+          "2. PR and merge revert",
+          "3. Automatic staging deploy (or manual prod promote)",
+          "4. Verify rollback successful"
+        ]
+      }
+    },
+    "target_cloud": {
+      "primary": "Azure (existing Microsoft ecosystem familiarity)",
+      "services": {
+        "compute": "Azure Container Apps (serverless containers)",
+        "storage": "Azure Blob Storage (artifacts, DataSets)",
+        "database": "Azure Cosmos DB (metadata, if needed)",
+        "cdn": "Azure CDN (static frontend assets)"
+      },
+      "future": "AWS/GCP possible via Pulumi's cloud-agnostic resources"
+    },
+    "implementation_specs": []
+  },
+  "consequences": [
+    "✅ POSITIVE: Infrastructure is reproducible and version-controlled",
+    "✅ POSITIVE: Environment parity reduces deployment surprises",
+    "✅ POSITIVE: Feature flags enable safe experimentation",
+    "✅ POSITIVE: Rollback is straightforward (git revert)",
+    "✅ POSITIVE: Pulumi Python aligns with codebase language",
+    "✅ POSITIVE: Audit trail for all infrastructure changes",
+    "❌ NEGATIVE: Pulumi learning curve (mitigated: Python SDK is intuitive)",
+    "❌ NEGATIVE: State management complexity (mitigated: Pulumi Cloud handles this)",
+    "❌ NEGATIVE: Cloud costs for staging environment (mitigated: minimal resources)",
+    "⚠️ NEUTRAL: Production deployment is future work (staging first)"
+  ],
+  "alternatives_considered": [
+    {
+      "name": "Manual Deployment (Cloud Console)",
+      "pros": "Simple, immediate, no tooling",
+      "cons": "Unrepeatable, undocumented, drift-prone, error-prone",
+      "rejected_reason": "Manual deployments don't scale and are hard to audit"
+    },
+    {
+      "name": "Terraform",
+      "pros": "Industry standard, mature, large community",
+      "cons": "HCL is another language, less natural for Python developers",
+      "rejected_reason": "Pulumi Python SDK is more natural for this codebase"
+    },
+    {
+      "name": "Platform-as-a-Service (Heroku, Railway)",
+      "pros": "Zero infrastructure management, quick deploys",
+      "cons": "Less control, vendor lock-in, cost at scale",
+      "rejected_reason": "IaC provides more control and portability"
+    },
+    {
+      "name": "Kubernetes (self-managed)",
+      "pros": "Maximum flexibility, industry standard",
+      "cons": "Significant complexity, overkill for solo-dev",
+      "rejected_reason": "Container Apps provides Kubernetes benefits without complexity"
+    }
+  ],
+  "tradeoffs": "We trade some operational simplicity (PaaS) for control and portability (IaC). Pulumi adds tooling but provides reproducibility. Feature flags add configuration but enable safe experimentation.",
+  "rollout_plan": [
+    "1. Set up Pulumi project (infra/ directory)",
+    "2. Define base configuration (infra/config/base.py)",
+    "3. Define dev environment resources (local/Docker simulation)",
+    "4. Define staging environment resources (Azure Container Apps)",
+    "5. Add deployment workflow to GitHub Actions",
+    "6. Implement feature flag system (environment variables first)",
+    "7. Test staging deployment end-to-end",
+    "8. Document deployment procedures"
+  ],
+  "rollback_plan": "If Pulumi proves problematic: (1) Export current state to manual documentation, (2) Fall back to Azure CLI scripts, (3) Keep IaC principle with simpler tooling. If Azure proves problematic: (4) Pulumi supports multi-cloud migration.",
+  "metrics_to_watch": [
+    "Deployment success rate (should be > 95%)",
+    "Deployment duration (should be predictable)",
+    "Time from commit to staging (target: < 15 minutes)",
+    "Rollback success rate (should be 100%)"
+  ],
+  "guardrails": [
+    {
+      "id": "deploy-iac-required",
+      "rule": "All infrastructure MUST be defined in code (Pulumi)",
+      "enforcement": "No manual cloud console changes; all changes via PR",
+      "scope": "core"
+    },
+    {
+      "id": "deploy-environment-parity",
+      "rule": "Dev, staging, and production MUST use same infrastructure definitions",
+      "enforcement": "Shared base config; only scale/flags differ per environment",
+      "scope": "core"
+    },
+    {
+      "id": "deploy-feature-flags",
+      "rule": "New features MUST be behind feature flags initially",
+      "enforcement": "Code review; feature flag configuration documented",
+      "scope": "core"
+    },
+    {
+      "id": "deploy-idempotent",
+      "rule": "Deployments MUST be idempotent",
+      "enforcement": "Pulumi's declarative model ensures idempotency",
+      "scope": "core"
+    }
+  ],
+  "cross_cutting_guardrails": [
+    "ADR-0045: CI/CD pipeline triggers deployments",
+    "ADR-0045: Development environment mirrors deployment target"
+  ],
+  "references": [
+    "Pulumi: https://www.pulumi.com/",
+    "Azure Container Apps: https://azure.microsoft.com/en-us/products/container-apps/",
+    "12-Factor App - Config: https://12factor.net/config",
+    "12-Factor App - Dev/Prod Parity: https://12factor.net/dev-prod-parity",
+    "infra/ (new directory)"
+  ],
+  "tags": [
+    "deployment",
+    "infrastructure",
+    "pulumi",
+    "azure",
+    "feature-flags",
+    "automation",
+    "solo-dev"
+  ],
+  "affected_components": [
+    "infra/ (new directory)",
+    "infra/__main__.py (Pulumi entry point)",
+    "infra/config/*.py (environment configs)",
+    ".github/workflows/deploy-staging.yml (new)",
+    ".github/workflows/deploy-prod.yml (new)",
+    "Pulumi.yaml (new)",
+    "Pulumi.*.yaml (stack configs)"
+  ]
+}

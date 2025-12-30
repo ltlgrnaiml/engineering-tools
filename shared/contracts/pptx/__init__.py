@@ -3,9 +3,9 @@
 This package contains Pydantic models for PPTX-specific data structures:
 - Template contracts for slide deck templates and configuration
 - Shape contracts for shape discovery and placeholder mapping
-- Workflow contracts for guided workflow FSM (ADR-0019)
-- Domain contracts for domain-specific configuration (ADR-0020)
-- Renderer contracts for the rendering pipeline (ADR-0021)
+- Workflow contracts for guided workflow FSM (ADR-0020)
+- Domain contracts for domain-specific configuration (ADR-0021)
+- Renderer contracts for the rendering pipeline (ADR-0022)
 
 All contracts are domain-agnostic; user-specific knowledge (template paths,
 placeholder names, data bindings) is injected via configs.
@@ -101,7 +101,7 @@ __all__ = [
     "TableConfig",
     "TextConfig",
     "ImageConfig",
-    # Workflow contracts (ADR-0019)
+    # Workflow contracts (ADR-0020)
     "PPTXStageId",
     "PPTXStageState",
     "ValidationBarStatus",
@@ -116,7 +116,7 @@ __all__ = [
     "UpdateProjectRequest",
     "StageTransitionRequest",
     "StageTransitionResult",
-    # Domain contracts (ADR-0020)
+    # Domain contracts (ADR-0021)
     "MetricCategory",
     "MetricAggregation",
     "MetricFormat",
@@ -130,7 +130,7 @@ __all__ = [
     "DomainConfig",
     "DomainConfigRef",
     "DomainConfigValidationResult",
-    # Renderer contracts (ADR-0021)
+    # Renderer contracts (ADR-0022)
     "RendererCategory",
     "RenderStatus",
     "TextRenderConfig",

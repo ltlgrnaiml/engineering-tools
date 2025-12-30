@@ -49,4 +49,25 @@ if (Test-Path $schemasDir) {
     }
 }
 
+# Check for reference drift (ADR <-> SPEC <-> Contract)
+Write-Host "Checking for reference drift (ADR/SPEC/Contract)..." -ForegroundColor Yellow
+$refDriftScript = Join-Path $rootDir "tools/check_reference_drift.py"
+
+if (Test-Path $refDriftScript) {
+    python $refDriftScript --json-output "$rootDir/reference-drift-report.json"
+    $refExitCode = $LASTEXITCODE
+    
+    if ($refExitCode -eq 0) {
+        Write-Host "All cross-references are valid" -ForegroundColor Green
+    } elseif ($refExitCode -eq 1) {
+        Write-Warning "Reference drift detected - potential issues found"
+    } else {
+        Write-Error "Broken references detected - ADR/SPEC/Contract drift!"
+        # Don't fail CI yet - just warn. Uncomment to enforce:
+        # exit $refExitCode
+    }
+} else {
+    Write-Warning "Reference drift script not found: $refDriftScript"
+}
+
 Write-Host "=== Contract Validation Complete ===" -ForegroundColor Cyan

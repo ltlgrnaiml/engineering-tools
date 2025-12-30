@@ -1,6 +1,6 @@
 """Unit tests for ExcelAdapter.
 
-Per SPEC-DAT-0003: Adapter Interface & Registry specification.
+Per SPEC-0026: Adapter Interface & Registry specification.
 Tests AC-4: Excel Adapter Requirements from ACCEPTANCE_CRITERIA_ADAPTERS.md
 
 Note: Excel tests require actual Excel files which are not easily created

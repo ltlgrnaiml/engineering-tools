@@ -1,7 +1,7 @@
 """WebSocket endpoints for DAT progress tracking.
 
 This module implements real-time progress updates for long-running DAT operations
-per SPEC-DAT-0004. It provides WebSocket connections for streaming progress
+per SPEC-0027. It provides WebSocket connections for streaming progress
 during Parse and Export stages.
 
 Endpoint: /ws/dat/runs/{run_id}/progress
@@ -34,7 +34,7 @@ class ProgressEventType(str, Enum):
 
 @dataclass
 class ProgressUpdate:
-    """Progress update payload per SPEC-DAT-0004.
+    """Progress update payload per SPEC-0027.
 
     Attributes:
         stage_id: Current stage ID.

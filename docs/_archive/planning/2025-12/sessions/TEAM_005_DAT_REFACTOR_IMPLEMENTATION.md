@@ -29,26 +29,26 @@ After comprehensive analysis of the 9 DAT ADRs, 7 DAT SPECs, and 6 DAT contracts
 ### ADRs (9 files)
 | ADR ID | Title | Key Requirements |
 |--------|-------|------------------|
-| ADR-0001-DAT | Stage Graph Configuration | 8-stage pipeline, unlock_cascade, lockable_with_artifacts |
-| ADR-0003 | Optional Context/Preview | Lazy/greedy init, no cascade from optional stages |
-| ADR-0004-DAT | Stage ID Configuration | Deterministic SHA-256 IDs, collision detection |
-| ADR-0006 | Table Availability | Status model (available/partial/missing/empty), probe < 1s |
-| ADR-0011 | Profile-Driven Extraction | AdapterFactory pattern, handles-first registry |
-| ADR-0013 | Cancellation Semantics | Checkpoint preservation, no partial data, explicit cleanup |
-| ADR-0014 | Parse/Export Artifacts | Parquet for parse, multi-format export |
-| ADR-0040 | Large File Streaming | 10MB threshold, tiered processing |
-| ADR-0041 | UI Horizontal Wizard | Stepper pattern, gating tooltips, unlock confirmation |
+| ADR-0004 | Stage Graph Configuration | 8-stage pipeline, unlock_cascade, lockable_with_artifacts |
+| ADR-0004 | Optional Context/Preview | Lazy/greedy init, no cascade from optional stages |
+| ADR-0008 | Stage ID Configuration | Deterministic SHA-256 IDs, collision detection |
+| ADR-0008 | Table Availability | Status model (available/partial/missing/empty), probe < 1s |
+| ADR-0012 | Profile-Driven Extraction | AdapterFactory pattern, handles-first registry |
+| ADR-0014 | Cancellation Semantics | Checkpoint preservation, no partial data, explicit cleanup |
+| ADR-0015 | Parse/Export Artifacts | Parquet for parse, multi-format export |
+| ADR-0041 | Large File Streaming | 10MB threshold, tiered processing |
+| ADR-0043 | UI Horizontal Wizard | Stepper pattern, gating tooltips, unlock confirmation |
 
 ### SPECs (7 files)
 | SPEC ID | Title | Key Implementation Details |
 |---------|-------|---------------------------|
-| SPEC-DAT-0001 | Stage Graph | Stage dependencies, cascade targets |
-| SPEC-DAT-0002 | Profile Extraction | Profile structure, adapter pattern |
-| SPEC-DAT-0003 | Adapter Interface Registry | BaseFileAdapter, 4 adapter methods |
-| SPEC-DAT-0004 | Large File Streaming | File size tiers, memory caps, progress WebSocket |
-| SPEC-DAT-0005 | Profile File Management | JSON storage, DevTools integration |
-| SPEC-DAT-0006 | Table Availability | Status enum, probe strategy |
-| SPEC-DAT-0015 | Cancellation Cleanup | Checkpoint types, audit trail |
+| SPEC-0024 | Stage Graph | Stage dependencies, cascade targets |
+| SPEC-0025 | Profile Extraction | Profile structure, adapter pattern |
+| SPEC-0026 | Adapter Interface Registry | BaseFileAdapter, 4 adapter methods |
+| SPEC-0027 | Large File Streaming | File size tiers, memory caps, progress WebSocket |
+| SPEC-0007 | Profile File Management | JSON storage, DevTools integration |
+| SPEC-0008 | Table Availability | Status enum, probe strategy |
+| SPEC-0010 | Cancellation Cleanup | Checkpoint types, audit trail |
 
 ### Contracts (6 files in shared/contracts/dat/)
 | Contract | Classes Defined | Status |
@@ -68,19 +68,19 @@ After comprehensive analysis of the 9 DAT ADRs, 7 DAT SPECs, and 6 DAT contracts
 
 #### 1. Stage Graph Implementation
 **Location**: `apps/data_aggregator/backend/src/dat_aggregation/core/stage_graph_config.py`
-**Gap**: Need to verify cascade_targets match SPEC-DAT-0001 exactly
+**Gap**: Need to verify cascade_targets match SPEC-0024 exactly
 **Required**:
 - [ ] Validate stage dependencies match spec
-- [ ] Implement cascade_targets per SPEC-DAT-0001
-- [ ] Ensure optional stage handling per ADR-0003
+- [ ] Implement cascade_targets per SPEC-0024
+- [ ] Ensure optional stage handling per ADR-0004
 
 #### 2. Adapter Registry Alignment
 **Location**: `apps/data_aggregator/backend/adapters/`
 **Gap**: Verify all 4 adapters implement BaseFileAdapter interface fully
 **Required**:
 - [ ] All adapters implement `probe_schema`, `read_dataframe`, `stream_dataframe`, `validate_file`
-- [ ] Registry auto-selects by extension per SPEC-DAT-0003
-- [ ] Schema probe < 5 seconds per ADR-0040
+- [ ] Registry auto-selects by extension per SPEC-0026
+- [ ] Schema probe < 5 seconds per ADR-0041
 
 #### 3. State Machine Compliance
 **Location**: `apps/data_aggregator/backend/src/dat_aggregation/core/state_machine.py`
@@ -94,7 +94,7 @@ After comprehensive analysis of the 9 DAT ADRs, 7 DAT SPECs, and 6 DAT contracts
 **Location**: `apps/data_aggregator/backend/src/dat_aggregation/core/checkpoint_manager.py`
 **Gap**: Verify checkpoint types and audit trail
 **Required**:
-- [ ] CheckpointType enum matches SPEC-DAT-0015
+- [ ] CheckpointType enum matches SPEC-0010
 - [ ] No partial data persisted after cancel
 - [ ] Audit trail with ISO-8601 UTC timestamps
 
@@ -108,7 +108,7 @@ After comprehensive analysis of the 9 DAT ADRs, 7 DAT SPECs, and 6 DAT contracts
 
 #### 6. Profile Management API
 **Location**: `apps/data_aggregator/backend/src/dat_aggregation/api/routes.py`
-**Gap**: Need profile CRUD endpoints per SPEC-DAT-0005
+**Gap**: Need profile CRUD endpoints per SPEC-0007
 **Required**:
 - [ ] GET /api/dat/profiles - list profiles
 - [ ] GET /api/dat/profiles/{profile_id} - get profile
@@ -118,29 +118,29 @@ After comprehensive analysis of the 9 DAT ADRs, 7 DAT SPECs, and 6 DAT contracts
 
 #### 7. Large File Streaming
 **Location**: `apps/data_aggregator/backend/adapters/`, `apps/data_aggregator/backend/src/dat_aggregation/core/memory_manager.py`
-**Gap**: Verify tiered processing per ADR-0040
+**Gap**: Verify tiered processing per ADR-0041
 **Required**:
 - [ ] 10MB threshold for streaming mode
 - [ ] Memory cap enforcement (200MB default)
-- [ ] Progress WebSocket per SPEC-DAT-0004
+- [ ] Progress WebSocket per SPEC-0027
 
 ### Frontend Gaps
 
 #### 8. Horizontal Wizard Stepper
 **Location**: `apps/data_aggregator/frontend/src/components/wizard/DATWizard.tsx`
-**Gap**: Verify matches ADR-0041 requirements
+**Gap**: Verify matches ADR-0043 requirements
 **Required**:
 - [ ] All 7 visible stages in stepper (Discovery hidden)
 - [ ] State indicators: pending, active, completed, locked, error
 - [ ] Optional stages marked with badge
-- [ ] Gating tooltips per ADR-0041
+- [ ] Gating tooltips per ADR-0043
 
 #### 9. Unlock Confirmation Dialog
 **Location**: `apps/data_aggregator/frontend/src/components/wizard/UnlockConfirmDialog.tsx`
-**Gap**: Verify cascade confirmation per ADR-0041
+**Gap**: Verify cascade confirmation per ADR-0043
 **Required**:
 - [ ] Dialog lists downstream stages to be unlocked
-- [ ] Cascade targets match SPEC-DAT-0001
+- [ ] Cascade targets match SPEC-0024
 
 #### 10. Stage Panels
 **Location**: `apps/data_aggregator/frontend/src/components/stages/`
@@ -182,7 +182,7 @@ After comprehensive analysis of the 9 DAT ADRs, 7 DAT SPECs, and 6 DAT contracts
 
 | Step | Action | Acceptance Criteria |
 |------|--------|---------------------|
-| 2.1 | Update stage_graph_config.py | cascade_targets match SPEC-DAT-0001 exactly |
+| 2.1 | Update stage_graph_config.py | cascade_targets match SPEC-0024 exactly |
 | 2.2 | Update state_machine.py | State transitions use DATStageState.can_transition_to() |
 | 2.3 | Implement unlock cascade | Unlock Selection cascades to Context, TableAvail, TableSel, Preview, Parse, Export |
 | 2.4 | Add artifact preservation | Unlock preserves artifacts with locked:false |
@@ -206,7 +206,7 @@ After comprehensive analysis of the 9 DAT ADRs, 7 DAT SPECs, and 6 DAT contracts
 
 | Step | Action | Acceptance Criteria |
 |------|--------|---------------------|
-| 4.1 | Implement file size tiers | Size detection per SPEC-DAT-0004 |
+| 4.1 | Implement file size tiers | Size detection per SPEC-0027 |
 | 4.2 | Add memory manager limits | max_memory_mb enforced (200MB default) |
 | 4.3 | Streaming mode selection | Files > 10MB use streaming automatically |
 | 4.4 | Progress WebSocket | /ws/dat/runs/{run_id}/progress emits updates |
@@ -231,7 +231,7 @@ After comprehensive analysis of the 9 DAT ADRs, 7 DAT SPECs, and 6 DAT contracts
 | Step | Action | Acceptance Criteria |
 |------|--------|---------------------|
 | 6.1 | Create profile storage | profiles/system/ (read-only), profiles/user/ (editable) |
-| 6.2 | Implement profile CRUD API | All endpoints per SPEC-DAT-0005 |
+| 6.2 | Implement profile CRUD API | All endpoints per SPEC-0007 |
 | 6.3 | Profile validation endpoint | POST /api/dat/profiles/{id}/validate |
 | 6.4 | Deterministic profile IDs | SHA-256 hash of content (16 chars) |
 | 6.5 | Test profile management | pytest tests/dat/test_profiles.py -v passes |
@@ -255,7 +255,7 @@ After comprehensive analysis of the 9 DAT ADRs, 7 DAT SPECs, and 6 DAT contracts
 | Step | Action | Acceptance Criteria |
 |------|--------|---------------------|
 | 8.1 | Stepper stage visibility | 7 stages visible (Discovery hidden) |
-| 8.2 | State indicators | Icons per ADR-0041 (circle-outline, check-circle, lock, etc.) |
+| 8.2 | State indicators | Icons per ADR-0043 (circle-outline, check-circle, lock, etc.) |
 | 8.3 | Optional stage badges | Context, Preview show "Optional" badge |
 | 8.4 | Gating tooltips | Disabled stages show gating reason |
 | 8.5 | Unlock confirmation | Dialog lists cascade targets |
@@ -267,9 +267,9 @@ After comprehensive analysis of the 9 DAT ADRs, 7 DAT SPECs, and 6 DAT contracts
 
 | Step | Action | Acceptance Criteria |
 |------|--------|---------------------|
-| 9.1 | API naming convention | /api/dat/{resource} per ADR-0029 |
-| 9.2 | Error responses | StandardizedErrorResponse per ADR-0031 |
-| 9.3 | Idempotency headers | X-Idempotency-Key support per ADR-0032 |
+| 9.1 | API naming convention | /api/dat/{resource} per ADR-0030 |
+| 9.2 | Error responses | StandardizedErrorResponse per ADR-0032 |
+| 9.3 | Idempotency headers | X-Idempotency-Key support per ADR-0033 |
 | 9.4 | OpenAPI generation | Swagger docs accurate |
 | 9.5 | Test API | pytest tests/dat/test_api.py -v passes |
 
@@ -296,7 +296,7 @@ After comprehensive analysis of the 9 DAT ADRs, 7 DAT SPECs, and 6 DAT contracts
 
 ### Backend Compliance
 - [ ] State machine transitions per DATStageState
-- [ ] Cascade targets match SPEC-DAT-0001
+- [ ] Cascade targets match SPEC-0024
 - [ ] All adapters implement BaseFileAdapter
 - [ ] Streaming for files > 10MB
 - [ ] Cancellation preserves only complete data
@@ -304,7 +304,7 @@ After comprehensive analysis of the 9 DAT ADRs, 7 DAT SPECs, and 6 DAT contracts
 
 ### Frontend Compliance
 - [ ] Horizontal wizard with 7 visible stages
-- [ ] State indicators per ADR-0041
+- [ ] State indicators per ADR-0043
 - [ ] Gating tooltips on disabled stages
 - [ ] Unlock confirmation shows cascade targets
 

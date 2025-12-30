@@ -1,7 +1,7 @@
 """Stage graph configuration contract.
 
-Per ADR-0001-DAT: 8-stage pipeline with lockable artifacts.
-Per SPEC-DAT-0001: Dependencies and cascade targets defined.
+Per ADR-0004: 8-stage pipeline with lockable artifacts.
+Per SPEC-0024: Dependencies and cascade targets defined.
 """
 
 from typing import FrozenSet
@@ -40,7 +40,7 @@ class StageGraphConfig(BaseModel):
     """Complete stage graph configuration.
 
     Single source of truth for DAT pipeline structure.
-    Per ADR-0001-DAT and SPEC-DAT-0001.
+    Per ADR-0004 and SPEC-0024.
     """
 
     stages: list[StageDefinition]
@@ -56,7 +56,7 @@ class StageGraphConfig(BaseModel):
         """Return the default DAT 8-stage pipeline configuration.
 
         Returns:
-            StageGraphConfig: Default configuration per ADR-0001-DAT.
+            StageGraphConfig: Default configuration per ADR-0004.
         """
         return cls(
             stages=[
@@ -171,7 +171,7 @@ class StageGraphConfig(BaseModel):
                     trigger_stage=DATStageType.PARSE,
                     cascade_targets=[DATStageType.EXPORT],
                 ),
-                # Context and Preview do NOT cascade (per ADR-0003)
+                # Context and Preview do NOT cascade (per ADR-0004)
                 CascadeRule(
                     trigger_stage=DATStageType.CONTEXT,
                     cascade_targets=[],

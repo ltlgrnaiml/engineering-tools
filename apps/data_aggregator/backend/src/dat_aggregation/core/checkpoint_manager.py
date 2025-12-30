@@ -1,6 +1,6 @@
 """Checkpoint manager for cancel-safe operations.
 
-Per ADR-0013: Cancellation preserves completed work, no partial data.
+Per ADR-0014: Cancellation preserves completed work, no partial data.
 
 This module provides checkpoint management for long-running DAT operations
 including Parse and Export stages.
@@ -33,7 +33,7 @@ __version__ = "0.1.0"
 
 
 class CheckpointManager:
-    """Manages checkpoints for cancel-safe operations per ADR-0013.
+    """Manages checkpoints for cancel-safe operations per ADR-0014.
 
     Provides:
     - Checkpoint creation and persistence
@@ -128,7 +128,7 @@ class CheckpointManager:
     ) -> Checkpoint:
         """Save a checkpoint marking completed work.
 
-        Per ADR-0013: Checkpoints mark safe points where data integrity is guaranteed.
+        Per ADR-0014: Checkpoints mark safe points where data integrity is guaranteed.
 
         Args:
             checkpoint_type: Type of checkpoint.
@@ -182,7 +182,7 @@ class CheckpointManager:
     def is_at_safe_point(self) -> bool:
         """Check if we're at a safe cancellation point.
 
-        Per ADR-0013: Safe points are after table or stage completion.
+        Per ADR-0014: Safe points are after table or stage completion.
 
         Returns:
             True if cancellation is safe at current point.
@@ -252,7 +252,7 @@ class CheckpointManager:
     ) -> CancellationResult:
         """Complete a cancellation operation.
 
-        Per ADR-0013: Record what was preserved and discarded.
+        Per ADR-0014: Record what was preserved and discarded.
 
         Args:
             preserved_artifacts: IDs of preserved artifacts.

@@ -1,6 +1,6 @@
 """OutputBuilder - Aggregation and join outputs.
 
-Per ADR-0011: Profiles define how extracted tables are combined
+Per ADR-0012: Profiles define how extracted tables are combined
 into final outputs, including aggregations and joins.
 
 Context Application (DESIGN §4, §9):
@@ -45,7 +45,7 @@ logger = logging.getLogger(__name__)
 class OutputBuilder:
     """Builds final outputs from extracted tables per profile config.
     
-    Per ADR-0011: Combines extracted tables according to profile
+    Per ADR-0012: Combines extracted tables according to profile
     output definitions, applies aggregations and joins.
     """
     

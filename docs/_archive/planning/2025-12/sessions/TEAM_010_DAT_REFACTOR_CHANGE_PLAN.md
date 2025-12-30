@@ -10,7 +10,7 @@
 
   - `@c:\Users\Mycahya\CascadeProjects\engineering-tools\.adrs\dat\ADR-0001-DAT_Stage-Graph-Configuration.json`
   - `@c:\Users\Mycahya\CascadeProjects\engineering-tools\.adrs\dat\ADR-0003_Optional-Context-Preview-Stages.json`
-  - `@c:\Users\Mycahya\CascadeProjects\engineering-tools\.adrs\dat\ADR-0004-DAT_Stage-ID-Configuration.json`
+  - `@c:\Users\Mycahya\CascadeProjects\engineering-tools\.adrs\dat\ADR-0005-DAT_Stage-ID-Configuration.json`
   - `@c:\Users\Mycahya\CascadeProjects\engineering-tools\.adrs\dat\ADR-0006_Table-Availability.json`
   - `@c:\Users\Mycahya\CascadeProjects\engineering-tools\.adrs\dat\ADR-0011_Profile-Driven-Extraction-and-Adapters.json`
   - `@c:\Users\Mycahya\CascadeProjects\engineering-tools\.adrs\dat\ADR-0013_Cancellation-Semantics-Parse-Export.json`
@@ -40,7 +40,7 @@ This change plan will:
 
 - **8-Stage Pipeline (`@c:\Users\Mycahya\CascadeProjects\engineering-tools\.adrs\dat\ADR-0001-DAT_Stage-Graph-Configuration.json`)**: Implement an 8-stage pipeline (Discovery, Selection, Context, Table Availability, Table Selection, Preview, Parse, Export) with 'lockable_with_artifacts' state model and 'unlock_cascade' policy.
 - **Optional Stages (`@c:\Users\Mycahya\CascadeProjects\engineering-tools\.adrs\dat\ADR-0003_Optional-Context-Preview-Stages.json`)**: Context and Preview stages are optional, allowing quick-path users to skip them. Parse and Export must function without these artifacts, using defaults if needed.
-- **Deterministic Stage IDs (`@c:\Users\Mycahya\CascadeProjects\engineering-tools\.adrs\dat\ADR-0004-DAT_Stage-ID-Configuration.json`)**: Each stage must have deterministic IDs based on specific inputs, ensuring idempotent re-locks and artifact reuse.
+- **Deterministic Stage IDs (`@c:\Users\Mycahya\CascadeProjects\engineering-tools\.adrs\dat\ADR-0005-DAT_Stage-ID-Configuration.json`)**: Each stage must have deterministic IDs based on specific inputs, ensuring idempotent re-locks and artifact reuse.
 - **Table Availability (`@c:\Users\Mycahya\CascadeProjects\engineering-tools\.adrs\dat\ADR-0006_Table-Availability.json`)**: Implement a deterministic status model (available, partial, missing, empty) for tables, independent of Preview, and surface in UI before Parse.
 - **Profile-Driven Extraction (`@c:\Users\Mycahya\CascadeProjects\engineering-tools\.adrs\dat\ADR-0011_Profile-Driven-Extraction-and-Adapters.json`)**: Use versioned profiles for extraction logic with an AdapterFactory pattern for multi-format support, ensuring deterministic and auditable results.
 - **Cancellation Semantics (`@c:\Users\Mycahya\CascadeProjects\engineering-tools\.adrs\dat\ADR-0013_Cancellation-Semantics-Parse-Export.json`)**: Cancellation in Parse and Export must preserve completed artifacts, avoid partial data, and require explicit user cleanup.
@@ -55,12 +55,12 @@ The refactor plan ensures alignment with Core ADRs and our solo-dev ethos as fol
 - **Core ADRs**:
   - **ADR-0001 (Guided Workflow FSM Orchestration)**: The DAT pipeline adheres to the Hybrid FSM pattern with the specified 8-stage workflow.
   - **ADR-0002 (Artifact Preservation on Unlock)**: Artifacts are preserved across unlock/re-lock cycles, ensuring no data loss.
-  - **ADR-0004 (Deterministic Content-Addressed IDs)**: Stage IDs are computed deterministically using SHA-256 hashing for reproducibility.
-  - **ADR-0008 (Audit Trail Timestamps)**: All timestamps in stage results and logs use ISO-8601 UTC format.
-  - **ADR-0009 (Type Safety & Contract Discipline)**: Pydantic models in `shared/contracts/` enforce type safety for all configurations and results.
-  - **ADR-0017 (Cross-Cutting Guardrails)**: Path safety (relative paths only), concurrency safety, and artifact preservation are enforced across all stages.
-  - **ADR-0033 (AI-Assisted Development Patterns)**: Code structure and documentation are optimized for AI comprehension.
-  - **ADR-0035 (Contract-Driven Test Generation)**: Tests will be auto-generated from contracts to ensure coverage.
+  - **ADR-0005 (Deterministic Content-Addressed IDs)**: Stage IDs are computed deterministically using SHA-256 hashing for reproducibility.
+  - **ADR-0009 (Audit Trail Timestamps)**: All timestamps in stage results and logs use ISO-8601 UTC format.
+  - **ADR-0010 (Type Safety & Contract Discipline)**: Pydantic models in `shared/contracts/` enforce type safety for all configurations and results.
+  - **ADR-0018 (Cross-Cutting Guardrails)**: Path safety (relative paths only), concurrency safety, and artifact preservation are enforced across all stages.
+  - **ADR-0034 (AI-Assisted Development Patterns)**: Code structure and documentation are optimized for AI comprehension.
+  - **ADR-0036 (Contract-Driven Test Generation)**: Tests will be auto-generated from contracts to ensure coverage.
 
 - **Solo-Dev Ethos**:
   - **First-Principles Thinking**: The refactor questions legacy assumptions, redesigning from the ground up based on current ADRs and SPECs.
@@ -74,54 +74,54 @@ The refactor plan ensures alignment with Core ADRs and our solo-dev ethos as fol
 Based on the SSoT contracts and ADRs, the following code changes are required to align the DAT tool with the updated design:
 
 - **State Machine & Stage Pipeline (`@c:\Users\Mycahya\CascadeProjects\engineering-tools\apps\data_aggregator\backend\src\dat_aggregation\core\state_machine.py`)**:
-  - Ensure the 8-stage pipeline (Discovery, Selection, Context, Table Availability, Table Selection, Preview, Parse, Export) is fully implemented with the 'lockable_with_artifacts' model and 'unlock_cascade' policy as per ADR-0001-DAT.
-  - Update `FORWARD_GATES` and `CASCADE_TARGETS` to reflect optional stages (Context, Preview) not triggering cascades (ADR-0003).
-  - Implement deterministic stage IDs using `compute_stage_id()` with stage-specific inputs (ADR-0004-DAT).
+  - Ensure the 8-stage pipeline (Discovery, Selection, Context, Table Availability, Table Selection, Preview, Parse, Export) is fully implemented with the 'lockable_with_artifacts' model and 'unlock_cascade' policy as per ADR-0004.
+  - Update `FORWARD_GATES` and `CASCADE_TARGETS` to reflect optional stages (Context, Preview) not triggering cascades (ADR-0004).
+  - Implement deterministic stage IDs using `compute_stage_id()` with stage-specific inputs (ADR-0008).
 
 - **Adapter Factory & File Handling (`@c:\Users\Mycahya\CascadeProjects\engineering-tools\apps\data_aggregator\backend\src\dat_aggregation\adapters\factory.py` & `@c:\Users\Mycahya\CascadeProjects\engineering-tools\shared\contracts\dat\adapter.py`)**:
-  - Enhance `AdapterFactory` to support multi-format extensibility via a handles-first registry as per ADR-0011.
-  - Ensure all adapters implement both `read_dataframe` (eager) and `stream_dataframe` (streaming) methods for files > 10MB (ADR-0040).
+  - Enhance `AdapterFactory` to support multi-format extensibility via a handles-first registry as per ADR-0012.
+  - Ensure all adapters implement both `read_dataframe` (eager) and `stream_dataframe` (streaming) methods for files > 10MB (ADR-0041).
   - Update `BaseFileAdapter` to enforce path safety and deterministic traversal.
 
 - **Stage Implementations**:
-  - **Discovery (`@c:\Users\Mycahya\CascadeProjects\engineering-tools\apps\data_aggregator\backend\src\dat_aggregation\stages\discovery.py`)**: Align with `DiscoveryStageConfig` to scan file systems and return metadata (ADR-0001-DAT).
+  - **Discovery (`@c:\Users\Mycahya\CascadeProjects\engineering-tools\apps\data_aggregator\backend\src\dat_aggregation\stages\discovery.py`)**: Align with `DiscoveryStageConfig` to scan file systems and return metadata (ADR-0004).
   - **Selection**: Update to handle user file selection post-Discovery.
-  - **Context**: Implement as optional with lazy initialization using profile defaults if skipped (ADR-0003).
-  - **Table Availability (`@c:\Users\Mycahya\CascadeProjects\engineering-tools\apps\data_aggregator\backend\src\dat_aggregation\stages\table_availability.py`)**: Implement deterministic probe strategies for table status (available, partial, missing, empty) independent of Preview (ADR-0006).
+  - **Context**: Implement as optional with lazy initialization using profile defaults if skipped (ADR-0004).
+  - **Table Availability (`@c:\Users\Mycahya\CascadeProjects\engineering-tools\apps\data_aggregator\backend\src\dat_aggregation\stages\table_availability.py`)**: Implement deterministic probe strategies for table status (available, partial, missing, empty) independent of Preview (ADR-0008).
   - **Table Selection**: Allow user selection of tables post-availability check.
-  - **Preview**: Implement as optional with sampled previews for large files (ADR-0003, ADR-0040).
-  - **Parse (`@c:\Users\Mycahya\CascadeProjects\engineering-tools\apps\data_aggregator\backend\src\dat_aggregation\stages\parse.py`)**: Ensure Parquet output for data tables, use checkpointing to avoid partial data on cancellation (ADR-0013, ADR-0014).
-  - **Export**: Support user-selectable output formats for data tables while maintaining JSON/YAML for metadata (ADR-0014).
+  - **Preview**: Implement as optional with sampled previews for large files (ADR-0004, ADR-0041).
+  - **Parse (`@c:\Users\Mycahya\CascadeProjects\engineering-tools\apps\data_aggregator\backend\src\dat_aggregation\stages\parse.py`)**: Ensure Parquet output for data tables, use checkpointing to avoid partial data on cancellation (ADR-0014, ADR-0015).
+  - **Export**: Support user-selectable output formats for data tables while maintaining JSON/YAML for metadata (ADR-0015).
 
 - **UI Implementation (`@c:\Users\Mycahya\CascadeProjects\engineering-tools\apps\data_aggregator\frontend\src\components\DATWizard.tsx`)**:
-  - Implement horizontal wizard stepper pattern with collapsible panels for the 8-stage pipeline, visually distinguishing optional stages and respecting FSM gating rules (ADR-0041).
+  - Implement horizontal wizard stepper pattern with collapsible panels for the 8-stage pipeline, visually distinguishing optional stages and respecting FSM gating rules (ADR-0043).
 
 - **Cancellation & Artifact Preservation**:
-  - Update all stages, especially Parse and Export, to preserve completed artifacts on cancellation, ensuring no partial data is persisted (ADR-0013).
+  - Update all stages, especially Parse and Export, to preserve completed artifacts on cancellation, ensuring no partial data is persisted (ADR-0014).
 
 ## Acceptance Criteria for Validation
 
 To ensure the DAT tool refactor meets our best practices and design intent, the following Acceptance Criteria must be validated:
 
 - **Pipeline Structure & Behavior**:
-  - The 8-stage pipeline must be fully operational with correct forward gating and unlock cascading as defined in ADR-0001-DAT.
-  - Optional stages (Context, Preview) must be skippable without triggering downstream unlocks (ADR-0003).
-  - Stage IDs must be deterministic, computed from stage-specific inputs, ensuring idempotent re-locks (ADR-0004-DAT).
+  - The 8-stage pipeline must be fully operational with correct forward gating and unlock cascading as defined in ADR-0004.
+  - Optional stages (Context, Preview) must be skippable without triggering downstream unlocks (ADR-0004).
+  - Stage IDs must be deterministic, computed from stage-specific inputs, ensuring idempotent re-locks (ADR-0008).
 
 - **File Handling & Streaming**:
-  - Adapters must handle files > 10MB via streaming with Polars LazyFrame, and smaller files via eager loading (ADR-0040).
-  - All adapters must support multi-format extensibility through the AdapterFactory pattern (ADR-0011).
+  - Adapters must handle files > 10MB via streaming with Polars LazyFrame, and smaller files via eager loading (ADR-0041).
+  - All adapters must support multi-format extensibility through the AdapterFactory pattern (ADR-0012).
 
 - **Table Availability & Selection**:
-  - Table availability must use deterministic probe strategies, returning status (available, partial, missing, empty) independent of Preview, visible in UI before Parse (ADR-0006).
+  - Table availability must use deterministic probe strategies, returning status (available, partial, missing, empty) independent of Preview, visible in UI before Parse (ADR-0008).
 
 - **Artifact Formats & Preservation**:
-  - Parse stage must output data tables in Parquet and metadata in JSON/YAML (ADR-0014).
-  - Export stage must support user-selectable data formats while maintaining metadata consistency (ADR-0014).
-  - Cancellation in Parse and Export must preserve completed artifacts, ensuring no partial tables/rows/values are persisted (ADR-0013).
+  - Parse stage must output data tables in Parquet and metadata in JSON/YAML (ADR-0015).
+  - Export stage must support user-selectable data formats while maintaining metadata consistency (ADR-0015).
+  - Cancellation in Parse and Export must preserve completed artifacts, ensuring no partial tables/rows/values are persisted (ADR-0014).
 
 - **UI & User Experience**:
-  - Horizontal wizard UI must display all 7 user-interactive stages with state indicators, respecting FSM gating and visually marking optional stages (ADR-0041).
+  - Horizontal wizard UI must display all 7 user-interactive stages with state indicators, respecting FSM gating and visually marking optional stages (ADR-0043).
 
 - **Code Quality & Standards**:
   - Code must adhere to Ruff linting/formatting, include full type hints, and use Google-style docstrings as per our solo-dev ethos.

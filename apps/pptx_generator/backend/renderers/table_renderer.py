@@ -1,6 +1,6 @@
 """Table renderer for populating PowerPoint tables with data.
 
-Per ADR-0028: Renderers consume shared RenderSpec contracts.
+Per ADR-0029: Renderers consume shared RenderSpec contracts.
 """
 
 import logging
@@ -410,7 +410,7 @@ class TableRenderer(BaseRenderer):
         name: str,
         title: str | None = None,
     ) -> TableSpec:
-        """Build a TableSpec from DataFrame per ADR-0028.
+        """Build a TableSpec from DataFrame per ADR-0029.
 
         This method bridges the PPTX renderer with the shared rendering contract.
 

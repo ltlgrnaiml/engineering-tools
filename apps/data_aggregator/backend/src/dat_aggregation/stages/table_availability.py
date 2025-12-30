@@ -1,6 +1,6 @@
 """Table Availability stage - probe available tables from selected files.
 
-Per ADR-0006: Table availability uses a deterministic status model.
+Per ADR-0008: Table availability uses a deterministic status model.
 Uses shared contracts from shared.contracts.dat.table_status.
 """
 from pathlib import Path
@@ -45,7 +45,7 @@ async def execute_table_availability(
 ) -> TableAvailabilityResult:
     """Probe available tables from selected files.
 
-    Per ADR-0006: Uses deterministic probe logic to identify tables.
+    Per ADR-0008: Uses deterministic probe logic to identify tables.
     Tables with missing expected columns are marked as PARTIAL.
 
     Args:
@@ -53,7 +53,7 @@ async def execute_table_availability(
         selected_files: List of file paths to probe.
         expected_columns: Optional list of expected column names.
             If provided, tables missing any of these columns will be
-            marked as PARTIAL status per ADR-0006.
+            marked as PARTIAL status per ADR-0008.
 
     Returns:
         TableAvailabilityResult with discovered tables.
@@ -81,12 +81,12 @@ async def execute_table_availability(
                     options = ReadOptions(extra={"sheet_name": table_name} if table_name != file_path.name else {})
                     df, _ = await adapter.read_dataframe(str(file_path), options)
 
-                    # Determine status per ADR-0006 using shared contracts
+                    # Determine status per ADR-0008 using shared contracts
                     if len(df) == 0:
                         status = TableAvailabilityStatus.FAILED
                         missing_cols: list[str] = []
                     elif expected_columns:
-                        # Check for missing expected columns per ADR-0006
+                        # Check for missing expected columns per ADR-0008
                         actual_cols = set(df.columns)
                         missing_cols = [
                             col for col in expected_columns if col not in actual_cols

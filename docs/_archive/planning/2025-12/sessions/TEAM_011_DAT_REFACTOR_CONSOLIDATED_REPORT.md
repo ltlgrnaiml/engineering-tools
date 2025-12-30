@@ -28,7 +28,7 @@ This report consolidates the gap analysis from 5 prior sessions (TEAM_006-010), 
 
 | # | Gap Claimed | Validation | Status |
 |:--|:------------|:-----------|:-------|
-| 1 | `/api/dat/v1` violates ADR-0029 (should be `/api/dat`) | `routes.py:39` uses `APIRouter(prefix="/v1")` | ✅ **VALID** |
+| 1 | `/api/dat/v1` violates ADR-0030 (should be `/api/dat`) | `routes.py:39` uses `APIRouter(prefix="/v1")` | ✅ **VALID** |
 | 2 | Gateway cross-tool mounts at `/api/v1/*` | `gateway/main.py:43-45` confirms `/api/v1/datasets` etc. | ✅ **VALID** |
 | 3 | `pipeline_service.py` hardcodes `/api/{tool}/v1` | Lines 32-36 confirm `TOOL_BASE_URLS` with `/v1` | ✅ **VALID** |
 | 4 | `DATStateMachine` uses hardcoded `FORWARD_GATES` | `state_machine.py:41-51` confirms global dict | ✅ **VALID** |
@@ -53,7 +53,7 @@ This report consolidates the gap analysis from 5 prior sessions (TEAM_006-010), 
 | 1 | API Routing at `/api/dat/v1/...` | Same as TEAM_006 #1 | ✅ **VALID (dup)** |
 | 2 | Hardcoded `FORWARD_GATES` | Same as TEAM_006 #4 | ✅ **VALID (dup)** |
 | 3 | Global dicts instead of instance FSM | Same as TEAM_006 #4 | ✅ **VALID (dup)** |
-| 4 | Context/Preview optionality unclear | ADR-0003 defines, code partially implements | ✅ **VALID** |
+| 4 | Context/Preview optionality unclear | ADR-0004 defines, code partially implements | ✅ **VALID** |
 | 5 | Absolute paths in IDs | Same as TEAM_006 #8 | ✅ **VALID (dup)** |
 | 6 | Full read for table scan (not probe) | Same as TEAM_006 #9 | ✅ **VALID (dup)** |
 | 7 | Split adapter implementation | Same as TEAM_006 #10 | ✅ **VALID (dup)** |
@@ -89,7 +89,7 @@ This report consolidates the gap analysis from 5 prior sessions (TEAM_006-010), 
 | # | Gap Claimed | Validation | Status |
 |:--|:------------|:-----------|:-------|
 | 1 | Two adapter stacks (SSoT drift risk) | Same as TEAM_006 #10 | ✅ **VALID (dup)** |
-| 2 | API versioning contradicts ADR-0029 | Same as TEAM_006 #1 | ✅ **VALID (dup)** |
+| 2 | API versioning contradicts ADR-0030 | Same as TEAM_006 #1 | ✅ **VALID (dup)** |
 | 3 | Stage graph + optional stages incorrect in progression | Same as TEAM_006 #7 | ✅ **VALID (dup)** |
 | 4 | Deterministic IDs use 16-char, contract says 8-char | `shared/utils/stage_id.py:44` uses 16, contract says 8 | ✅ **VALID** |
 | 5 | Stage ID inputs not stage-specific | `state_machine.py:118` uses generic `_get_stage_inputs` | ✅ **VALID** |
@@ -107,7 +107,7 @@ This report consolidates the gap analysis from 5 prior sessions (TEAM_006-010), 
 | # | Gap Claimed | Validation | Status |
 |:--|:------------|:-----------|:-------|
 | 1 | 8-stage pipeline with lockable artifacts | Currently implemented in state_machine.py | ⚠️ **NOT A GAP** - already exists |
-| 2 | Context/Preview optional | ADR-0003 implemented in `CASCADE_TARGETS` | ⚠️ **PARTIAL** - implemented but UX unclear |
+| 2 | Context/Preview optional | ADR-0004 implemented in `CASCADE_TARGETS` | ⚠️ **PARTIAL** - implemented but UX unclear |
 | 3 | Deterministic stage IDs | Same as TEAM_009 #4-5 | ✅ **VALID (dup)** |
 | 4 | Table availability statuses | Contract exists, no impl | Same as TEAM_008 #4 | ✅ **VALID (dup)** |
 | 5 | Profile-driven extraction | Same as TEAM_006 #11 | ✅ **VALID (dup)** |
@@ -143,47 +143,47 @@ This report consolidates the gap analysis from 5 prior sessions (TEAM_006-010), 
 
 ## 3. Consolidated Validated Gap List
 
-### Category A: API Routing (ADR-0029 Violations)
+### Category A: API Routing (ADR-0030 Violations)
 
 | ID | Gap | Files Affected | ADR/SPEC |
 |:---|:----|:---------------|:---------|
-| **GAP-A1** | DAT router uses `/v1` prefix | `routes.py:39` | ADR-0029 |
-| **GAP-A2** | Gateway cross-tool uses `/api/v1/*` | `gateway/main.py:43-45` | ADR-0029 |
-| **GAP-A3** | Pipeline service hardcodes `/v1` URLs | `pipeline_service.py:32-36` | ADR-0029 |
+| **GAP-A1** | DAT router uses `/v1` prefix | `routes.py:39` | ADR-0030 |
+| **GAP-A2** | Gateway cross-tool uses `/api/v1/*` | `gateway/main.py:43-45` | ADR-0030 |
+| **GAP-A3** | Pipeline service hardcodes `/v1` URLs | `pipeline_service.py:32-36` | ADR-0030 |
 
-### Category B: Stage Graph & FSM (ADR-0001-DAT, ADR-0003)
-
-| ID | Gap | Files Affected | ADR/SPEC |
-|:---|:----|:---------------|:---------|
-| **GAP-B1** | Hardcoded `FORWARD_GATES`/`CASCADE_TARGETS` | `state_machine.py:41-71` | ADR-0001-DAT |
-| **GAP-B2** | `stage_graph_config.py` exists but unused | Orphaned module | SPEC-DAT-0001 |
-| **GAP-B3** | No Tier-0 `StageGraphConfig` contract | Missing in `shared/contracts/` | ADR-0009 |
-| **GAP-B4** | Preview skip doesn't advance `current_stage` | UX logic | ADR-0003 |
-
-### Category C: Determinism & Path Safety (ADR-0004-DAT, ADR-0017)
+### Category B: Stage Graph & FSM (ADR-0004, ADR-0004)
 
 | ID | Gap | Files Affected | ADR/SPEC |
 |:---|:----|:---------------|:---------|
-| **GAP-C1** | Stage ID uses 16-char, contract says 8-char | `shared/utils/stage_id.py` vs `id_generator.py` | ADR-0004 |
-| **GAP-C2** | Discovery hashes absolute paths | `state_machine.py:118-119` | ADR-0004-DAT |
-| **GAP-C3** | Stage ID inputs not stage-specific | Generic `_get_stage_inputs()` | ADR-0004-DAT |
+| **GAP-B1** | Hardcoded `FORWARD_GATES`/`CASCADE_TARGETS` | `state_machine.py:41-71` | ADR-0004 |
+| **GAP-B2** | `stage_graph_config.py` exists but unused | Orphaned module | SPEC-0024 |
+| **GAP-B3** | No Tier-0 `StageGraphConfig` contract | Missing in `shared/contracts/` | ADR-0010 |
+| **GAP-B4** | Preview skip doesn't advance `current_stage` | UX logic | ADR-0004 |
 
-### Category D: Adapter Implementation (ADR-0011, ADR-0040)
+### Category C: Determinism & Path Safety (ADR-0008, ADR-0018)
 
 | ID | Gap | Files Affected | ADR/SPEC |
 |:---|:----|:---------------|:---------|
-| **GAP-D1** | Two parallel adapter implementations | `backend/adapters/` and `src/.../adapters/` | ADR-0011 |
-| **GAP-D2** | Adapters don't enforce streaming threshold | No 10MB check | ADR-0040 |
+| **GAP-C1** | Stage ID uses 16-char, contract says 8-char | `shared/utils/stage_id.py` vs `id_generator.py` | ADR-0005 |
+| **GAP-C2** | Discovery hashes absolute paths | `state_machine.py:118-119` | ADR-0008 |
+| **GAP-C3** | Stage ID inputs not stage-specific | Generic `_get_stage_inputs()` | ADR-0008 |
+
+### Category D: Adapter Implementation (ADR-0012, ADR-0041)
+
+| ID | Gap | Files Affected | ADR/SPEC |
+|:---|:----|:---------------|:---------|
+| **GAP-D1** | Two parallel adapter implementations | `backend/adapters/` and `src/.../adapters/` | ADR-0012 |
+| **GAP-D2** | Adapters don't enforce streaming threshold | No 10MB check | ADR-0041 |
 
 ### Category E: Missing Implementations
 
 | ID | Gap | Contract Exists | Implementation | ADR/SPEC |
 |:---|:----|:----------------|:---------------|:---------|
-| **GAP-E1** | Table availability probe service | `table_status.py` ✅ | ❌ Missing | ADR-0006 |
-| **GAP-E2** | Profile CRUD endpoints | `profile.py` ✅ | ❌ Missing (only GET) | SPEC-DAT-0005 |
-| **GAP-E3** | Cancellation checkpointing | `cancellation.py` ✅ | ❌ Missing | ADR-0013 |
-| **GAP-E4** | Parse Parquet enforcement | Implied by ADR | ⚠️ Partial | ADR-0014 |
-| **GAP-E5** | Horizontal wizard UI | N/A (frontend) | ❌ Missing | ADR-0041 |
+| **GAP-E1** | Table availability probe service | `table_status.py` ✅ | ❌ Missing | ADR-0008 |
+| **GAP-E2** | Profile CRUD endpoints | `profile.py` ✅ | ❌ Missing (only GET) | SPEC-0007 |
+| **GAP-E3** | Cancellation checkpointing | `cancellation.py` ✅ | ❌ Missing | ADR-0014 |
+| **GAP-E4** | Parse Parquet enforcement | Implied by ADR | ⚠️ Partial | ADR-0015 |
+| **GAP-E5** | Horizontal wizard UI | N/A (frontend) | ❌ Missing | ADR-0043 |
 
 ---
 

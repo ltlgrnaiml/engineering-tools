@@ -1,6 +1,6 @@
 """Built-in message catalogs for all tools.
 
-Per ADR-0017#message-catalogs: All user-facing messages MUST be defined
+Per ADR-0018#message-catalogs: All user-facing messages MUST be defined
 in catalogs, never hardcoded in backend logic.
 
 This module provides pre-defined catalogs for each tool with common messages.
@@ -234,7 +234,7 @@ def _create_pptx_catalog() -> MessageCatalog:
         ),
         MessageDefinition(
             message_id="PPTX_GENERATE_BLOCKED",
-            message="Generation blocked: validation required per ADR-0019",
+            message="Generation blocked: validation required per ADR-0020",
             severity=MessageSeverity.ERROR,
             category=MessageCategory.ERROR,
             error_code="GENERATE_BLOCKED",

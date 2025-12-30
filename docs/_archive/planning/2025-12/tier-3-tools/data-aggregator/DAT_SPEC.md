@@ -102,7 +102,7 @@ When a stage unlocks, downstream stages also unlock:
 
 - [ ] Tables are probed from selected files
 - [ ] Status shown: available, partial, missing, empty
-- [ ] Deterministic probe logic (per ADR-0006)
+- [ ] Deterministic probe logic (per ADR-0008)
 - [ ] Results cached with stage ID
 
 ### AC-DAT5: Table Selection
@@ -120,9 +120,9 @@ When a stage unlocks, downstream stages also unlock:
 ### AC-DAT7: Parse
 
 - [ ] Full data extraction with progress indicator
-- [ ] Cancellation supported (preserves partial, per ADR-0013)
-- [ ] Output saved as Parquet (per ADR-0014)
-- [ ] Deterministic stage ID (per ADR-0004)
+- [ ] Cancellation supported (preserves partial, per ADR-0014)
+- [ ] Output saved as Parquet (per ADR-0015)
+- [ ] Deterministic stage ID (per ADR-0005)
 
 ### AC-DAT8: Export
 
@@ -163,7 +163,7 @@ apps/data_aggregator/backend/
 │   │   └── export.py           # DataSet export
 │   ├── adapters/
 │   │   ├── __init__.py
-│   │   ├── factory.py          # AdapterFactory (ADR-0011)
+│   │   ├── factory.py          # AdapterFactory (ADR-0012)
 │   │   ├── csv_adapter.py
 │   │   ├── excel_adapter.py
 │   │   └── parquet_adapter.py
@@ -381,9 +381,9 @@ Input Files          Profile           User Config
 |-----|-------------------|
 | ADR-0001 | Stage FSM orchestration |
 | ADR-0002 | Artifact preservation on unlock |
-| ADR-0003 | Optional Context and Preview |
-| ADR-0004 | Deterministic stage IDs |
-| ADR-0006 | Table availability status model |
-| ADR-0011 | Profile-driven adapters |
-| ADR-0013 | Parse cancellation semantics |
-| ADR-0014 | Parquet for parse, multi-format export |
+| ADR-0004 | Optional Context and Preview |
+| ADR-0005 | Deterministic stage IDs |
+| ADR-0008 | Table availability status model |
+| ADR-0012 | Profile-driven adapters |
+| ADR-0014 | Parse cancellation semantics |
+| ADR-0015 | Parquet for parse, multi-format export |

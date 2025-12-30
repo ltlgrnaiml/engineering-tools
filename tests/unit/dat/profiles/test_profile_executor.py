@@ -1,6 +1,6 @@
 """Unit tests for ProfileExecutor and extraction strategies.
 
-Per ADR-0011: Tests verify profile-driven extraction produces correct results.
+Per ADR-0012: Tests verify profile-driven extraction produces correct results.
 """
 
 import json

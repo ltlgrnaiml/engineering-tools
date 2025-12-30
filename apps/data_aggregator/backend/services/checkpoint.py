@@ -1,6 +1,6 @@
 """Checkpoint registry for cancellation safety.
 
-Per ADR-0013: Checkpoints are safe points where data integrity is guaranteed.
+Per ADR-0014: Checkpoints are safe points where data integrity is guaranteed.
 """
 
 from dataclasses import dataclass, field
@@ -24,7 +24,7 @@ class Checkpoint:
 class CheckpointRegistry:
     """Registry for tracking checkpoints during processing.
 
-    Per ADR-0013: Track safe points for cancellation recovery.
+    Per ADR-0014: Track safe points for cancellation recovery.
     """
 
     def __init__(self, run_id: str):

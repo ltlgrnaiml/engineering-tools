@@ -1,6 +1,6 @@
 """DAT extraction profiles.
 
-Per ADR-0011: Profiles are the single source of truth for extraction logic.
+Per ADR-0012: Profiles are the single source of truth for extraction logic.
 Tier-0 contracts imported from shared.contracts.dat.profile.
 """
 from shared.contracts.dat.profile import (

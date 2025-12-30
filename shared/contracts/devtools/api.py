@@ -1,6 +1,6 @@
 """DevTools API contracts.
 
-Per ADR-0027: DevTools Page Architecture.
+Per ADR-0028: DevTools Page Architecture.
 
 This module defines the contracts for the DevTools API endpoints
 including ADR management, config editing, and developer utilities.

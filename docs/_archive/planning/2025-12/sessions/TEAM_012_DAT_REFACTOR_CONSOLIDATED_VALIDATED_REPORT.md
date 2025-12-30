@@ -62,12 +62,12 @@ Note: “Partial” and “Unclear” are not counted as Validated; they reduce 
 
 Each gap below is listed once, with references to the TEAMS that identified it.
 
-### GAP-001: API versioning (/v1) contradicts ADR-0029 (cross-tool + gateway + frontend)
+### GAP-001: API versioning (/v1) contradicts ADR-0030 (cross-tool + gateway + frontend)
 
 - Validation Status: Validated
 
 - SSoT:
-  - ADR-0029 requires unversioned-by-default:
+  - ADR-0030 requires unversioned-by-default:
     - cross-tool: `/api/{resource}`
     - tool-specific: `/api/{tool}/{resource}`
     - suffix versioning only on breaking changes
@@ -103,7 +103,7 @@ Each gap below is listed once, with references to the TEAMS that identified it.
 
 - Recommended remediation (high-level):
   - Remove tool router `/v1` prefixes and remove gateway cross-tool `/api/v1` prefixes.
-  - Replace with ADR-0029 canonical paths.
+  - Replace with ADR-0030 canonical paths.
   - Update pipeline dispatch URLs, tests, and all frontend fetch paths.
 
 ---
@@ -181,7 +181,7 @@ This is a *behavioral* bug: the workflow can get stuck on optional stages.
   - `apps/data_aggregator/backend/src/dat_aggregation/core/state_machine.py:L47-50` (PARSE gate is TABLE_SELECTION only)
 
 - SSoT nuance:
-  - SPEC-0044 defines three-state semantics (UNLOCKED/LOCKED/COMPLETED).
+  - SPEC-0022 defines three-state semantics (UNLOCKED/LOCKED/COMPLETED).
   - It explicitly defines `skip_complete` behavior where skip should result in completed=true.
   - Evidence: `docs/specs/core/SPEC-0044_Stage-Completion-Semantics.json:L64-69`
 
@@ -257,7 +257,7 @@ This is a *behavioral* bug: the workflow can get stuck on optional stages.
   - `apps/data_aggregator/backend/src/dat_aggregation/stages/table_availability.py:L73-99`
 
 - SSoT:
-  - ADR-0006 requires deterministic availability checks independent from Preview.
+  - ADR-0008 requires deterministic availability checks independent from Preview.
     - Evidence: `.adrs/dat/ADR-0006_Table-Availability.json:L22-30`
 
 - Teams that identified:
@@ -300,11 +300,11 @@ This is a *behavioral* bug: the workflow can get stuck on optional stages.
   - TEAM_006
 
 - Recommended remediation (high-level):
-  - Implement CRUD + validation endpoints per SPEC-DAT-0005.
+  - Implement CRUD + validation endpoints per SPEC-0007.
 
 ---
 
-### GAP-010: Cancellation is present but incomplete vs full ADR-0013/SPEC-DAT-0015 requirements
+### GAP-010: Cancellation is present but incomplete vs full ADR-0014/SPEC-0010 requirements
 
 - Validation Status: Partially Valid
 
@@ -350,22 +350,22 @@ This is a *behavioral* bug: the workflow can get stuck on optional stages.
 
 This is not “code drift” — it’s **documentation/contract drift inside the SSoT itself**.
 
-#### GAP-012.A: ADR-0029 says “no /v1 by default”, but SPEC-0044 hardcodes /api/dat/v1
+#### GAP-012.A: ADR-0030 says “no /v1 by default”, but SPEC-0022 hardcodes /api/dat/v1
 
-- ADR-0029 (unversioned default):
+- ADR-0030 (unversioned default):
   - `.adrs/core/ADR-0029_API-Versioning-and-Endpoint-Naming.json:L23-90`
 
-- SPEC-0044 (hardcoded `/api/dat/v1/...`):
+- SPEC-0022 (hardcoded `/api/dat/v1/...`):
   - `docs/specs/core/SPEC-0044_Stage-Completion-Semantics.json:L71-94`
 
 **Interpretation**:
 
 - ADR is higher-tier than SPEC and is the accepted decision.
-- SPEC-0044 should be updated to match ADR-0029 path conventions.
+- SPEC-0022 should be updated to match ADR-0030 path conventions.
 
-#### GAP-012.B: ADR-0006 status model vs Tier-0 `TableAvailabilityStatus` enum appear inconsistent
+#### GAP-012.B: ADR-0008 status model vs Tier-0 `TableAvailabilityStatus` enum appear inconsistent
 
-- **ADR-0006** enumerates statuses: available, partial, missing, empty.
+- **ADR-0008** enumerates statuses: available, partial, missing, empty.
   - `.adrs/dat/ADR-0006_Table-Availability.json:L22-30`
 
 - **Tier-0 contract** defines statuses: pending/parsing/available/partial/failed/stale.
@@ -374,7 +374,7 @@ This is not “code drift” — it’s **documentation/contract drift inside th
 **Interpretation**:
 
 - Tier-0 contracts are authoritative in this repo’s 4-tier model.
-- Either ADR-0006 must be updated, or the Tier-0 contract must be revised (breaking change) — but this needs an explicit decision.
+- Either ADR-0008 must be updated, or the Tier-0 contract must be revised (breaking change) — but this needs an explicit decision.
 
 ---
 
@@ -422,7 +422,7 @@ This is not “code drift” — it’s **documentation/contract drift inside th
 
 | Claim | Status | Notes / Evidence | Maps to |
 | --- | --- | --- | --- |
-| `/api/dat/v1` should be `/api/dat` | Validated | `dat routes.py:L38-40` and ADR-0029 | GAP-001 |
+| `/api/dat/v1` should be `/api/dat` | Validated | `dat routes.py:L38-40` and ADR-0030 | GAP-001 |
 | Hardcoded `FORWARD_GATES` should be config-driven | Validated | `state_machine.py:L40-71` | GAP-003 |
 | Optional Context/Preview must not block Parse | Validated | `routes.py:L122-143` + PARSE gate is TABLE_SELECTION | GAP-004 |
 | Absolute paths in IDs break determinism | Validated | `routes.py:L234-235` | GAP-005/GAP-006 |
@@ -451,11 +451,11 @@ This is not “code drift” — it’s **documentation/contract drift inside th
 | Profile CRUD + validation missing | Validated | Only `GET /profiles` exists | GAP-009 |
 | Table status probe + reporting missing | Validated | Current code reads full DFs; no probe-only path | GAP-007 |
 | Cancellation + cleanup missing | Partially Valid | Parse cancel exists + checkpointing exists; cleanup semantics not validated | GAP-010 |
-| API routes incomplete vs spec | Partially Valid | Routes exist, but ADR-0029 mismatch is the bigger confirmed gap | GAP-001 |
+| API routes incomplete vs spec | Partially Valid | Routes exist, but ADR-0030 mismatch is the bigger confirmed gap | GAP-001 |
 
 **TEAM_008 gaps (missed items)**
 
-- Did not clearly call out ADR-0029 mismatch as a concrete implementation bug.
+- Did not clearly call out ADR-0030 mismatch as a concrete implementation bug.
 - Some “missing” claims are overbroad (adapters exist but are duplicated/not integrated).
 - Did not call out SSoT conflicts (GAP-012).
 
@@ -472,7 +472,7 @@ This is not “code drift” — it’s **documentation/contract drift inside th
 | Claim | Status | Notes / Evidence | Maps to |
 | --- | --- | --- | --- |
 | Duplicate adapter stacks | Validated | Both adapter directories exist | GAP-002 |
-| DAT router uses `/v1` (contradicts ADR-0029) | Validated | `dat routes.py:L38-40` + ADR-0029 | GAP-001 |
+| DAT router uses `/v1` (contradicts ADR-0030) | Validated | `dat routes.py:L38-40` + ADR-0030 | GAP-001 |
 | Optional stages not correctly reflected in progression | Validated | `current_stage` algorithm is linear, includes optional stages | GAP-004 |
 | Deterministic IDs mismatch (16 vs 8) + absolute path inputs | Validated | `shared/utils/stage_id.py` and `routes.py:L234-235` | GAP-005/GAP-006 |
 | Table availability too slow / not probe-only | Validated | `routes.py:L596-706` | GAP-007 |
@@ -502,7 +502,7 @@ TEAM_010 is largely a requirements restatement, but it implies some “gaps”:
 
 **TEAM_010 gaps (missed items)**
 
-- Missed ADR-0029 mismatch explicitly (and reinforces the outdated “/v1” convention in places).
+- Missed ADR-0030 mismatch explicitly (and reinforces the outdated “/v1” convention in places).
 - Contains at least one invalid “gap” (optional stage cascade already handled).
 - Did not call out SSoT conflicts (GAP-012).
 
@@ -527,7 +527,7 @@ TEAM_010 is largely a requirements restatement, but it implies some “gaps”:
 
 ## 5. Consolidated, Prioritized Remediation Backlog
 
-1. **Fix ADR-0029 drift (GAP-001)**
+1. **Fix ADR-0030 drift (GAP-001)**
    - Remove default `/v1` pathing across gateway/tools/frontends.
 2. **Unify adapters (GAP-002)**
    - Remove legacy adapter stack usage from the active pipeline.
@@ -544,15 +544,15 @@ TEAM_010 is largely a requirements restatement, but it implies some “gaps”:
 8. **Cancellation + cleanup closure (GAP-010)**
    - Ensure full compliance (cleanup + audit persistence).
 9. **Resolve SSoT conflicts (GAP-012)**
-   - ADR-0029 vs SPEC-0044 path conventions
-   - ADR-0006 vs Tier-0 table status enum
+   - ADR-0030 vs SPEC-0022 path conventions
+   - ADR-0008 vs Tier-0 table status enum
 
 ---
 
 ## 6. Open SSoT Questions / Decisions Needed
 
-1. **API naming conflict**: Update SPEC-0044 to match ADR-0029 (recommended).
-2. **Table status model conflict**: Decide whether ADR-0006 status model is updated to match Tier-0, or Tier-0 is revised (breaking change).
+1. **API naming conflict**: Update SPEC-0022 to match ADR-0030 (recommended).
+2. **Table status model conflict**: Decide whether ADR-0008 status model is updated to match Tier-0, or Tier-0 is revised (breaking change).
 3. **Stage graph SSOT**: Decide whether stage graph becomes Tier-0 contract or remains internal.
 4. **Path safety policy**: Strict-relative vs hybrid-normalization policy for Discovery/Selection.
 

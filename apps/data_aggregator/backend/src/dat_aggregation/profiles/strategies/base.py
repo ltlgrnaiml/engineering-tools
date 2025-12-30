@@ -1,6 +1,6 @@
 """Base protocol and types for extraction strategies.
 
-Per SPEC-DAT-0012: Defines the ExtractionStrategy protocol that all
+Per SPEC-0009: Defines the ExtractionStrategy protocol that all
 strategies must implement.
 
 All contract types imported from Tier-0 shared.contracts.dat.profile.
@@ -16,7 +16,7 @@ __version__ = "1.0.0"
 
 
 class ExtractionStrategy(Protocol):
-    """Protocol for extraction strategies per SPEC-DAT-0012.
+    """Protocol for extraction strategies per SPEC-0009.
 
     Each strategy transforms nested data structures into flat DataFrames.
     """

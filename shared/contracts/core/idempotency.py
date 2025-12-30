@@ -1,6 +1,6 @@
 """Idempotency contracts - request deduplication and replay.
 
-Per ADR-0032: HTTP Request Idempotency Semantics.
+Per ADR-0033: HTTP Request Idempotency Semantics.
 
 These contracts define the structure for idempotency keys, cached responses,
 and conflict detection for retry-safe API design.
@@ -26,7 +26,7 @@ class IdempotencyStatus(str, Enum):
 class IdempotencyKey(BaseModel):
     """Idempotency key for request deduplication.
 
-    Per ADR-0032: POST endpoints with side effects must support idempotency keys.
+    Per ADR-0033: POST endpoints with side effects must support idempotency keys.
     """
 
     key: str = Field(

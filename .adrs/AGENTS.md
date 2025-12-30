@@ -58,7 +58,7 @@ All ADRs must follow `shared/contracts/adr_schema.py`:
   "decision": "What we decided...",
   "consequences": ["Positive and negative impacts..."],
   "implementation_specs": ["SPEC-0001"],
-  "related_adrs": ["ADR-0002", "ADR-0017"]
+  "related_adrs": ["ADR-0002", "ADR-0018"]
 }
 ```
 

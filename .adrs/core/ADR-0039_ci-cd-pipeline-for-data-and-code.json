@@ -1,0 +1,231 @@
+{
+  "schema_type": "adr",
+  "id": "ADR-0039_ci-cd-pipeline-for-data-and-code",
+  "title": "CI/CD Pipeline for Data and Code: Automated Quality Gates",
+  "status": "accepted",
+  "date": "2025-12-28",
+  "review_date": "2026-06-28",
+  "deciders": "Mycahya Eggleston",
+  "scope": "core",
+  "provenance": [
+    {
+      "at": "2025-12-28",
+      "by": "Mycahya Eggleston",
+      "note": "Initial draft to establish comprehensive CI/CD pipeline for solo-dev workflow"
+    }
+  ],
+  "context": "For a solo developer, CI/CD is not about team coordination but about automated quality gates that catch issues before they become problems. Without CI, code quality depends entirely on developer discipline—which degrades under time pressure. The engineering-tools platform has multiple quality dimensions: code linting (ruff), type checking (mypy), contract validation, test execution, documentation generation, and OpenAPI drift detection. A comprehensive CI/CD pipeline automates all these checks, providing confidence that changes are safe. Pre-commit hooks provide fast local feedback; PR checks provide comprehensive validation; main branch merges trigger deployments.",
+  "decision_primary": "Implement a three-tier CI/CD pipeline: (1) Pre-commit hooks for fast local feedback (ruff format, ruff lint, basic tests), (2) PR checks for comprehensive validation (all tests, type checking, contract validation, doc generation, OpenAPI drift detection), (3) Main branch merges trigger auto-deploy of docs and release tagging. GitHub Actions is the CI platform. All checks must pass before merge; no exceptions.",
+  "decision_details": {
+    "approach": "Three-tier pipeline with increasing thoroughness; GitHub Actions for CI; pre-commit for local hooks",
+    "constraints": [
+      "Pre-commit hooks MUST run in < 30 seconds (fast feedback)",
+      "PR checks MUST complete in < 10 minutes (reasonable wait time)",
+      "All PR checks MUST pass before merge (no bypassing)",
+      "Main branch MUST always be deployable",
+      "CI failures MUST have clear, actionable error messages",
+      "CI configuration MUST be version-controlled (.github/workflows/)"
+    ],
+    "pipeline_tiers": {
+      "tier_1_precommit": {
+        "trigger": "git commit (local)",
+        "tool": "pre-commit framework",
+        "checks": [
+          "ruff format --check (code formatting)",
+          "ruff lint (linting, import sorting)",
+          "Trailing whitespace removal",
+          "YAML/JSON syntax validation",
+          "Large file prevention"
+        ],
+        "target_duration": "< 30 seconds",
+        "configuration": ".pre-commit-config.yaml"
+      },
+      "tier_2_pr_checks": {
+        "trigger": "Pull request opened/updated",
+        "tool": "GitHub Actions",
+        "checks": [
+          "ruff format --check",
+          "ruff lint",
+          "mypy --strict (type checking)",
+          "pytest (all tests)",
+          "Contract drift detection (JSON Schema, OpenAPI)",
+          "Documentation generation (mkdocs build)",
+          "ADR index generation (verify up-to-date)",
+          "Dependency audit (known vulnerabilities)"
+        ],
+        "target_duration": "< 10 minutes",
+        "configuration": ".github/workflows/pr-checks.yml"
+      },
+      "tier_3_main_merge": {
+        "trigger": "Merge to main branch",
+        "tool": "GitHub Actions",
+        "actions": [
+          "All tier 2 checks (re-run for safety)",
+          "Deploy documentation to GitHub Pages",
+          "Tag release (if version changed)",
+          "Generate CHANGELOG (via git-cliff)",
+          "Notify on failure (optional: Discord/Slack webhook)"
+        ],
+        "configuration": ".github/workflows/main-deploy.yml"
+      }
+    },
+    "specific_checks": {
+      "contract_drift": {
+        "description": "Verify generated artifacts match committed versions",
+        "implementation": "Regenerate JSON Schema, compare with committed; fail on diff",
+        "script": "tools/check_contract_drift.py"
+      },
+      "reference_drift": {
+        "description": "Verify cross-references between ADRs, SPECs, and Contracts are valid",
+        "implementation": "Scan all artifacts, validate references exist; warn or fail on broken refs",
+        "script": "tools/check_reference_drift.py",
+        "exit_codes": {
+          "0": "No drift detected",
+          "1": "Warnings (potential issues)",
+          "2": "Errors (broken references)"
+        }
+      },
+      "openapi_drift": {
+        "description": "Verify OpenAPI spec matches actual API",
+        "implementation": "Start server, fetch /openapi.json, compare with committed",
+        "script": "ci/steps/openapi-drift.ps1 (to be created)"
+      },
+      "adr_index_drift": {
+        "description": "Verify ADR_INDEX.md is up-to-date",
+        "implementation": "Regenerate index, compare with committed; fail on diff",
+        "script": "tools/gen_adr_index.py --check"
+      },
+      "type_coverage": {
+        "description": "Verify 100% type hint coverage",
+        "implementation": "mypy --strict on all Python code",
+        "script": "ci/steps/04-typecheck.ps1 (to be created)"
+      }
+    },
+    "github_actions_configuration": {
+      "pr_checks_workflow": {
+        "name": "PR Checks",
+        "on": "pull_request",
+        "jobs": [
+          "lint",
+          "typecheck",
+          "test",
+          "docs",
+          "drift-detection"
+        ]
+      },
+      "main_deploy_workflow": {
+        "name": "Main Deploy",
+        "on": "push to main",
+        "jobs": [
+          "verify",
+          "deploy-docs",
+          "tag-release"
+        ]
+      }
+    },
+    "implementation_specs": []
+  },
+  "consequences": [
+    "✅ POSITIVE: Automated quality gates catch issues before merge",
+    "✅ POSITIVE: Pre-commit provides fast local feedback",
+    "✅ POSITIVE: Main branch is always deployable",
+    "✅ POSITIVE: Contract drift detected automatically",
+    "✅ POSITIVE: Documentation stays in sync with code",
+    "✅ POSITIVE: Solo-dev can merge with confidence",
+    "❌ NEGATIVE: CI pipeline complexity (mitigated: modular workflows)",
+    "❌ NEGATIVE: PR checks take time (mitigated: < 10 minute target)",
+    "❌ NEGATIVE: Pre-commit can slow down commits (mitigated: < 30 second target)",
+    "⚠️ NEUTRAL: Requires GitHub Actions minutes (free tier usually sufficient)"
+  ],
+  "alternatives_considered": [
+    {
+      "name": "No CI (Manual Verification)",
+      "pros": "No setup, no wait times",
+      "cons": "Quality depends on discipline, issues slip through",
+      "rejected_reason": "Solo-dev needs automated safety net"
+    },
+    {
+      "name": "Local CI Only (No Remote)",
+      "pros": "Faster feedback, no cloud dependency",
+      "cons": "Can be skipped, no merge gate, inconsistent environments",
+      "rejected_reason": "Remote CI provides hard gate that can't be bypassed"
+    },
+    {
+      "name": "Azure DevOps Pipelines",
+      "pros": "More features, better Windows support",
+      "cons": "More complex setup, separate platform from GitHub",
+      "rejected_reason": "GitHub Actions is simpler and integrated with repo"
+    }
+  ],
+  "tradeoffs": "We trade immediate commit/merge speed for quality confidence. CI adds latency but catches issues that would cost more time to debug later.",
+  "rollout_plan": [
+    "1. Set up .pre-commit-config.yaml with ruff hooks",
+    "2. Create .github/workflows/pr-checks.yml",
+    "3. Create .github/workflows/main-deploy.yml",
+    "4. Add contract drift detection script",
+    "5. Add OpenAPI drift detection script",
+    "6. Add mypy to CI pipeline",
+    "7. Configure GitHub Pages deployment",
+    "8. Test full pipeline on feature branch"
+  ],
+  "rollback_plan": "If CI proves too slow or flaky: (1) Reduce check scope (drop slow tests), (2) Increase timeouts, (3) Make some checks non-blocking (warnings only). If GitHub Actions insufficient: (4) Migrate to Azure DevOps.",
+  "metrics_to_watch": [
+    "PR check duration (target: < 10 minutes)",
+    "Pre-commit duration (target: < 30 seconds)",
+    "CI failure rate (should be low after initial setup)",
+    "Time from PR to merge (should be predictable)"
+  ],
+  "guardrails": [
+    {
+      "id": "ci-precommit-required",
+      "rule": "Pre-commit hooks MUST be configured and documented",
+      "enforcement": ".pre-commit-config.yaml exists; README includes setup instructions",
+      "scope": "core"
+    },
+    {
+      "id": "ci-pr-checks-required",
+      "rule": "All PR checks MUST pass before merge",
+      "enforcement": "GitHub branch protection rules require status checks",
+      "scope": "core"
+    },
+    {
+      "id": "ci-main-deployable",
+      "rule": "Main branch MUST always be deployable",
+      "enforcement": "All checks run on main merge; failures block future PRs",
+      "scope": "core"
+    },
+    {
+      "id": "ci-drift-detection",
+      "rule": "Contract and OpenAPI drift MUST be detected in CI",
+      "enforcement": "Drift detection scripts in PR checks workflow",
+      "scope": "core"
+    }
+  ],
+  "cross_cutting_guardrails": [
+    "ADR-0045: Contract drift detection validates Tier 0 contracts",
+    "ADR-0045: Documentation generation in CI validates auto-generation"
+  ],
+  "references": [
+    "GitHub Actions: https://docs.github.com/en/actions",
+    "pre-commit: https://pre-commit.com/",
+    "ruff: https://docs.astral.sh/ruff/",
+    "mypy: https://mypy.readthedocs.io/",
+    ".pre-commit-config.yaml",
+    "ci/steps/*.ps1"
+  ],
+  "tags": [
+    "ci-cd",
+    "automation",
+    "quality",
+    "github-actions",
+    "pre-commit",
+    "solo-dev"
+  ],
+  "affected_components": [
+    ".pre-commit-config.yaml",
+    ".github/workflows/pr-checks.yml (new)",
+    ".github/workflows/main-deploy.yml (new)",
+    "ci/steps/*.ps1",
+    "pyproject.toml (tool configuration)"
+  ]
+}

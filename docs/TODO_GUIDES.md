@@ -8,7 +8,7 @@
 
 ## Overview
 
-Per ADR-0015 (3-Tier Document Model), GUIDES are Tier 3 documentation that provide step-by-step instructions, examples, and workflows for developers and end users. GUIDES are intentionally deferred until:
+Per ADR-0016 (3-Tier Document Model), GUIDES are Tier 3 documentation that provide step-by-step instructions, examples, and workflows for developers and end users. GUIDES are intentionally deferred until:
 
 1. All code implementation is complete and stable
 2. ADRs (Tier 1) are finalized
@@ -22,33 +22,33 @@ Per ADR-0015 (3-Tier Document Model), GUIDES are Tier 3 documentation that provi
 | Guide | Description | Prerequisites |
 |-------|-------------|---------------|
 | Getting Started | Local development setup | README.md |
-| Contract Development | Creating Pydantic contracts | ADR-0009 |
+| Contract Development | Creating Pydantic contracts | ADR-0010 |
 | FSM Implementation | Building guided workflows | ADR-0001, SPEC-0001 |
-| Testing Guide | Unit, integration, E2E testing | ADR-0005 |
-| Rendering Guide | Using unified rendering engine | ADR-0028, SPEC-0031 |
+| Testing Guide | Unit, integration, E2E testing | ADR-0007 |
+| Rendering Guide | Using unified rendering engine | ADR-0029, SPEC-0009 |
 
 ### DAT Guides
 
 | Guide | Description | Prerequisites |
 |-------|-------------|---------------|
-| Profile Creation | Building extraction profiles | ADR-0011, SPEC-DAT-0002 |
-| Parser Development | Adding new file adapters | ADR-0011 |
-| Export Formats | Configuring export options | ADR-0014 |
+| Profile Creation | Building extraction profiles | ADR-0012, SPEC-0025 |
+| Parser Development | Adding new file adapters | ADR-0012 |
+| Export Formats | Configuring export options | ADR-0015 |
 
 ### PPTX Guides
 
 | Guide | Description | Prerequisites |
 |-------|-------------|---------------|
-| Template Design | Creating PPTX templates with named shapes | ADR-0018, SPEC-PPTX-0019 |
-| Data Binding | Mapping data to shapes | ADR-0021, SPEC-PPTX-0020 |
-| Custom Renderers | Adding new renderer types | ADR-0021, SPEC-PPTX-0023 |
+| Template Design | Creating PPTX templates with named shapes | ADR-0019, SPEC-0004 |
+| Data Binding | Mapping data to shapes | ADR-0022, SPEC-0005 |
+| Custom Renderers | Adding new renderer types | ADR-0022, SPEC-0015 |
 
 ### SOV Guides
 
 | Guide | Description | Prerequisites |
 |-------|-------------|---------------|
-| ANOVA Configuration | Setting up ANOVA analysis | ADR-0022, SPEC-SOV-0024 |
-| Visualization Customization | Customizing chart appearance | ADR-0024, SPEC-SOV-0027 |
+| ANOVA Configuration | Setting up ANOVA analysis | ADR-0023, SPEC-0006 |
+| Visualization Customization | Customizing chart appearance | ADR-0025, SPEC-0017 |
 
 ## Completion Criteria
 

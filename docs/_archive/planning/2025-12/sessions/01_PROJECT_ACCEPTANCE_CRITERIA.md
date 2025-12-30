@@ -45,7 +45,7 @@ python -c "from shared.contracts.dat import *"
 ## Milestone 1: Unify Adapter Implementations
 
 **Gap**: GAP-002 (Two parallel adapter stacks)  
-**ADR**: ADR-0011
+**ADR**: ADR-0012
 
 ### AC-M1-001: Legacy Adapters Deleted
 
@@ -82,7 +82,7 @@ pytest tests/dat/test_adapter*.py -v
 ## Milestone 2: API Path Normalization
 
 **Gap**: GAP-001 (API uses /v1 prefix)  
-**ADR**: ADR-0029
+**ADR**: ADR-0030
 
 ### AC-M2-001: No /v1 in Backend Routes
 
@@ -120,7 +120,7 @@ pytest tests/integration/test_gateway_api.py -v
 
 **Gap**: GAP-003 (Hardcoded FORWARD_GATES/CASCADE_TARGETS)  
 **Gap**: GAP-011 (No Tier-0 StageGraphConfig contract)  
-**ADR**: ADR-0001-DAT, ADR-0009
+**ADR**: ADR-0004, ADR-0010
 
 ### AC-M3-001: StageGraphConfig Contract Exists
 
@@ -157,7 +157,7 @@ pytest tests/dat/test_state_machine.py -v
 
 **Gap**: GAP-005 (Stage ID 16-char vs 8-char)  
 **Gap**: GAP-006 (Absolute paths in stage ID inputs)  
-**ADR**: ADR-0004-DAT, ADR-0017
+**ADR**: ADR-0008, ADR-0018
 
 ### AC-M4-001: Stage IDs Are 8 Characters
 
@@ -191,7 +191,7 @@ pytest tests/dat/test_determinism.py -v
 ## Milestone 5: Table Availability Fast Probe
 
 **Gap**: GAP-007 (Table availability reads full dataframes)  
-**ADR**: ADR-0006, SPEC-DAT-0006
+**ADR**: ADR-0008, SPEC-0008
 
 ### AC-M5-001: Probe Service Exists
 
@@ -220,7 +220,7 @@ pytest tests/dat/test_table_probe.py -v
 ## Milestone 6: Large File Streaming
 
 **Gap**: GAP-008 (No streaming for files >10MB)  
-**ADR**: ADR-0040, SPEC-DAT-0004
+**ADR**: ADR-0041, SPEC-0027
 
 ### AC-M6-001: Streaming Threshold Defined
 
@@ -248,7 +248,7 @@ pytest tests/dat/test_streaming.py -v
 ## Milestone 7: Parse/Export Artifact Formats
 
 **Gap**: GAP-E4 (Parse Parquet enforcement)  
-**ADR**: ADR-0014
+**ADR**: ADR-0015
 
 ### AC-M7-001: Parse Outputs Parquet Only
 
@@ -271,7 +271,7 @@ pytest tests/dat/test_export_formats.py -v
 ## Milestone 8: Cancellation Checkpointing
 
 **Gap**: GAP-010 (Cancellation checkpointing incomplete)  
-**ADR**: ADR-0013, SPEC-DAT-0015
+**ADR**: ADR-0014, SPEC-0010
 
 ### AC-M8-001: Checkpoint Registry Exists
 
@@ -310,7 +310,7 @@ pytest tests/dat/test_cleanup.py -v
 ## Milestone 9: Profile CRUD
 
 **Gap**: GAP-009 (Profile CRUD missing)  
-**SPEC**: SPEC-DAT-0005
+**SPEC**: SPEC-0007
 
 ### AC-M9-001: CRUD Endpoints Exist
 
@@ -330,7 +330,7 @@ from apps.data_aggregator.backend.services.profile_service import ProfileService
 
 ### AC-M9-003: Profile IDs Are Deterministic
 
-Profile IDs must be SHA-256 based per ADR-0004.
+Profile IDs must be SHA-256 based per ADR-0005.
 
 ### AC-M9-004: Profile Tests Pass
 

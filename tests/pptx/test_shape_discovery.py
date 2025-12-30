@@ -1,4 +1,4 @@
-"""Shape discovery tests per ADR-0018.
+"""Shape discovery tests per ADR-0019.
 
 Tests for the shape naming convention and discovery logic.
 """
@@ -35,14 +35,14 @@ class TestParseShapeNameAdr0018:
         assert result.variant == "main"
 
     def test_valid_all_categories(self):
-        """Test all valid categories per ADR-0018."""
+        """Test all valid categories per ADR-0019."""
         for category in VALID_CATEGORIES:
             result = parse_shape_name_adr0018(f"{category}_test")
             assert result.category == category
             assert result.identifier == "test"
 
     def test_case_insensitive(self):
-        """Test case-insensitive matching per ADR-0018."""
+        """Test case-insensitive matching per ADR-0019."""
         result1 = parse_shape_name_adr0018("CHART_REVENUE")
         assert result1.category == "chart"
         assert result1.identifier == "revenue"
@@ -171,15 +171,15 @@ class TestParsedShapeName:
 
 
 class TestAdr0018Compliance:
-    """Integration tests for full ADR-0018 compliance."""
+    """Integration tests for full ADR-0019 compliance."""
 
     def test_all_valid_categories_accepted(self):
-        """ADR-0018: Valid categories are text, chart, table, image, metric, dimension."""
+        """ADR-0019: Valid categories are text, chart, table, image, metric, dimension."""
         expected = {"text", "chart", "table", "image", "metric", "dimension"}
         assert VALID_CATEGORIES == expected
 
     def test_identifier_alphanumeric_only(self):
-        """ADR-0018: Identifier must be alphanumeric."""
+        """ADR-0019: Identifier must be alphanumeric."""
         # Valid
         assert is_valid_shape_name("chart_abc123")
         assert is_valid_shape_name("table_test1")
@@ -189,7 +189,7 @@ class TestAdr0018Compliance:
         assert not is_valid_shape_name("chart_abc 123")
 
     def test_case_insensitive_matching(self):
-        """ADR-0018: Shape names are case-insensitive."""
+        """ADR-0019: Shape names are case-insensitive."""
         result_lower = parse_shape_name_adr0018("chart_revenue")
         result_upper = parse_shape_name_adr0018("CHART_REVENUE")
         result_mixed = parse_shape_name_adr0018("Chart_Revenue")
@@ -198,7 +198,7 @@ class TestAdr0018Compliance:
         assert result_lower.identifier == result_upper.identifier == result_mixed.identifier
 
     def test_reserved_names_ignored(self):
-        """ADR-0018: Reserved PowerPoint default names are automatically ignored."""
+        """ADR-0019: Reserved PowerPoint default names are automatically ignored."""
         reserved = [
             "Rectangle 1",
             "TextBox 5",

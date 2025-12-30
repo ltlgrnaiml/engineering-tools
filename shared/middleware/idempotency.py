@@ -1,6 +1,6 @@
 """Idempotency middleware for FastAPI.
 
-Per ADR-0032: HTTP Request Idempotency Semantics.
+Per ADR-0033: HTTP Request Idempotency Semantics.
 Per API-005: All mutating requests MUST be idempotent or retriable.
 
 This middleware intercepts requests with X-Idempotency-Key header,
@@ -130,7 +130,7 @@ def store_idempotency_record(
 class IdempotencyMiddleware(BaseHTTPMiddleware):
     """FastAPI middleware for idempotency handling.
 
-    Per ADR-0032: POST endpoints with side effects must support idempotency keys.
+    Per ADR-0033: POST endpoints with side effects must support idempotency keys.
 
     Usage:
         app.add_middleware(IdempotencyMiddleware, config=IdempotencyConfig())

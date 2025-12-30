@@ -1,7 +1,7 @@
 """Audit Trail contracts - timestamps and lifecycle tracking.
 
-Per ADR-0008: All timestamps are ISO-8601 UTC (no microseconds).
-Per ADR-0017#audit-trail: All lifecycle events must be logged.
+Per ADR-0009: All timestamps are ISO-8601 UTC (no microseconds).
+Per ADR-0018#audit-trail: All lifecycle events must be logged.
 
 This module defines the core audit trail contracts used by all tools.
 """
@@ -31,7 +31,7 @@ class LifecycleEvent(str, Enum):
 class AuditTimestamp(BaseModel):
     """A single audit timestamp entry.
 
-    Per ADR-0008: ISO-8601 UTC format, no microseconds.
+    Per ADR-0009: ISO-8601 UTC format, no microseconds.
     Format: YYYY-MM-DDTHH:MM:SSZ
     """
 
@@ -136,7 +136,7 @@ class TimestampMixin(BaseModel):
 
 
 def now_utc() -> datetime:
-    """Return current UTC datetime without microseconds (per ADR-0008)."""
+    """Return current UTC datetime without microseconds (per ADR-0009)."""
     return datetime.now(timezone.utc).replace(microsecond=0)
 
 

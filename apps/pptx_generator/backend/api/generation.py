@@ -1,8 +1,8 @@
 """Presentation generation endpoints.
 
-Per ADR-0017: Uses ErrorResponse contract for standardized errors.
-Per ADR-0018/0019: Uses RenderRequest/RenderResult contracts for generation tracking.
-Per ADR-0031: All errors use ErrorResponse contract via errors.py helper.
+Per ADR-0018: Uses ErrorResponse contract for standardized errors.
+Per ADR-0019/0019: Uses RenderRequest/RenderResult contracts for generation tracking.
+Per ADR-0032: All errors use ErrorResponse contract via errors.py helper.
 """
 
 import logging
@@ -45,7 +45,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 generations_db: dict[UUID, GenerationResponse] = {}
-render_results_db: dict[str, RenderResult] = {}  # Per ADR-0018: Track render metrics
+render_results_db: dict[str, RenderResult] = {}  # Per ADR-0019: Track render metrics
 
 storage_service = StorageService()
 data_processor = DataProcessorService()
@@ -73,12 +73,12 @@ async def generate_presentation(request: GenerationRequest) -> GenerationRespons
 
     project = projects_db[project_id]
 
-    # Per ADR-0019: Check workflow state for validation gating
+    # Per ADR-0020: Check workflow state for validation gating
     if project_id in workflow_states_db:
         workflow_state = workflow_states_db[project_id]
         allowed, error_msg = check_generate_allowed(workflow_state)
         if not allowed:
-            raise_validation_error(f"Generation blocked per ADR-0019: {error_msg}")
+            raise_validation_error(f"Generation blocked per ADR-0020: {error_msg}")
     else:
         # Legacy check: Accept both READY_TO_GENERATE and PLAN_FROZEN
         if project.status not in [ProjectStatus.READY_TO_GENERATE, ProjectStatus.PLAN_FROZEN]:
@@ -102,7 +102,7 @@ async def generate_presentation(request: GenerationRequest) -> GenerationRespons
             "Project missing required components (template, data, or mapping)"
         )
 
-    # Per ADR-0025: Capture lineage information
+    # Per ADR-0026: Capture lineage information
     source_dataset_id = getattr(project, 'source_dataset_id', None)
     template_id_str = str(project.template_id) if project.template_id else None
 
@@ -113,7 +113,7 @@ async def generate_presentation(request: GenerationRequest) -> GenerationRespons
     )
     generations_db[generation.id] = generation
 
-    # Per ADR-0018: Create RenderResult for tracking
+    # Per ADR-0019: Create RenderResult for tracking
     render_id = f"render_{uuid4().hex[:12]}"
     render_result = RenderResult(
         template_id=str(project.template_id) if project.template_id else "unknown",

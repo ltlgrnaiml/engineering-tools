@@ -1,8 +1,8 @@
 """Template management endpoints.
 
-Per ADR-0018: Uses ShapeDiscoveryResult contract for shape discovery.
-Per ADR-0020: Uses TemplateValidationResult for template validation.
-Per ADR-0031: All errors use ErrorResponse contract via errors.py helper.
+Per ADR-0019: Uses ShapeDiscoveryResult contract for shape discovery.
+Per ADR-0021: Uses TemplateValidationResult for template validation.
+Per ADR-0032: All errors use ErrorResponse contract via errors.py helper.
 """
 
 import time
@@ -269,7 +269,7 @@ async def get_shape_map(project_id: UUID) -> ShapeMap:
 
 @router.post("/{project_id}/discover-shapes")
 async def discover_template_shapes(project_id: UUID) -> dict:
-    """Discover shapes in template per ADR-0018.
+    """Discover shapes in template per ADR-0019.
 
     Uses the ShapeDiscoveryResult contract for comprehensive shape analysis.
 
@@ -334,7 +334,7 @@ async def discover_template_shapes(project_id: UUID) -> dict:
 
 @router.post("/{project_id}/validate")
 async def validate_template(project_id: UUID) -> dict:
-    """Validate a template per ADR-0018/0020.
+    """Validate a template per ADR-0019/0020.
 
     Uses the TemplateValidationResult contract for comprehensive validation.
 
@@ -400,7 +400,7 @@ async def validate_template(project_id: UUID) -> dict:
         if shapes_found == 0:
             warnings.append(TemplateValidationError(
                 error_code="NO_MAPPABLE_SHAPES",
-                message="No shapes with ADR-0018 compliant names found",
+                message="No shapes with ADR-0019 compliant names found",
                 severity="warning",
             ))
 

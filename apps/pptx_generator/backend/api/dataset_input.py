@@ -2,7 +2,7 @@
 
 Allows loading data from the shared DataSet format instead of file uploads.
 
-Per ADR-0031: All errors use ErrorResponse contract via errors.py helper.
+Per ADR-0032: All errors use ErrorResponse contract via errors.py helper.
 """
 
 from datetime import datetime

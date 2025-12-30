@@ -148,7 +148,7 @@ class TestArtifactPreservationOnUnlock:
 
 
 class TestArtifactPreservationOnCancellation:
-    """Tests for artifact preservation during cancellation (ADR-0013)."""
+    """Tests for artifact preservation during cancellation (ADR-0014)."""
 
     @pytest.fixture
     def temp_workspace(self) -> Path:
@@ -173,7 +173,7 @@ class TestArtifactPreservationOnCancellation:
         stage2_artifact.write_bytes(b"stage 2 data")
 
         # Simulate cancellation during stage 3
-        # Per ADR-0013: Preserve completed artifacts
+        # Per ADR-0014: Preserve completed artifacts
         cancellation_log = job_dir / "cancellation.json"
         cancellation_log.write_text(json.dumps({
             "cancelled_at": datetime.now(timezone.utc).isoformat(),
@@ -197,7 +197,7 @@ class TestArtifactPreservationOnCancellation:
         partial_artifact.write_bytes(b"incomplete data")
 
         # Simulate cancellation cleanup of partial data
-        # Per ADR-0013: Discard partial data
+        # Per ADR-0014: Discard partial data
         if partial_artifact.exists():
             partial_artifact.unlink()
 

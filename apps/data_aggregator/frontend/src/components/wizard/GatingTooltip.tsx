@@ -1,8 +1,8 @@
 /**
  * Gating Tooltip Component
  *
- * Per ADR-0001-DAT: Forward gating with stage dependencies
- * Per SPEC-DAT-0001: Stage dependencies and requirements
+ * Per ADR-0004: Forward gating with stage dependencies
+ * Per SPEC-0024: Stage dependencies and requirements
  *
  * This component shows tooltips explaining why a stage is locked
  * and what prerequisites must be met to unlock it.
@@ -107,7 +107,7 @@ export function GatingTooltip({
 }
 
 /**
- * Stage dependency map per SPEC-DAT-0001.
+ * Stage dependency map per SPEC-0024.
  */
 export const STAGE_DEPENDENCIES: Record<string, string[]> = {
   discovery: [],

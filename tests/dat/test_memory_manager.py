@@ -1,4 +1,4 @@
-"""Tests for DAT memory manager per SPEC-DAT-0004."""
+"""Tests for DAT memory manager per SPEC-0027."""
 
 import tempfile
 from pathlib import Path
@@ -22,7 +22,7 @@ class TestMemoryConfig:
     """Test MemoryConfig dataclass."""
 
     def test_default_config(self):
-        """Test default configuration values per SPEC-DAT-0004."""
+        """Test default configuration values per SPEC-0027."""
         config = MemoryConfig()
         
         assert config.max_memory_mb == 200
@@ -68,10 +68,10 @@ class TestMemorySnapshot:
 
 
 class TestFileSizeStrategies:
-    """Test file size tier strategies per SPEC-DAT-0004."""
+    """Test file size tier strategies per SPEC-0027."""
 
     def test_streaming_threshold(self):
-        """Test streaming threshold is 10MB per ADR-0040."""
+        """Test streaming threshold is 10MB per ADR-0041."""
         assert STREAMING_THRESHOLD_BYTES == 10 * 1024 * 1024
 
     def test_all_tiers_defined(self):

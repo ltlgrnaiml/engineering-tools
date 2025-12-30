@@ -1,6 +1,6 @@
 """Cross-Platform Concurrency contracts.
 
-Per ADR-0012: Unified async, threading, and process parallelism for all OS.
+Per ADR-0013: Unified async, threading, and process parallelism for all OS.
 - Tier 1: asyncio for I/O-bound async operations
 - Tier 2: ThreadPoolExecutor for concurrent I/O
 - Tier 3: ProcessPoolExecutor with spawn start method
@@ -42,7 +42,7 @@ class ShellType(str, Enum):
 
 
 class ConcurrencyTier(str, Enum):
-    """Concurrency execution tiers per ADR-0012."""
+    """Concurrency execution tiers per ADR-0013."""
 
     ASYNC = "async"  # Tier 1: asyncio
     THREADS = "threads"  # Tier 2: ThreadPoolExecutor
@@ -68,7 +68,7 @@ class PlatformInfo(BaseModel):
     )
     recommended_start_method: Literal["spawn", "fork", "forkserver"] = Field(
         default="spawn",
-        description="Per ADR-0012: Always use spawn for consistency",
+        description="Per ADR-0013: Always use spawn for consistency",
     )
 
     @classmethod
@@ -127,14 +127,14 @@ class PlatformInfo(BaseModel):
             default_shell=default_shell,
             available_shells=available_shells,
             supports_fork=os_type != OSType.WINDOWS,
-            recommended_start_method="spawn",  # Per ADR-0012
+            recommended_start_method="spawn",  # Per ADR-0013
         )
 
 
 class ConcurrencyConfig(BaseModel):
     """Configuration for concurrency operations.
 
-    Per ADR-0012: Configurable caps with sensible defaults.
+    Per ADR-0013: Configurable caps with sensible defaults.
     """
 
     max_threads: int = Field(
@@ -149,11 +149,11 @@ class ConcurrencyConfig(BaseModel):
     )
     default_seed: int = Field(
         default=42,
-        description="Default seed for deterministic operations (per ADR-0004)",
+        description="Default seed for deterministic operations (per ADR-0005)",
     )
     process_start_method: Literal["spawn"] = Field(
         default="spawn",
-        description="Per ADR-0012: Always spawn for cross-platform consistency",
+        description="Per ADR-0013: Always spawn for cross-platform consistency",
     )
     timeout_seconds: float = Field(
         default=300.0,

@@ -1,7 +1,7 @@
 """Path Safety contracts - cross-platform path handling.
 
-Per ADR-0017#path-safety: All public paths must be relative.
-Per ADR-0012: Cross-platform compatibility for Windows, macOS, Linux.
+Per ADR-0018#path-safety: All public paths must be relative.
+Per ADR-0013: Cross-platform compatibility for Windows, macOS, Linux.
 
 This module defines path safety contracts and utilities.
 """
@@ -25,7 +25,7 @@ class PathValidationError(ValueError):
 class RelativePath(BaseModel):
     """A validated relative path that is safe across all platforms.
 
-    Per ADR-0017#path-safety:
+    Per ADR-0018#path-safety:
     - No absolute paths in API responses
     - Forward slashes only (normalized)
     - No path traversal (..)

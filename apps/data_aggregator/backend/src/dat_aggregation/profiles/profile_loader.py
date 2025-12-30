@@ -1,6 +1,6 @@
 """Profile loader for DAT extraction profiles.
 
-Per ADR-0011: Profiles are the single source of truth for extraction logic.
+Per ADR-0012: Profiles are the single source of truth for extraction logic.
 Loads YAML profiles and returns Tier-0 Pydantic contracts directly.
 
 This module is the YAML→Pydantic bridge. It parses YAML and constructs
@@ -520,7 +520,7 @@ def validate_profile(
 ) -> ProfileValidationResult:
     """Validate a profile against schema and optionally source data.
 
-    Per ADR-0011: Profiles are validated before use to ensure consistency.
+    Per ADR-0012: Profiles are validated before use to ensure consistency.
 
     Args:
         profile: DATProfile to validate.

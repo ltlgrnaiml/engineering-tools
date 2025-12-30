@@ -1,0 +1,194 @@
+{
+  "schema_type": "spec",
+  "id": "SPEC-0010_rendering-engine-architecture",
+  "title": "Rendering Engine Architecture Specification",
+  "version": "0.1.0",
+  "status": "draft",
+  "date": "2025-12-27",
+  "author": "Mycahya Eggleston",
+  "implements_adr": [
+    "ADR-0028_Unified-Rendering-Engine"
+  ],
+  "tier_0_contracts": [
+    {
+      "module": "shared.contracts.core.rendering",
+      "classes": [
+        "RenderSpec",
+        "RenderRequest",
+        "RenderResult",
+        "RenderState"
+      ]
+    }
+  ],
+  "purpose": "Define the architecture of the Unified Rendering Engine. This spec describes HOW RenderSpecs are processed, the rendering pipeline stages, and the integration points with output adapters.",
+  "scope": "core",
+  "architecture": {
+    "layers": [
+      {
+        "name": "Contracts Layer",
+        "location": "shared/contracts/core/rendering.py",
+        "responsibility": "Define WHAT to render (RenderSpec hierarchy)",
+        "depends_on": []
+      },
+      {
+        "name": "Engine Layer",
+        "location": "shared/rendering/",
+        "responsibility": "Process RenderSpecs and generate output",
+        "depends_on": [
+          "Contracts Layer"
+        ]
+      },
+      {
+        "name": "Adapter Layer",
+        "location": "shared/rendering/adapters/",
+        "responsibility": "Convert engine output to target-specific format",
+        "depends_on": [
+          "Engine Layer"
+        ]
+      }
+    ],
+    "data_flow": "Tool → RenderSpec → Engine → Adapter → Output"
+  },
+  "requirements": [
+    {
+      "id": "REQ-ENGINE-001",
+      "description": "Engine MUST support all RenderSpec types",
+      "spec_types": [
+        "ChartSpec",
+        "TableSpec",
+        "TextSpec",
+        "ImageSpec",
+        "CompositeSpec"
+      ]
+    },
+    {
+      "id": "REQ-ENGINE-002",
+      "description": "Engine MUST use matplotlib for static chart generation",
+      "rationale": "Mature library with comprehensive chart support",
+      "future": "Contracts remain agnostic; can swap to Plotly/Vega later"
+    },
+    {
+      "id": "REQ-ENGINE-003",
+      "description": "Engine MUST NOT have tool-specific dependencies",
+      "forbidden_imports": [
+        "pptx",
+        "fastapi",
+        "flask"
+      ],
+      "rationale": "Shared library used by all tools"
+    },
+    {
+      "id": "REQ-ENGINE-004",
+      "description": "Engine MUST support batch rendering with parallelism",
+      "implementation": "BatchRenderRequest with configurable max_workers"
+    },
+    {
+      "id": "REQ-ENGINE-005",
+      "description": "Engine MUST report render metrics",
+      "metrics": [
+        "render_duration_ms",
+        "output_size_bytes",
+        "warnings"
+      ]
+    }
+  ],
+  "engine_components": {
+    "core": {
+      "module": "shared.rendering.engine",
+      "classes": [
+        {
+          "name": "RenderEngine",
+          "methods": [
+            "render(spec: RenderSpec, outputs: list[OutputFormat]) -> RenderResult",
+            "render_batch(request: BatchRenderRequest) -> BatchRenderResult"
+          ]
+        }
+      ]
+    },
+    "renderers": {
+      "chart_renderer": {
+        "module": "shared.rendering.chart_renderer",
+        "responsibility": "Generate charts using matplotlib",
+        "supported_types": [
+          "line",
+          "bar",
+          "scatter",
+          "box",
+          "histogram",
+          "heatmap",
+          "pie",
+          "contour"
+        ]
+      },
+      "table_renderer": {
+        "module": "shared.rendering.table_renderer",
+        "responsibility": "Generate table images or HTML",
+        "supported_types": [
+          "summary",
+          "detail",
+          "pivot"
+        ]
+      },
+      "text_renderer": {
+        "module": "shared.rendering.text_renderer",
+        "responsibility": "Generate text labels and annotations"
+      },
+      "image_renderer": {
+        "module": "shared.rendering.image_renderer",
+        "responsibility": "Process and resize images"
+      }
+    }
+  },
+  "rendering_pipeline": [
+    {
+      "stage": 1,
+      "name": "Validation",
+      "description": "Validate RenderSpec against schema"
+    },
+    {
+      "stage": 2,
+      "name": "Style Resolution",
+      "description": "Merge default styles with spec-specific overrides"
+    },
+    {
+      "stage": 3,
+      "name": "Renderer Selection",
+      "description": "Route to appropriate renderer based on spec type"
+    },
+    {
+      "stage": 4,
+      "name": "Rendering",
+      "description": "Execute renderer to produce raw output"
+    },
+    {
+      "stage": 5,
+      "name": "Adaptation",
+      "description": "Convert raw output to target format via adapter"
+    },
+    {
+      "stage": 6,
+      "name": "Result Assembly",
+      "description": "Package outputs with metadata into RenderResult"
+    }
+  ],
+  "error_handling": {
+    "strategy": "Graceful degradation per ADR-0022",
+    "behaviors": [
+      "Invalid spec: Return RenderResult with state=FAILED and error_message",
+      "Render failure: Log warning, continue with other specs in batch",
+      "Adapter failure: Fall back to PNG if available"
+    ]
+  },
+  "configuration": {
+    "env_vars": {
+      "ET_RENDER_DPI": "Default DPI for image outputs (default: 150)",
+      "ET_RENDER_MAX_WORKERS": "Max parallel workers for batch rendering (default: 4)",
+      "ET_RENDER_CACHE_DIR": "Directory for temporary render artifacts"
+    }
+  },
+  "references": [
+    "ADR-0028_Unified-Rendering-Engine: WHY we need unified rendering",
+    "SPEC-0031_Unified-Rendering-Contracts: WHAT contracts are used",
+    "SPEC-0033_Output-Target-Adapters: HOW outputs are adapted"
+  ]
+}

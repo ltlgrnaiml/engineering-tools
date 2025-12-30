@@ -104,12 +104,12 @@ router = APIRouter()
 # FIND (lines 1-5 docstring)
 """DAT API routes.
 
-Per ADR-0029: All routes use versioned /v1/ prefix.
+Per ADR-0030: All routes use versioned /v1/ prefix.
 
 # REPLACE WITH
 """DAT API routes.
 
-Per ADR-0029: All routes use /api/{tool}/{resource} pattern (no version prefix).
+Per ADR-0030: All routes use /api/{tool}/{resource} pattern (no version prefix).
 ```
 
 ### M2-CODE-004: Frontend Files Global Replace
@@ -151,8 +151,8 @@ For ALL frontend files, use find-replace:
 ```python
 """Stage graph configuration contract.
 
-Per ADR-0001-DAT: 8-stage pipeline with lockable artifacts.
-Per SPEC-DAT-0001: Dependencies and cascade targets defined.
+Per ADR-0004: 8-stage pipeline with lockable artifacts.
+Per SPEC-0024: Dependencies and cascade targets defined.
 """
 
 from typing import FrozenSet
@@ -191,7 +191,7 @@ class StageGraphConfig(BaseModel):
     """Complete stage graph configuration.
 
     Single source of truth for DAT pipeline structure.
-    Per ADR-0001-DAT and SPEC-DAT-0001.
+    Per ADR-0004 and SPEC-0024.
     """
 
     stages: list[StageDefinition]
@@ -207,7 +207,7 @@ class StageGraphConfig(BaseModel):
         """Return the default DAT 8-stage pipeline configuration.
 
         Returns:
-            StageGraphConfig: Default configuration per ADR-0001-DAT.
+            StageGraphConfig: Default configuration per ADR-0004.
         """
         return cls(
             stages=[
@@ -322,7 +322,7 @@ class StageGraphConfig(BaseModel):
                     trigger_stage=DATStageType.PARSE,
                     cascade_targets=[DATStageType.EXPORT],
                 ),
-                # Context and Preview do NOT cascade (per ADR-0003)
+                # Context and Preview do NOT cascade (per ADR-0004)
                 CascadeRule(
                     trigger_stage=DATStageType.CONTEXT,
                     cascade_targets=[],
@@ -358,7 +358,7 @@ from shared.contracts.dat.stage_graph import (
 Add to `__all__` list:
 
 ```python
-    # Stage graph contracts (per ADR-0001-DAT)
+    # Stage graph contracts (per ADR-0004)
     "CascadeRule",
     "GatingRule",
     "StageDefinition",
@@ -389,7 +389,7 @@ from shared.contracts.dat.stage_graph import StageGraphConfig
 class DATStateMachine:
     """Hybrid FSM for DAT stage orchestration.
 
-    Per ADR-0001-DAT: Config-driven stage graph.
+    Per ADR-0004: Config-driven stage graph.
     """
 
     def __init__(
@@ -486,8 +486,8 @@ inputs = {"root_path": to_relative_path(source_path, workspace_root)}
 ```python
 """Fast table probing service.
 
-Per ADR-0006: Probe must complete in <1s per table.
-Per SPEC-DAT-0006: Use adapter.probe_schema(), not full reads.
+Per ADR-0008: Probe must complete in <1s per table.
+Per SPEC-0008: Use adapter.probe_schema(), not full reads.
 """
 
 import asyncio
@@ -515,7 +515,7 @@ async def probe_table(
 ) -> TableAvailability:
     """Probe a single table for availability status.
 
-    Per ADR-0006: Fast probe without loading full data.
+    Per ADR-0008: Fast probe without loading full data.
 
     Args:
         adapter: File adapter instance.
@@ -606,7 +606,7 @@ async def probe_tables_batch(
 Add constant at module level:
 
 ```python
-STREAMING_THRESHOLD_BYTES = 10 * 1024 * 1024  # 10MB per ADR-0040
+STREAMING_THRESHOLD_BYTES = 10 * 1024 * 1024  # 10MB per ADR-0041
 ```
 
 Update parse execution logic:
@@ -620,7 +620,7 @@ async def execute_parse(
 ) -> ParseResult:
     """Execute parse stage with streaming for large files.
 
-    Per ADR-0040: Files >10MB use streaming.
+    Per ADR-0041: Files >10MB use streaming.
     """
     all_data = []
 
@@ -656,13 +656,13 @@ async def execute_parse(
 
 ```python
 # Add constant
-OUTPUT_FORMAT = "parquet"  # Enforced per ADR-0014
+OUTPUT_FORMAT = "parquet"  # Enforced per ADR-0015
 
 
 async def save_parse_output(df: pl.DataFrame, output_dir: Path, parse_id: str) -> Path:
     """Save parse output as Parquet.
 
-    Per ADR-0014: Parse always outputs Parquet.
+    Per ADR-0015: Parse always outputs Parquet.
 
     Args:
         df: DataFrame to save.
@@ -692,7 +692,7 @@ async def execute_export(
 ) -> DataSetManifest:
     """Export data in specified format.
 
-    Per ADR-0014: Export supports multiple formats.
+    Per ADR-0015: Export supports multiple formats.
 
     Args:
         run_id: Run identifier.
@@ -742,7 +742,7 @@ async def execute_export(
 ```python
 """Checkpoint registry for cancellation safety.
 
-Per ADR-0013: Checkpoints are safe points where data integrity is guaranteed.
+Per ADR-0014: Checkpoints are safe points where data integrity is guaranteed.
 """
 
 from dataclasses import dataclass, field
@@ -767,7 +767,7 @@ class Checkpoint:
 class CheckpointRegistry:
     """Registry for tracking checkpoints during processing.
 
-    Per ADR-0013: Track safe points for cancellation recovery.
+    Per ADR-0014: Track safe points for cancellation recovery.
     """
 
     def __init__(self, run_id: str):
@@ -831,7 +831,7 @@ class CheckpointRegistry:
 ```python
 """Explicit cleanup service.
 
-Per ADR-0013: Cleanup is user-initiated only, dry-run by default.
+Per ADR-0014: Cleanup is user-initiated only, dry-run by default.
 """
 
 from dataclasses import dataclass
@@ -862,7 +862,7 @@ async def cleanup(
 ) -> CleanupResult:
     """Clean up partial artifacts from cancelled runs.
 
-    Per ADR-0013: Dry-run by default, explicit cleanup only.
+    Per ADR-0014: Dry-run by default, explicit cleanup only.
 
     Args:
         run_id: Run identifier.
@@ -959,7 +959,7 @@ async def cleanup(
 ```python
 """Profile CRUD service.
 
-Per SPEC-DAT-0005: Profile management with deterministic IDs.
+Per SPEC-0007: Profile management with deterministic IDs.
 """
 
 from datetime import datetime, timezone
@@ -983,8 +983,8 @@ PROFILES_DIR = Path("data/profiles")
 class ProfileService:
     """Service for managing extraction profiles.
 
-    Per ADR-0011: Profile-driven extraction.
-    Per ADR-0004: Deterministic IDs.
+    Per ADR-0012: Profile-driven extraction.
+    Per ADR-0005: Deterministic IDs.
     """
 
     def __init__(self, profiles_dir: Path | None = None):
@@ -999,7 +999,7 @@ class ProfileService:
     def _compute_profile_id(self, profile: ExtractionProfile) -> str:
         """Compute deterministic profile ID.
 
-        Per ADR-0004: SHA-256 based IDs.
+        Per ADR-0005: SHA-256 based IDs.
         """
         inputs = {
             "name": profile.name,

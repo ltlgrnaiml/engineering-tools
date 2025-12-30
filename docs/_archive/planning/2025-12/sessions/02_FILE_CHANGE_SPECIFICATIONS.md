@@ -107,12 +107,12 @@ router = APIRouter()
 # BEFORE
 """DAT API routes.
 
-Per ADR-0029: All routes use versioned /v1/ prefix.
+Per ADR-0030: All routes use versioned /v1/ prefix.
 
 # AFTER
 """DAT API routes.
 
-Per ADR-0029: All routes use /api/{tool}/{resource} pattern (no version prefix).
+Per ADR-0030: All routes use /api/{tool}/{resource} pattern (no version prefix).
 ```
 
 #### M2-MOD-004: `apps/sov_analyzer/backend/src/sov_analyzer/api/routes.py`
@@ -309,7 +309,7 @@ STREAMING_THRESHOLD_BYTES = 10 * 1024 * 1024  # 10MB
 **Change**: Enforce Parquet output
 
 ```python
-OUTPUT_FORMAT = "parquet"  # Enforced per ADR-0014
+OUTPUT_FORMAT = "parquet"  # Enforced per ADR-0015
 ```
 
 #### M7-MOD-002: `apps/data_aggregator/backend/src/dat_aggregation/stages/export.py`

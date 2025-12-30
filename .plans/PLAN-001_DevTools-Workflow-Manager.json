@@ -18,12 +18,12 @@
     },
     {
       "type": "adr",
-      "id": "ADR-0043",
+      "id": "ADR-0045",
       "title": "DevTools Workflow Manager UI Architecture"
     },
     {
       "type": "spec",
-      "id": "SPEC-0046",
+      "id": "SPEC-0003",
       "title": "DevTools Workflow Manager"
     }
   ],
@@ -345,7 +345,7 @@
         },
         {
           "id": "T-M3-03",
-          "description": "Implement node coloring by tier (per ADR-0043 colors)",
+          "description": "Implement node coloring by tier (per ADR-0045 colors)",
           "verification_command": "grep -E \"#3B82F6|#22C55E\" apps/homepage/frontend/src/components/workflow/",
           "status": "pending",
           "evidence": null,

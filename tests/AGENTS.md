@@ -92,7 +92,7 @@ def temp_workspace(tmp_path):
 
 ---
 
-## Contract Tests (ADR-0035)
+## Contract Tests (ADR-0036)
 
 Test that contracts serialize/deserialize correctly:
 
@@ -109,7 +109,7 @@ def test_profile_roundtrip():
 
 ---
 
-## Determinism Tests (ADR-0004)
+## Determinism Tests (ADR-0005)
 
 Test that computations are reproducible:
 

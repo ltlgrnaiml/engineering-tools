@@ -297,7 +297,7 @@ python -c "from shared.contracts.dat.stage_graph import StageGraphConfig; print(
 
 2. Add to `__all__` list:
    ```python
-       # Stage graph contracts (per ADR-0001-DAT)
+       # Stage graph contracts (per ADR-0004)
        "CascadeRule",
        "GatingRule",
        "StageDefinition",
@@ -492,7 +492,7 @@ pytest tests/dat/test_table_probe.py -v
 
 1. Add constant at module level:
    ```python
-   STREAMING_THRESHOLD_BYTES = 10 * 1024 * 1024  # 10MB per ADR-0040
+   STREAMING_THRESHOLD_BYTES = 10 * 1024 * 1024  # 10MB per ADR-0041
    ```
 2. Save file
 
@@ -532,7 +532,7 @@ pytest tests/dat/test_streaming.py -v
 
 1. Add constant:
    ```python
-   OUTPUT_FORMAT = "parquet"  # Enforced per ADR-0014
+   OUTPUT_FORMAT = "parquet"  # Enforced per ADR-0015
    ```
 2. Update save function to always use Parquet
 3. Save file

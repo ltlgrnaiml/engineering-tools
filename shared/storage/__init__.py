@@ -4,8 +4,8 @@ This module provides:
 - ArtifactStore: Read/write DataSets (Parquet + JSON manifest)
 - RegistryDB: SQLite-backed artifact registry
 
-Per ADR-0014: Data tables stored as Parquet, metadata as JSON.
-Per ADR-0017#path-safety: All paths are relative to workspace/.
+Per ADR-0015: Data tables stored as Parquet, metadata as JSON.
+Per ADR-0018#path-safety: All paths are relative to workspace/.
 """
 
 __version__ = "0.1.0"

@@ -1,10 +1,10 @@
 """Parse stage - full data extraction.
 
-Per ADR-0003: Parse uses profile defaults if context.json missing.
-Per ADR-0011: Profile-driven extraction via ProfileExecutor.
-Per ADR-0013: Cancellation preserves completed work, no partial data.
-Per ADR-0014: Output saved as Parquet.
-Per ADR-0040: Files >10MB use streaming.
+Per ADR-0004: Parse uses profile defaults if context.json missing.
+Per ADR-0012: Profile-driven extraction via ProfileExecutor.
+Per ADR-0014: Cancellation preserves completed work, no partial data.
+Per ADR-0015: Output saved as Parquet.
+Per ADR-0041: Files >10MB use streaming.
 """
 import json
 import logging
@@ -31,10 +31,10 @@ from ..profiles.transform_pipeline import TransformPipeline
 from ..profiles.output_builder import OutputBuilder
 from ..profiles.population_strategies import apply_population_strategy
 
-# Per ADR-0040: Large file streaming threshold
+# Per ADR-0041: Large file streaming threshold
 STREAMING_THRESHOLD_BYTES = 10 * 1024 * 1024  # 10MB
 
-# Per ADR-0014: Parse always outputs Parquet
+# Per ADR-0015: Parse always outputs Parquet
 OUTPUT_FORMAT = "parquet"
 
 logger = logging.getLogger(__name__)
@@ -48,7 +48,7 @@ class ParseConfig:
     column_mappings: dict[str, str] | None = None
     profile_id: str | None = None  # Profile for profile-driven extraction
     context_overrides: dict[str, Any] = field(default_factory=dict)
-    use_profile_extraction: bool = True  # Per ADR-0011: Use ProfileExecutor when profile specified
+    use_profile_extraction: bool = True  # Per ADR-0012: Use ProfileExecutor when profile specified
 
 
 @dataclass
@@ -61,7 +61,7 @@ class ParseResult:
     completed: bool
     parse_id: str
     output_path: str
-    extracted_tables: dict[str, pl.DataFrame] | None = None  # ADR-0011: tables
+    extracted_tables: dict[str, pl.DataFrame] | None = None  # ADR-0012: tables
     validation_summary: Any | None = None  # Validation results
 
 
@@ -85,7 +85,7 @@ def _load_context_with_fallback(
     profile: DATProfile | None,
     context_overrides: dict[str, Any],
 ) -> dict[str, Any]:
-    """Load context from context.json, falling back to profile defaults per ADR-0003.
+    """Load context from context.json, falling back to profile defaults per ADR-0004.
 
     Args:
         run_id: DAT run ID.
@@ -117,7 +117,7 @@ def _load_context_with_fallback(
         if profile and profile.context_defaults:
             logger.info(
                 f"context.json not found at {context_path}, "
-                f"using profile defaults per ADR-0003"
+                f"using profile defaults per ADR-0004"
             )
         else:
             logger.debug("No context.json and no profile defaults available")
@@ -140,7 +140,7 @@ async def _execute_profile_extraction(
     progress_callback: Callable[[float, str], None] | None = None,
     cancel_token: CancellationToken | None = None,
 ) -> ParseResult | CancellationResult:
-    """Execute profile-driven extraction per ADR-0011.
+    """Execute profile-driven extraction per ADR-0012.
 
     Uses ProfileExecutor to extract tables defined in profile YAML.
     Applies validation, transforms, and builds outputs.
@@ -346,9 +346,9 @@ async def execute_parse(
 ) -> ParseResult | CancellationResult:
     """Execute full parse with progress and cancellation support.
 
-    Per ADR-0003: Uses profile defaults if context.json is missing.
-    Per ADR-0011: Uses ProfileExecutor for profile-driven extraction.
-    Per ADR-0013: If cancelled, only fully completed tables are kept.
+    Per ADR-0004: Uses profile defaults if context.json is missing.
+    Per ADR-0012: Uses ProfileExecutor for profile-driven extraction.
+    Per ADR-0014: If cancelled, only fully completed tables are kept.
                   Uses CheckpointManager for cancel-safe operations.
 
     Args:
@@ -361,7 +361,7 @@ async def execute_parse(
     Returns:
         ParseResult with combined data and metadata, or CancellationResult if cancelled.
     """
-    # Initialize checkpoint manager for cancel-safe operations per ADR-0013
+    # Initialize checkpoint manager for cancel-safe operations per ADR-0014
     checkpoint_mgr = CheckpointManager(
         workspace_path=workspace_path,
         run_id=run_id,
@@ -378,7 +378,7 @@ async def execute_parse(
         else:
             logger.warning(f"Profile not found: {config.profile_id}")
 
-    # Load context with profile default fallback per ADR-0003
+    # Load context with profile default fallback per ADR-0004
     context = _load_context_with_fallback(
         run_id=run_id,
         workspace_path=workspace_path,
@@ -386,7 +386,7 @@ async def execute_parse(
         context_overrides=config.context_overrides,
     )
 
-    # Per ADR-0011: Use ProfileExecutor for profile-driven extraction
+    # Per ADR-0012: Use ProfileExecutor for profile-driven extraction
     if profile and config.use_profile_extraction:
         return await _execute_profile_extraction(
             run_id=run_id,
@@ -425,7 +425,7 @@ async def execute_parse(
     total_tables = sum(len(tables) for tables in file_tables_map.values())
 
     for i, file_path in enumerate(config.selected_files):
-        # Check cancellation before each file (safe point per ADR-0013)
+        # Check cancellation before each file (safe point per ADR-0014)
         if cancel_token and cancel_token.is_cancelled:
             logger.info(f"Cancellation detected at file boundary: {file_path.name}")
             return checkpoint_mgr.complete_cancellation(
@@ -440,7 +440,7 @@ async def execute_parse(
         tables = file_tables_map[file_path]
 
         for table in tables:
-            # Check cancellation before each table (safe point per ADR-0013)
+            # Check cancellation before each table (safe point per ADR-0014)
             if cancel_token and cancel_token.is_cancelled:
                 logger.info(f"Cancellation detected at table boundary: {table}")
                 return checkpoint_mgr.complete_cancellation(
@@ -448,13 +448,13 @@ async def execute_parse(
                     discarded_count=total_tables - tables_processed,
                 )
 
-            # Read table using async adapter - stream if large per ADR-0040
+            # Read table using async adapter - stream if large per ADR-0041
             adapter = registry.get_adapter_for_file(str(file_path))
             options = ReadOptions(extra={"sheet_name": table} if table != file_path.name else {})
 
             file_size = file_path.stat().st_size
             if file_size > STREAMING_THRESHOLD_BYTES:
-                # Stream large files in chunks per ADR-0040
+                # Stream large files in chunks per ADR-0041
                 logger.info(f"Streaming large file ({file_size / 1024 / 1024:.1f}MB): {file_path.name}")
                 chunks: list[pl.DataFrame] = []
                 async for chunk in adapter.stream_dataframe(str(file_path), options, chunk_size=50000):
@@ -480,7 +480,7 @@ async def execute_parse(
             completed_tables.append(table_ref)
             tables_processed += 1
 
-            # Save checkpoint after each table completion per ADR-0013
+            # Save checkpoint after each table completion per ADR-0014
             checkpoint_mgr.save_checkpoint(
                 checkpoint_type=CheckpointType.TABLE_COMPLETE,
                 items_completed=tables_processed,

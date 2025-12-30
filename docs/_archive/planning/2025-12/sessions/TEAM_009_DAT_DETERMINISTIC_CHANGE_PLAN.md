@@ -27,7 +27,7 @@ Convert the DAT SSoT (Tier-0 Contracts + ADRs + SPECs) into an ordered, determin
 
 - `.adrs/dat/ADR-0001-DAT_Stage-Graph-Configuration.json`
 - `.adrs/dat/ADR-0003_Optional-Context-Preview-Stages.json`
-- `.adrs/dat/ADR-0004-DAT_Stage-ID-Configuration.json`
+- `.adrs/dat/ADR-0005-DAT_Stage-ID-Configuration.json`
 - `.adrs/dat/ADR-0006_Table-Availability.json`
 - `.adrs/dat/ADR-0011_Profile-Driven-Extraction-and-Adapters.json`
 - `.adrs/dat/ADR-0013_Cancellation-Semantics-Parse-Export.json`
@@ -73,24 +73,24 @@ Convert the DAT SSoT (Tier-0 Contracts + ADRs + SPECs) into an ordered, determin
   - `apps/data_aggregator/backend/adapters/*` (contract-style; tests target this)
   - `apps/data_aggregator/backend/src/dat_aggregation/adapters/*` (legacy; used by current stage endpoints)
 
-### 1.2 API versioning contradicts ADR-0029
+### 1.2 API versioning contradicts ADR-0030
 
 - `apps/data_aggregator/backend/src/dat_aggregation/api/routes.py` uses `APIRouter(prefix="/v1")`.
-- ADR-0029 requires unversioned-by-default `/api/{tool}/{resource}`.
+- ADR-0030 requires unversioned-by-default `/api/{tool}/{resource}`.
 
 ### 1.3 Stage graph + optional stages not correctly reflected in progression UX
 
 - `GET /runs/{run_id}` derives `current_stage` by scanning a linear list that includes optional stages.
-- Preview stage is locked with `completed=False`, which can trap `current_stage="preview"` even when Parse is eligible (Parse depends on Table Selection, not Preview per SPEC-DAT-0001).
+- Preview stage is locked with `completed=False`, which can trap `current_stage="preview"` even when Parse is eligible (Parse depends on Table Selection, not Preview per SPEC-0024).
 
 ### 1.4 Deterministic IDs mismatch
 
 - Orchestrator currently uses `shared/utils/stage_id.py` (16 hex chars) while Tier-0 contract expects default 8-char IDs (`shared/contracts/core/id_generator.py`).
-- Stage ID inputs are not stage-specific per ADR-0004-DAT; Discovery currently hashes absolute paths in inputs.
+- Stage ID inputs are not stage-specific per ADR-0008; Discovery currently hashes absolute paths in inputs.
 
 ### 1.5 Table availability is too slow / not "probe-only"
 
-- Current table availability scan reads full dataframes for counts; violates SPEC-DAT-0006 probe strategy + ADR-0040 streaming constraints.
+- Current table availability scan reads full dataframes for counts; violates SPEC-0008 probe strategy + ADR-0041 streaming constraints.
 
 ---
 
@@ -111,7 +111,7 @@ Convert the DAT SSoT (Tier-0 Contracts + ADRs + SPECs) into an ordered, determin
 
 ---
 
-### Milestone M1: Converge on a Single Adapter Implementation (ADR-0011, SPEC-DAT-0003)
+### Milestone M1: Converge on a Single Adapter Implementation (ADR-0012, SPEC-0026)
 
 **Goal**: One adapter implementation, using `shared.contracts.dat.adapter.BaseFileAdapter` everywhere.
 
@@ -130,7 +130,7 @@ Convert the DAT SSoT (Tier-0 Contracts + ADRs + SPECs) into an ordered, determin
 
 ---
 
-### Milestone M2: API Path Normalization (ADR-0029)
+### Milestone M2: API Path Normalization (ADR-0030)
 
 **Goal**: DAT routes are unversioned by default when mounted under `/api/dat`.
 
@@ -145,7 +145,7 @@ Convert the DAT SSoT (Tier-0 Contracts + ADRs + SPECs) into an ordered, determin
 
 ---
 
-### Milestone M3: Stage Graph as Data + Correct Optional Stage Semantics (ADR-0001-DAT, ADR-0003, SPEC-DAT-0001)
+### Milestone M3: Stage Graph as Data + Correct Optional Stage Semantics (ADR-0004, ADR-0004, SPEC-0024)
 
 **Goal**: One source for dependencies/cascade targets, and correct progression logic.
 
@@ -170,16 +170,16 @@ Convert the DAT SSoT (Tier-0 Contracts + ADRs + SPECs) into an ordered, determin
 - **AC-M3.1** Forward gates match `stage_dependencies` exactly.
 - **AC-M3.2** Cascade targets match `cascade_targets` exactly.
 - **AC-M3.3** `Preview` locked but incomplete does not prevent the run from progressing to `Parse`.
-- **AC-M3.4** Unlocking `Selection` unlocks downstream stages per SPEC-DAT-0001.
+- **AC-M3.4** Unlocking `Selection` unlocks downstream stages per SPEC-0024.
 
 ---
 
-### Milestone M4: Deterministic Stage IDs + Path Safety (ADR-0004-DAT, ADR-0017)
+### Milestone M4: Deterministic Stage IDs + Path Safety (ADR-0008, ADR-0018)
 
 **Goal**: Stage IDs are deterministic and stage-specific; no absolute paths in public contracts.
 
 - **M4.1** Replace `shared/utils/stage_id.compute_stage_id` usage in DAT with `shared.contracts.core.id_generator.compute_deterministic_id` (8-char default).
-- **M4.2** Implement stage-specific ID inputs per ADR-0004-DAT:
+- **M4.2** Implement stage-specific ID inputs per ADR-0008:
   - `DISCOVERY`: normalized `root_paths`, include patterns, exclude patterns, recursive
   - `SELECTION`: `discovery_stage_id`, selected file relpaths, `profile_id`
   - `CONTEXT`: `selection_stage_id`, sorted context hints
@@ -198,7 +198,7 @@ Convert the DAT SSoT (Tier-0 Contracts + ADRs + SPECs) into an ordered, determin
 
 ---
 
-### Milestone M5: Table Availability = Fast Probe + Status Model (ADR-0006, SPEC-DAT-0006)
+### Milestone M5: Table Availability = Fast Probe + Status Model (ADR-0008, SPEC-0008)
 
 **Goal**: Deterministic, preview-independent probing.
 
@@ -214,7 +214,7 @@ Convert the DAT SSoT (Tier-0 Contracts + ADRs + SPECs) into an ordered, determin
 
 ---
 
-### Milestone M6: Large File Streaming + Sampling (ADR-0040, SPEC-DAT-0004)
+### Milestone M6: Large File Streaming + Sampling (ADR-0041, SPEC-0027)
 
 **Goal**: >10MB uses streaming, preview is sampled, memory capped.
 
@@ -233,7 +233,7 @@ Convert the DAT SSoT (Tier-0 Contracts + ADRs + SPECs) into an ordered, determin
 
 ---
 
-### Milestone M7: Parse + Export Artifact Bundles (ADR-0014)
+### Milestone M7: Parse + Export Artifact Bundles (ADR-0015)
 
 **Goal**: Parse always produces Parquet + metadata bundle; Export is multi-format.
 
@@ -252,7 +252,7 @@ Convert the DAT SSoT (Tier-0 Contracts + ADRs + SPECs) into an ordered, determin
 
 ---
 
-### Milestone M8: Cancellation + Cleanup + Auditability (ADR-0013, SPEC-DAT-0015)
+### Milestone M8: Cancellation + Cleanup + Auditability (ADR-0014, SPEC-0010)
 
 **Goal**: Soft cancellation preserves completed work, discards partials, cleanup is explicit.
 
@@ -269,7 +269,7 @@ Convert the DAT SSoT (Tier-0 Contracts + ADRs + SPECs) into an ordered, determin
 
 ---
 
-### Milestone M9: DAT Frontend Horizontal Wizard (ADR-0041)
+### Milestone M9: DAT Frontend Horizontal Wizard (ADR-0043)
 
 **Goal**: Horizontal stepper reflecting FSM, with gating tooltips and unlock confirmation.
 
@@ -290,14 +290,14 @@ Convert the DAT SSoT (Tier-0 Contracts + ADRs + SPECs) into an ordered, determin
 
 | Requirement | Source | Verification |
 | --- | --- | --- |
-| Optional stages do not block progression | ADR-0003, SPEC-DAT-0001 | `tests/dat/test_state_machine.py`, `tests/dat/test_api.py` |
-| Export requires Parse locked + completed | ADR-0001-DAT, SPEC-DAT-0001 | `tests/dat/test_stages.py` |
-| Stage IDs deterministic, seed=42, 8-char | ADR-0004-DAT, core ADR-0004 | `tests/dat/test_state_machine.py` + new `test_stage_ids.py` |
-| Table availability probe-only, <1s/table | ADR-0006, SPEC-DAT-0006 | new `tests/dat/test_table_availability_probe.py` |
-| Streaming for files >10MB | ADR-0040, SPEC-DAT-0004 | `tests/dat/test_csv_adapter.py` + new streaming tests |
-| Soft cancel preserves completed artifacts only | ADR-0013, SPEC-DAT-0015 | `tests/dat/test_stages.py`, new cancel tests |
-| Parse outputs Parquet + metadata bundle | ADR-0014 | `tests/dat/test_stages.py` |
-| API paths unversioned by default | ADR-0029 | `tests/integration/test_gateway_api.py` |
+| Optional stages do not block progression | ADR-0004, SPEC-0024 | `tests/dat/test_state_machine.py`, `tests/dat/test_api.py` |
+| Export requires Parse locked + completed | ADR-0004, SPEC-0024 | `tests/dat/test_stages.py` |
+| Stage IDs deterministic, seed=42, 8-char | ADR-0008, core ADR-0005 | `tests/dat/test_state_machine.py` + new `test_stage_ids.py` |
+| Table availability probe-only, <1s/table | ADR-0008, SPEC-0008 | new `tests/dat/test_table_availability_probe.py` |
+| Streaming for files >10MB | ADR-0041, SPEC-0027 | `tests/dat/test_csv_adapter.py` + new streaming tests |
+| Soft cancel preserves completed artifacts only | ADR-0014, SPEC-0010 | `tests/dat/test_stages.py`, new cancel tests |
+| Parse outputs Parquet + metadata bundle | ADR-0015 | `tests/dat/test_stages.py` |
+| API paths unversioned by default | ADR-0030 | `tests/integration/test_gateway_api.py` |
 
 ---
 
@@ -324,7 +324,7 @@ python tools/check_contract_drift.py
 ## 5. Open Questions (must resolve before M4)
 
 1. **Path-safety vs user-selected OS paths**: Should Discovery/Selection accept only workspace-relative paths (recommended for determinism), or do we allow absolute paths in requests but strictly normalize/redact in all persisted artifacts and responses?
-2. **StageGraphConfig SSOT**: Do we want a Tier-0 contract for stage graph/dependencies (preferred SSOT), or keep it as an internal module derived from SPEC-DAT-0001 and treat the SPEC as "the source"?
+2. **StageGraphConfig SSOT**: Do we want a Tier-0 contract for stage graph/dependencies (preferred SSOT), or keep it as an internal module derived from SPEC-0024 and treat the SPEC as "the source"?
 
 ---
 

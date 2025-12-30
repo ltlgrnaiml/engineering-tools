@@ -1,8 +1,8 @@
 """PPTX Workflow contracts - guided workflow FSM for report generation.
 
-Per ADR-0019: PPTX implements a 7-step guided workflow with forward gating.
+Per ADR-0020: PPTX implements a 7-step guided workflow with forward gating.
 Per ADR-0001: Core FSM pattern with 'simple_linear' state model.
-Per ADR-0008: All timestamps are ISO-8601 UTC (no microseconds).
+Per ADR-0009: All timestamps are ISO-8601 UTC (no microseconds).
 
 This module defines contracts for:
 - Workflow stage states and transitions
@@ -32,7 +32,7 @@ __version__ = "0.1.0"
 class PPTXStageId(str, Enum):
     """Stage identifiers for the PPTX 7-step workflow.
 
-    Per ADR-0019: Steps 1-3 are sequential, 4-5 can be parallel,
+    Per ADR-0020: Steps 1-3 are sequential, 4-5 can be parallel,
     6 requires 1-5, 7 requires 6 to pass.
     """
 
@@ -61,7 +61,7 @@ class PPTXStageState(str, Enum):
 class ValidationBarStatus(str, Enum):
     """Status of a single validation bar in the 'Four Green Bars' system.
 
-    Per ADR-0019: Step 7 requires Step 6 to pass with 'Four Green Bars'.
+    Per ADR-0020: Step 7 requires Step 6 to pass with 'Four Green Bars'.
     """
 
     NOT_CHECKED = "not_checked"  # Validation not yet run
@@ -102,7 +102,7 @@ class PPTXStageConfig(BaseModel):
 class PPTXStageGraphConfig(BaseModel):
     """Complete stage graph configuration for PPTX workflow.
 
-    Per ADR-0019: 7-step pipeline with reset_validation cascade policy.
+    Per ADR-0020: 7-step pipeline with reset_validation cascade policy.
     """
 
     stages: list[PPTXStageConfig] = Field(
@@ -125,7 +125,7 @@ class PPTXStageGraphConfig(BaseModel):
         """Create the default PPTX 7-step stage graph.
 
         Returns:
-            Configured stage graph per ADR-0019.
+            Configured stage graph per ADR-0020.
         """
         return cls(
             stages=[
@@ -227,7 +227,7 @@ class PPTXStageStatus(BaseModel):
 class ValidationResult(BaseModel):
     """Result of validation step (Step 6).
 
-    Per ADR-0019: 'Four Green Bars' required for generation.
+    Per ADR-0020: 'Four Green Bars' required for generation.
     """
 
     template_bar: ValidationBarStatus = ValidationBarStatus.NOT_CHECKED
@@ -348,7 +348,7 @@ class PPTXProject(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     description: str | None = None
 
-    # Timestamps (per ADR-0008)
+    # Timestamps (per ADR-0009)
     created_at: datetime
     updated_at: datetime | None = None
 

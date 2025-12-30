@@ -1,6 +1,6 @@
 """Plot renderer for generating and inserting visualizations.
 
-Per ADR-0028: Renderers consume shared RenderSpec contracts.
+Per ADR-0029: Renderers consume shared RenderSpec contracts.
 """
 
 import io
@@ -484,7 +484,7 @@ class PlotRenderer(BaseRenderer):
         metrics: list[str],
         title: str | None = None,
     ) -> ChartSpec:
-        """Build a ChartSpec from DataFrame per ADR-0028.
+        """Build a ChartSpec from DataFrame per ADR-0029.
 
         This method bridges the PPTX renderer with the shared rendering contract.
 

@@ -15,7 +15,7 @@ type Stage = 'selection' | 'context' | 'table_availability' | 'table_selection' 
 
 /**
  * DAT stage configuration for the horizontal wizard.
- * Per ADR-0041: Horizontal wizard stepper pattern.
+ * Per ADR-0043: Horizontal wizard stepper pattern.
  */
 const STAGES: StageConfig[] = [
   {

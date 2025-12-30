@@ -1,6 +1,6 @@
 """Unified Rendering Engine.
 
-Per ADR-0028: Unified Rendering Engine for Cross-Tool Visualization.
+Per ADR-0029: Unified Rendering Engine for Cross-Tool Visualization.
 
 This package provides a shared rendering system for all tools (DAT, SOV, PPTX).
 It consumes RenderSpec contracts and produces outputs via target adapters.

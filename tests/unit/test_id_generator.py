@@ -1,6 +1,6 @@
 """Tests for deterministic ID generation contracts.
 
-Per ADR-0004: Deterministic Content-Addressed IDs.
+Per ADR-0005: Deterministic Content-Addressed IDs.
 Tests that same inputs always produce same IDs.
 """
 
@@ -23,7 +23,7 @@ class TestComputeDeterministicId:
     """Tests for compute_deterministic_id function."""
 
     def test_same_inputs_produce_same_id(self) -> None:
-        """Per ADR-0004: Same inputs must always yield same ID."""
+        """Per ADR-0005: Same inputs must always yield same ID."""
         inputs = {"file_hash": "abc123", "profile": "test"}
 
         id1 = compute_deterministic_id(inputs)
@@ -52,7 +52,7 @@ class TestComputeDeterministicId:
         assert id1 != id2
 
     def test_default_seed_is_42(self) -> None:
-        """Per ADR-0004: Default seed is 42."""
+        """Per ADR-0005: Default seed is 42."""
         inputs = {"test": "value"}
 
         id_default = compute_deterministic_id(inputs)
@@ -193,7 +193,7 @@ class TestIDConfig:
     """Tests for IDConfig model."""
 
     def test_default_config(self) -> None:
-        """Default config should match ADR-0004 requirements."""
+        """Default config should match ADR-0005 requirements."""
         config = IDConfig()
 
         assert config.algorithm == IDAlgorithm.SHA256_SHORT

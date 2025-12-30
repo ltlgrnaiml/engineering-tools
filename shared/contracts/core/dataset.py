@@ -4,9 +4,9 @@ A DataSet is a standardized artifact bundle (Parquet + JSON manifest) that
 flows between tools. All tools produce and consume DataSets, enabling
 seamless data piping workflows.
 
-Per ADR-0004: DataSet IDs are deterministic (SHA-256 hash of inputs).
-Per ADR-0008: All timestamps are ISO-8601 UTC (no microseconds).
-Per ADR-0014: Data stored as Parquet, metadata as JSON.
+Per ADR-0005: DataSet IDs are deterministic (SHA-256 hash of inputs).
+Per ADR-0009: All timestamps are ISO-8601 UTC (no microseconds).
+Per ADR-0015: Data stored as Parquet, metadata as JSON.
 """
 
 from datetime import datetime
@@ -35,14 +35,14 @@ class DataSetManifest(BaseModel):
     workspace/datasets/{dataset_id}/ directory.
     """
 
-    # Identity (per ADR-0004: deterministic hash)
+    # Identity (per ADR-0005: deterministic hash)
     dataset_id: str = Field(
         ...,
         description="Deterministic SHA-256 hash (first 16 chars) of inputs",
     )
     name: str = Field(..., description="Human-readable name for display")
 
-    # Timestamps (per ADR-0008: ISO-8601 UTC, no microseconds)
+    # Timestamps (per ADR-0009: ISO-8601 UTC, no microseconds)
     created_at: datetime
     updated_at: datetime | None = None
     locked_at: datetime | None = None
@@ -94,7 +94,7 @@ class DataSetManifest(BaseModel):
         description="Response columns analyzed",
     )
 
-    # Visualization contracts (per ADR-0024)
+    # Visualization contracts (per ADR-0025)
     visualization_specs: list[dict] | None = Field(
         None,
         description="Visualization specifications for downstream rendering (PPTX, frontend)",
@@ -133,7 +133,7 @@ class DataSetPreview(BaseModel):
 class VersionRecord(BaseModel):
     """Record of a single DataSet version.
 
-    Per ADR-0025 extension: Content-addressable versioning via SHA-256.
+    Per ADR-0026 extension: Content-addressable versioning via SHA-256.
     """
 
     version_id: str = Field(
@@ -155,7 +155,7 @@ class VersionRecord(BaseModel):
 class LineageRecord(BaseModel):
     """Record of DataSet lineage relationship.
 
-    Per ADR-0025: Cross-tool data lineage tracking.
+    Per ADR-0026: Cross-tool data lineage tracking.
     """
 
     dataset_id: str = Field(
@@ -191,7 +191,7 @@ class LineageRecord(BaseModel):
 class LineageGraph(BaseModel):
     """Graph of DataSet lineage relationships.
 
-    Per ADR-0025: Lineage queries support forward and backward traversal.
+    Per ADR-0026: Lineage queries support forward and backward traversal.
     """
 
     root_dataset_id: str = Field(

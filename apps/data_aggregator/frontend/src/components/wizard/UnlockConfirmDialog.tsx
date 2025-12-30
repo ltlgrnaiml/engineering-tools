@@ -2,7 +2,7 @@
  * Unlock Confirmation Dialog
  *
  * Per ADR-0002: Artifact Preservation on Unlock
- * Per SPEC-DAT-0001: Unlock cascades to downstream stages
+ * Per SPEC-0024: Unlock cascades to downstream stages
  *
  * This dialog warns users before unlocking a locked stage that:
  * - Downstream stages will also be unlocked (cascade)

@@ -1,6 +1,6 @@
 """Data file and mapping management endpoints.
 
-Per ADR-0031: All errors use ErrorResponse contract via errors.py helper.
+Per ADR-0032: All errors use ErrorResponse contract via errors.py helper.
 """
 
 from pathlib import Path

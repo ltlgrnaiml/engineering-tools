@@ -1,7 +1,7 @@
 /**
  * ANOVAResultsTable - Reusable ANOVA results table component
  * 
- * Per ADR-0024: Consumes typed contracts from backend
+ * Per ADR-0025: Consumes typed contracts from backend
  */
 import { CheckCircle2 } from 'lucide-react'
 import type { ANOVATableRow } from '../types'

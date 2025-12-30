@@ -17,7 +17,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ADRFormEditor } from '@/components/ADRFormEditor'
-// Per ADR-0009: Import typed contracts from shared types
+// Per ADR-0010: Import typed contracts from shared types
 import type { ADRSummary, ADRContent } from '@shared/types/contracts'
 
 const API_BASE = 'http://localhost:8000/api/devtools'
@@ -157,7 +157,7 @@ export function DevToolsPage() {
       )
     }
 
-    // Per ADR-0009: Use properly typed content from shared contracts
+    // Per ADR-0010: Use properly typed content from shared contracts
     const content = selectedAdr.content
 
     return (

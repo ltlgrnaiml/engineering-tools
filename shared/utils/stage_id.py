@@ -1,7 +1,7 @@
 """Deterministic stage/artifact ID generation.
 
-Per ADR-0004: IDs are computed as SHA-256 hash of stable JSON serialization.
-Per ADR-0004-DAT: Stage IDs use 8-char hex digest.
+Per ADR-0005: IDs are computed as SHA-256 hash of stable JSON serialization.
+Per ADR-0008: Stage IDs use 8-char hex digest.
 - Same inputs always yield same ID (deterministic)
 - IDs are first 8 characters of hex digest
 - Seed is fixed at 42 for reproducibility
@@ -41,7 +41,7 @@ def compute_stage_id(
     # Stable JSON serialization (sorted keys, no whitespace)
     serialized = json.dumps(hashable, sort_keys=True, separators=(",", ":"))
 
-    # SHA-256 hash, truncated to 8 chars per ADR-0004-DAT
+    # SHA-256 hash, truncated to 8 chars per ADR-0008
     hash_digest = hashlib.sha256(serialized.encode()).hexdigest()[:8]
 
     return f"{prefix}{hash_digest}"

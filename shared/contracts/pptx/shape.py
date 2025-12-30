@@ -1,9 +1,9 @@
 """PPTX Shape contracts - shape discovery and data binding.
 
-Per ADR-0018: Shapes are discovered from templates automatically.
-Per ADR-0019: Guided workflow assists binding configuration.
-Per ADR-0021: Renderer architecture handles shape-specific rendering.
-Per ADR-0028: Unified Rendering Engine - PPTX uses shared RenderSpec contracts.
+Per ADR-0019: Shapes are discovered from templates automatically.
+Per ADR-0020: Guided workflow assists binding configuration.
+Per ADR-0022: Renderer architecture handles shape-specific rendering.
+Per ADR-0029: Unified Rendering Engine - PPTX uses shared RenderSpec contracts.
 
 This module defines PPTX-specific contracts for:
 - Shape discovery (what shapes exist in a template)

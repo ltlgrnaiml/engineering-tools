@@ -1,7 +1,7 @@
 """Tier 0: Pydantic contracts - single source of truth for all data structures.
 
-Per ADR-0009: Type Safety & Contract Discipline.
-Per ADR-0015: 3-Tier Document Model (Contracts are Tier 0).
+Per ADR-0010: Type Safety & Contract Discipline.
+Per ADR-0016: 3-Tier Document Model (Contracts are Tier 0).
 
 Contracts defined here are:
 - The canonical schema for all API payloads

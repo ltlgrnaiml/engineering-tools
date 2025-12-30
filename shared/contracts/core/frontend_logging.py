@@ -1,7 +1,7 @@
 """Frontend logging contracts - structured logging models for React/TypeScript frontends.
 
-Per ADR-0036: Observability & Debugging First (Backend + Frontend).
-Per ADR-0008: All timestamps are ISO-8601 UTC.
+Per ADR-0037: Observability & Debugging First (Backend + Frontend).
+Per ADR-0009: All timestamps are ISO-8601 UTC.
 
 These contracts define the structure of frontend debug logs, API call logs,
 and state transitions for tool-specific debug panels. These Python models
@@ -46,7 +46,7 @@ class FrontendLogCategory(str, Enum):
 class FrontendLogEntry(BaseModel):
     """Structured log entry for frontend debug panel.
 
-    Per ADR-0036: Frontend debug panels must log with consistent structure.
+    Per ADR-0037: Frontend debug panels must log with consistent structure.
 
     Attributes:
         id: Unique identifier for this log entry.
@@ -91,7 +91,7 @@ class FrontendLogEntry(BaseModel):
 class FrontendAPICall(BaseModel):
     """Log entry for frontend API calls.
 
-    Per ADR-0036: Frontend API calls must be logged via useDebugFetch hook.
+    Per ADR-0037: Frontend API calls must be logged via useDebugFetch hook.
 
     Attributes:
         id: Unique identifier for this API call.
@@ -151,7 +151,7 @@ class FrontendAPICall(BaseModel):
 class FrontendStateTransition(BaseModel):
     """Log entry for frontend state transitions (FSM, wizard, etc.).
 
-    Per ADR-0036: Frontend FSM/wizard state transitions must be logged.
+    Per ADR-0037: Frontend FSM/wizard state transitions must be logged.
 
     Attributes:
         id: Unique identifier for this transition.
@@ -191,7 +191,7 @@ class FrontendStateTransition(BaseModel):
 class FrontendDebugExport(BaseModel):
     """Export format for frontend debug logs.
 
-    Per ADR-0036: Debug logs must be exportable in unified JSON format.
+    Per ADR-0037: Debug logs must be exportable in unified JSON format.
 
     This model defines the structure of exported debug sessions from
     frontend debug panels. Used for sharing debug sessions, bug reports,
@@ -235,7 +235,7 @@ class FrontendDebugExport(BaseModel):
 class DebugPanelConfig(BaseModel):
     """Configuration for frontend debug panel.
 
-    Per ADR-0036: Debug panels must be configurable.
+    Per ADR-0037: Debug panels must be configurable.
 
     Attributes:
         max_entries: Maximum number of entries to keep (default 500).

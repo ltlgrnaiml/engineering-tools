@@ -116,7 +116,7 @@ class TemplateConfig(BaseModel):
 class MetricsConfig(BaseModel):
     """Metrics configuration.
 
-    Per ADR-0020: Metrics support canonical names with alias resolution.
+    Per ADR-0021: Metrics support canonical names with alias resolution.
     """
 
     canonical: list[str] = Field(default_factory=list, description="Canonical metric names")
@@ -125,7 +125,7 @@ class MetricsConfig(BaseModel):
     def resolve_alias(self, alias: str) -> str | None:
         """Resolve metric alias to canonical name.
 
-        Per ADR-0020: Alias resolution maps user-provided names to canonical.
+        Per ADR-0021: Alias resolution maps user-provided names to canonical.
 
         Args:
             alias: Alias or canonical metric name.

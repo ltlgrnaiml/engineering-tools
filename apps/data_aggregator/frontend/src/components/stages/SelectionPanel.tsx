@@ -109,7 +109,7 @@ export function SelectionPanel({ runId }: SelectionPanelProps) {
     if (selectedFiles.size === 0) return
     
     try {
-      // Per ADR-0001-DAT: Discovery must be locked before Selection
+      // Per ADR-0004: Discovery must be locked before Selection
       await discoveryMutation.mutateAsync(folderPath)
       // After discovery succeeds, lock selection
       lockMutation.mutate()

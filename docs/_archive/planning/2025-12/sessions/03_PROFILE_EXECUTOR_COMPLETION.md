@@ -12,8 +12,8 @@
 
 ## Constraints / Sources (bottom-up)
 - **Contracts (Tier 0):** shared/contracts/dat/profile (profile structure, table/output definitions). Align loader & APIs to contract fields.
-- **ADRs:** ADR-0011 (profile-driven extraction), ADR-0040 (streaming), ADR-0041 (UI wizard), ADR-0009/0031/0032 (contracts, errors, idempotency), ADR-0033 (AI-friendly patterns).
-- **SPECs:** SPEC-DAT-0011/0012 (profile schema, strategies), SPEC-DAT-0004 (streaming), SPEC-DAT-0002 (flow), SPEC-0034 (API naming).
+- **ADRs:** ADR-0012 (profile-driven extraction), ADR-0041 (streaming), ADR-0043 (UI wizard), ADR-0010/0031/0032 (contracts, errors, idempotency), ADR-0034 (AI-friendly patterns).
+- **SPECs:** SPEC-0033/0012 (profile schema, strategies), SPEC-0027 (streaming), SPEC-0025 (flow), SPEC-0003 (API naming).
 
 ## Work Items
 
@@ -36,7 +36,7 @@
 
 ### D. Output aggregation & joins
 1) **Implement `output_builder.py`:** Build outputs from `default_outputs`/`optional_outputs`, apply include_context, aggregations, joins (leveraging AggregationConfig/JoinOutputConfig). Deterministic inputs/outputs.
-2) **Integration in parse:** After transforms, build outputs; persist artifacts (per ADR-0014); honor selection of outputs; propagate context columns when include_context.
+2) **Integration in parse:** After transforms, build outputs; persist artifacts (per ADR-0015); honor selection of outputs; propagate context columns when include_context.
 3) **Tests:** unit tests for output builder (concat, aggregations, joins); integration ensuring outputs exist in parse result manifest.
 
 ### E. API endpoints for profile-driven UI
@@ -45,7 +45,7 @@
 3) **Frontend:** TableSelectionPanel fetches profile tables endpoint; groups by level; applies default_selected; PreviewPanel uses profile preview endpoint.
 4) **Tests:** API response schema test; frontend unit/integration (if present) or contract test for endpoint shape.
 
-### F. Streaming/size safeguards (consistency with ADR-0040)
+### F. Streaming/size safeguards (consistency with ADR-0041)
 - Ensure ProfileExecutor honors streaming thresholds when file size > 10MB (if not already), and parse lock path uses same thresholds.
 
 ## Sequencing (deterministic)
@@ -54,7 +54,7 @@
 3) Implement output builder and integrate (D).
 4) Add UI-facing endpoints (E) once data shapes stable.
 5) Update tests across units/integration; regenerate docs if needed (OpenAPI/JSON Schema).
-6) Document profile_id flow (Option B): add SPEC-DAT-0002 addendum describing where profile_id is stored (run metadata), how Context sets it, how Parse consumes it, and fallback rules (CreateRun initial value, Context override). Keep ADRs unchanged; use spec as SSOT narrative.
+6) Document profile_id flow (Option B): add SPEC-0025 addendum describing where profile_id is stored (run metadata), how Context sets it, how Parse consumes it, and fallback rules (CreateRun initial value, Context override). Keep ADRs unchanged; use spec as SSOT narrative.
 
 ## Verification Plan
 - Unit: ContextExtractor, strategies, output builder.

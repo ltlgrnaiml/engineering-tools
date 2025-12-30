@@ -1,6 +1,6 @@
 """Configurable stage graph for DAT pipeline.
 
-Per ADR-0001-DAT: Stage graph should be configurable for extensibility.
+Per ADR-0004: Stage graph should be configurable for extensibility.
 
 This module provides a StageGraphConfig that allows customization of:
 - Stage ordering
@@ -36,7 +36,7 @@ class GatingRule:
 class StageGraphConfig:
     """Configurable stage graph for DAT pipeline.
 
-    Per ADR-0001-DAT: Allows customization of the pipeline structure.
+    Per ADR-0004: Allows customization of the pipeline structure.
 
     Example:
         >>> config = StageGraphConfig.default()
@@ -223,7 +223,7 @@ class StageGraphConfig:
     def default(cls) -> "StageGraphConfig":
         """Create default DAT stage graph configuration.
 
-        Per ADR-0001-DAT: 8-stage pipeline.
+        Per ADR-0004: 8-stage pipeline.
         """
         config = cls()
 
@@ -260,7 +260,7 @@ class StageGraphConfig:
         ])
         config.set_cascade_targets("table_selection", ["preview", "parse", "export"])
         config.set_cascade_targets("parse", ["export"])
-        # Context and Preview do NOT cascade (per ADR-0003)
+        # Context and Preview do NOT cascade (per ADR-0004)
         config.set_cascade_targets("context", [])
         config.set_cascade_targets("preview", [])
 

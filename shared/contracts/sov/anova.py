@@ -1,9 +1,9 @@
 """SOV ANOVA contracts - analysis of variance and variance components.
 
-Per ADR-0022: SOV pipeline produces standardized analysis results.
-Per ADR-0023: SOV integrates with DataSet contracts for input/output.
-Per ADR-0004: Analysis IDs are deterministic (hash of inputs + config).
-Per ADR-0008: All timestamps are ISO-8601 UTC (no microseconds).
+Per ADR-0023: SOV pipeline produces standardized analysis results.
+Per ADR-0024: SOV integrates with DataSet contracts for input/output.
+Per ADR-0005: Analysis IDs are deterministic (hash of inputs + config).
+Per ADR-0009: All timestamps are ISO-8601 UTC (no microseconds).
 
 This module defines contracts for:
 - ANOVA analysis configuration and results
@@ -286,7 +286,7 @@ class ANOVAResult(BaseModel):
     """Complete ANOVA analysis result.
 
     This is the primary output contract for ANOVA analysis.
-    Per ADR-0004: analysis_id is deterministic hash of inputs + config.
+    Per ADR-0005: analysis_id is deterministic hash of inputs + config.
     """
 
     # Identity
@@ -303,7 +303,7 @@ class ANOVAResult(BaseModel):
         description="DataSet containing detailed results",
     )
 
-    # Timestamps (per ADR-0008)
+    # Timestamps (per ADR-0009)
     created_at: datetime
     completed_at: datetime | None = None
 

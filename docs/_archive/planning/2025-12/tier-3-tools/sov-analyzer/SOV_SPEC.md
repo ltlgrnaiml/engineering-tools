@@ -248,7 +248,7 @@ manifest = DataSetManifest(
 
 | ADR | Application in SOV |
 |-----|-------------------|
-| ADR-0004 | Deterministic analysis IDs |
-| ADR-0008 | Timestamps in results |
-| ADR-0012 | Windows-first (scipy compatibility) |
-| ADR-0013 | Analysis cancellation |
+| ADR-0005 | Deterministic analysis IDs |
+| ADR-0009 | Timestamps in results |
+| ADR-0013 | Windows-first (scipy compatibility) |
+| ADR-0014 | Analysis cancellation |

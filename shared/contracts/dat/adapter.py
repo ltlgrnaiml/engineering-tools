@@ -1,7 +1,7 @@
 """DAT File Adapter contracts - extensible file parsing interface.
 
-Per ADR-0011: Profile-Driven Extraction & AdapterFactory Pattern.
-Per ADR-0040: Large File Streaming Strategy (10MB threshold).
+Per ADR-0012: Profile-Driven Extraction & AdapterFactory Pattern.
+Per ADR-0041: Large File Streaming Strategy (10MB threshold).
 
 This module defines the base contract for all file adapters in DAT.
 Adapters are responsible for:
@@ -93,7 +93,7 @@ class AdapterCapabilities(BaseModel):
 class AdapterMetadata(BaseModel):
     """Metadata about a file adapter for registry and UI display.
 
-    Per ADR-0011: Adapters are selected via handles-first pattern.
+    Per ADR-0012: Adapters are selected via handles-first pattern.
     The registry uses file_extensions and mime_types to auto-select adapters.
     """
 
@@ -231,7 +231,7 @@ class SheetInfo(BaseModel):
 class SchemaProbeResult(BaseModel):
     """Result of probing a file's schema.
 
-    Per ADR-0040: Schema probing is always fast regardless of file size.
+    Per ADR-0041: Schema probing is always fast regardless of file size.
     Only reads enough data to infer schema (typically first 1000 rows).
     """
 
@@ -427,7 +427,7 @@ class ReadOptions(BaseModel):
 class StreamOptions(BaseModel):
     """Options for streaming a file in chunks.
 
-    Per ADR-0040: Files > 10MB should use streaming mode.
+    Per ADR-0041: Files > 10MB should use streaming mode.
     """
 
     chunk_size_rows: int = Field(
@@ -498,13 +498,13 @@ class StreamChunk(BaseModel):
 class BaseFileAdapter(ABC):
     """Base class for all file adapters.
 
-    Per ADR-0011: All adapters must implement this interface.
-    Per ADR-0040: Adapters must support streaming for large files.
+    Per ADR-0012: All adapters must implement this interface.
+    Per ADR-0041: Adapters must support streaming for large files.
 
     Implementation notes:
     - All methods are async for consistency with FastAPI
     - Methods should raise AdapterError on failure
-    - File paths are always relative (per ADR-0017 path-safety)
+    - File paths are always relative (per ADR-0018 path-safety)
 
     Example implementation:
         class CSVAdapter(BaseFileAdapter):
@@ -587,7 +587,7 @@ class BaseFileAdapter(ABC):
     ) -> AsyncIterator[tuple["DataFrameType", StreamChunk]]:
         """Stream file as chunks for large file processing.
 
-        Per ADR-0040: This is the preferred method for files > 10MB.
+        Per ADR-0041: This is the preferred method for files > 10MB.
 
         Args:
             file_path: Relative path to the file
@@ -698,7 +698,7 @@ class AdapterErrorCode(str, Enum):
 class AdapterError(Exception):
     """Exception raised by adapter operations.
 
-    Per ADR-0026: Errors should be structured for programmatic handling.
+    Per ADR-0027: Errors should be structured for programmatic handling.
 
     This is both an Exception (can be raised) and contains structured
     error information for programmatic handling.

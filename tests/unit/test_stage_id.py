@@ -40,7 +40,7 @@ class TestComputeStageId:
         assert id_with_prefix.startswith("ds_")
 
     def test_id_length(self):
-        """ID is 8 hex characters (plus prefix) per ADR-0004-DAT."""
+        """ID is 8 hex characters (plus prefix) per ADR-0008."""
         inputs = {"test": "data"}
         
         id_no_prefix = compute_stage_id(inputs)

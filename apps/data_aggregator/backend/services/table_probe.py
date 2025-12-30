@@ -1,7 +1,7 @@
 """Fast table probing service.
 
-Per ADR-0006: Probe must complete in <1s per table.
-Per SPEC-DAT-0006: Use adapter.probe_schema(), not full reads.
+Per ADR-0008: Probe must complete in <1s per table.
+Per SPEC-0008: Use adapter.probe_schema(), not full reads.
 """
 
 import asyncio
@@ -29,7 +29,7 @@ async def probe_table(
 ) -> TableAvailability:
     """Probe a single table for availability status.
 
-    Per ADR-0006: Fast probe without loading full data.
+    Per ADR-0008: Fast probe without loading full data.
 
     Args:
         adapter: File adapter instance.

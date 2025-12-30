@@ -12,7 +12,7 @@ DAT is a **profile-driven data extraction tool** with an 8-stage pipeline:
 Upload → Context → Preview → Select → Aggregate → Parse → Export → Complete
 ```
 
-### Three-Layer Architecture (ADR-0011)
+### Three-Layer Architecture (ADR-0012)
 
 ```
 ┌─────────────────────────────────────────┐
@@ -36,11 +36,11 @@ Upload → Context → Preview → Select → Aggregate → Parse → Export →
 
 | ADR | Topic | Key Points |
 |-----|-------|------------|
-| **ADR-0001-DAT** | Stage Graph | 8-stage pipeline, unlock cascades downstream |
-| **ADR-0011** | Profile-Driven Extraction | YAML profiles, 6 extraction strategies |
-| **ADR-0040** | Large File Streaming | >10MB uses streaming mode |
-| **ADR-0041** | Horizontal Wizard UI | Stepper pattern, collapsible panels |
-| **ADR-0013** | Cancellation | Preserve completed artifacts, no partial data |
+| **ADR-0004** | Stage Graph | 8-stage pipeline, unlock cascades downstream |
+| **ADR-0012** | Profile-Driven Extraction | YAML profiles, 6 extraction strategies |
+| **ADR-0041** | Large File Streaming | >10MB uses streaming mode |
+| **ADR-0043** | Horizontal Wizard UI | Stepper pattern, collapsible panels |
+| **ADR-0014** | Cancellation | Preserve completed artifacts, no partial data |
 
 ---
 
@@ -59,7 +59,7 @@ class DATProfile(BaseModel): ...  # NO!
 
 ---
 
-## Profile Structure (SPEC-DAT-0011)
+## Profile Structure (SPEC-0033)
 
 Profiles have 10 sections:
 
@@ -76,7 +76,7 @@ Profiles have 10 sections:
 
 ---
 
-## Extraction Strategies (SPEC-DAT-0012)
+## Extraction Strategies (SPEC-0009)
 
 | Strategy | Use Case |
 |----------|----------|
@@ -101,11 +101,11 @@ UNLOCKED ──lock()──► LOCKED ──complete()──► COMPLETED
 
 - Unlock cascades to all downstream stages
 - Never delete artifacts on unlock (ADR-0002)
-- Context and Preview stages are optional (ADR-0003)
+- Context and Preview stages are optional (ADR-0004)
 
 ---
 
-## Large File Handling (ADR-0040)
+## Large File Handling (ADR-0041)
 
 | File Size | Mode | Behavior |
 |-----------|------|----------|

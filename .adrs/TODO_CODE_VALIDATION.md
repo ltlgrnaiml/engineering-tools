@@ -22,33 +22,33 @@ Validate that all current code in the Engineering Tools platform aligns with the
   - [ ] Check all unlock/reset handlers
   - [ ] Verify cancel operations preserve partial outputs
 
-- [ ] **ADR-0004 (Deterministic IDs)**: All artifact IDs use SHA-256 content-addressing
+- [ ] **ADR-0005 (Deterministic IDs)**: All artifact IDs use SHA-256 content-addressing
   - [ ] Verify `shared/workflows/id_generator.py` exists and is used
-  - [ ] Check DAT stage IDs follow ADR-0004-DAT inputs
+  - [ ] Check DAT stage IDs follow ADR-0008 inputs
   - [ ] Ensure seed=42 is used consistently
 
-- [ ] **ADR-0008 (Audit Timestamps)**: All artifacts include ISO-8601 UTC timestamps
+- [ ] **ADR-0009 (Audit Timestamps)**: All artifacts include ISO-8601 UTC timestamps
   - [ ] Check manifest.json, prep_report.json, etc.
   - [ ] Verify no microseconds in timestamps
   - [ ] Confirm all lifecycle events are logged
 
-- [ ] **ADR-0009 (Type Safety)**: All contracts in `shared/contracts/` as Pydantic
+- [ ] **ADR-0010 (Type Safety)**: All contracts in `shared/contracts/` as Pydantic
   - [ ] Verify 100% type hint coverage (mypy strict)
   - [ ] Check no hand-written JSON schemas
   - [ ] Confirm Specs/Guides don't duplicate contract definitions
 
 ### API & Contract Compliance
 
-- [ ] **ADR-0005 (Swagger/OpenAPI)**: All endpoints have OpenAPI specs
+- [ ] **ADR-0007 (Swagger/OpenAPI)**: All endpoints have OpenAPI specs
   - [ ] FastAPI routes generate OpenAPI automatically
   - [ ] Swagger UI available for all environments
   - [ ] CI validates contract drift
 
-- [ ] **ADR-0016 (Semver Versioning)**: Contract versions follow hybrid semver
+- [ ] **ADR-0017 (Semver Versioning)**: Contract versions follow hybrid semver
   - [ ] Pre-1.0 contracts use 0.x.y
   - [ ] Breaking changes documented with ADR linkage
 
-### Cross-Cutting Guardrails (ADR-0017)
+### Cross-Cutting Guardrails (ADR-0018)
 
 - [ ] **Path Safety**: No absolute paths in API responses
   - [ ] Check `shared/path_safety.py` usage
@@ -70,24 +70,24 @@ Validate that all current code in the Engineering Tools platform aligns with the
 ### Tool-Specific Compliance
 
 #### DAT
-- [ ] ADR-0001-DAT: 8-stage pipeline implemented
-- [ ] ADR-0003: Context/Preview stages are optional
-- [ ] ADR-0004-DAT: Stage IDs use correct inputs
-- [ ] ADR-0006: Table availability detection works
-- [ ] ADR-0011: Profile-driven extraction with adapter registry
-- [ ] ADR-0013: Cancel preserves partial artifacts
-- [ ] ADR-0014: Parquet for data, JSON/YAML for metadata
+- [ ] ADR-0004: 8-stage pipeline implemented
+- [ ] ADR-0004: Context/Preview stages are optional
+- [ ] ADR-0008: Stage IDs use correct inputs
+- [ ] ADR-0008: Table availability detection works
+- [ ] ADR-0012: Profile-driven extraction with adapter registry
+- [ ] ADR-0014: Cancel preserves partial artifacts
+- [ ] ADR-0015: Parquet for data, JSON/YAML for metadata
 
 #### PPTX
-- [ ] ADR-0018: Template processing model implemented
-- [ ] ADR-0019: Guided workflow follows FSM pattern
-- [ ] ADR-0020: Domain configuration schema exists
-- [ ] ADR-0021: Renderer architecture follows contracts
+- [ ] ADR-0019: Template processing model implemented
+- [ ] ADR-0020: Guided workflow follows FSM pattern
+- [ ] ADR-0021: Domain configuration schema exists
+- [ ] ADR-0022: Renderer architecture follows contracts
 
 #### SOV
-- [ ] ADR-0022: ANOVA pipeline with Polars
-- [ ] ADR-0023: DataSet integration with lineage
-- [ ] ADR-0024: Visualization contracts in Pydantic
+- [ ] ADR-0023: ANOVA pipeline with Polars
+- [ ] ADR-0024: DataSet integration with lineage
+- [ ] ADR-0025: Visualization contracts in Pydantic
 
 ## Remediation Process
 

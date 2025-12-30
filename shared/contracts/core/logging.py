@@ -1,7 +1,7 @@
 """Logging contracts - structured logging and tracing models.
 
-Per ADR-0036: Observability & Debugging First.
-Per ADR-0008: All timestamps are ISO-8601 UTC (no microseconds).
+Per ADR-0037: Observability & Debugging First.
+Per ADR-0009: All timestamps are ISO-8601 UTC (no microseconds).
 
 These contracts define the structure of log events, request contexts,
 and state snapshots for debugging and observability.
@@ -29,7 +29,7 @@ class LogLevel(str, Enum):
 class RequestContext(BaseModel):
     """Context for a single API request, propagated through call chain.
 
-    Per ADR-0036: All requests must have request_id for traceability.
+    Per ADR-0037: All requests must have request_id for traceability.
     """
 
     request_id: str = Field(
@@ -61,7 +61,7 @@ class RequestContext(BaseModel):
 class LogEvent(BaseModel):
     """Structured log event for JSON logging.
 
-    Per ADR-0036: All logs must be structured JSON via structlog.
+    Per ADR-0037: All logs must be structured JSON via structlog.
     """
 
     timestamp: datetime = Field(
@@ -113,7 +113,7 @@ class LogEvent(BaseModel):
 class StateSnapshot(BaseModel):
     """Snapshot of FSM state for debugging.
 
-    Per ADR-0036: FSM transitions must emit state snapshots at DEBUG level.
+    Per ADR-0037: FSM transitions must emit state snapshots at DEBUG level.
     """
 
     snapshot_id: str = Field(
@@ -157,7 +157,7 @@ class StateSnapshot(BaseModel):
 class FSMTransitionLog(BaseModel):
     """Log entry for FSM state transitions.
 
-    Per ADR-0036: FSM transitions must emit structured log events.
+    Per ADR-0037: FSM transitions must emit structured log events.
     """
 
     request_id: str
@@ -174,7 +174,7 @@ class FSMTransitionLog(BaseModel):
 class ArtifactLog(BaseModel):
     """Log entry for artifact operations.
 
-    Per ADR-0036: ArtifactStore writes must log artifact_id and content_hash.
+    Per ADR-0037: ArtifactStore writes must log artifact_id and content_hash.
     """
 
     request_id: str

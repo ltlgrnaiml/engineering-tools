@@ -83,7 +83,7 @@ select = [
     "UP",  # pyupgrade
     "ARG", # flake8-unused-arguments
     "SIM", # flake8-simplify
-    "ANN", # flake8-annotations (per ADR-0009)
+    "ANN", # flake8-annotations (per ADR-0010)
 ]
 ignore = [
     "E501",   # line too long (handled by formatter)

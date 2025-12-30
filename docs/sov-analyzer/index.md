@@ -167,7 +167,7 @@ For nested designs:
 - [x] Box plot visualization
 - [x] Variance bar charts
 - [x] DataSet integration with lineage
-- [x] Visualization contracts (ADR-0024)
+- [x] Visualization contracts (ADR-0025)
 - [ ] Nested ANOVA (future)
 - [ ] Regression analysis (future)
 - [ ] Control charts (future)
