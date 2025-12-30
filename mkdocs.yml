@@ -68,15 +68,14 @@ validation:
 # Exclude archived/internal files from build
 exclude_docs: |
   _archive/
+  AGENTS.md
 
 # Navigation structure
 nav:
   - Home: index.md
   - Platform:
-    - Architecture: platform/ARCHITECTURE.md
     - DataSets: platform/DATASETS.md
     - Pipelines: platform/PIPELINES.md
-    - Contributing: platform/CONTRIBUTING.md
   - PowerPoint Generator:
     - Overview: pptx-generator/index.md
     - Getting Started:
@@ -87,11 +86,14 @@ nav:
       - Architecture: pptx-generator/reference/ARCHITECTURE.md
   - Data Aggregator:
     - Overview: data-aggregator/index.md
+    - Reference:
+      - Architecture: data-aggregator/reference/ARCHITECTURE.md
   - SOV Analyzer:
     - Overview: sov-analyzer/index.md
+    - Reference:
+      - Architecture: sov-analyzer/reference/ARCHITECTURE.md
   - Guides:
-    - AI Coding Guide: AI_CODING_GUIDE.md
-    - Agents MD Guide: AGENTS_MD_CREATION_GUIDE.md
+    - AI Development Workflow: guides/AI_DEVELOPMENT_WORKFLOW.md
     - TODO Guide: TODO_GUIDES.md
   - Reference:
     - Specs Index: specs/SPEC_INDEX.md

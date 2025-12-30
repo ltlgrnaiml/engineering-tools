@@ -119,10 +119,8 @@ cd engineering-tools
 
 | Document | Description |
 |----------|-------------|
-| [Architecture](platform/ARCHITECTURE.md) | Platform-wide architecture |
 | [DataSets](platform/DATASETS.md) | Working with shared DataSets |
 | [Pipelines](platform/PIPELINES.md) | Creating multi-tool pipelines |
-| [Contributing](platform/CONTRIBUTING.md) | How to contribute |
 
 ---
 
