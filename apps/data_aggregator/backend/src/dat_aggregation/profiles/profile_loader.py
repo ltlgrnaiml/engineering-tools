@@ -293,11 +293,12 @@ def _parse_select_config(data: dict[str, Any]) -> SelectConfig:
     repeat_over = None
     if data.get("repeat_over"):
         ro = data["repeat_over"]
-        repeat_over = RepeatOverConfig(
-            path=ro.get("path", ""),
-            as_var=ro.get("as", ro.get("as_var", "")),
-            inject_fields=ro.get("inject_fields", {}),
-        )
+        # Use model_validate with alias key "as" since RepeatOverConfig uses alias
+        repeat_over = RepeatOverConfig.model_validate({
+            "path": ro.get("path", ""),
+            "as": ro.get("as", ro.get("as_var", "")),
+            "inject_fields": ro.get("inject_fields", {}),
+        })
 
     left = None
     if data.get("left"):

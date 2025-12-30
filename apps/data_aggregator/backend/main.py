@@ -89,7 +89,23 @@ async def health_check():
 @app.get("/code-version")
 async def code_version():
     """Check if fresh code is loaded - returns timestamp of code deployment."""
-    return {"code_loaded_at": "2024-12-29T11:54:00", "has_exception_handler": True}
+    return {"code_loaded_at": "2024-12-29T21:25:00", "cache_fix": True}
+
+
+@app.get("/debug/routes")
+async def debug_routes():
+    """Debug endpoint to list all registered routes."""
+    routes = []
+    for route in app.routes:
+        if hasattr(route, 'path'):
+            methods = list(route.methods) if hasattr(route, 'methods') else []
+            routes.append({"path": route.path, "methods": methods})
+    profile_routes = [r for r in routes if 'profile' in r['path'].lower()]
+    return {
+        "total_routes": len(routes),
+        "profile_routes": profile_routes,
+        "all_routes": sorted([r['path'] for r in routes])
+    }
 
 
 if __name__ == "__main__":

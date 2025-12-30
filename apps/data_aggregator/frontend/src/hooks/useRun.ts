@@ -17,6 +17,8 @@ export interface DATRun {
   current_stage: string
   stages: Record<string, DATStageStatus>
   created_at: string
+  profile_id?: string  // Set when profile is selected in Context stage
+  name?: string
 }
 
 async function fetchRun(runId: string, debugFetch: any): Promise<DATRun> {

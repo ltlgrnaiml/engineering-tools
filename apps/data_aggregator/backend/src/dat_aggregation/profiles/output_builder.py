@@ -2,9 +2,17 @@
 
 Per ADR-0011: Profiles define how extracted tables are combined
 into final outputs, including aggregations and joins.
+
+Context Application (DESIGN §4, §9):
+- Raw tables and context are kept separate during extraction
+- User controls context application via toggles:
+  - include_run_context: Add run-level context columns (LotID, WaferID, etc.)
+  - include_image_context: Add image-level context columns (ImageName, etc.)
+- Context is applied at output time, not during extraction
 """
 
 import logging
+from dataclasses import dataclass
 from typing import Any
 
 import polars as pl
@@ -15,6 +23,21 @@ from .profile_loader import (
     AggregationConfig,
     JoinOutputConfig,
 )
+
+
+@dataclass
+class ContextOptions:
+    """User-controlled context application options.
+    
+    Per DESIGN §9: These options map to UI checkboxes that allow
+    users to control which context columns are added to output tables.
+    """
+    include_run_context: bool = True
+    include_image_context: bool = False
+    
+    # Optional: specific context keys to include (empty = all)
+    run_context_keys: list[str] | None = None
+    image_context_keys: list[str] | None = None
 
 logger = logging.getLogger(__name__)
 
@@ -32,19 +55,30 @@ class OutputBuilder:
         profile: DATProfile,
         selected_outputs: list[str] | None = None,
         context: dict[str, Any] | None = None,
+        run_context: dict[str, Any] | None = None,
+        image_contexts: dict[str, dict[str, Any]] | None = None,
+        context_options: ContextOptions | None = None,
     ) -> dict[str, pl.DataFrame]:
-        """Build final output DataFrames.
+        """Build final output DataFrames with user-controlled context application.
         
-        Per DESIGN §8: Processes default/optional outputs, aggregations, and joins.
+        Per DESIGN §8, §9: Processes outputs and applies context based on user options.
         
         Args:
-            extracted_tables: Dict of table_id to DataFrame
+            extracted_tables: Dict of table_id to DataFrame (raw, without context)
             profile: DATProfile with output definitions
             selected_outputs: Optional filter for specific outputs
+            context: Legacy context dict (deprecated, use run_context)
+            run_context: Run-level context values (LotID, WaferID, etc.)
+            image_contexts: Dict mapping image_id to image-level context
+            context_options: User-controlled context application options
             
         Returns:
-            Dict of output_id to combined DataFrame
+            Dict of output_id to combined DataFrame with context applied per options
         """
+        # Merge legacy context with run_context
+        effective_run_context = {**(context or {}), **(run_context or {})}
+        effective_image_contexts = image_contexts or {}
+        options = context_options or ContextOptions()
         outputs: dict[str, pl.DataFrame] = {}
         
         # Process default outputs
@@ -52,7 +86,10 @@ class OutputBuilder:
             if selected_outputs and output_config.id not in selected_outputs:
                 continue
             
-            df = self._build_output(output_config, extracted_tables, context)
+            df = self._build_output(
+                output_config, extracted_tables, effective_run_context,
+                effective_image_contexts, options
+            )
             if not df.is_empty():
                 outputs[output_config.id] = df
         
@@ -61,7 +98,10 @@ class OutputBuilder:
             if selected_outputs and output_config.id not in selected_outputs:
                 continue
             
-            df = self._build_output(output_config, extracted_tables, context)
+            df = self._build_output(
+                output_config, extracted_tables, effective_run_context,
+                effective_image_contexts, options
+            )
             if not df.is_empty():
                 outputs[output_config.id] = df
         
@@ -140,18 +180,29 @@ class OutputBuilder:
         self,
         config: OutputConfig,
         tables: dict[str, pl.DataFrame],
-        context: dict[str, Any] | None = None,
+        run_context: dict[str, Any] | None = None,
+        image_contexts: dict[str, dict[str, Any]] | None = None,
+        options: ContextOptions | None = None,
     ) -> pl.DataFrame:
-        """Build single output by combining specified tables.
+        """Build single output by combining specified tables with context.
+        
+        Per DESIGN §9: Context is applied based on user options, not just
+        the output config's include_context flag.
         
         Args:
             config: Output configuration
-            tables: Extracted tables
-            context: Optional context to append when include_context is true
+            tables: Extracted tables (raw, without context)
+            run_context: Run-level context values
+            image_contexts: Dict mapping image_id to image-level context
+            options: User-controlled context application options
             
         Returns:
-            Combined DataFrame
+            Combined DataFrame with context applied per options
         """
+        options = options or ContextOptions()
+        run_context = run_context or {}
+        image_contexts = image_contexts or {}
+        
         dfs: list[pl.DataFrame] = []
         
         for table_id in config.from_tables:
@@ -166,13 +217,74 @@ class OutputBuilder:
         # Concatenate tables diagonally (union of columns)
         combined = pl.concat(dfs, how="diagonal")
         
-        # Include context columns if requested
-        if config.include_context and context:
-            for key, value in context.items():
+        # Apply run-level context if user opted in
+        if options.include_run_context:
+            context_keys = options.run_context_keys or list(run_context.keys())
+            for key in context_keys:
+                if key in run_context and key not in combined.columns:
+                    combined = combined.with_columns(pl.lit(run_context[key]).alias(key))
+        
+        # Apply image-level context if user opted in and table has image_id
+        if options.include_image_context and "image_id" in combined.columns:
+            combined = self._apply_image_context_to_df(
+                combined, image_contexts, options.image_context_keys
+            )
+        
+        # Legacy: Also apply context if output config says include_context=True
+        # This maintains backward compatibility with existing profiles
+        if config.include_context and run_context and not options.include_run_context:
+            for key, value in run_context.items():
                 if key not in combined.columns:
                     combined = combined.with_columns(pl.lit(value).alias(key))
         
         return combined
+    
+    def _apply_image_context_to_df(
+        self,
+        df: pl.DataFrame,
+        image_contexts: dict[str, dict[str, Any]],
+        context_keys: list[str] | None = None,
+    ) -> pl.DataFrame:
+        """Apply image-level context to a DataFrame based on image_id column.
+        
+        Args:
+            df: DataFrame with image_id column
+            image_contexts: Dict mapping image_id to context values
+            context_keys: Optional list of specific keys to include
+            
+        Returns:
+            DataFrame with image context columns added
+        """
+        if "image_id" not in df.columns or not image_contexts:
+            return df
+        
+        # Determine all context keys to add
+        all_keys: set[str] = set()
+        for ctx in image_contexts.values():
+            all_keys.update(ctx.keys())
+        
+        if context_keys:
+            all_keys = all_keys.intersection(set(context_keys))
+        
+        # Build a mapping DataFrame for joining
+        if not all_keys:
+            return df
+        
+        # Create context records for joining
+        context_records = []
+        for image_id, ctx in image_contexts.items():
+            record = {"image_id": image_id}
+            for key in all_keys:
+                record[key] = ctx.get(key)
+            context_records.append(record)
+        
+        if not context_records:
+            return df
+        
+        context_df = pl.DataFrame(context_records)
+        
+        # Left join to preserve all rows
+        return df.join(context_df, on="image_id", how="left")
     
     def apply_aggregation(
         self,

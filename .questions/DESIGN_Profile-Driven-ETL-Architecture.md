@@ -516,7 +516,117 @@ ui:
     show_column_list: true
     allow_format_selection: true
     formats: ["parquet", "csv", "excel"]
+  
+  # Context application options (NEW - per context separation design)
+  context_options:
+    include_context_toggle: true  # Show context toggle checkboxes
+    default_include_run_context: true
+    default_include_image_context: false
 ```
+
+### 9.1 Context Separation Architecture (IMPORTANT)
+
+**Key Design Principle**: Raw data tables and context are kept SEPARATE during extraction. Users control context application at output time via simple checkboxes.
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                     EXTRACTION PHASE                                     │
+│                                                                          │
+│   ┌──────────────┐     ┌──────────────────────────────────────────┐     │
+│   │  Raw Files   │────▶│           ProfileExecutor                 │     │
+│   └──────────────┘     │                                          │     │
+│                        │  Returns ExtractionResult:               │     │
+│                        │  ├─ tables: Dict[table_id, DataFrame]    │     │
+│                        │  │         (NO context columns)          │     │
+│                        │  ├─ run_context: Dict[str, Any]          │     │
+│                        │  │         {LotID, WaferID, ...}         │     │
+│                        │  └─ image_contexts: Dict[image_id, Dict] │     │
+│                        │            {ImageName, AcqTime, ...}     │     │
+│                        └──────────────────────────────────────────┘     │
+└─────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                     USER SELECTION PHASE                                 │
+│                                                                          │
+│   ┌─────────────────────────────────────────────────────────────────┐   │
+│   │  TABLE SELECTION                                [Context: ☑]    │   │
+│   ├─────────────────────────────────────────────────────────────────┤   │
+│   │  ▼ RUN LEVEL TABLES                                             │   │
+│   │    ☑ Run Summary                                                │   │
+│   │    ☑ Run Statistics                                             │   │
+│   │    ☐ CD by Site                                                 │   │
+│   │                                                                 │   │
+│   │  ▼ IMAGE LEVEL TABLES                                           │   │
+│   │    ☑ Image Measurements                                         │   │
+│   │    ☐ Image Quality                                              │   │
+│   │                                                                 │   │
+│   │  ─────────────────────────────────────────────────────────────  │   │
+│   │  CONTEXT OPTIONS                                                │   │
+│   │    ☑ Apply run-level context (LotID, WaferID, RecipeName...)   │   │
+│   │    ☐ Apply image-level context (ImageName, AcquisitionTime...) │   │
+│   └─────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                     OUTPUT PHASE                                         │
+│                                                                          │
+│   OutputBuilder.build_outputs(                                          │
+│       extracted_tables=result.tables,                                   │
+│       run_context=result.run_context,                                   │
+│       image_contexts=result.image_contexts,                             │
+│       context_options=ContextOptions(                                   │
+│           include_run_context=True,    # User checked this             │
+│           include_image_context=False, # User unchecked this           │
+│       )                                                                 │
+│   )                                                                     │
+│                                                                          │
+│   Result: Tables WITH context columns per user selection                │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+**API Endpoints**:
+
+```python
+# 1. Extract tables and context (separately)
+POST /api/dat/runs/{run_id}/stages/parse/profile-extract
+Response:
+{
+    "tables_extracted": 5,
+    "table_details": {...},  # Raw tables without context
+    "context": {
+        "run_context": {"LotID": "LOT123", "WaferID": "W01", ...},
+        "image_contexts": {"IMG_001": {"ImageName": "...", ...}},
+        "available_run_keys": ["LotID", "WaferID", "RecipeName"],
+        "available_image_keys": ["ImageName", "AcquisitionTime"]
+    }
+}
+
+# 2. Apply context to tables (user-controlled)
+POST /api/dat/runs/{run_id}/stages/parse/apply-context
+Request:
+{
+    "include_run_context": true,
+    "include_image_context": false,
+    "run_context_keys": ["LotID", "WaferID"],  # Optional: specific keys only
+    "table_ids": ["run_summary", "run_statistics"]  # Optional: specific tables
+}
+Response:
+{
+    "tables": {...},  # Tables with context columns added
+    "context_applied": {
+        "run_context_keys": ["LotID", "WaferID"],
+        "image_context_keys": []
+    }
+}
+```
+
+**Benefits**:
+1. **User Control**: Simple checkboxes give users control over output structure
+2. **Flexibility**: Same extraction, different outputs based on user needs
+3. **Efficiency**: Context computed once, applied as needed
+4. **Transparency**: Users see exactly what context will be added
 
 ### 10. Governance & Limits
 

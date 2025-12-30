@@ -5,7 +5,9 @@
     "file_version": "2.1.0",
     "created_at": "2025-12-28T14:15:00Z",
     "layer_name": "L02_SPACER",
-    "product_id": "PROD-5NM-B02"
+    "product_id": "PROD-5NM-B02",
+    "facility": "FAB1",
+    "process_step": "SPACER_CD_CHECK"
   },
   "run_info": {
     "recipe": {
@@ -60,7 +62,7 @@
       "cd_data": {
         "headers": ["site_id", "x_position", "y_position", "cd_value", "cd_3sigma", "measurement_count"],
         "rows": [
-          ["SITE01", 0.0, 0.0, 18.65, 1.82, 7]
+          ["SITE01", 0.0, 0.0, 18.65, 1.82, 13]
         ]
       }
     },
@@ -72,7 +74,7 @@
       "cd_data": {
         "headers": ["site_id", "x_position", "y_position", "cd_value", "cd_3sigma", "measurement_count"],
         "rows": [
-          ["SITE02", 40.0, 0.0, 18.72, 1.78, 7]
+          ["SITE02", 40.0, 0.0, 18.72, 1.78, 13]
         ]
       }
     },
@@ -84,7 +86,7 @@
       "cd_data": {
         "headers": ["site_id", "x_position", "y_position", "cd_value", "cd_3sigma", "measurement_count"],
         "rows": [
-          ["SITE03", -40.0, 0.0, 18.78, 1.88, 7]
+          ["SITE03", -40.0, 0.0, 18.78, 1.88, 13]
         ]
       }
     },
@@ -96,7 +98,7 @@
       "cd_data": {
         "headers": ["site_id", "x_position", "y_position", "cd_value", "cd_3sigma", "measurement_count"],
         "rows": [
-          ["SITE04", 80.0, 0.0, 18.92, 2.05, 7]
+          ["SITE04", 80.0, 0.0, 18.92, 2.05, 12]
         ]
       }
     },
@@ -108,7 +110,7 @@
       "cd_data": {
         "headers": ["site_id", "x_position", "y_position", "cd_value", "cd_3sigma", "measurement_count"],
         "rows": [
-          ["SITE05", -80.0, 0.0, 18.85, 2.12, 7]
+          ["SITE05", -80.0, 0.0, 18.85, 2.12, 12]
         ]
       }
     }
@@ -362,7 +364,9 @@
     "contamination_level": 1.8,
     "stage_drift_x": 0.5,
     "stage_drift_y": 0.4,
-    "vibration_level": 0.12
+    "vibration_level": 0.12,
+    "vacuum_level": 4.8e-6,
+    "column_alignment": 0.99
   },
   "images": [
     {
@@ -374,7 +378,8 @@
         "x_position": 0.0,
         "y_position": 0.0,
         "magnification": 200000,
-        "rotation": 0.0
+        "rotation": 0.0,
+        "image_name": "SITE01_LINE001_001"
       },
       "measurements": {
         "columns": ["image_id", "site_id", "cd_left", "cd_right", "cd_average", "height", "sidewall_angle", "pitch"],
@@ -399,7 +404,8 @@
         "x_position": 40.0,
         "y_position": 0.0,
         "magnification": 200000,
-        "rotation": 0.0
+        "rotation": 0.0,
+        "image_name": "SITE02_LINE001_001"
       },
       "measurements": {
         "columns": ["image_id", "site_id", "cd_left", "cd_right", "cd_average", "height", "sidewall_angle", "pitch"],
@@ -424,7 +430,8 @@
         "x_position": -40.0,
         "y_position": 0.0,
         "magnification": 200000,
-        "rotation": 0.0
+        "rotation": 0.0,
+        "image_name": "SITE03_LINE001_001"
       },
       "measurements": {
         "columns": ["image_id", "site_id", "cd_left", "cd_right", "cd_average", "height", "sidewall_angle", "pitch"],

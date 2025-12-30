@@ -140,16 +140,20 @@ try:
     import sys
     import importlib
     
-    # Clear cached modules to ensure fresh code is loaded
-    modules_to_clear = [k for k in sys.modules.keys() if k.startswith('apps.data_aggregator')]
+    # Clear ALL cached modules that could affect DAT loading
+    prefixes_to_clear = ['apps.data_aggregator', 'shared.contracts.dat']
+    modules_to_clear = [k for k in list(sys.modules.keys()) 
+                        if any(k.startswith(p) for p in prefixes_to_clear)]
     for mod in modules_to_clear:
         del sys.modules[mod]
     
     from apps.data_aggregator.backend.main import app as dat_app
     app.mount("/api/dat", dat_app)
-    logging.info("DAT mounted with fresh code")
+    logging.info(f"DAT mounted with fresh code, cleared {len(modules_to_clear)} modules")
 except ImportError as e:
     logging.warning(f"Data Aggregator not available: {e}")
+except Exception as e:
+    logging.error(f"DAT mount failed with error: {e}", exc_info=True)
 
 try:
     from apps.sov_analyzer.backend.main import app as sov_app

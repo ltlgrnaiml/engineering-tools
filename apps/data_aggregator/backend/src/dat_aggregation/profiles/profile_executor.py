@@ -2,10 +2,19 @@
 
 Per ADR-0011: All data extraction is governed by versioned profiles.
 The ProfileExecutor interprets profiles and produces flat, tabular DataFrames.
+
+Context Separation (DESIGN §4, §9):
+- Raw data tables are extracted WITHOUT context baked in by default
+- Context is extracted and stored separately
+- User can toggle context application at output time:
+  - "Apply run-level context" checkbox
+  - "Apply image-level context" checkbox
+- When enabled, context columns are joined to selected output tables
 """
 
 import json
 import logging
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +31,118 @@ from .file_filter import filter_files
 from .transform_pipeline import TransformPipeline, ColumnTransform
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class ExtractionResult:
+    """Result of profile-driven extraction with separated tables and contexts.
+    
+    Per DESIGN §4, §9: Tables and contexts are kept separate to allow
+    user control over context application at output time.
+    
+    Attributes:
+        tables: Dict mapping table_id to raw DataFrame (no context columns)
+        run_context: Context values extracted at run level
+        image_contexts: Dict mapping image_id to image-level context values
+        file_contexts: Dict mapping file path to per-file context values
+        validation_warnings: List of non-fatal validation warnings
+    """
+    tables: dict[str, pl.DataFrame] = field(default_factory=dict)
+    run_context: dict[str, Any] = field(default_factory=dict)
+    image_contexts: dict[str, dict[str, Any]] = field(default_factory=dict)
+    file_contexts: dict[str, dict[str, Any]] = field(default_factory=dict)
+    validation_warnings: list[str] = field(default_factory=list)
+    
+    def apply_run_context(self, table_ids: list[str] | None = None) -> dict[str, pl.DataFrame]:
+        """Apply run-level context to specified tables.
+        
+        Args:
+            table_ids: Tables to apply context to. If None, applies to all.
+            
+        Returns:
+            Dict of tables with run context columns added.
+        """
+        result = {}
+        target_tables = table_ids or list(self.tables.keys())
+        
+        for table_id in target_tables:
+            if table_id not in self.tables:
+                continue
+            df = self.tables[table_id]
+            for key, value in self.run_context.items():
+                if key not in df.columns:
+                    df = df.with_columns(pl.lit(value).alias(key))
+            result[table_id] = df
+        
+        return result
+    
+    def apply_image_context(self, table_ids: list[str] | None = None) -> dict[str, pl.DataFrame]:
+        """Apply image-level context to specified tables.
+        
+        Args:
+            table_ids: Tables to apply context to. If None, applies to all.
+            
+        Returns:
+            Dict of tables with image context columns added.
+        """
+        result = {}
+        target_tables = table_ids or list(self.tables.keys())
+        
+        for table_id in target_tables:
+            if table_id not in self.tables:
+                continue
+            df = self.tables[table_id]
+            
+            # For image-level tables, we need to match by image_id if present
+            if "image_id" in df.columns and self.image_contexts:
+                # Join image context based on image_id
+                for image_id, ctx in self.image_contexts.items():
+                    for key, value in ctx.items():
+                        if key not in df.columns:
+                            # Add context column for matching rows
+                            df = df.with_columns(
+                                pl.when(pl.col("image_id") == image_id)
+                                .then(pl.lit(value))
+                                .otherwise(pl.col(key) if key in df.columns else pl.lit(None))
+                                .alias(key)
+                            )
+            result[table_id] = df
+        
+        return result
+    
+    def get_tables_with_context(
+        self,
+        table_ids: list[str] | None = None,
+        include_run_context: bool = True,
+        include_image_context: bool = False,
+    ) -> dict[str, pl.DataFrame]:
+        """Get tables with optional context columns applied.
+        
+        This is the primary method for users to get output tables with
+        their desired context configuration.
+        
+        Args:
+            table_ids: Tables to include. If None, includes all.
+            include_run_context: Whether to add run-level context columns.
+            include_image_context: Whether to add image-level context columns.
+            
+        Returns:
+            Dict of tables with requested context applied.
+        """
+        target_tables = table_ids or list(self.tables.keys())
+        result = {tid: self.tables[tid].clone() for tid in target_tables if tid in self.tables}
+        
+        if include_run_context:
+            for table_id, df in result.items():
+                for key, value in self.run_context.items():
+                    if key not in df.columns:
+                        df = df.with_columns(pl.lit(value).alias(key))
+                result[table_id] = df
+        
+        if include_image_context:
+            result = self.apply_image_context(list(result.keys()))
+        
+        return result
 
 
 class ProfileExecutor:
@@ -145,23 +266,30 @@ class ProfileExecutor:
         self,
         profile: DATProfile,
         files: list[Path],
-        context: dict[str, Any],
+        context: dict[str, Any] | None = None,
         selected_tables: list[str] | None = None,
-    ) -> dict[str, pl.DataFrame]:
-        """Execute full profile extraction.
+        apply_context: bool = False,
+    ) -> ExtractionResult:
+        """Execute full profile extraction with separated tables and contexts.
+        
+        Per DESIGN §4, §9: Returns ExtractionResult with tables and contexts
+        stored separately. User can then choose to apply context at output time.
         
         Args:
             profile: Loaded DATProfile
             files: List of files to process
-            context: Context dictionary (from context stage)
+            context: Optional pre-extracted context (merged with auto-extracted)
             selected_tables: Optional filter for specific tables
+            apply_context: If True, applies context to tables (legacy behavior).
+                          If False (default), keeps tables and context separate.
             
         Returns:
-            Dict mapping table_id to extracted DataFrame
+            ExtractionResult with separate tables and contexts
             
         Raises:
             ValueError: If governance limits are exceeded
         """
+        context = context or {}
         # Per DESIGN §10: Check governance limits before extraction
         limit_violations = self._check_governance_limits(profile, files)
         if limit_violations:
@@ -183,7 +311,8 @@ class ProfileExecutor:
                     f"profile_id={profile.profile_id}, files={len(files)}"
                 )
         
-        results: dict[str, pl.DataFrame] = {}
+        result = ExtractionResult()
+        result.run_context = context.copy()
         
         # Per DESIGN §2: Apply file filter predicates if defined
         filtered_files = filter_files(files, profile.datasource_filters)
@@ -199,13 +328,22 @@ class ProfileExecutor:
                 logger.warning(f"Could not load file: {file_path}")
                 continue
             
+            # Extract file-level context and store separately
+            file_context = self._extract_file_context(profile, file_path, data)
+            result.file_contexts[str(file_path)] = file_context
+            result.run_context.update(file_context)  # Merge into run context
+            
+            # Extract image-level contexts if this is image-level data
+            image_contexts = self._extract_image_contexts(profile, data)
+            result.image_contexts.update(image_contexts)
+            
             # Extract each table
             for level_name, table_config in profile.get_all_tables():
                 if selected_tables and table_config.id not in selected_tables:
                     continue
                 
                 try:
-                    df = self.extract_table(table_config, data, context)
+                    df = self.extract_table(table_config, data, result.run_context)
                     
                     if df.is_empty():
                         continue
@@ -224,32 +362,126 @@ class ProfileExecutor:
                         ]
                         df = pipeline.apply_column_transforms(df, transforms)
                     
-                    # Apply context columns for this level
-                    df = self._apply_context(df, context, level_name, profile)
+                    # Only apply context if legacy mode requested
+                    if apply_context:
+                        df = self._apply_context(df, result.run_context, level_name, profile)
                     
                     # Accumulate results
-                    if table_config.id in results:
-                        results[table_config.id] = pl.concat([
-                            results[table_config.id], df
+                    if table_config.id in result.tables:
+                        result.tables[table_config.id] = pl.concat([
+                            result.tables[table_config.id], df
                         ], how="diagonal")
                     else:
-                        results[table_config.id] = df
+                        result.tables[table_config.id] = df
                         
                 except Exception as e:
                     logger.error(f"Error extracting table {table_config.id}: {e}")
+                    result.validation_warnings.append(f"Table {table_config.id}: {e}")
                     continue
         
         # Per DESIGN §10: Audit logging for extraction completion
         if profile.governance and profile.governance.audit:
             if profile.governance.audit.log_access:
-                total_rows = sum(len(df) for df in results.values())
+                total_rows = sum(len(df) for df in result.tables.values())
                 logger.info(
                     f"AUDIT: Profile extraction completed - "
                     f"profile_id={profile.profile_id}, "
-                    f"tables={len(results)}, rows={total_rows}"
+                    f"tables={len(result.tables)}, rows={total_rows}"
                 )
         
-        return results
+        return result
+    
+    def _extract_file_context(
+        self,
+        profile: DATProfile,
+        file_path: Path,
+        data: Any,
+    ) -> dict[str, Any]:
+        """Extract context values from a single file.
+        
+        Args:
+            profile: DATProfile with context configuration
+            file_path: Path to file
+            data: Parsed file content
+            
+        Returns:
+            Dict of context key-value pairs
+        """
+        from .context_extractor import ContextExtractor
+        
+        extractor = ContextExtractor()
+        return extractor.extract(
+            profile=profile,
+            file_path=file_path,
+            file_content=data if isinstance(data, dict) else None,
+        )
+    
+    def _extract_image_contexts(
+        self,
+        profile: DATProfile,
+        data: Any,
+    ) -> dict[str, dict[str, Any]]:
+        """Extract image-level context values.
+        
+        Args:
+            profile: DATProfile with context configuration
+            data: Parsed file content
+            
+        Returns:
+            Dict mapping image_id to image context values
+        """
+        image_contexts: dict[str, dict[str, Any]] = {}
+        
+        if not isinstance(data, dict):
+            return image_contexts
+        
+        # Find image_context configuration
+        image_context_config = None
+        for ctx in profile.contexts:
+            if ctx.level == "image":
+                image_context_config = ctx
+                break
+        
+        if not image_context_config:
+            return image_contexts
+        
+        # Extract from images array if present
+        images = data.get("images", [])
+        for image in images:
+            image_id = image.get("image_id") or image.get("image_name")
+            if not image_id:
+                continue
+            
+            ctx = {}
+            # Apply key_map to extract context values
+            for target_col, source_path in image_context_config.key_map.items():
+                value = self._get_nested_value(image, source_path.lstrip("$."))
+                if value is not None:
+                    ctx[target_col] = value
+            
+            # Also extract from metadata if present
+            metadata = image.get("metadata", {})
+            for target_col, source_path in image_context_config.key_map.items():
+                if target_col not in ctx:
+                    value = self._get_nested_value(metadata, source_path.lstrip("$."))
+                    if value is not None:
+                        ctx[target_col] = value
+            
+            if ctx:
+                image_contexts[image_id] = ctx
+        
+        return image_contexts
+    
+    def _get_nested_value(self, data: dict, path: str) -> Any:
+        """Get value from nested dict using dot-notation path."""
+        parts = path.split(".")
+        current = data
+        for part in parts:
+            if isinstance(current, dict) and part in current:
+                current = current[part]
+            else:
+                return None
+        return current
     
     def extract_table(
         self,

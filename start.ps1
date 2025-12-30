@@ -77,6 +77,31 @@ param(
 $ErrorActionPreference = "Stop"
 
 # =============================================================================
+# Python Cache Cleanup - Ensure Fresh Code
+# =============================================================================
+# Per ADR-0037: Clear Python bytecode cache to ensure fresh code is loaded.
+# This prevents stale .pyc files from being used instead of updated .py files.
+
+function Clear-PythonCache {
+    param([string]$Root)
+    
+    $cacheCount = 0
+    $dirs = Get-ChildItem -Path $Root -Recurse -Directory -Filter "__pycache__" -ErrorAction SilentlyContinue
+    foreach ($dir in $dirs) {
+        try {
+            Remove-Item -Path $dir.FullName -Recurse -Force -ErrorAction SilentlyContinue
+            $cacheCount++
+        } catch {
+            # Ignore errors - directory may be in use
+        }
+    }
+    
+    if ($cacheCount -gt 0) {
+        Write-Host "[CACHE] Cleared $cacheCount Python __pycache__ directories" -ForegroundColor Yellow
+    }
+}
+
+# =============================================================================
 # Port Cleanup - Kill Stale Processes
 # =============================================================================
 # Per ADR-0037: Ensure clean startup by killing any stale processes on our ports.
@@ -214,6 +239,11 @@ try {
         Write-Host "[ERROR] Virtual environment not found. Run setup.ps1 first." -ForegroundColor Red
         exit 1
     }
+
+    # =============================================================================
+    # Clear Python Cache (ensure fresh code loads)
+    # =============================================================================
+    Clear-PythonCache -Root $REPO_ROOT
 
     # =============================================================================
     # Port Configuration (per ADR-0042 / SPEC-0045)

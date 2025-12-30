@@ -38,6 +38,9 @@ from .schemas import (
     ParseRequest,
     ExportRequest,
     PreviewResponse,
+    ContextOptionsRequest,
+    ContextInfo,
+    ExtractionResponse,
 )
 
 # Per ADR-0029: Tool-specific routes use no version prefix (mounted at /api/dat by gateway)
@@ -705,16 +708,24 @@ async def get_profile_tables(profile_id: str):
     }
 
 
-@router.post("/runs/{run_id}/stages/parse/profile-extract")
-async def execute_profile_extraction(run_id: str, request: ParseRequest):
+@router.post("/runs/{run_id}/stages/parse/profile-extract", response_model=ExtractionResponse)
+async def execute_profile_extraction(run_id: str, request: ParseRequest | None = None):
     """Execute profile-driven extraction per ADR-0011.
     
     Uses ProfileExecutor to extract tables defined in the profile YAML.
-    Returns extraction results with validation summary.
+    Per DESIGN §4, §9: Returns tables and context SEPARATELY, allowing
+    user to control context application via checkboxes.
+    
+    Response includes:
+    - tables: Raw data tables (without context baked in)
+    - context: Extracted context information
+      - run_context: Run-level context (LotID, WaferID, etc.)
+      - image_contexts: Image-level context keyed by image_id
+      - available_run_keys: List of available run context keys for UI
+      - available_image_keys: List of available image context keys for UI
     """
     from ..profiles.profile_loader import get_profile_by_id
-    from ..profiles.profile_executor import ProfileExecutor
-    from ..profiles.context_extractor import ContextExtractor
+    from ..profiles.profile_executor import ProfileExecutor, ExtractionResult
     from ..profiles.validation_engine import ValidationEngine
     from ..profiles.transform_pipeline import TransformPipeline
 
@@ -740,50 +751,154 @@ async def execute_profile_extraction(run_id: str, request: ParseRequest):
     if not selected_files:
         raise HTTPException(status_code=400, detail="No files selected")
 
-    # Extract context
-    context_extractor = ContextExtractor()
-    context = {}
-    for file_path in selected_files:
-        file_context = context_extractor.extract(profile=profile, file_path=file_path)
-        context.update(file_context)
-
-    # Execute profile extraction
+    # Execute profile extraction - tables and context are now SEPARATE
     executor = ProfileExecutor()
-    extracted_tables = await executor.execute(
+    extraction_result: ExtractionResult = await executor.execute(
         profile=profile,
         files=selected_files,
-        context=context,
-        selected_tables=request.selected_tables if hasattr(request, 'selected_tables') else None,
+        context=None,  # Context will be auto-extracted
+        selected_tables=request.selected_tables if request else None,
+        apply_context=False,  # Keep tables and context separate
     )
 
     # Validate extraction
     validation_engine = ValidationEngine()
-    validation_summary = validation_engine.validate_extraction(extracted_tables, profile)
+    validation_summary = validation_engine.validate_extraction(extraction_result.tables, profile)
 
-    # Apply transforms
+    # Apply transforms to raw tables
     transform_pipeline = TransformPipeline()
-    for table_id, df in extracted_tables.items():
-        extracted_tables[table_id] = transform_pipeline.apply_normalization(df, profile)
+    for table_id, df in extraction_result.tables.items():
+        extraction_result.tables[table_id] = transform_pipeline.apply_normalization(df, profile)
 
-    # Return results summary
-    return {
-        "run_id": run_id,
-        "profile_id": profile_id,
-        "tables_extracted": len(extracted_tables),
-        "table_details": {
+    # Collect all available image context keys
+    all_image_keys: set[str] = set()
+    for ctx in extraction_result.image_contexts.values():
+        all_image_keys.update(ctx.keys())
+
+    # Build response with separated tables and context
+    return ExtractionResponse(
+        run_id=run_id,
+        profile_id=profile_id,
+        tables_extracted=len(extraction_result.tables),
+        table_details={
             table_id: {
                 "row_count": len(df),
                 "column_count": len(df.columns),
-                "columns": df.columns,
+                "columns": list(df.columns),
             }
-            for table_id, df in extracted_tables.items()
+            for table_id, df in extraction_result.tables.items()
         },
-        "validation": {
-            "valid": validation_summary.valid,
-            "error_count": validation_summary.error_count,
-            "warning_count": validation_summary.warning_count,
+        context=ContextInfo(
+            run_context=extraction_result.run_context,
+            image_contexts=extraction_result.image_contexts,
+            available_run_keys=list(extraction_result.run_context.keys()),
+            available_image_keys=list(all_image_keys),
+        ),
+        validation_warnings=extraction_result.validation_warnings + (
+            [f"Validation: {validation_summary.error_count} errors, {validation_summary.warning_count} warnings"]
+            if not validation_summary.valid else []
+        ),
+    )
+
+
+@router.post("/runs/{run_id}/stages/parse/apply-context")
+async def apply_context_to_tables(
+    run_id: str,
+    context_options: ContextOptionsRequest,
+    table_ids: list[str] | None = None,
+):
+    """Apply context to extracted tables based on user options.
+    
+    Per DESIGN §4, §9: This endpoint allows users to control which context
+    columns are added to their output tables via simple checkboxes:
+    
+    - include_run_context: Add run-level context (LotID, WaferID, etc.)
+    - include_image_context: Add image-level context (ImageName, etc.)
+    
+    This must be called AFTER profile-extract to apply context to the
+    previously extracted raw tables.
+    
+    Args:
+        run_id: Run identifier
+        context_options: User-controlled context application options
+        table_ids: Optional list of specific tables to include
+        
+    Returns:
+        Tables with context applied per user options
+    """
+    from ..profiles.profile_loader import get_profile_by_id
+    from ..profiles.profile_executor import ProfileExecutor, ExtractionResult
+    from ..profiles.output_builder import OutputBuilder, ContextOptions
+
+    sm = run_manager.get_state_machine(run_id)
+    run_state = await sm.store.get_run(run_id)
+    profile_id = run_state.get("profile_id")
+
+    if not profile_id:
+        raise HTTPException(status_code=400, detail="Run has no profile_id set")
+
+    profile = get_profile_by_id(profile_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail=f"Profile not found: {profile_id}")
+
+    # Get selected files from selection stage
+    selection_status = await sm.store.get_stage_status(run_id, Stage.SELECTION)
+    if selection_status.state != StageState.LOCKED:
+        raise HTTPException(status_code=400, detail="Selection stage must be locked first")
+
+    selection_artifact = await sm.store.get_artifact(run_id, Stage.SELECTION, selection_status.stage_id)
+    selected_files = [Path(f) for f in selection_artifact.get("selected_files", [])]
+
+    if not selected_files:
+        raise HTTPException(status_code=400, detail="No files selected")
+
+    # Re-execute extraction (or retrieve cached result)
+    executor = ProfileExecutor()
+    extraction_result: ExtractionResult = await executor.execute(
+        profile=profile,
+        files=selected_files,
+        context=None,
+        selected_tables=table_ids,
+        apply_context=False,
+    )
+
+    # Convert request options to internal ContextOptions
+    options = ContextOptions(
+        include_run_context=context_options.include_run_context,
+        include_image_context=context_options.include_image_context,
+        run_context_keys=context_options.run_context_keys,
+        image_context_keys=context_options.image_context_keys,
+    )
+
+    # Apply context using ExtractionResult method
+    tables_with_context = extraction_result.get_tables_with_context(
+        table_ids=table_ids,
+        include_run_context=options.include_run_context,
+        include_image_context=options.include_image_context,
+    )
+
+    # Return tables with context applied
+    return {
+        "run_id": run_id,
+        "profile_id": profile_id,
+        "context_options": {
+            "include_run_context": context_options.include_run_context,
+            "include_image_context": context_options.include_image_context,
         },
-        "context": context,
+        "tables": {
+            table_id: {
+                "row_count": len(df),
+                "column_count": len(df.columns),
+                "columns": list(df.columns),
+            }
+            for table_id, df in tables_with_context.items()
+        },
+        "context_applied": {
+            "run_context_keys": list(extraction_result.run_context.keys()) if context_options.include_run_context else [],
+            "image_context_keys": list(set(
+                k for ctx in extraction_result.image_contexts.values() for k in ctx.keys()
+            )) if context_options.include_image_context else [],
+        },
     }
 
 
