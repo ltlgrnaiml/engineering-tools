@@ -15,7 +15,11 @@ from typing import Any
 
 from jsonpath_ng import parse as jsonpath_parse
 
-from .profile_loader import DATProfile, RegexPattern
+from .profile_loader import DATProfile, RegexPattern, ContentPattern
+
+
+class SkipFileException(Exception):
+    """Signal that current file should be skipped due to required pattern failure."""
 
 logger = logging.getLogger(__name__)
 
@@ -61,19 +65,26 @@ class ContextExtractor:
             context.update(regex_values)
             logger.debug(f"Extracted {len(regex_values)} values via regex")
         
-        # Priority 2: JSONPath from content
-        if file_content and profile.contexts:
-            content_values = self._extract_from_contexts(
-                profile.contexts,
+        # Priority 2: JSONPath from content (content_patterns)
+        if file_content and profile.context_defaults and profile.context_defaults.content_patterns:
+            content_values = self._extract_content_patterns(
+                profile.context_defaults.content_patterns,
                 file_content,
             )
             context.update(content_values)
-            logger.debug(f"Extracted {len(content_values)} values via JSONPath")
+            logger.debug(f"Extracted {len(content_values)} values via content patterns")
         
-        # Priority 1: User overrides (highest)
+        # Priority 1: User overrides (highest, allowlisted)
         if user_overrides:
-            context.update(user_overrides)
-            logger.debug(f"Applied {len(user_overrides)} user overrides")
+            allowed = profile.context_defaults.allow_user_override if profile.context_defaults else []
+            applied = {}
+            for key, value in user_overrides.items():
+                if not allowed or key in allowed:
+                    applied[key] = value
+                else:
+                    logger.warning(f"User override for '{key}' not allowed; ignored")
+            context.update(applied)
+            logger.debug(f"Applied {len(applied)} user overrides (allowlisted)")
         
         return context
     
@@ -124,34 +135,31 @@ class ContextExtractor:
         
         return results
     
-    def _extract_from_contexts(
+    def _extract_content_patterns(
         self,
-        contexts: list,
+        patterns: list[ContentPattern],
         content: dict,
     ) -> dict[str, Any]:
-        """Extract values from contexts using JSONPath.
-        
-        Args:
-            contexts: List of context configurations
-            content: Parsed file content
-            
-        Returns:
-            Dictionary of extracted values
-        """
+        """Extract values using JSONPath content patterns."""
         results: dict[str, Any] = {}
-        
-        for ctx in contexts:
-            if not ctx.key_map:
-                continue
-            
-            for target_col, source_path in ctx.key_map.items():
-                try:
-                    value = self._get_jsonpath_value(content, source_path)
-                    if value is not None:
-                        results[target_col] = value
-                except Exception as e:
-                    logger.debug(f"JSONPath extraction failed for {target_col}: {e}")
-        
+        for pattern in patterns:
+            try:
+                value = self._get_jsonpath_value(content, pattern.path)
+                if value is not None:
+                    results[pattern.field] = value
+                elif pattern.default is not None:
+                    results[pattern.field] = pattern.default
+                elif pattern.required:
+                    if pattern.on_fail == "error":
+                        raise ValueError(f"Required JSONPath '{pattern.field}' not found")
+                    elif pattern.on_fail == "skip_file":
+                        logger.warning(
+                            f"Required JSONPath '{pattern.field}' not found; configured skip_file"
+                        )
+                    else:
+                        logger.warning(f"Required JSONPath '{pattern.field}' not found")
+            except Exception as e:
+                logger.error(f"JSONPath error for {pattern.field}: {e}")
         return results
     
     def _get_scope_value(self, scope: str, file_path: Path) -> str:

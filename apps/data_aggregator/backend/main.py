@@ -78,7 +78,12 @@ app.include_router(jobs_router, tags=["jobs"])
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
-    return {"status": "healthy", "tool": "dat", "version": "0.1.0"}
+    return {
+        "status": "healthy",
+        "service": "data-aggregator",
+        "tool": "dat",
+        "version": "0.1.0",
+    }
 
 
 @app.get("/code-version")

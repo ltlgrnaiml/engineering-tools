@@ -97,24 +97,13 @@ async def list_analyses(
     limit = min(limit, 100)  # Cap at 100
     
     analyses = await manager.list_analyses(
-        limit=limit + 1,  # Fetch one extra to check for more
+        limit=limit,
         cursor=cursor,
         sort_by=sort_by,
         sort_order=sort_order,
     )
-    
-    has_more = len(analyses) > limit
-    if has_more:
-        analyses = analyses[:limit]
-    
-    next_cursor = analyses[-1]["analysis_id"] if has_more and analyses else None
-    
-    return {
-        "items": analyses,
-        "limit": limit,
-        "has_more": has_more,
-        "next_cursor": next_cursor,
-    }
+
+    return analyses
 
 
 @router.get("/analyses/{analysis_id}")

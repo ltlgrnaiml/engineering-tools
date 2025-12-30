@@ -270,7 +270,11 @@ async def _execute_profile_extraction(
 
     # Per DESIGN §8: Build outputs using profile-defined aggregations and joins
     output_builder = OutputBuilder()
-    profile_outputs = output_builder.build_outputs(extracted_tables, profile)
+    profile_outputs = output_builder.build_outputs(
+        extracted_tables,
+        profile,
+        context=context,
+    )
     
     # Combine all tables (including profile outputs) for final result
     all_tables = {**extracted_tables, **profile_outputs}

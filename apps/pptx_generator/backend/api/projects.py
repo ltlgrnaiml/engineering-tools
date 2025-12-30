@@ -25,7 +25,7 @@ projects_db: dict[UUID, Project] = {}
 workflow_states_db: dict[UUID, WorkflowState] = {}
 
 
-@router.post("", response_model=Project, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=Project, status_code=status.HTTP_200_OK)
 async def create_project(project_data: ProjectCreate) -> Project:
     """
     Create a new PowerPoint generation project.
@@ -42,10 +42,10 @@ async def create_project(project_data: ProjectCreate) -> Project:
         name=project_data.name,
         description=project_data.description,
     )
-    projects_db[project.id] = project
+    projects_db[project.project_id] = project
 
     # Initialize workflow state per ADR-0019
-    workflow_states_db[project.id] = create_workflow_state(project.id)
+    workflow_states_db[project.project_id] = create_workflow_state(project.project_id)
 
     return project
 
@@ -72,7 +72,7 @@ async def list_projects(
 
 
 @router.get("/{project_id}", response_model=Project)
-async def get_project(project_id: UUID) -> Project:
+async def get_project(project_id: str) -> Project:
     """
     Get a specific project by ID.
 
@@ -85,9 +85,14 @@ async def get_project(project_id: UUID) -> Project:
     Raises:
         HTTPException: If project not found (404).
     """
-    if project_id not in projects_db:
-        raise_not_found("Project", str(project_id))
-    return projects_db[project_id]
+    try:
+        project_uuid = UUID(project_id)
+    except ValueError:
+        raise_not_found("Project", project_id)
+
+    if project_uuid not in projects_db:
+        raise_not_found("Project", str(project_uuid))
+    return projects_db[project_uuid]
 
 
 @router.patch("/{project_id}", response_model=Project)

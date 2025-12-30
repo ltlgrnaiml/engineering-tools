@@ -62,7 +62,7 @@ class Project(BaseModel):
         updated_at: Timestamp when project was last updated.
     """
 
-    id: UUID = Field(default_factory=uuid4, description="Unique project identifier")
+    project_id: UUID = Field(default_factory=uuid4, description="Unique project identifier")
     name: str = Field(..., description="Project name")
     description: str | None = Field(None, description="Project description")
     status: ProjectStatus = Field(

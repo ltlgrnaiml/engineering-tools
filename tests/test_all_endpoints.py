@@ -3,64 +3,69 @@ Comprehensive endpoint tests for all tools (DAT, SOV, PPTX)
 Tests gateway routing, backend mounting, and API functionality
 """
 import pytest
-import requests
-import time
-from pathlib import Path
 
-BASE_URL = "http://localhost:8000"
-TIMEOUT = 5
+from fastapi.testclient import TestClient
+
+from gateway.main import app
+
+
+@pytest.fixture(scope="module")
+def client() -> TestClient:
+    """Create a TestClient for the gateway app.
+
+    These tests validate gateway routing/mounting deterministically without relying on
+    an externally running server on localhost.
+    """
+
+    return TestClient(app)
 
 class TestGatewayHealth:
     """Test gateway and tool availability"""
     
-    def test_gateway_health(self):
+    def test_gateway_health(self, client: TestClient):
         """Test gateway health endpoint"""
-        response = requests.get(f"{BASE_URL}/health", timeout=TIMEOUT)
+        response = client.get("/health")
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "healthy"
         assert "tools" in data
     
-    def test_gateway_docs(self):
+    def test_gateway_docs(self, client: TestClient):
         """Test gateway OpenAPI docs are accessible"""
-        response = requests.get(f"{BASE_URL}/docs", timeout=TIMEOUT)
+        response = client.get("/docs")
         assert response.status_code == 200
 
 
 class TestPPTXEndpoints:
     """Test PowerPoint Generator endpoints"""
     
-    def test_pptx_health(self):
+    def test_pptx_health(self, client: TestClient):
         """Test PPTX backend health via gateway"""
-        response = requests.get(f"{BASE_URL}/api/pptx/health", timeout=TIMEOUT)
+        response = client.get("/api/pptx/health")
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "healthy"
         assert data["service"] == "pptx-generator"
     
-    def test_pptx_docs(self):
+    def test_pptx_docs(self, client: TestClient):
         """Test PPTX OpenAPI docs accessible via gateway"""
-        response = requests.get(f"{BASE_URL}/api/pptx/docs", timeout=TIMEOUT)
+        response = client.get("/api/pptx/docs")
         assert response.status_code == 200
     
-    def test_pptx_list_projects(self):
+    def test_pptx_list_projects(self, client: TestClient):
         """Test listing PPTX projects"""
-        response = requests.get(f"{BASE_URL}/api/pptx/projects", timeout=TIMEOUT)
+        response = client.get("/api/pptx/projects")
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
     
-    def test_pptx_create_project(self):
+    def test_pptx_create_project(self, client: TestClient):
         """Test creating a PPTX project"""
         payload = {
             "name": "Test Project",
             "description": "Automated test project"
         }
-        response = requests.post(
-            f"{BASE_URL}/api/pptx/projects",
-            json=payload,
-            timeout=TIMEOUT
-        )
+        response = client.post("/api/pptx/projects", json=payload)
         assert response.status_code == 200
         data = response.json()
         assert "project_id" in data
@@ -71,32 +76,29 @@ class TestPPTXEndpoints:
 class TestDATEndpoints:
     """Test Data Aggregator endpoints"""
     
-    def test_dat_health(self):
+    def test_dat_health(self, client: TestClient):
         """Test DAT backend health via gateway"""
-        response = requests.get(f"{BASE_URL}/api/dat/health", timeout=TIMEOUT)
+        response = client.get("/api/dat/health")
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "healthy"
         assert data["service"] == "data-aggregator"
     
-    def test_dat_docs(self):
+    def test_dat_docs(self, client: TestClient):
         """Test DAT OpenAPI docs accessible via gateway"""
-        response = requests.get(f"{BASE_URL}/api/dat/docs", timeout=TIMEOUT)
+        response = client.get("/api/dat/docs")
         assert response.status_code == 200
     
-    def test_dat_list_runs(self):
+    def test_dat_list_runs(self, client: TestClient):
         """Test listing DAT runs"""
-        response = requests.get(f"{BASE_URL}/api/dat/runs", timeout=TIMEOUT)
+        response = client.get("/api/dat/runs")
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
     
-    def test_dat_create_run(self):
+    def test_dat_create_run(self, client: TestClient):
         """Test creating a DAT run"""
-        response = requests.post(
-            f"{BASE_URL}/api/dat/runs",
-            timeout=TIMEOUT
-        )
+        response = client.post("/api/dat/runs")
         assert response.status_code == 200
         data = response.json()
         assert "run_id" in data
@@ -107,22 +109,22 @@ class TestDATEndpoints:
 class TestSOVEndpoints:
     """Test SOV Analyzer endpoints"""
     
-    def test_sov_health(self):
+    def test_sov_health(self, client: TestClient):
         """Test SOV backend health via gateway"""
-        response = requests.get(f"{BASE_URL}/api/sov/health", timeout=TIMEOUT)
+        response = client.get("/api/sov/health")
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "healthy"
         assert data["service"] == "sov-analyzer"
     
-    def test_sov_docs(self):
+    def test_sov_docs(self, client: TestClient):
         """Test SOV OpenAPI docs accessible via gateway"""
-        response = requests.get(f"{BASE_URL}/api/sov/docs", timeout=TIMEOUT)
+        response = client.get("/api/sov/docs")
         assert response.status_code == 200
     
-    def test_sov_list_analyses(self):
+    def test_sov_list_analyses(self, client: TestClient):
         """Test listing SOV analyses"""
-        response = requests.get(f"{BASE_URL}/api/sov/analyses", timeout=TIMEOUT)
+        response = client.get("/api/sov/analyses")
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
@@ -131,28 +133,24 @@ class TestSOVEndpoints:
 class TestCrossToolIntegration:
     """Test cross-tool features via gateway"""
     
-    def test_list_datasets(self):
+    def test_list_datasets(self, client: TestClient):
         """Test listing datasets from all tools"""
-        response = requests.get(f"{BASE_URL}/api/datasets", timeout=TIMEOUT)
+        response = client.get("/api/datasets")
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
     
-    def test_list_datasets_by_tool(self):
+    def test_list_datasets_by_tool(self, client: TestClient):
         """Test filtering datasets by tool"""
         for tool in ["dat", "sov", "pptx"]:
-            response = requests.get(
-                f"{BASE_URL}/api/datasets",
-                params={"tool": tool},
-                timeout=TIMEOUT
-            )
+            response = client.get("/api/datasets", params={"tool": tool})
             assert response.status_code == 200
             data = response.json()
             assert isinstance(data, list)
     
-    def test_list_pipelines(self):
+    def test_list_pipelines(self, client: TestClient):
         """Test listing pipelines"""
-        response = requests.get(f"{BASE_URL}/api/pipelines", timeout=TIMEOUT)
+        response = client.get("/api/pipelines")
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
@@ -161,25 +159,19 @@ class TestCrossToolIntegration:
 class TestErrorHandling:
     """Test error handling and edge cases"""
     
-    def test_invalid_tool_path(self):
+    def test_invalid_tool_path(self, client: TestClient):
         """Test accessing non-existent tool"""
-        response = requests.get(f"{BASE_URL}/api/invalid/health", timeout=TIMEOUT)
+        response = client.get("/api/invalid/health")
         assert response.status_code == 404
     
-    def test_invalid_project_id(self):
+    def test_invalid_project_id(self, client: TestClient):
         """Test accessing non-existent PPTX project"""
-        response = requests.get(
-            f"{BASE_URL}/api/pptx/projects/nonexistent-id",
-            timeout=TIMEOUT
-        )
+        response = client.get("/api/pptx/projects/nonexistent-id")
         assert response.status_code == 404
     
-    def test_invalid_run_id(self):
+    def test_invalid_run_id(self, client: TestClient):
         """Test accessing non-existent DAT run"""
-        response = requests.get(
-            f"{BASE_URL}/api/dat/runs/nonexistent-id",
-            timeout=TIMEOUT
-        )
+        response = client.get("/api/dat/runs/nonexistent-id")
         assert response.status_code == 404
 
 

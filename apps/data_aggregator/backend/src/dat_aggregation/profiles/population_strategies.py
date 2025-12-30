@@ -66,6 +66,9 @@ class PopulationFilter:
         
         if strategy_name == "all":
             return df
+        elif strategy_name == "first_n":
+            size = int(strategy_config.get("size", 1000))
+            return df.head(size)
         elif strategy_name == "valid_only":
             return self._apply_valid_only(df, strategy_config)
         elif strategy_name == "outliers_excluded":

@@ -1,17 +1,15 @@
 """Profile CRUD service.
 
 Per SPEC-DAT-0005: Profile management with deterministic IDs.
+Per ADR-0011: Profile-driven extraction using Tier-0 DATProfile contracts.
 """
 
 import json
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
-from shared.contracts.dat.profile import (
-    ExtractionProfile,
-    CreateProfileRequest,
-    UpdateProfileRequest,
-)
+from shared.contracts.dat.profile import DATProfile
 from shared.utils.stage_id import compute_stage_id
 
 __version__ = "1.0.0"
@@ -21,7 +19,7 @@ PROFILES_DIR = Path("data/profiles")
 
 
 class ProfileService:
-    """Service for managing extraction profiles.
+    """Service for managing DAT extraction profiles.
 
     Per ADR-0011: Profile-driven extraction.
     Per ADR-0004: Deterministic IDs.
@@ -36,15 +34,15 @@ class ProfileService:
         self.profiles_dir = profiles_dir or PROFILES_DIR
         self.profiles_dir.mkdir(parents=True, exist_ok=True)
 
-    def _compute_profile_id(self, profile: ExtractionProfile) -> str:
+    def _compute_profile_id(self, profile: DATProfile) -> str:
         """Compute deterministic profile ID.
 
         Per ADR-0004: SHA-256 based IDs.
         """
         inputs = {
-            "name": profile.name,
-            "file_patterns": [p.model_dump() for p in profile.file_patterns],
-            "column_mappings": [m.model_dump() for m in profile.column_mappings],
+            "title": profile.title,
+            "levels": [level.model_dump() for level in profile.levels],
+            "datasource_id": profile.datasource_id,
         }
         return compute_stage_id(inputs, prefix="profile_")
 
@@ -52,27 +50,19 @@ class ProfileService:
         """Get path to profile JSON file."""
         return self.profiles_dir / f"{profile_id}.json"
 
-    async def create(self, request: CreateProfileRequest) -> ExtractionProfile:
-        """Create a new profile.
+    async def create(self, data: dict[str, Any]) -> DATProfile:
+        """Create a new profile from data dict.
 
         Args:
-            request: Profile creation request.
+            data: Profile data dictionary (YAML-like structure).
 
         Returns:
-            Created ExtractionProfile.
+            Created DATProfile.
 
         Raises:
             ValueError: If profile with same ID already exists.
         """
-        profile = ExtractionProfile(
-            name=request.name,
-            description=request.description,
-            file_patterns=request.file_patterns,
-            column_mappings=request.column_mappings,
-            aggregation_rules=request.aggregation_rules,
-            validation_rules=request.validation_rules,
-            created_at=datetime.now(timezone.utc),
-        )
+        profile = DATProfile(**data)
 
         profile_id = self._compute_profile_id(profile)
         profile_path = self._get_profile_path(profile_id)
@@ -80,22 +70,22 @@ class ProfileService:
         if profile_path.exists():
             raise ValueError(f"Profile already exists: {profile_id}")
 
-        # Add ID to profile
-        profile_dict = profile.model_dump()
+        # Serialize profile with computed ID
+        profile_dict = profile.model_dump(mode="json")
         profile_dict["profile_id"] = profile_id
 
         profile_path.write_text(json.dumps(profile_dict, default=str, indent=2))
 
-        return ExtractionProfile(**profile_dict)
+        return DATProfile(**profile_dict)
 
-    async def get(self, profile_id: str) -> ExtractionProfile | None:
+    async def get(self, profile_id: str) -> DATProfile | None:
         """Get a profile by ID.
 
         Args:
             profile_id: Profile identifier.
 
         Returns:
-            ExtractionProfile or None if not found.
+            DATProfile or None if not found.
         """
         profile_path = self._get_profile_path(profile_id)
 
@@ -103,36 +93,35 @@ class ProfileService:
             return None
 
         data = json.loads(profile_path.read_text())
-        return ExtractionProfile(**data)
+        return DATProfile(**data)
 
     async def update(
         self,
         profile_id: str,
-        request: UpdateProfileRequest,
-    ) -> ExtractionProfile | None:
+        updates: dict[str, Any],
+    ) -> DATProfile | None:
         """Update an existing profile.
 
         Args:
             profile_id: Profile identifier.
-            request: Update request.
+            updates: Fields to update.
 
         Returns:
-            Updated ExtractionProfile or None if not found.
+            Updated DATProfile or None if not found.
         """
         existing = await self.get(profile_id)
         if not existing:
             return None
 
         # Apply updates
-        update_data = request.model_dump(exclude_unset=True)
-        profile_dict = existing.model_dump()
-        profile_dict.update(update_data)
-        profile_dict["updated_at"] = datetime.now(timezone.utc)
+        profile_dict = existing.model_dump(mode="json")
+        profile_dict.update(updates)
+        profile_dict["modified_at"] = datetime.now(timezone.utc).isoformat()
 
         profile_path = self._get_profile_path(profile_id)
         profile_path.write_text(json.dumps(profile_dict, default=str, indent=2))
 
-        return ExtractionProfile(**profile_dict)
+        return DATProfile(**profile_dict)
 
     async def delete(self, profile_id: str) -> bool:
         """Delete a profile.
@@ -151,7 +140,7 @@ class ProfileService:
         profile_path.unlink()
         return True
 
-    async def list_all(self) -> list[ExtractionProfile]:
+    async def list_all(self) -> list[DATProfile]:
         """List all profiles.
 
         Returns:
@@ -160,5 +149,5 @@ class ProfileService:
         profiles = []
         for profile_path in self.profiles_dir.glob("*.json"):
             data = json.loads(profile_path.read_text())
-            profiles.append(ExtractionProfile(**data))
+            profiles.append(DATProfile(**data))
         return profiles

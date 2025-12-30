@@ -1,358 +1,95 @@
 """Profile loader for DAT extraction profiles.
 
 Per ADR-0011: Profiles are the single source of truth for extraction logic.
-Loads YAML profiles and provides typed access to profile configuration.
+Loads YAML profiles and returns Tier-0 Pydantic contracts directly.
+
+This module is the YAML→Pydantic bridge. It parses YAML and constructs
+DATProfile (and nested) Pydantic models from shared.contracts.dat.profile.
 """
+
 import re
-from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 import yaml
 
-from shared.contracts.dat.profile import ProfileValidationResult
+from shared.contracts.dat.profile import (
+    AggregationConfig,
+    ContentPattern,
+    ContextConfig,
+    ContextDefaults,
+    DATProfile,
+    GovernanceAccessConfig,
+    GovernanceAuditConfig,
+    GovernanceComplianceConfig,
+    GovernanceConfig,
+    GovernanceLimitsConfig,
+    JoinConfig,
+    JoinOutputConfig,
+    LevelConfig,
+    OnFailBehavior,
+    OutputConfig,
+    ProfileValidationResult,
+    RegexPattern,
+    RegexScope,
+    RepeatOverConfig,
+    SelectConfig,
+    StrategyType,
+    TableConfig,
+    UIConfig,
+    UIPreviewConfig,
+    UITableSelectionConfig,
+)
 
-
-@dataclass
-class RegexPattern:
-    """Regex pattern for context extraction.
-    
-    Per DESIGN §4: Supports transforms like parse_date, uppercase, etc.
-    """
-    field: str
-    pattern: str
-    scope: str = "filename"
-    required: bool = False
-    description: str = ""
-    example: str = ""
-    transform: str | None = None  # e.g., "parse_date", "uppercase"
-    transform_args: dict[str, Any] = field(default_factory=dict)
-    on_fail: str = "warn"  # warn, error, skip_file
-
-
-@dataclass
-class ContextDefaults:
-    """Context defaults section of profile."""
-    defaults: dict[str, Any] = field(default_factory=dict)
-    regex_patterns: list[RegexPattern] = field(default_factory=list)
-
-
-@dataclass
-class TableSelect:
-    """Table selection configuration."""
-    strategy: str  # "flat_object", "headers_data"
-    path: str
-    headers_key: str | None = None
-    data_key: str | None = None
-    repeat_over: dict[str, str] | None = None
-
-
-@dataclass
-class TableConfig:
-    """Configuration for a single table extraction.
-    
-    Per DESIGN §5, §7: Supports stable columns and value constraints.
-    """
-    id: str
-    label: str
-    description: str = ""
-    select: TableSelect | None = None
-    stable_columns: list[str] = field(default_factory=list)
-    stable_columns_mode: str = "warn"
-    stable_columns_subset: bool = True
-    # Per DESIGN §7: Value validation constraints
-    validation_constraints: list[dict[str, Any]] = field(default_factory=list)
-    # Per DESIGN §6: Column transforms at table level
-    column_transforms: list[dict[str, Any]] = field(default_factory=list)
-
-
-@dataclass
-class LevelConfig:
-    """Configuration for a data level (run, image, etc.)."""
-    name: str
-    apply_context: str = ""
-    tables: list[TableConfig] = field(default_factory=list)
-
-
-@dataclass
-class ContextConfig:
-    """Context configuration for key mapping."""
-    name: str
-    level: str
-    paths: list[str] = field(default_factory=list)
-    key_map: dict[str, str] = field(default_factory=dict)
-    primary_keys: list[str] = field(default_factory=list)
-    time_fields: dict[str, str] | None = None
-
-
-@dataclass
-class AggregationConfig:
-    """Aggregation output configuration per DESIGN §8."""
-    id: str
-    from_table: str
-    group_by: list[str] = field(default_factory=list)
-    aggregations: dict[str, str] = field(default_factory=dict)  # column -> agg_func
-    output_table: str = ""
-
-
-@dataclass
-class JoinOutputConfig:
-    """Join output configuration per DESIGN §8."""
-    id: str
-    left_table: str
-    right_table: str
-    on: list[str] = field(default_factory=list)
-    how: str = "left"  # left, right, inner, outer
-
-
-@dataclass
-class OutputConfig:
-    """Output configuration per DESIGN §8."""
-    id: str
-    from_level: str
-    from_tables: list[str] = field(default_factory=list)
-    include_context: bool = True
-    format: str = "parquet"  # parquet, csv, excel
-
-
-@dataclass
-class GovernanceAccessConfig:
-    """Access control configuration per DESIGN §10."""
-    read: list[str] = field(default_factory=lambda: ["all"])
-    modify: list[str] = field(default_factory=lambda: ["admin"])
-    delete: list[str] = field(default_factory=lambda: ["admin"])
-
-
-@dataclass
-class GovernanceAuditConfig:
-    """Audit trail configuration per DESIGN §10."""
-    log_access: bool = True
-    log_modifications: bool = True
-    retention_days: int = 365
-
-
-@dataclass
-class GovernanceComplianceConfig:
-    """Compliance configuration per DESIGN §10."""
-    data_classification: str = "internal"  # public, internal, confidential
-    pii_columns: list[str] = field(default_factory=list)
-    mask_in_preview: list[str] = field(default_factory=list)
-
-
-@dataclass
-class GovernanceLimitsConfig:
-    """Resource and complexity limits per DESIGN §10."""
-    max_files_per_run: int = 1000
-    max_file_size_mb: int = 500
-    max_total_size_gb: int = 10
-    max_rows_output: int = 10_000_000
-    max_tables_per_level: int = 50
-    max_columns_per_table: int = 500
-    parse_timeout_seconds: int = 3600
-    preview_timeout_seconds: int = 30
-
-
-@dataclass
-class GovernanceConfig:
-    """Governance configuration per DESIGN §10."""
-    access: GovernanceAccessConfig | None = None
-    audit: GovernanceAuditConfig | None = None
-    compliance: GovernanceComplianceConfig | None = None
-    limits: GovernanceLimitsConfig | None = None
-
-
-@dataclass
-class UITableSelectionConfig:
-    """UI table selection hints per DESIGN §9."""
-    group_by_level: bool = True
-    default_selected: dict[str, list[str]] = field(default_factory=dict)
-    collapsed_by_default: list[str] = field(default_factory=list)
-
-
-@dataclass
-class UIPreviewConfig:
-    """UI preview hints per DESIGN §9."""
-    max_rows: int = 100
-    max_columns: int = 50
-    column_width: str = "auto"  # auto, fixed, wrap
-    number_format: str = "0.0000"
-    date_format: str = "YYYY-MM-DD HH:mm:ss"
-    null_display: str = "—"
-
-
-@dataclass
-class UIConfig:
-    """UI hints configuration per DESIGN §9."""
-    # Discovery stage
-    show_file_preview: bool = True
-    max_preview_files: int = 10
-    highlight_matching: bool = True
-    # Table selection
-    table_selection: UITableSelectionConfig | None = None
-    # Preview
-    preview: UIPreviewConfig | None = None
-    # Context stage
-    show_regex_matches: bool = True
-    editable_fields: list[str] = field(default_factory=list)
-    readonly_fields: list[str] = field(default_factory=list)
-    # Export stage
-    default_name_template: str = "{profile_title} - {lot_id}"
-    show_row_count: bool = True
-    show_column_list: bool = True
-    allow_format_selection: bool = True
-    formats: list[str] = field(default_factory=lambda: ["parquet", "csv", "excel"])
-
-
-@dataclass
-class DATProfile:
-    """Complete DAT extraction profile."""
-    schema_version: str
-    version: int
-
-    # Meta
-    profile_id: str
-    title: str
-    description: str = ""
-    created_by: str = ""
-    created_at: datetime | None = None
-    modified_at: datetime | None = None
-    revision: int = 1
-    hash: str = ""
-
-    # Datasource
-    datasource_id: str = ""
-    datasource_label: str = ""
-    datasource_format: str = "json"
-    datasource_filters: dict[str, Any] = field(default_factory=dict)
-    datasource_options: dict[str, Any] = field(default_factory=dict)
-
-    # Population
-    default_strategy: str = "all"
-    include_populations: list[str] = field(default_factory=list)
-
-    # Context
-    context_defaults: ContextDefaults | None = None
-    contexts: list[ContextConfig] = field(default_factory=list)
-
-    # Levels and tables
-    levels: list[LevelConfig] = field(default_factory=list)
-
-    # Normalization
-    nan_values: list[str] = field(default_factory=list)
-    units_policy: str = "preserve"
-    numeric_coercion: bool = True
-    
-    # Per DESIGN §6: Global transforms
-    column_renames: dict[str, str] = field(default_factory=dict)
-    calculated_columns: list[dict[str, Any]] = field(default_factory=list)
-    type_coercion: list[dict[str, Any]] = field(default_factory=list)
-
-    # Outputs
-    default_outputs: list[OutputConfig] = field(default_factory=list)
-    optional_outputs: list[OutputConfig] = field(default_factory=list)
-    # Per DESIGN §8: Aggregation and join outputs
-    aggregations: list[AggregationConfig] = field(default_factory=list)
-    joins: list[JoinOutputConfig] = field(default_factory=list)
-    
-    # Per DESIGN §9: UI hints
-    ui: UIConfig | None = None
-    
-    # Per DESIGN §6: Row filters at profile level
-    row_filters: list[dict[str, Any]] = field(default_factory=list)
-    
-    # Per DESIGN §7: Advanced validation rules
-    schema_rules: dict[str, Any] = field(default_factory=dict)
-    row_rules: list[dict[str, Any]] = field(default_factory=list)
-    aggregate_rules: list[dict[str, Any]] = field(default_factory=list)
-    on_validation_fail: str = "continue"  # continue, stop, quarantine
-    quarantine_table: str = "validation_failures"
-    
-    # Per DESIGN §8: File naming configuration
-    file_naming_template: str = "{profile_id}_{lot_id}_{timestamp}"
-    file_naming_timestamp_format: str = "%Y%m%d_%H%M%S"
-    file_naming_sanitize: bool = True
-    
-    # Per DESIGN §10: Governance
-    governance: GovernanceConfig | None = None
-    
-    # Per DESIGN §1: Extended metadata
-    owner: str = ""
-    classification: str = "internal"  # public, internal, confidential
-    domain: str = ""
-    tags: list[str] = field(default_factory=list)
-
-    def get_level(self, name: str) -> LevelConfig | None:
-        """Get level configuration by name."""
-        for level in self.levels:
-            if level.name == name:
-                return level
-        return None
-
-    def get_table(self, level_name: str, table_id: str) -> TableConfig | None:
-        """Get table configuration by level and table ID."""
-        level = self.get_level(level_name)
-        if not level:
-            return None
-        for table in level.tables:
-            if table.id == table_id:
-                return table
-        return None
-
-    def get_all_tables(self) -> list[tuple[str, TableConfig]]:
-        """Get all tables across all levels as (level_name, table) tuples."""
-        result = []
-        for level in self.levels:
-            for table in level.tables:
-                result.append((level.name, table))
-        return result
-
-    def extract_context_from_filename(self, filename: str) -> dict[str, str]:
-        """Extract context values from filename using regex patterns."""
-        if not self.context_defaults:
-            return {}
-
-        context = {}
-        for pattern in self.context_defaults.regex_patterns:
-            if pattern.scope != "filename":
-                continue
-            try:
-                match = re.search(pattern.pattern, filename)
-                if match:
-                    # Get named group matching the field
-                    groups = match.groupdict()
-                    if pattern.field in groups:
-                        context[pattern.field] = groups[pattern.field]
-            except re.error:
-                continue
-
-        return context
+__version__ = "1.0.0"
 
 
 def load_profile(path: Path | str) -> DATProfile:
     """Load a DAT profile from YAML file.
-    
+
     Args:
-        path: Path to YAML profile file
-        
+        path: Path to YAML profile file.
+
     Returns:
-        Parsed DATProfile object
+        Parsed DATProfile Pydantic model.
+
+    Raises:
+        FileNotFoundError: If the file does not exist.
+        yaml.YAMLError: If YAML parsing fails.
+        pydantic.ValidationError: If profile data is invalid.
     """
     path = Path(path)
     with open(path, encoding="utf-8") as f:
         data = yaml.safe_load(f)
-
     return _parse_profile(data)
 
 
 def load_profile_from_string(yaml_content: str) -> DATProfile:
-    """Load a DAT profile from YAML string."""
+    """Load a DAT profile from YAML string.
+
+    Args:
+        yaml_content: YAML content as a string.
+
+    Returns:
+        Parsed DATProfile Pydantic model.
+    """
     data = yaml.safe_load(yaml_content)
     return _parse_profile(data)
 
 
-def _parse_profile(data: dict) -> DATProfile:
-    """Parse profile data dictionary into DATProfile object."""
+def _parse_profile(data: dict[str, Any]) -> DATProfile:
+    """Parse profile data dictionary into DATProfile Pydantic model.
+
+    This function transforms raw YAML dict into strongly-typed Pydantic models.
+    All nested structures are converted to their corresponding contract types.
+
+    Args:
+        data: Raw profile data from YAML.
+
+    Returns:
+        DATProfile instance.
+    """
     meta = data.get("meta", {})
     datasource = data.get("datasource", {})
     population = data.get("population", {})
@@ -360,83 +97,33 @@ def _parse_profile(data: dict) -> DATProfile:
     outputs = data.get("outputs", {})
 
     # Parse context defaults
-    context_defaults = None
-    if "context_defaults" in data:
-        cd = data["context_defaults"]
-        patterns = []
-        for p in cd.get("regex_patterns", []):
-            patterns.append(RegexPattern(
-                field=p.get("field", ""),
-                pattern=p.get("pattern", ""),
-                scope=p.get("scope", "filename"),
-                required=p.get("required", False),
-                description=p.get("description", ""),
-                example=p.get("example", ""),
-            ))
-        context_defaults = ContextDefaults(
-            defaults=cd.get("defaults", {}),
-            regex_patterns=patterns,
-        )
+    context_defaults = _parse_context_defaults(data.get("context_defaults"))
 
     # Parse contexts
-    contexts = []
-    for ctx in data.get("contexts", []):
-        contexts.append(ContextConfig(
-            name=ctx.get("name", ""),
-            level=ctx.get("level", ""),
-            paths=ctx.get("paths", []),
-            key_map=ctx.get("key_map", {}),
-            primary_keys=ctx.get("primary_keys", []),
-            time_fields=ctx.get("time_fields"),
-        ))
+    contexts = [_parse_context_config(ctx) for ctx in data.get("contexts", [])]
 
     # Parse levels and tables
-    levels = []
-    for level_data in data.get("levels", []):
-        tables = []
-        for table_data in level_data.get("tables", []):
-            select_data = table_data.get("select", {})
-            select = TableSelect(
-                strategy=select_data.get("strategy", "flat_object"),
-                path=select_data.get("path", "$"),
-                headers_key=select_data.get("headers_key"),
-                data_key=select_data.get("data_key"),
-                repeat_over=select_data.get("repeat_over"),
-            )
-            tables.append(TableConfig(
-                id=table_data.get("id", ""),
-                label=table_data.get("label", ""),
-                description=table_data.get("description", ""),
-                select=select,
-                stable_columns=table_data.get("stable_columns", []),
-                stable_columns_mode=table_data.get("stable_columns_mode", "warn"),
-                stable_columns_subset=table_data.get("stable_columns_subset", True),
-            ))
-
-        levels.append(LevelConfig(
-            name=level_data.get("name", ""),
-            apply_context=level_data.get("apply_context", ""),
-            tables=tables,
-        ))
+    levels = [_parse_level_config(level_data) for level_data in data.get("levels", [])]
 
     # Parse outputs
-    default_outputs = []
-    for out in outputs.get("defaults", []):
-        default_outputs.append(OutputConfig(
-            id=out.get("id", ""),
-            from_level=out.get("from_level", ""),
-            from_tables=out.get("from_tables", []),
-            include_context=out.get("include_context", True),
-        ))
+    default_outputs = [
+        _parse_output_config(out) for out in outputs.get("defaults", [])
+    ]
+    optional_outputs = [
+        _parse_output_config(out) for out in outputs.get("long_form_optional", [])
+    ]
 
-    optional_outputs = []
-    for out in outputs.get("long_form_optional", []):
-        optional_outputs.append(OutputConfig(
-            id=out.get("id", ""),
-            from_level=out.get("from_level", ""),
-            from_tables=out.get("from_tables", []),
-            include_context=out.get("include_context", True),
-        ))
+    # Parse aggregations and joins
+    aggregations = [
+        _parse_aggregation_config(agg) for agg in outputs.get("aggregations", [])
+    ]
+    joins = [_parse_join_output_config(j) for j in outputs.get("joins", [])]
+
+    # Parse UI config
+    ui = _parse_ui_config(data.get("ui"))
+
+    # Parse governance
+    governance = _parse_governance_config(data.get("governance"))
 
     return DATProfile(
         schema_version=data.get("schema_version", "1.0.0"),
@@ -449,6 +136,10 @@ def _parse_profile(data: dict) -> DATProfile:
         modified_at=_parse_datetime(meta.get("modified_at")),
         revision=meta.get("revision", 1),
         hash=meta.get("hash", ""),
+        owner=meta.get("owner", ""),
+        classification=meta.get("classification", "internal"),
+        domain=meta.get("domain", ""),
+        tags=meta.get("tags", []),
         datasource_id=datasource.get("id", ""),
         datasource_label=datasource.get("label", ""),
         datasource_format=datasource.get("format", "json"),
@@ -462,13 +153,298 @@ def _parse_profile(data: dict) -> DATProfile:
         nan_values=normalization.get("nan_values", []),
         units_policy=normalization.get("units_policy", "preserve"),
         numeric_coercion=normalization.get("numeric_coercion", True),
+        nan_replacement=normalization.get("nan_replacement"),
+        numeric_errors=normalization.get("numeric_errors"),
+        string_strip=normalization.get("string_strip"),
+        string_case=normalization.get("string_case"),
+        column_renames=data.get("column_renames", {}),
+        calculated_columns=data.get("calculated_columns", []),
+        type_coercion=data.get("type_coercion", []),
+        row_filters=data.get("row_filters", []),
         default_outputs=default_outputs,
         optional_outputs=optional_outputs,
+        aggregations=aggregations,
+        joins=joins,
+        ui=ui,
+        schema_rules=data.get("schema_rules", {}),
+        row_rules=data.get("row_rules", []),
+        aggregate_rules=data.get("aggregate_rules", []),
+        on_validation_fail=data.get("on_validation_fail", "continue"),
+        quarantine_table=data.get("quarantine_table", "validation_failures"),
+        governance=governance,
+    )
+
+
+def _parse_context_defaults(data: dict[str, Any] | None) -> ContextDefaults | None:
+    """Parse context_defaults section into Pydantic model."""
+    if not data:
+        return None
+
+    regex_patterns = []
+    for p in data.get("regex_patterns", []):
+        scope_str = p.get("scope", "filename")
+        scope = RegexScope(scope_str) if scope_str in RegexScope._value2member_map_ else RegexScope.FILENAME
+        on_fail_str = p.get("on_fail", "warn")
+        on_fail = OnFailBehavior(on_fail_str) if on_fail_str in OnFailBehavior._value2member_map_ else OnFailBehavior.WARN
+        regex_patterns.append(
+            RegexPattern(
+                field=p.get("field", ""),
+                pattern=p.get("pattern", ""),
+                scope=scope,
+                required=p.get("required", False),
+                description=p.get("description", ""),
+                example=p.get("example", ""),
+                transform=p.get("transform"),
+                transform_args=p.get("transform_args", {}),
+                on_fail=on_fail,
+            )
+        )
+
+    content_patterns = []
+    for p in data.get("content_patterns", []):
+        on_fail_str = p.get("on_fail", "warn")
+        on_fail = OnFailBehavior(on_fail_str) if on_fail_str in OnFailBehavior._value2member_map_ else OnFailBehavior.WARN
+        content_patterns.append(
+            ContentPattern(
+                field=p.get("field", ""),
+                path=p.get("path", ""),
+                required=p.get("required", False),
+                default=p.get("default"),
+                description=p.get("description", ""),
+                example=p.get("example", ""),
+                on_fail=on_fail,
+            )
+        )
+
+    return ContextDefaults(
+        defaults=data.get("defaults", {}),
+        regex_patterns=regex_patterns,
+        content_patterns=content_patterns,
+        allow_user_override=data.get("allow_user_override", []),
+    )
+
+
+def _parse_context_config(data: dict[str, Any]) -> ContextConfig:
+    """Parse a single context configuration."""
+    return ContextConfig(
+        name=data.get("name", ""),
+        level=data.get("level", ""),
+        paths=data.get("paths", []),
+        key_map=data.get("key_map", {}),
+        primary_keys=data.get("primary_keys", []),
+        time_fields=data.get("time_fields"),
+    )
+
+
+def _parse_level_config(data: dict[str, Any]) -> LevelConfig:
+    """Parse a level configuration with its tables."""
+    tables = [_parse_table_config(t) for t in data.get("tables", [])]
+    return LevelConfig(
+        name=data.get("name", ""),
+        apply_context=data.get("apply_context", ""),
+        tables=tables,
+    )
+
+
+def _parse_table_config(data: dict[str, Any]) -> TableConfig:
+    """Parse a table configuration with its select strategy."""
+    select_data = data.get("select", {})
+    select = _parse_select_config(select_data)
+    return TableConfig(
+        id=data.get("id", ""),
+        label=data.get("label", ""),
+        description=data.get("description", ""),
+        select=select,
+        stable_columns=data.get("stable_columns", []),
+        stable_columns_mode=data.get("stable_columns_mode", "warn"),
+        stable_columns_subset=data.get("stable_columns_subset", True),
+        validation_constraints=data.get("validation_constraints", []),
+        column_transforms=data.get("column_transforms", []),
+    )
+
+
+def _parse_select_config(data: dict[str, Any]) -> SelectConfig:
+    """Parse extraction strategy configuration."""
+    strategy_str = data.get("strategy", "flat_object")
+    strategy = StrategyType(strategy_str) if strategy_str in StrategyType._value2member_map_ else StrategyType.FLAT_OBJECT
+
+    repeat_over = None
+    if data.get("repeat_over"):
+        ro = data["repeat_over"]
+        repeat_over = RepeatOverConfig(
+            path=ro.get("path", ""),
+            as_var=ro.get("as", ro.get("as_var", "")),
+            inject_fields=ro.get("inject_fields", {}),
+        )
+
+    left = None
+    if data.get("left"):
+        left = JoinConfig(path=data["left"].get("path", ""), key=data["left"].get("key", ""))
+
+    right = None
+    if data.get("right"):
+        right = JoinConfig(path=data["right"].get("path", ""), key=data["right"].get("key", ""))
+
+    from shared.contracts.dat.profile import JoinHow
+    how_str = data.get("how", "left")
+    how = JoinHow(how_str) if how_str in JoinHow._value2member_map_ else JoinHow.LEFT
+
+    return SelectConfig(
+        strategy=strategy,
+        path=data.get("path", "$"),
+        headers_key=data.get("headers_key"),
+        data_key=data.get("data_key"),
+        repeat_over=repeat_over,
+        fields=data.get("fields"),
+        flatten_nested=data.get("flatten_nested", False),
+        flatten_separator=data.get("flatten_separator", "_"),
+        infer_headers=data.get("infer_headers", False),
+        default_headers=data.get("default_headers"),
+        id_vars=data.get("id_vars"),
+        value_vars=data.get("value_vars"),
+        var_name=data.get("var_name", "variable"),
+        value_name=data.get("value_name", "value"),
+        left=left,
+        right=right,
+        how=how,
+    )
+
+
+def _parse_output_config(data: dict[str, Any]) -> OutputConfig:
+    """Parse output configuration."""
+    return OutputConfig(
+        id=data.get("id", ""),
+        from_level=data.get("from_level", ""),
+        from_tables=data.get("from_tables", []),
+        include_context=data.get("include_context", True),
+        format=data.get("format", "parquet"),
+    )
+
+
+def _parse_aggregation_config(data: dict[str, Any]) -> AggregationConfig:
+    """Parse aggregation configuration."""
+    return AggregationConfig(
+        id=data.get("id", ""),
+        from_table=data.get("from_table", ""),
+        group_by=data.get("group_by", []),
+        aggregations=data.get("aggregations", {}),
+        output_table=data.get("output_table", ""),
+    )
+
+
+def _parse_join_output_config(data: dict[str, Any]) -> JoinOutputConfig:
+    """Parse join output configuration."""
+    from shared.contracts.dat.profile import JoinHow
+    how_str = data.get("how", "left")
+    how = JoinHow(how_str) if how_str in JoinHow._value2member_map_ else JoinHow.LEFT
+    return JoinOutputConfig(
+        id=data.get("id", ""),
+        left_table=data.get("left_table", ""),
+        right_table=data.get("right_table", ""),
+        on=data.get("on", []),
+        how=how,
+    )
+
+
+def _parse_ui_config(data: dict[str, Any] | None) -> UIConfig | None:
+    """Parse UI configuration hints."""
+    if not data:
+        return None
+
+    table_selection = None
+    if data.get("table_selection"):
+        ts = data["table_selection"]
+        table_selection = UITableSelectionConfig(
+            group_by_level=ts.get("group_by_level", True),
+            default_selected=ts.get("default_selected", {}),
+            collapsed_by_default=ts.get("collapsed_by_default", []),
+        )
+
+    preview = None
+    if data.get("preview"):
+        pv = data["preview"]
+        preview = UIPreviewConfig(
+            max_rows=pv.get("max_rows", 100),
+            max_columns=pv.get("max_columns", 50),
+            column_width=pv.get("column_width", "auto"),
+            number_format=pv.get("number_format", "0.0000"),
+            date_format=pv.get("date_format", "YYYY-MM-DD HH:mm:ss"),
+            null_display=pv.get("null_display", "—"),
+        )
+
+    return UIConfig(
+        show_file_preview=data.get("show_file_preview", True),
+        max_preview_files=data.get("max_preview_files", 10),
+        highlight_matching=data.get("highlight_matching", True),
+        table_selection=table_selection,
+        preview=preview,
+        show_regex_matches=data.get("show_regex_matches", True),
+        editable_fields=data.get("editable_fields", []),
+        readonly_fields=data.get("readonly_fields", []),
+        default_name_template=data.get("default_name_template", "{profile_title} - {lot_id}"),
+        show_row_count=data.get("show_row_count", True),
+        show_column_list=data.get("show_column_list", True),
+        allow_format_selection=data.get("allow_format_selection", True),
+        formats=data.get("formats", ["parquet", "csv", "excel"]),
+    )
+
+
+def _parse_governance_config(data: dict[str, Any] | None) -> GovernanceConfig | None:
+    """Parse governance configuration."""
+    if not data:
+        return None
+
+    access = None
+    if data.get("access"):
+        a = data["access"]
+        access = GovernanceAccessConfig(
+            read=a.get("read", ["all"]),
+            modify=a.get("modify", ["admin"]),
+            delete=a.get("delete", ["admin"]),
+        )
+
+    audit = None
+    if data.get("audit"):
+        au = data["audit"]
+        audit = GovernanceAuditConfig(
+            log_access=au.get("log_access", True),
+            log_modifications=au.get("log_modifications", True),
+            retention_days=au.get("retention_days", 365),
+        )
+
+    compliance = None
+    if data.get("compliance"):
+        c = data["compliance"]
+        compliance = GovernanceComplianceConfig(
+            data_classification=c.get("data_classification", "internal"),
+            pii_columns=c.get("pii_columns", []),
+            mask_in_preview=c.get("mask_in_preview", []),
+        )
+
+    limits = None
+    if data.get("limits"):
+        lm = data["limits"]
+        limits = GovernanceLimitsConfig(
+            max_files_per_run=lm.get("max_files_per_run", 1000),
+            max_file_size_mb=lm.get("max_file_size_mb", 500),
+            max_total_size_gb=lm.get("max_total_size_gb", 10),
+            max_rows_output=lm.get("max_rows_output", 10_000_000),
+            max_tables_per_level=lm.get("max_tables_per_level", 50),
+            max_columns_per_table=lm.get("max_columns_per_table", 500),
+            parse_timeout_seconds=lm.get("parse_timeout_seconds", 3600),
+            preview_timeout_seconds=lm.get("preview_timeout_seconds", 30),
+        )
+
+    return GovernanceConfig(
+        access=access,
+        audit=audit,
+        compliance=compliance,
+        limits=limits,
     )
 
 
 def _parse_datetime(value: str | None) -> datetime | None:
-    """Parse datetime string to datetime object."""
+    """Parse ISO-8601 datetime string to datetime object."""
     if not value:
         return None
     try:
@@ -478,9 +454,13 @@ def _parse_datetime(value: str | None) -> datetime | None:
 
 
 def get_builtin_profiles() -> dict[str, Path]:
-    """Get dictionary of built-in profile IDs to file paths."""
+    """Get dictionary of built-in profile IDs to file paths.
+
+    Returns:
+        Mapping of profile_id to Path for all YAML profiles in this directory.
+    """
     profiles_dir = Path(__file__).parent
-    profiles = {}
+    profiles: dict[str, Path] = {}
 
     for yaml_file in profiles_dir.glob("*.yaml"):
         try:
@@ -496,7 +476,14 @@ def get_builtin_profiles() -> dict[str, Path]:
 
 
 def get_profile_by_id(profile_id: str) -> DATProfile | None:
-    """Load a built-in profile by its ID."""
+    """Load a built-in profile by its ID.
+
+    Args:
+        profile_id: The profile_id to look up.
+
+    Returns:
+        DATProfile if found, None otherwise.
+    """
     profiles = get_builtin_profiles()
     if profile_id in profiles:
         return load_profile(profiles[profile_id])
@@ -543,7 +530,7 @@ def validate_profile(
             for table in level.tables:
                 if not table.id:
                     errors.append(f"Table in level '{level.name}' has no id")
-                if table.select and not table.select.path:
+                if not table.select.path:
                     errors.append(
                         f"Table '{table.id}' in level '{level.name}' has no select path"
                     )
@@ -560,9 +547,7 @@ def validate_profile(
                 try:
                     re.compile(pattern.pattern)
                 except re.error as e:
-                    errors.append(
-                        f"Invalid regex pattern for '{pattern.field}': {e}"
-                    )
+                    errors.append(f"Invalid regex pattern for '{pattern.field}': {e}")
 
     # Validate contexts
     for ctx in profile.contexts:
@@ -595,10 +580,7 @@ def validate_profile(
 
     # Validate against source columns if provided
     if source_columns:
-        # Check for columns that might not be mapped
-        # This is a basic check - full mapping validation would need column mappings
         for col in source_columns:
-            # Check if column appears in any context key_map
             is_mapped = False
             for ctx in profile.contexts:
                 if col in ctx.key_map.values():

@@ -11,9 +11,13 @@ from typing import Any
 
 import polars as pl
 
-from .profile_loader import DATProfile, TableConfig, TableSelect
+from shared.contracts.dat.profile import (
+    DATProfile,
+    TableConfig,
+    SelectConfig,
+    RepeatOverConfig,
+)
 from .strategies import get_strategy
-from .strategies.base import SelectConfig, RepeatOverConfig
 from .file_filter import filter_files
 from .transform_pipeline import TransformPipeline, ColumnTransform
 
@@ -267,11 +271,11 @@ class ProfileExecutor:
             logger.warning(f"No select config for table {table_config.id}")
             return pl.DataFrame()
         
-        # Build SelectConfig from profile TableSelect
-        select_config = self._build_select_config(table_config.select)
+        # table_config.select is now a Tier-0 SelectConfig directly
+        select_config = table_config.select
         
-        # Get strategy
-        strategy_name = select_config.strategy
+        # Get strategy (strategy is now a StrategyType enum)
+        strategy_name = select_config.strategy.value if hasattr(select_config.strategy, 'value') else str(select_config.strategy)
         
         # Handle repeat_over - it wraps the base strategy
         if select_config.repeat_over:
@@ -285,24 +289,6 @@ class ProfileExecutor:
         
         # Execute extraction
         return strategy.extract(data, select_config, context)
-    
-    def _build_select_config(self, table_select: TableSelect) -> SelectConfig:
-        """Build SelectConfig from profile TableSelect."""
-        repeat_over = None
-        if table_select.repeat_over:
-            repeat_over = RepeatOverConfig(
-                path=table_select.repeat_over.get("path", ""),
-                as_var=table_select.repeat_over.get("as", ""),
-                inject_fields=table_select.repeat_over.get("inject_fields", {}),
-            )
-        
-        return SelectConfig(
-            strategy=table_select.strategy,
-            path=table_select.path,
-            headers_key=table_select.headers_key,
-            data_key=table_select.data_key,
-            repeat_over=repeat_over,
-        )
     
     def _apply_context(
         self,

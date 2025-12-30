@@ -143,7 +143,7 @@ class FileFilter:
         if field_name == "filename":
             return file_path.name
         elif field_name == "extension":
-            return file_path.suffix.lstrip(".")
+            return file_path.suffix
         elif field_name == "path":
             return str(file_path.parent)
         elif field_name == "full_path":

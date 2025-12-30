@@ -31,6 +31,7 @@ class OutputBuilder:
         extracted_tables: dict[str, pl.DataFrame],
         profile: DATProfile,
         selected_outputs: list[str] | None = None,
+        context: dict[str, Any] | None = None,
     ) -> dict[str, pl.DataFrame]:
         """Build final output DataFrames.
         
@@ -51,7 +52,7 @@ class OutputBuilder:
             if selected_outputs and output_config.id not in selected_outputs:
                 continue
             
-            df = self._build_output(output_config, extracted_tables)
+            df = self._build_output(output_config, extracted_tables, context)
             if not df.is_empty():
                 outputs[output_config.id] = df
         
@@ -60,7 +61,7 @@ class OutputBuilder:
             if selected_outputs and output_config.id not in selected_outputs:
                 continue
             
-            df = self._build_output(output_config, extracted_tables)
+            df = self._build_output(output_config, extracted_tables, context)
             if not df.is_empty():
                 outputs[output_config.id] = df
         
@@ -139,12 +140,14 @@ class OutputBuilder:
         self,
         config: OutputConfig,
         tables: dict[str, pl.DataFrame],
+        context: dict[str, Any] | None = None,
     ) -> pl.DataFrame:
         """Build single output by combining specified tables.
         
         Args:
             config: Output configuration
             tables: Extracted tables
+            context: Optional context to append when include_context is true
             
         Returns:
             Combined DataFrame
@@ -161,7 +164,15 @@ class OutputBuilder:
             return pl.DataFrame()
         
         # Concatenate tables diagonally (union of columns)
-        return pl.concat(dfs, how="diagonal")
+        combined = pl.concat(dfs, how="diagonal")
+        
+        # Include context columns if requested
+        if config.include_context and context:
+            for key, value in context.items():
+                if key not in combined.columns:
+                    combined = combined.with_columns(pl.lit(value).alias(key))
+        
+        return combined
     
     def apply_aggregation(
         self,
@@ -352,6 +363,7 @@ def build_outputs(
     extracted_tables: dict[str, pl.DataFrame],
     profile: DATProfile,
     selected_outputs: list[str] | None = None,
+    context: dict[str, Any] | None = None,
 ) -> dict[str, pl.DataFrame]:
     """Convenience function for building outputs.
     
@@ -359,9 +371,10 @@ def build_outputs(
         extracted_tables: Dict of table_id to DataFrame
         profile: DATProfile with output definitions
         selected_outputs: Optional filter
+        context: Optional context to include when outputs request it
         
     Returns:
         Dict of output_id to DataFrame
     """
     builder = OutputBuilder()
-    return builder.build_outputs(extracted_tables, profile, selected_outputs)
+    return builder.build_outputs(extracted_tables, profile, selected_outputs, context)

@@ -12,7 +12,7 @@ This module defines the state machine for DAT's 8-stage pipeline:
   Table Selection → Preview → Parse → Export
 
 Each stage is idempotent: re-running with same inputs produces same outputs.
-Domain-specific logic is injected via ExtractionProfile, not hardcoded here.
+Domain-specific logic is injected via DATProfile, not hardcoded here.
 """
 
 from datetime import datetime
@@ -122,12 +122,12 @@ class ParseStageConfig(BaseModel):
 
     The Parse stage reads raw files and extracts structured data.
     All domain-specific logic (file patterns, column mappings) comes from
-    the ExtractionProfile, not from this config.
+    the DATProfile, not from this config.
     """
 
     profile_id: str = Field(
         ...,
-        description="ExtractionProfile ID defining parsing rules",
+        description="DATProfile ID defining parsing rules",
     )
     source_paths: list[str] = Field(
         ...,

@@ -12,6 +12,9 @@ import pytest
 from apps.data_aggregator.backend.src.dat_aggregation.profiles.profile_loader import (
     load_profile,
     get_profile_by_id,
+    ContextDefaults,
+    ContentPattern,
+    RegexPattern,
 )
 from apps.data_aggregator.backend.src.dat_aggregation.profiles.profile_executor import (
     ProfileExecutor,
@@ -206,6 +209,49 @@ class TestContextExtractor:
         )
         
         assert context["lot_id"] == "OVERRIDE_LOT"
+
+    def test_content_patterns_override_defaults(self, sample_data: dict):
+        """JSONPath content patterns override defaults."""
+        extractor = ContextExtractor()
+        profile = get_profile_by_id("cdsem-metrology-v1")
+        assert profile is not None
+        profile.context_defaults = ContextDefaults(
+            defaults={"total_images": 0},
+            regex_patterns=[
+                RegexPattern(field="total_images", pattern=r"(?P<total_images>999)", scope="filename")
+            ],
+            content_patterns=[
+                ContentPattern(field="total_images", path="$.summary.total_images", required=True)
+            ],
+            allow_user_override=[],
+        )
+        context = extractor.extract(
+            profile=profile,
+            file_path=Path("any.json"),
+            file_content=sample_data,
+            user_overrides=None,
+        )
+        assert context["total_images"] == 50
+
+    def test_user_override_allowlist(self):
+        """User overrides are restricted to allow_user_override list."""
+        extractor = ContextExtractor()
+        profile = get_profile_by_id("cdsem-metrology-v1")
+        assert profile is not None
+        profile.context_defaults = ContextDefaults(
+            defaults={},
+            regex_patterns=[],
+            content_patterns=[],
+            allow_user_override=["wafer_id"],
+        )
+        context = extractor.extract(
+            profile=profile,
+            file_path=Path("LOTABC12345_W01_measurement.json"),
+            file_content=None,
+            user_overrides={"wafer_id": "W99", "lot_id": "BLOCKED"},
+        )
+        assert context["wafer_id"] == "W99"
+        assert "lot_id" not in context
 
 
 class TestValidationEngine:

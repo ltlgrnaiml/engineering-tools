@@ -6,16 +6,13 @@ Per ADR-0013: Cancellation events are logged for audit.
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Body
 
 from shared.contracts.dat.cancellation import (
     CancellationAuditLog,
     CleanupTarget,
 )
-from shared.contracts.dat.profile import (
-    CreateProfileRequest,
-    UpdateProfileRequest,
-)
+from shared.contracts.dat.profile import DATProfile
 from apps.data_aggregator.backend.services.cleanup import cleanup
 from apps.data_aggregator.backend.services.profile_service import ProfileService
 from shared.contracts.core.path_safety import make_relative
@@ -79,18 +76,37 @@ def _raise_error(
     )
 
 
-@router.post("/runs", response_model=CreateRunResponse)
-async def create_run(request: CreateRunRequest):
+@router.post("/runs", response_model=RunResponse)
+async def create_run(request: CreateRunRequest | None = Body(default=None)):
     """Create a new DAT run."""
+    if request is None:
+        request = CreateRunRequest()
     run = await run_manager.create_run(
         name=request.name,
         profile_id=request.profile_id,
     )
-    return CreateRunResponse(
+    sm = run_manager.get_state_machine(run["run_id"])
+    statuses = await sm.get_all_statuses()
+
+    stages: dict[str, StageStatusResponse] = {}
+    for stage, status in statuses.items():
+        stages[stage.value] = StageStatusResponse(
+            stage=status.stage.value,
+            state=status.state.value,
+            stage_id=status.stage_id,
+            locked_at=status.locked_at,
+            unlocked_at=status.unlocked_at,
+            completed=status.completed,
+            error=status.error,
+        )
+
+    return RunResponse(
         run_id=run["run_id"],
         name=run["name"],
         created_at=run["created_at"],
         profile_id=run.get("profile_id"),
+        current_stage=Stage.SELECTION.value,
+        stages=stages,
     )
 
 
@@ -431,6 +447,12 @@ async def lock_parse(run_id: str, request: ParseRequest | None = None, backgroun
     """Lock parse stage - start data extraction."""
     sm = run_manager.get_state_machine(run_id)
 
+    # Verify run exists and capture run-level profile_id
+    run = await run_manager.get_run(run_id)
+    if not run:
+        raise HTTPException(status_code=404, detail="Run not found")
+    run_profile_id = run.get("profile_id")
+
     # Get selection result for file list
     selection_status = await sm.store.get_stage_status(run_id, Stage.SELECTION)
     if selection_status.state != StageState.LOCKED:
@@ -445,13 +467,24 @@ async def lock_parse(run_id: str, request: ParseRequest | None = None, backgroun
         table_artifact = await sm.store.get_artifact(run_id, Stage.TABLE_SELECTION, table_status.stage_id)
         selected_tables = table_artifact.get("selected_tables", {})
 
+    # Get context artifact (profile_id override)
+    context_status = await sm.store.get_stage_status(run_id, Stage.CONTEXT)
+    context_profile_id = None
+    if context_status.state == StageState.LOCKED and context_status.stage_id:
+        context_artifact = await sm.store.get_artifact(run_id, Stage.CONTEXT, context_status.stage_id)
+        context_profile_id = context_artifact.get("profile_id") if context_artifact else None
+
     # Handle optional request body
     column_mappings = request.column_mappings if request else None
+
+    # Resolve profile_id precedence: context override > run default
+    profile_id = context_profile_id or run_profile_id
 
     config = ParseConfig(
         selected_files=[Path(p) for p in selection_artifact.get("selected_files", [])],
         selected_tables=selected_tables,
         column_mappings=column_mappings,
+        profile_id=profile_id,
     )
 
     # Create cancellation token
@@ -479,6 +512,7 @@ async def lock_parse(run_id: str, request: ParseRequest | None = None, backgroun
             "files": selection_artifact.get("selected_files", []),
             "tables": selected_tables,
             "mappings": column_mappings,
+            "profile_id": profile_id,
         }
         status = await sm.lock_stage(Stage.PARSE, inputs=inputs, execute_fn=execute)
 
@@ -1434,13 +1468,14 @@ async def cleanup_run(
 
 
 @router.post("/profiles")
-async def create_profile(request: CreateProfileRequest):
+async def create_profile(data: dict = Body(...)):
     """Create a new extraction profile.
 
     Per SPEC-DAT-0005: Profile management with deterministic IDs.
+    Accepts DATProfile-compatible JSON body.
     """
     try:
-        return await profile_service.create(request)
+        return await profile_service.create(data)
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
 
@@ -1455,9 +1490,9 @@ async def get_profile(profile_id: str):
 
 
 @router.put("/profiles/{profile_id}")
-async def update_profile(profile_id: str, request: UpdateProfileRequest):
+async def update_profile(profile_id: str, updates: dict = Body(...)):
     """Update an existing profile."""
-    profile = await profile_service.update(profile_id, request)
+    profile = await profile_service.update(profile_id, updates)
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")
     return profile

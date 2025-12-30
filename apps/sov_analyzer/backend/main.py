@@ -53,7 +53,12 @@ app.include_router(router, tags=["sov"])
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
-    return {"status": "healthy", "tool": "sov", "version": "0.1.0"}
+    return {
+        "status": "healthy",
+        "service": "sov-analyzer",
+        "tool": "sov",
+        "version": "0.1.0",
+    }
 
 
 if __name__ == "__main__":
