@@ -210,6 +210,48 @@ Plans support **tiered granularity** for cost-effective AI execution (per ADR-00
 
 **Expanding tasks**: Start at L1, ask AI to expand specific tasks to L2/L3 as needed.
 
+### L3 Chunking Protocol (Budget Models)
+
+For L3 plans targeting budget models (Haiku, Flash, Grok, GPT-4o-mini), plans are **chunked** to fit smaller context windows.
+
+**Chunk Limits** (per ADR-0041):
+
+| Limit | Lines | Rationale |
+|-------|-------|-----------|
+| Target | 600 | Optimal for budget model context |
+| Soft | 800 | Acceptable with justification |
+
+**L3 Directory Structure**:
+
+```text
+.plans/L3/PLAN-001/
+├── INDEX.json              # Master index (read first!)
+├── PLAN-001_L3_M1.json     # Milestone 1 chunk
+├── PLAN-001_L3_M2.json     # Milestone 2 chunk
+└── ...
+```
+
+**INDEX.json** contains:
+- `current_chunk`: Which chunk to execute next
+- `continuation_context`: Files created, patterns established
+- `execution_history`: Which models executed which chunks
+
+**Chunk Execution Protocol**:
+
+1. **Before**: Read INDEX.json, create session file, run baseline tests
+2. **During**: Follow steps exactly, verify each step, checkpoint every 5 tasks
+3. **After**: Update INDEX.json, add to execution_history, commit
+
+**Verification Strictness by Granularity**:
+
+| Granularity | On Failure |
+|-------------|------------|
+| L1 (Premium) | Log and continue |
+| L2 (Mid-tier) | Log, continue with caution |
+| L3 (Budget) | STOP and create `.questions/` file |
+
+See `AGENTS.md` for full L3 Execution Protocol.
+
 ### Phase 6: Fragment Execution (T5)
 
 **When**: Executing plan tasks.
