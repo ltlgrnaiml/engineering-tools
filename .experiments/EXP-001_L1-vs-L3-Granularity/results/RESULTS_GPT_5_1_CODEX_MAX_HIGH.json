@@ -1,0 +1,63 @@
+{
+  "experiment_id": "EXP-001",
+  "branch": "experiment/l3-gpt51",
+  "model": {
+    "model_id": "gpt-5.1-codex-max-high",
+    "model_name": "GPT-5.1 Codex Max High",
+    "cost_multiplier": 1,
+    "granularity": "L3"
+  },
+  "execution": {
+    "speed_score": 3,
+    "notes": "User-defined speed score (5=fast, 4=medium, 3=slow, 0=very slow)"
+  },
+  "verifications": {
+    "T-M1-01_contracts": {
+      "command": "python -c \"from shared.contracts.devtools.workflow import ArtifactType, GraphNode\"",
+      "passed": true,
+      "file_exists": "shared/contracts/devtools/workflow.py (3450 bytes)"
+    },
+    "T-M1-02_service": {
+      "command": "test -f gateway/services/workflow_service.py",
+      "passed": true,
+      "file_exists": "gateway/services/workflow_service.py (6039 bytes)"
+    },
+    "T-M1-03_list_endpoint": {
+      "command": "test -f gateway/routes/devtools.py",
+      "passed": true,
+      "notes": "Created gateway/routes/devtools.py (different from expected location)"
+    },
+    "T-M1-04_graph_endpoint": {
+      "command": "grep artifacts gateway/routes/devtools.py",
+      "passed": true,
+      "notes": "Endpoints in routes/devtools.py"
+    },
+    "T-M1-05_crud_endpoints": {
+      "command": "grep -E POST|PUT|DELETE gateway/routes/devtools.py",
+      "passed": true,
+      "notes": "CRUD endpoints implemented"
+    },
+    "T-M1-06_tests": {
+      "command": "test -f tests/gateway/test_devtools_workflow.py",
+      "passed": true,
+      "file_exists": "tests/gateway/test_devtools_workflow.py (1994 bytes)"
+    }
+  },
+  "l3_adherence": {
+    "followed_steps": true,
+    "used_code_snippets": true,
+    "version_format": "YES - __version__ = '2025.12.01'",
+    "architecture_style": "Functional (correct)",
+    "param_naming": "Correct",
+    "var_naming": "Correct - uses ARTIFACT_DIRECTORIES",
+    "enum_values": "Close - has RESOLVED instead of COMPLETED, has TRACKED_BY extra",
+    "file_locations": "Different - used gateway/routes/ instead of devtools_service.py"
+  },
+  "scores": {
+    "tasks_passed": 6,
+    "tasks_total": 6,
+    "completion_rate": 100.0
+  },
+  "recorded_at": "2025-12-30T12:03:00",
+  "recorded_by": "manual_verification"
+}

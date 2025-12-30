@@ -16,6 +16,7 @@ from fastapi.staticfiles import StaticFiles
 from gateway.services.dataset_service import router as dataset_router
 from gateway.services.pipeline_service import router as pipeline_router
 from gateway.services.devtools_service import router as devtools_router
+from gateway.routes.devtools import router as workflow_router
 
 __version__ = "0.1.0"
 
@@ -43,6 +44,7 @@ app.add_middleware(
 app.include_router(dataset_router, prefix="/api/datasets", tags=["datasets"])
 app.include_router(pipeline_router, prefix="/api/pipelines", tags=["pipelines"])
 app.include_router(devtools_router, prefix="/api/devtools", tags=["devtools"])
+app.include_router(workflow_router, prefix="/api/devtools", tags=["devtools-workflow"])
 
 
 # === Health Check ===
