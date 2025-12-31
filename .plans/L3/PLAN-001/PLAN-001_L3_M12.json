@@ -1,0 +1,220 @@
+{
+  "chunk_id": "M12",
+  "plan_id": "PLAN-001",
+  "milestone_name": "AI-Full Mode Implementation",
+  "created_date": "2025-12-30",
+  "target_line_count": 600,
+  "actual_line_count": 480,
+
+  "objective": "Implement Phase 2 AI-Full mode with one-click artifact generation, review/approve UI, and end-to-end workflow automation.",
+
+  "prerequisites": [
+    "M11 completed",
+    "Backend API running",
+    "Workflow modes (Manual, AI-Lite) working"
+  ],
+
+  "tasks": [
+    {
+      "id": "T-M12-01",
+      "description": "Add GenerationRequest and GenerationResponse models to workflow.py",
+      "status": "pending",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Add GenerationRequest model with workflow_id, target_types, context fields",
+          "verification_hint": "grep GenerationRequest shared/contracts/devtools/workflow.py"
+        },
+        {
+          "step": 2,
+          "action": "Add GenerationResponse model with artifacts list, status, errors fields",
+          "verification_hint": "grep GenerationResponse shared/contracts/devtools/workflow.py"
+        },
+        {
+          "step": 3,
+          "action": "Add GenerationStatus enum (pending, generating, completed, failed)",
+          "verification_hint": "grep GenerationStatus shared/contracts/devtools/workflow.py"
+        }
+      ],
+      "verification_command": "python -c \"from shared.contracts.devtools.workflow import GenerationRequest, GenerationResponse; print('OK')\"",
+      "context": [
+        "MODEL GenerationRequest: workflow_id (str), target_types (list[ArtifactType]), context (dict)",
+        "MODEL GenerationResponse: artifacts (list[ArtifactSummary]), status (GenerationStatus), errors (list[str])"
+      ]
+    },
+    {
+      "id": "T-M12-02",
+      "description": "Add generate_artifact_content function to workflow_service.py",
+      "status": "pending",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Add GENERATION_TEMPLATES dict with templates per artifact type",
+          "verification_hint": "grep GENERATION_TEMPLATES gateway/services/workflow_service.py"
+        },
+        {
+          "step": 2,
+          "action": "Add generate_artifact_content function",
+          "verification_hint": "grep 'def generate_artifact_content' gateway/services/workflow_service.py"
+        }
+      ],
+      "verification_command": "grep \"generate_artifact_content\" gateway/services/workflow_service.py",
+      "context": [
+        "FUNCTION: def generate_artifact_content(artifact_type: ArtifactType, context: dict) -> dict",
+        "TEMPLATES: Return template-based content for now, AI integration later"
+      ]
+    },
+    {
+      "id": "T-M12-03",
+      "description": "Add generate_full_workflow function for one-click creation",
+      "status": "pending",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Add generate_full_workflow function that creates all artifacts in sequence",
+          "verification_hint": "grep 'def generate_full_workflow' gateway/services/workflow_service.py"
+        }
+      ],
+      "verification_command": "grep \"generate_full_workflow\" gateway/services/workflow_service.py",
+      "context": [
+        "FUNCTION: def generate_full_workflow(workflow_id: str, title: str, description: str) -> list[ArtifactSummary]",
+        "LOGIC: Create DISC → ADR → SPEC → Plan with generated content"
+      ]
+    },
+    {
+      "id": "T-M12-04",
+      "description": "Add POST /api/devtools/artifacts/generate endpoint",
+      "status": "pending",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Add generate_artifacts_endpoint to devtools_service.py",
+          "verification_hint": "grep 'artifacts/generate' gateway/services/devtools_service.py"
+        }
+      ],
+      "verification_command": "grep \"artifacts/generate\" gateway/services/devtools_service.py",
+      "context": [
+        "ENDPOINT: POST /api/devtools/artifacts/generate",
+        "REQUEST: GenerationRequest",
+        "RESPONSE: GenerationResponse"
+      ]
+    },
+    {
+      "id": "T-M12-05",
+      "description": "Add POST /api/devtools/workflows/{id}/generate-all endpoint",
+      "status": "pending",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Add generate_all_endpoint for one-click full workflow generation",
+          "verification_hint": "grep 'generate-all' gateway/services/devtools_service.py"
+        }
+      ],
+      "verification_command": "grep \"generate-all\" gateway/services/devtools_service.py",
+      "context": [
+        "ENDPOINT: POST /api/devtools/workflows/{id}/generate-all",
+        "ONLY: Available in AI-Full mode"
+      ]
+    },
+    {
+      "id": "T-M12-06",
+      "description": "Create GenerateWorkflowModal.tsx component",
+      "status": "pending",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Create GenerateWorkflowModal.tsx with form and generate button",
+          "verification_hint": "grep GenerateWorkflowModal apps/homepage/frontend/src/components/workflow/GenerateWorkflowModal.tsx"
+        }
+      ],
+      "verification_command": "grep \"GenerateWorkflowModal\" apps/homepage/frontend/src/components/workflow/GenerateWorkflowModal.tsx",
+      "context": [
+        "UI: Modal with title, description inputs",
+        "BUTTON: Generate Full Workflow",
+        "PROGRESS: Show generation status"
+      ]
+    },
+    {
+      "id": "T-M12-07",
+      "description": "Create ReviewApprovePanel.tsx for generated content",
+      "status": "pending",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Create ReviewApprovePanel.tsx with artifact list and approve/reject buttons",
+          "verification_hint": "grep ReviewApprovePanel apps/homepage/frontend/src/components/workflow/ReviewApprovePanel.tsx"
+        }
+      ],
+      "verification_command": "grep \"ReviewApprovePanel\" apps/homepage/frontend/src/components/workflow/ReviewApprovePanel.tsx",
+      "context": [
+        "UI: List of generated artifacts with preview",
+        "ACTIONS: Approve, Edit, Reject per artifact",
+        "BATCH: Approve All button"
+      ]
+    },
+    {
+      "id": "T-M12-08",
+      "description": "Write unit tests for AI-Full mode endpoints",
+      "status": "pending",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Add TestAIFullMode class to test_devtools_workflow.py",
+          "verification_hint": "grep TestAIFullMode tests/gateway/test_devtools_workflow.py"
+        },
+        {
+          "step": 2,
+          "action": "Add test_generate_artifact_content test",
+          "verification_hint": "grep test_generate_artifact tests/gateway/test_devtools_workflow.py"
+        },
+        {
+          "step": 3,
+          "action": "Add test_generate_full_workflow test",
+          "verification_hint": "grep test_generate_full_workflow tests/gateway/test_devtools_workflow.py"
+        }
+      ],
+      "verification_command": "pytest tests/gateway/test_devtools_workflow.py -k generate -v",
+      "context": [
+        "TESTS: test_generate_artifact_content, test_generate_full_workflow",
+        "ASSERTIONS: Verify artifacts are created with content"
+      ]
+    }
+  ],
+
+  "acceptance_criteria": [
+    {
+      "id": "AC-M12-01",
+      "description": "Generation contracts importable",
+      "verification_command": "python -c \"from shared.contracts.devtools.workflow import GenerationRequest, GenerationResponse; print('OK')\""
+    },
+    {
+      "id": "AC-M12-02",
+      "description": "Generate endpoint exists",
+      "verification_command": "grep 'artifacts/generate' gateway/services/devtools_service.py"
+    },
+    {
+      "id": "AC-M12-03",
+      "description": "Generate-all endpoint exists",
+      "verification_command": "grep 'generate-all' gateway/services/devtools_service.py"
+    },
+    {
+      "id": "AC-M12-04",
+      "description": "Unit tests pass",
+      "verification_command": "pytest tests/gateway/test_devtools_workflow.py -v"
+    }
+  ],
+
+  "continuation_context": {
+    "from_chunk": "M11",
+    "key_patterns": [
+      "Frontend hooks in shared/frontend/src/hooks/",
+      "API client in shared/frontend/src/api/",
+      "Workflow modes in shared/contracts/devtools/workflow.py"
+    ],
+    "files_to_reference": [
+      "shared/contracts/devtools/workflow.py",
+      "gateway/services/workflow_service.py",
+      "gateway/services/devtools_service.py"
+    ]
+  }
+}

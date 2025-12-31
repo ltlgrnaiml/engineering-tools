@@ -46,6 +46,60 @@ class RelationshipType(str, Enum):
     DEPENDS_ON = "depends_on"
 
 
+class FileFormat(str, Enum):
+    """File format of an artifact."""
+
+    JSON = "json"
+    MARKDOWN = "markdown"
+    PYTHON = "python"
+    UNKNOWN = "unknown"
+
+
+class WorkflowMode(str, Enum):
+    """Workflow automation mode."""
+
+    MANUAL = "manual"
+    AI_LITE = "ai_lite"
+    AI_FULL = "ai_full"
+
+
+class WorkflowScenario(str, Enum):
+    """Workflow entry point scenarios."""
+
+    NEW_FEATURE = "new_feature"
+    BUG_FIX = "bug_fix"
+    ARCHITECTURE_CHANGE = "architecture_change"
+    ENHANCEMENT = "enhancement"
+    DATA_STRUCTURE = "data_structure"
+
+
+class WorkflowStage(str, Enum):
+    """Current stage in the workflow progression."""
+
+    DISCUSSION = "discussion"
+    ADR = "adr"
+    SPEC = "spec"
+    CONTRACT = "contract"
+    PLAN = "plan"
+
+
+# =============================================================================
+# Workflow State Model
+# =============================================================================
+
+
+class WorkflowState(BaseModel):
+    """State of an active workflow session."""
+
+    id: str = Field(..., description="Unique workflow ID (e.g., WF-001)")
+    mode: WorkflowMode = Field(..., description="Automation mode")
+    scenario: WorkflowScenario = Field(..., description="Entry point scenario")
+    title: str = Field(..., description="Workflow title")
+    current_stage: WorkflowStage = Field(..., description="Current workflow stage")
+    artifacts_created: list[str] = Field(default_factory=list, description="IDs of created artifacts")
+    created_at: str = Field(..., description="Creation timestamp ISO format")
+
+
 # =============================================================================
 # Graph Models
 # =============================================================================
@@ -89,6 +143,7 @@ class ArtifactSummary(BaseModel):
     title: str = Field(..., description="Artifact title")
     status: ArtifactStatus = Field(..., description="Current status")
     file_path: str = Field(..., description="Relative path to artifact file")
+    file_format: FileFormat = Field(default=FileFormat.UNKNOWN, description="File format")
     updated_date: str | None = Field(None, description="Last update date (YYYY-MM-DD)")
 
 
@@ -125,3 +180,52 @@ class UpdateArtifactRequest(BaseModel):
     title: str | None = Field(None, description="New title (optional)")
     status: ArtifactStatus | None = Field(None, description="New status (optional)")
     content: dict | None = Field(None, description="Updated content (optional)")
+
+
+class CreateWorkflowRequest(BaseModel):
+    """Request to create a new workflow."""
+
+    mode: WorkflowMode = Field(..., description="Automation mode")
+    scenario: WorkflowScenario = Field(..., description="Entry point scenario")
+    title: str = Field(..., description="Workflow title")
+
+
+class WorkflowResponse(BaseModel):
+    """Response containing workflow state."""
+
+    workflow: WorkflowState = Field(..., description="The workflow state")
+    initial_artifact: ArtifactSummary | None = Field(None, description="Initial artifact if created")
+    message: str = Field(default="Success", description="Operation message")
+
+
+class PromptResponse(BaseModel):
+    """Response containing AI-Lite prompt."""
+
+    prompt: str = Field(..., description="Generated prompt text")
+    target_type: ArtifactType = Field(..., description="Target artifact type")
+    context: dict = Field(default_factory=dict, description="Prompt context metadata")
+
+
+class GenerationStatus(str, Enum):
+    """Status of artifact generation."""
+
+    PENDING = "pending"
+    GENERATING = "generating"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class GenerationRequest(BaseModel):
+    """Request to generate artifact content."""
+
+    workflow_id: str = Field(..., description="Workflow ID")
+    target_types: list[ArtifactType] = Field(..., description="Artifact types to generate")
+    context: dict = Field(default_factory=dict, description="Generation context")
+
+
+class GenerationResponse(BaseModel):
+    """Response from artifact generation."""
+
+    artifacts: list[ArtifactSummary] = Field(default_factory=list, description="Generated artifacts")
+    status: GenerationStatus = Field(default=GenerationStatus.COMPLETED, description="Generation status")
+    errors: list[str] = Field(default_factory=list, description="Any errors encountered")

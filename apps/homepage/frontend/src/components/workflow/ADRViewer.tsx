@@ -20,6 +20,20 @@ function Badge({ children, className, variant = 'default' }: BadgeProps) {
   )
 }
 
+interface AlternativeConsidered {
+  name: string
+  pros: string
+  cons: string
+  rejected_reason: string
+}
+
+interface Guardrail {
+  id: string
+  rule: string
+  enforcement: string
+  scope: string
+}
+
 interface ADRData {
   id?: string
   title?: string
@@ -36,9 +50,9 @@ interface ADRData {
     implementation_specs?: string[]
   }
   consequences?: string[]
-  alternatives_considered?: string[]
+  alternatives_considered?: AlternativeConsidered[]
   tradeoffs?: string
-  guardrails?: string[]
+  guardrails?: Guardrail[]
   cross_cutting_guardrails?: string[]
   references?: string[]
   tags?: string[]
@@ -148,7 +162,27 @@ export function ADRViewer({ content, className }: ADRViewerProps) {
 
       {/* Alternatives Considered */}
       {data.alternatives_considered?.length ? renderSection('Alternatives Considered',
-        renderList(data.alternatives_considered)
+        <div className="space-y-3">
+          {data.alternatives_considered.map((alt, i) => (
+            <div key={i} className="bg-zinc-800/50 rounded-lg p-3 border border-zinc-700">
+              <h4 className="font-medium text-zinc-200 mb-2">{alt.name}</h4>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <span className="text-green-400">Pros:</span>
+                  <p className="text-zinc-300 mt-1">{alt.pros}</p>
+                </div>
+                <div>
+                  <span className="text-red-400">Cons:</span>
+                  <p className="text-zinc-300 mt-1">{alt.cons}</p>
+                </div>
+              </div>
+              <div className="mt-2 text-sm">
+                <span className="text-amber-400">Rejected:</span>
+                <p className="text-zinc-400 mt-1">{alt.rejected_reason}</p>
+              </div>
+            </div>
+          ))}
+        </div>
       ) : null}
 
       {/* Tradeoffs */}
@@ -161,8 +195,23 @@ export function ADRViewer({ content, className }: ADRViewerProps) {
         <div className="space-y-3">
           {data.guardrails?.length ? (
             <div>
-              <h4 className="text-sm font-medium text-zinc-400 mb-1">Specific</h4>
-              {renderList(data.guardrails)}
+              <h4 className="text-sm font-medium text-zinc-400 mb-2">Specific</h4>
+              <div className="space-y-2">
+                {data.guardrails.map((g, i) => (
+                  <div key={i} className="bg-zinc-800/50 rounded p-2 border border-zinc-700 text-sm">
+                    <div className="flex items-center gap-2 mb-1">
+                      <AlertTriangle size={14} className="text-amber-500" />
+                      <span className="font-medium text-zinc-200">{g.rule}</span>
+                    </div>
+                    <div className="ml-5 text-zinc-400">
+                      <span className="text-zinc-500">Enforcement:</span> {g.enforcement}
+                    </div>
+                    <div className="ml-5 text-zinc-400">
+                      <span className="text-zinc-500">Scope:</span> {g.scope}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           ) : null}
           {data.cross_cutting_guardrails?.length ? (

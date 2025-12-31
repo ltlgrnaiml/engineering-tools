@@ -1,0 +1,204 @@
+{
+  "chunk_id": "M11",
+  "plan_id": "PLAN-001",
+  "milestone_name": "Frontend Integration & Live Testing",
+  "created_date": "2025-12-30",
+  "target_line_count": 600,
+  "actual_line_count": 450,
+
+  "objective": "Wire frontend components to live backend API endpoints, add React hooks for data fetching, and verify end-to-end flows work correctly.",
+
+  "prerequisites": [
+    "M1-M10 completed",
+    "Backend API running (pytest tests/gateway/test_devtools_workflow.py passes)",
+    "Frontend components exist in apps/homepage/frontend/src/components/workflow/"
+  ],
+
+  "tasks": [
+    {
+      "id": "T-M11-01",
+      "description": "Create shared/frontend/src/api/workflowClient.ts with typed API methods",
+      "status": "pending",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Create shared/frontend/src/api/ directory if not exists",
+          "verification_hint": "Check directory exists"
+        },
+        {
+          "step": 2,
+          "action": "Create workflowClient.ts with API base URL config and fetch wrapper",
+          "code_snippet": "const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/devtools';",
+          "verification_hint": "grep API_BASE shared/frontend/src/api/workflowClient.ts"
+        },
+        {
+          "step": 3,
+          "action": "Add listArtifacts, getGraph, createWorkflow, getPrompt methods",
+          "verification_hint": "grep listArtifacts shared/frontend/src/api/workflowClient.ts"
+        }
+      ],
+      "verification_command": "grep \"listArtifacts\\|getGraph\" shared/frontend/src/api/workflowClient.ts",
+      "context": [
+        "PATTERN: Async functions with typed return values",
+        "ERROR: Throw on non-2xx responses"
+      ]
+    },
+    {
+      "id": "T-M11-02",
+      "description": "Create shared/frontend/src/hooks/useWorkflowApi.ts with React hooks",
+      "status": "pending",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Create hooks directory if not exists",
+          "verification_hint": "Check directory exists"
+        },
+        {
+          "step": 2,
+          "action": "Create useWorkflowApi.ts with useArtifacts, useArtifactGraph, useWorkflow hooks",
+          "code_snippet": "export function useArtifacts(type?: string, search?: string) { ... }",
+          "verification_hint": "grep useArtifacts shared/frontend/src/hooks/useWorkflowApi.ts"
+        }
+      ],
+      "verification_command": "grep \"export.*useArtifacts\\|export.*useArtifactGraph\" shared/frontend/src/hooks/useWorkflowApi.ts",
+      "context": [
+        "PATTERN: useState + useEffect for data fetching",
+        "RETURN: { data, loading, error, refetch }"
+      ]
+    },
+    {
+      "id": "T-M11-03",
+      "description": "Update WorkflowSidebar to use useArtifacts hook",
+      "status": "pending",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Import useArtifacts from hooks",
+          "verification_hint": "grep useArtifacts apps/homepage/frontend/src/components/workflow/WorkflowSidebar.tsx"
+        },
+        {
+          "step": 2,
+          "action": "Replace mock data with hook call",
+          "verification_hint": "grep 'const { data.*loading.*error }' apps/homepage/frontend/src/components/workflow/WorkflowSidebar.tsx"
+        },
+        {
+          "step": 3,
+          "action": "Add loading skeleton and error state",
+          "verification_hint": "grep 'loading\\|error' apps/homepage/frontend/src/components/workflow/WorkflowSidebar.tsx"
+        }
+      ],
+      "verification_command": "grep \"useArtifacts\" apps/homepage/frontend/src/components/workflow/WorkflowSidebar.tsx",
+      "context": []
+    },
+    {
+      "id": "T-M11-04",
+      "description": "Update ArtifactGraph to use useArtifactGraph hook",
+      "status": "pending",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Import useArtifactGraph from hooks",
+          "verification_hint": "grep useArtifactGraph apps/homepage/frontend/src/components/workflow/ArtifactGraph.tsx"
+        },
+        {
+          "step": 2,
+          "action": "Replace mock graph data with hook call",
+          "verification_hint": "grep 'const { data.*graphData }' apps/homepage/frontend/src/components/workflow/ArtifactGraph.tsx"
+        }
+      ],
+      "verification_command": "grep \"useArtifactGraph\" apps/homepage/frontend/src/components/workflow/ArtifactGraph.tsx",
+      "context": []
+    },
+    {
+      "id": "T-M11-05",
+      "description": "Update WorkflowStepper to use useWorkflow hook",
+      "status": "pending",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Import useWorkflow from hooks",
+          "verification_hint": "grep useWorkflow apps/homepage/frontend/src/components/workflow/WorkflowStepper.tsx"
+        },
+        {
+          "step": 2,
+          "action": "Wire createWorkflow and advanceWorkflow actions",
+          "verification_hint": "grep 'createWorkflow\\|advanceWorkflow' apps/homepage/frontend/src/components/workflow/WorkflowStepper.tsx"
+        }
+      ],
+      "verification_command": "grep \"useWorkflow\\|createWorkflow\" apps/homepage/frontend/src/components/workflow/WorkflowStepper.tsx",
+      "context": []
+    },
+    {
+      "id": "T-M11-06",
+      "description": "Add Copy Prompt button to ArtifactReader",
+      "status": "pending",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Add getPrompt import and handler function",
+          "verification_hint": "grep getPrompt apps/homepage/frontend/src/components/workflow/ArtifactReader.tsx"
+        },
+        {
+          "step": 2,
+          "action": "Add Copy AI Prompt button to toolbar",
+          "verification_hint": "grep 'Copy.*Prompt' apps/homepage/frontend/src/components/workflow/ArtifactReader.tsx"
+        },
+        {
+          "step": 3,
+          "action": "Implement clipboard copy with toast notification",
+          "verification_hint": "grep 'navigator.clipboard\\|toast' apps/homepage/frontend/src/components/workflow/ArtifactReader.tsx"
+        }
+      ],
+      "verification_command": "grep \"getPrompt\\|Copy.*Prompt\" apps/homepage/frontend/src/components/workflow/ArtifactReader.tsx",
+      "context": []
+    },
+    {
+      "id": "T-M11-07",
+      "description": "Add TypeScript types matching backend contracts",
+      "status": "pending",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Create shared/frontend/src/types/workflow.ts with artifact types",
+          "verification_hint": "grep ArtifactType shared/frontend/src/types/workflow.ts"
+        }
+      ],
+      "verification_command": "grep \"ArtifactType\\|ArtifactSummary\" shared/frontend/src/types/workflow.ts",
+      "context": [
+        "TYPES: Mirror Python Pydantic models as TypeScript interfaces"
+      ]
+    }
+  ],
+
+  "acceptance_criteria": [
+    {
+      "id": "AC-M11-01",
+      "description": "API client exists with typed methods",
+      "verification_command": "grep \"export.*listArtifacts\" shared/frontend/src/api/workflowClient.ts"
+    },
+    {
+      "id": "AC-M11-02",
+      "description": "React hooks exist for data fetching",
+      "verification_command": "grep \"export.*useArtifacts\" shared/frontend/src/hooks/useWorkflowApi.ts"
+    },
+    {
+      "id": "AC-M11-03",
+      "description": "Components use hooks instead of mock data",
+      "verification_command": "grep \"useArtifacts\\|useArtifactGraph\" apps/homepage/frontend/src/components/workflow/*.tsx"
+    }
+  ],
+
+  "continuation_context": {
+    "from_chunk": "M10",
+    "key_patterns": [
+      "Workflow contracts in shared/contracts/devtools/workflow.py",
+      "API endpoints in gateway/services/devtools_service.py",
+      "Tests in tests/gateway/test_devtools_workflow.py"
+    ],
+    "files_to_reference": [
+      "shared/contracts/devtools/workflow.py",
+      "apps/homepage/frontend/src/components/workflow/WorkflowSidebar.tsx",
+      "apps/homepage/frontend/src/components/workflow/ArtifactGraph.tsx"
+    ]
+  }
+}

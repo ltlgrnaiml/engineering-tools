@@ -20,15 +20,23 @@ function Badge({ children, className, variant = 'default' }: BadgeProps) {
   )
 }
 
+interface Task {
+  id: string
+  description: string
+  status: string
+  verification_command?: string
+  evidence?: string | null
+  notes?: string | null
+}
+
 interface Milestone {
   id: string
-  title: string
+  name?: string  // Actual field name in JSON
+  title?: string // Alternative field name
+  objective?: string
   status: 'pending' | 'in_progress' | 'completed'
-  tasks?: Array<{
-    id: string
-    description: string
-    status: string
-  }>
+  deliverables?: string[]
+  tasks?: Task[]
 }
 
 interface PlanData {
@@ -138,8 +146,11 @@ export function PlanViewer({ content, className }: PlanViewerProps) {
               <div className="flex items-center gap-3 mb-2">
                 {MILESTONE_STATUS_ICONS[milestone.status]}
                 <Badge variant="outline">{milestone.id}</Badge>
-                <span className="font-medium text-zinc-200">{milestone.title}</span>
+                <span className="font-medium text-zinc-200">{milestone.name || milestone.title}</span>
               </div>
+              {milestone.objective && (
+                <p className="text-sm text-zinc-400 ml-7 mb-2">{milestone.objective}</p>
+              )}
               {milestone.tasks?.length ? (
                 <div className="ml-7 mt-3 space-y-2">
                   {milestone.tasks.map((task, j) => (

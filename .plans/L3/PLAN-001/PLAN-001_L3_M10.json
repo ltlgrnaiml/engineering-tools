@@ -1,0 +1,468 @@
+{
+  "_fragment_header": {
+    "fragment_meta": {
+      "fragment_id": "M10",
+      "fragment_file": "PLAN-001_L3_M10.json",
+      "line_count": 580,
+      "target_limit": 600,
+      "soft_limit": 800,
+      "warning_note": null
+    },
+    "continuation_from": {
+      "previous_fragment": "M9",
+      "last_completed_task": "T-M9-04",
+      "files_created": [
+        "shared/contracts/devtools/workflow.py",
+        "gateway/services/workflow_service.py",
+        "gateway/services/devtools_service.py",
+        "tests/gateway/test_devtools_workflow.py"
+      ],
+      "files_modified": [],
+      "architecture_rules": [
+        "STYLE: Functional programming - NO classes except Pydantic models",
+        "ENUMS: Always exactly 5 values for status enums",
+        "VERSION: Use __version__ = '2025.12.01' format",
+        "IMPORTS: Always at top of file, sorted alphabetically",
+        "NAMING: Use full descriptive names (ArtifactSummary not ArtifactInfo)"
+      ],
+      "patterns_established": [
+        "Import workflow models from shared.contracts.devtools.workflow",
+        "Use scan_artifacts() and build_artifact_graph() from workflow_service",
+        "5-value enums for ArtifactType, ArtifactStatus, RelationshipType"
+      ],
+      "active_blockers": []
+    },
+    "session_instruction": "Create SESSION_XXX_PLAN-001_M10_workflow_modes.md before starting",
+    "verification_strictness": "stop_and_escalate"
+  },
+
+  "milestone": {
+    "id": "M10",
+    "name": "Workflow Modes & Scenarios",
+    "objective": "Implement three workflow modes (Manual, AI-Lite, AI-Full) with scenario-based entry points and context-aware prompt generation."
+  },
+
+  "preflight": [
+    {
+      "step": 1,
+      "instruction": "Create session file: .sessions/SESSION_015_PLAN-001_M10_workflow_modes.md",
+      "verification_hint": "ls .sessions/SESSION_015*.md"
+    },
+    {
+      "step": 2,
+      "instruction": "Run baseline tests to verify starting state",
+      "verification_hint": "pytest tests/gateway/test_devtools_workflow.py -v --tb=short 2>&1 | tail -10"
+    },
+    {
+      "step": 3,
+      "instruction": "Check current workflow.py contracts exist",
+      "verification_hint": "python -c \"from shared.contracts.devtools.workflow import ArtifactType, GraphNode; print('OK')\""
+    }
+  ],
+
+  "tasks": [
+    {
+      "id": "T-M10-01",
+      "description": "Add WorkflowMode, WorkflowScenario enums and WorkflowState model to workflow.py",
+      "verification_command": "grep \"WorkflowMode\" shared/contracts/devtools/workflow.py",
+      "status": "pending",
+      "context": [
+        "ENUM WorkflowMode: manual, ai_lite, ai_full (3 values - exception to 5-value rule)",
+        "ENUM WorkflowScenario: new_feature, bug_fix, architecture_change, enhancement, data_structure (5 values)",
+        "MODEL WorkflowState: id, mode, scenario, current_stage, artifacts_created, created_at, title"
+      ],
+      "hints": [
+        "Add after existing enums, before Graph Models section",
+        "Use str Enum pattern matching existing ArtifactType"
+      ],
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Add WorkflowMode enum after FileFormat enum",
+          "file_path": "shared/contracts/devtools/workflow.py",
+          "code_snippet": "\n\nclass WorkflowMode(str, Enum):\n    \"\"\"Workflow automation mode.\"\"\"\n\n    MANUAL = \"manual\"\n    AI_LITE = \"ai_lite\"\n    AI_FULL = \"ai_full\"\n",
+          "insert_after": "UNKNOWN = \"unknown\"",
+          "verification_hint": "grep -A5 'class WorkflowMode' shared/contracts/devtools/workflow.py",
+          "checkpoint": false
+        },
+        {
+          "step_number": 2,
+          "step_type": "code",
+          "instruction": "Add WorkflowScenario enum after WorkflowMode",
+          "file_path": "shared/contracts/devtools/workflow.py",
+          "code_snippet": "\n\nclass WorkflowScenario(str, Enum):\n    \"\"\"Workflow entry point scenarios.\"\"\"\n\n    NEW_FEATURE = \"new_feature\"\n    BUG_FIX = \"bug_fix\"\n    ARCHITECTURE_CHANGE = \"architecture_change\"\n    ENHANCEMENT = \"enhancement\"\n    DATA_STRUCTURE = \"data_structure\"\n",
+          "insert_after": "AI_FULL = \"ai_full\"",
+          "verification_hint": "grep -A8 'class WorkflowScenario' shared/contracts/devtools/workflow.py",
+          "checkpoint": false
+        },
+        {
+          "step_number": 3,
+          "step_type": "code",
+          "instruction": "Add WorkflowStage enum for tracking current stage",
+          "file_path": "shared/contracts/devtools/workflow.py",
+          "code_snippet": "\n\nclass WorkflowStage(str, Enum):\n    \"\"\"Current stage in the workflow progression.\"\"\"\n\n    DISCUSSION = \"discussion\"\n    ADR = \"adr\"\n    SPEC = \"spec\"\n    CONTRACT = \"contract\"\n    PLAN = \"plan\"\n",
+          "insert_after": "DATA_STRUCTURE = \"data_structure\"",
+          "verification_hint": "grep -A8 'class WorkflowStage' shared/contracts/devtools/workflow.py",
+          "checkpoint": false
+        },
+        {
+          "step_number": 4,
+          "step_type": "code",
+          "instruction": "Add WorkflowState model before Graph Models section",
+          "file_path": "shared/contracts/devtools/workflow.py",
+          "code_snippet": "\n\nclass WorkflowState(BaseModel):\n    \"\"\"State of an active workflow session.\"\"\"\n\n    id: str = Field(..., description=\"Unique workflow ID (e.g., WF-001)\")\n    mode: WorkflowMode = Field(..., description=\"Automation mode\")\n    scenario: WorkflowScenario = Field(..., description=\"Entry point scenario\")\n    title: str = Field(..., description=\"Workflow title\")\n    current_stage: WorkflowStage = Field(..., description=\"Current workflow stage\")\n    artifacts_created: list[str] = Field(default_factory=list, description=\"IDs of created artifacts\")\n    created_at: str = Field(..., description=\"Creation timestamp ISO format\")\n",
+          "insert_after": "PLAN = \"plan\"",
+          "verification_hint": "grep -A10 'class WorkflowState' shared/contracts/devtools/workflow.py",
+          "checkpoint": true
+        },
+        {
+          "step_number": 5,
+          "step_type": "verify",
+          "instruction": "Verify all new models import correctly",
+          "verification_hint": "python -c \"from shared.contracts.devtools.workflow import WorkflowMode, WorkflowScenario, WorkflowStage, WorkflowState; print('OK')\"",
+          "checkpoint": true,
+          "escalate_on_failure": true,
+          "on_failure_hint": "Check for syntax errors in workflow.py"
+        }
+      ]
+    },
+    {
+      "id": "T-M10-02",
+      "description": "Add workflow request/response models to workflow.py",
+      "verification_command": "grep \"CreateWorkflowRequest\" shared/contracts/devtools/workflow.py",
+      "status": "pending",
+      "context": [
+        "MODEL CreateWorkflowRequest: mode, scenario, title fields",
+        "MODEL WorkflowResponse: workflow (WorkflowState), initial_artifact (ArtifactSummary optional)",
+        "MODEL PromptResponse: prompt (str), context (dict), target_type (ArtifactType)"
+      ],
+      "hints": [
+        "Add at end of file in Request Models section"
+      ],
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Add CreateWorkflowRequest after UpdateArtifactRequest",
+          "file_path": "shared/contracts/devtools/workflow.py",
+          "code_snippet": "\n\nclass CreateWorkflowRequest(BaseModel):\n    \"\"\"Request to create a new workflow.\"\"\"\n\n    mode: WorkflowMode = Field(..., description=\"Automation mode\")\n    scenario: WorkflowScenario = Field(..., description=\"Entry point scenario\")\n    title: str = Field(..., description=\"Workflow title\")\n",
+          "insert_after": "content: dict | None = Field(None, description=\"Updated content (optional)\")",
+          "verification_hint": "grep -A6 'class CreateWorkflowRequest' shared/contracts/devtools/workflow.py",
+          "checkpoint": false
+        },
+        {
+          "step_number": 2,
+          "step_type": "code",
+          "instruction": "Add WorkflowResponse model",
+          "file_path": "shared/contracts/devtools/workflow.py",
+          "code_snippet": "\n\nclass WorkflowResponse(BaseModel):\n    \"\"\"Response containing workflow state.\"\"\"\n\n    workflow: WorkflowState = Field(..., description=\"The workflow state\")\n    initial_artifact: ArtifactSummary | None = Field(None, description=\"Initial artifact if created\")\n    message: str = Field(default=\"Success\", description=\"Operation message\")\n",
+          "insert_after": "title: str = Field(..., description=\"Workflow title\")\n",
+          "verification_hint": "grep -A6 'class WorkflowResponse' shared/contracts/devtools/workflow.py",
+          "checkpoint": false
+        },
+        {
+          "step_number": 3,
+          "step_type": "code",
+          "instruction": "Add PromptResponse model for AI-Lite prompt generation",
+          "file_path": "shared/contracts/devtools/workflow.py",
+          "code_snippet": "\n\nclass PromptResponse(BaseModel):\n    \"\"\"Response containing AI-Lite prompt.\"\"\"\n\n    prompt: str = Field(..., description=\"Generated prompt text\")\n    target_type: ArtifactType = Field(..., description=\"Target artifact type\")\n    context: dict = Field(default_factory=dict, description=\"Prompt context metadata\")\n",
+          "insert_after": "message: str = Field(default=\"Success\", description=\"Operation message\")\n",
+          "verification_hint": "grep -A6 'class PromptResponse' shared/contracts/devtools/workflow.py",
+          "checkpoint": true
+        },
+        {
+          "step_number": 4,
+          "step_type": "verify",
+          "instruction": "Verify all new request/response models import correctly",
+          "verification_hint": "python -c \"from shared.contracts.devtools.workflow import CreateWorkflowRequest, WorkflowResponse, PromptResponse; print('OK')\"",
+          "checkpoint": true,
+          "escalate_on_failure": true
+        }
+      ]
+    },
+    {
+      "id": "T-M10-03",
+      "description": "Add workflow orchestration functions to workflow_service.py",
+      "verification_command": "grep \"def create_workflow\" gateway/services/workflow_service.py",
+      "status": "pending",
+      "context": [
+        "FUNCTION: create_workflow(mode, scenario, title) -> WorkflowState",
+        "FUNCTION: get_workflow_status(workflow_id) -> WorkflowState | None",
+        "FUNCTION: advance_workflow(workflow_id) -> tuple[WorkflowState, ArtifactSummary]",
+        "STORAGE: In-memory dict for POC, file-based later"
+      ],
+      "hints": [
+        "Add imports for new models at top",
+        "Use simple in-memory storage dict for workflows"
+      ],
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Add imports for new workflow models at top of workflow_service.py",
+          "file_path": "gateway/services/workflow_service.py",
+          "code_snippet": "from shared.contracts.devtools.workflow import (\n    ArtifactStatus,\n    ArtifactSummary,\n    ArtifactType,\n    CreateWorkflowRequest,\n    FileFormat,\n    GraphEdge,\n    GraphNode,\n    GraphResponse,\n    PromptResponse,\n    RelationshipType,\n    WorkflowMode,\n    WorkflowResponse,\n    WorkflowScenario,\n    WorkflowStage,\n    WorkflowState,\n)\n",
+          "replace": "from shared.contracts.devtools.workflow import (\n    ArtifactStatus,\n    ArtifactSummary,\n    ArtifactType,\n    FileFormat,\n    GraphEdge,\n    GraphNode,\n    GraphResponse,\n    RelationshipType,\n)\n",
+          "verification_hint": "grep -A15 'from shared.contracts.devtools.workflow import' gateway/services/workflow_service.py",
+          "checkpoint": false
+        },
+        {
+          "step_number": 2,
+          "step_type": "code",
+          "instruction": "Add in-memory workflow storage and scenario-to-stage mapping",
+          "file_path": "gateway/services/workflow_service.py",
+          "code_snippet": "\n# In-memory workflow storage (POC - would be file-based in production)\n_active_workflows: dict[str, WorkflowState] = {}\n_workflow_counter = 0\n\n# Scenario to starting stage mapping per ADR-0045\nSCENARIO_START_STAGE: dict[WorkflowScenario, WorkflowStage] = {\n    WorkflowScenario.NEW_FEATURE: WorkflowStage.DISCUSSION,\n    WorkflowScenario.BUG_FIX: WorkflowStage.PLAN,\n    WorkflowScenario.ARCHITECTURE_CHANGE: WorkflowStage.DISCUSSION,\n    WorkflowScenario.ENHANCEMENT: WorkflowStage.SPEC,\n    WorkflowScenario.DATA_STRUCTURE: WorkflowStage.CONTRACT,\n}\n\n# Stage progression order\nSTAGE_ORDER = [WorkflowStage.DISCUSSION, WorkflowStage.ADR, WorkflowStage.SPEC, WorkflowStage.CONTRACT, WorkflowStage.PLAN]\n",
+          "insert_after": "ARTIFACT_DIRECTORIES: dict[ArtifactType, str] = {",
+          "verification_hint": "grep 'SCENARIO_START_STAGE' gateway/services/workflow_service.py",
+          "checkpoint": false
+        },
+        {
+          "step_number": 3,
+          "step_type": "code",
+          "instruction": "Add create_workflow function",
+          "file_path": "gateway/services/workflow_service.py",
+          "code_snippet": "\n\ndef create_workflow(\n    mode: WorkflowMode,\n    scenario: WorkflowScenario,\n    title: str,\n) -> WorkflowState:\n    \"\"\"Create a new workflow session.\n\n    Args:\n        mode: Automation mode (manual, ai_lite, ai_full).\n        scenario: Entry point scenario.\n        title: Workflow title.\n\n    Returns:\n        WorkflowState for the new workflow.\n    \"\"\"\n    global _workflow_counter\n    _workflow_counter += 1\n    workflow_id = f\"WF-{_workflow_counter:03d}\"\n\n    start_stage = SCENARIO_START_STAGE.get(scenario, WorkflowStage.DISCUSSION)\n\n    workflow = WorkflowState(\n        id=workflow_id,\n        mode=mode,\n        scenario=scenario,\n        title=title,\n        current_stage=start_stage,\n        artifacts_created=[],\n        created_at=datetime.now().isoformat(),\n    )\n    _active_workflows[workflow_id] = workflow\n    return workflow\n",
+          "insert_after": "def build_artifact_graph() -> GraphResponse:",
+          "verification_hint": "grep -A15 'def create_workflow' gateway/services/workflow_service.py",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M10-04",
+      "description": "Add get_workflow_status and advance_workflow functions",
+      "verification_command": "grep \"def advance_workflow\" gateway/services/workflow_service.py",
+      "status": "pending",
+      "context": [
+        "FUNCTION: get_workflow_status(workflow_id) -> WorkflowState | None",
+        "FUNCTION: advance_workflow(workflow_id) -> WorkflowStage",
+        "LOGIC: Advance to next stage in STAGE_ORDER"
+      ],
+      "hints": [],
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Add get_workflow_status function after create_workflow",
+          "file_path": "gateway/services/workflow_service.py",
+          "code_snippet": "\n\ndef get_workflow_status(workflow_id: str) -> WorkflowState | None:\n    \"\"\"Get current status of a workflow.\n\n    Args:\n        workflow_id: The workflow ID (e.g., WF-001).\n\n    Returns:\n        WorkflowState if found, None otherwise.\n    \"\"\"\n    return _active_workflows.get(workflow_id)\n",
+          "insert_after": "_active_workflows[workflow_id] = workflow\n    return workflow",
+          "verification_hint": "grep -A10 'def get_workflow_status' gateway/services/workflow_service.py",
+          "checkpoint": false
+        },
+        {
+          "step_number": 2,
+          "step_type": "code",
+          "instruction": "Add advance_workflow function",
+          "file_path": "gateway/services/workflow_service.py",
+          "code_snippet": "\n\ndef advance_workflow(workflow_id: str) -> WorkflowStage | None:\n    \"\"\"Advance workflow to the next stage.\n\n    Args:\n        workflow_id: The workflow ID.\n\n    Returns:\n        New WorkflowStage if advanced, None if at end or not found.\n    \"\"\"\n    workflow = _active_workflows.get(workflow_id)\n    if not workflow:\n        return None\n\n    current_idx = STAGE_ORDER.index(workflow.current_stage)\n    if current_idx >= len(STAGE_ORDER) - 1:\n        return None  # Already at last stage\n\n    next_stage = STAGE_ORDER[current_idx + 1]\n    workflow.current_stage = next_stage\n    return next_stage\n",
+          "insert_after": "return _active_workflows.get(workflow_id)",
+          "verification_hint": "grep -A18 'def advance_workflow' gateway/services/workflow_service.py",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M10-05",
+      "description": "Add generate_prompt function for AI-Lite mode",
+      "verification_command": "grep \"def generate_prompt\" gateway/services/workflow_service.py",
+      "status": "pending",
+      "context": [
+        "FUNCTION: generate_prompt(artifact_id, target_type) -> PromptResponse",
+        "TEMPLATES: Context-aware prompt templates per artifact transition",
+        "EXAMPLES from DISC-001: 'Review DISC-XXX and create an ADR capturing the key decisions.'"
+      ],
+      "hints": [
+        "Use f-strings with artifact metadata",
+        "Different prompts for each transition"
+      ],
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Add PROMPT_TEMPLATES constant",
+          "file_path": "gateway/services/workflow_service.py",
+          "code_snippet": "\n# Prompt templates for AI-Lite mode per DISC-001\nPROMPT_TEMPLATES: dict[tuple[ArtifactType, ArtifactType], str] = {\n    (ArtifactType.DISCUSSION, ArtifactType.ADR): \"Please review {artifact_id} ('{title}') and create an ADR capturing the key decisions. Focus on the context, decision, and consequences.\",\n    (ArtifactType.ADR, ArtifactType.SPEC): \"ADR {artifact_id} ('{title}') is approved. Please create a detailed SPEC with functional requirements, API contracts, and acceptance criteria.\",\n    (ArtifactType.SPEC, ArtifactType.PLAN): \"SPEC {artifact_id} ('{title}') is ready. Please create an implementation Plan with milestones, tasks, and verification commands.\",\n    (ArtifactType.SPEC, ArtifactType.CONTRACT): \"Based on SPEC {artifact_id} ('{title}'), please create the Pydantic contract models in shared/contracts/.\",\n    (ArtifactType.PLAN, ArtifactType.ADR): \"Plan {artifact_id} revealed architectural decisions. Please create an ADR to document them.\",\n}\n",
+          "insert_after": "STAGE_ORDER = [WorkflowStage.DISCUSSION, WorkflowStage.ADR, WorkflowStage.SPEC, WorkflowStage.CONTRACT, WorkflowStage.PLAN]",
+          "verification_hint": "grep 'PROMPT_TEMPLATES' gateway/services/workflow_service.py",
+          "checkpoint": false
+        },
+        {
+          "step_number": 2,
+          "step_type": "code",
+          "instruction": "Add generate_prompt function",
+          "file_path": "gateway/services/workflow_service.py",
+          "code_snippet": "\n\ndef generate_prompt(\n    artifact_id: str,\n    target_type: ArtifactType,\n) -> PromptResponse:\n    \"\"\"Generate context-aware prompt for AI-Lite mode.\n\n    Args:\n        artifact_id: Source artifact ID.\n        target_type: Target artifact type to create.\n\n    Returns:\n        PromptResponse with generated prompt.\n    \"\"\"\n    # Find source artifact\n    artifacts = scan_artifacts()\n    source = next((a for a in artifacts if a.id == artifact_id), None)\n\n    if not source:\n        return PromptResponse(\n            prompt=f\"Create a new {target_type.value} artifact.\",\n            target_type=target_type,\n            context={\"error\": f\"Source artifact {artifact_id} not found\"},\n        )\n\n    # Get template for this transition\n    template_key = (source.type, target_type)\n    template = PROMPT_TEMPLATES.get(\n        template_key,\n        f\"Based on {source.type.value} {{artifact_id}} ('{{title}}'), please create a {target_type.value}.\"\n    )\n\n    prompt = template.format(artifact_id=artifact_id, title=source.title)\n\n    return PromptResponse(\n        prompt=prompt,\n        target_type=target_type,\n        context={\n            \"source_id\": artifact_id,\n            \"source_type\": source.type.value,\n            \"source_title\": source.title,\n            \"target_type\": target_type.value,\n        },\n    )\n",
+          "insert_after": "PROMPT_TEMPLATES: dict[tuple[ArtifactType, ArtifactType], str] = {",
+          "verification_hint": "grep -A20 'def generate_prompt' gateway/services/workflow_service.py",
+          "checkpoint": true
+        },
+        {
+          "step_number": 3,
+          "step_type": "verify",
+          "instruction": "Verify all workflow functions are importable",
+          "verification_hint": "python -c \"from gateway.services.workflow_service import create_workflow, get_workflow_status, advance_workflow, generate_prompt; print('OK')\"",
+          "checkpoint": true,
+          "escalate_on_failure": true
+        }
+      ]
+    },
+    {
+      "id": "T-M10-06",
+      "description": "Add workflow API endpoints to devtools_service.py",
+      "verification_command": "grep \"POST.*workflows\" gateway/services/devtools_service.py",
+      "status": "pending",
+      "context": [
+        "ENDPOINT: POST /api/devtools/workflows - Create workflow",
+        "ENDPOINT: GET /api/devtools/workflows/{id}/status - Get status",
+        "ENDPOINT: POST /api/devtools/workflows/{id}/advance - Advance to next stage",
+        "ENDPOINT: GET /api/devtools/artifacts/{id}/prompt - Get AI-Lite prompt"
+      ],
+      "hints": [
+        "Add imports for new models and functions",
+        "Follow existing endpoint patterns in the file"
+      ],
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Add imports for workflow models to devtools_service.py",
+          "file_path": "gateway/services/devtools_service.py",
+          "code_snippet": "from gateway.services.workflow_service import build_artifact_graph, scan_artifacts, _get_file_format, create_workflow, get_workflow_status, advance_workflow, generate_prompt",
+          "replace": "from gateway.services.workflow_service import build_artifact_graph, scan_artifacts, _get_file_format",
+          "verification_hint": "grep 'create_workflow' gateway/services/devtools_service.py",
+          "checkpoint": false
+        },
+        {
+          "step_number": 2,
+          "step_type": "code",
+          "instruction": "Add imports for new contract models",
+          "file_path": "gateway/services/devtools_service.py",
+          "code_snippet": "from shared.contracts.devtools.workflow import (\n    ArtifactListResponse,\n    ArtifactResponse,\n    ArtifactStatus,\n    ArtifactSummary,\n    ArtifactType,\n    CreateArtifactRequest,\n    CreateWorkflowRequest,\n    GraphResponse,\n    PromptResponse,\n    UpdateArtifactRequest,\n    WorkflowResponse,\n    WorkflowStage,\n    WorkflowState,\n)",
+          "replace": "from shared.contracts.devtools.workflow import (\n    ArtifactListResponse,\n    ArtifactResponse,\n    ArtifactStatus,\n    ArtifactSummary,\n    ArtifactType,\n    CreateArtifactRequest,\n    GraphResponse,\n    UpdateArtifactRequest,\n)",
+          "verification_hint": "grep 'CreateWorkflowRequest' gateway/services/devtools_service.py",
+          "checkpoint": false
+        },
+        {
+          "step_number": 3,
+          "step_type": "code",
+          "instruction": "Add POST /workflows endpoint at end of file",
+          "file_path": "gateway/services/devtools_service.py",
+          "code_snippet": "\n\n# =============================================================================\n# Workflow Mode Endpoints (ADR-0045, PLAN-001 M10)\n# =============================================================================\n\n\n@router.post(\"/workflows\", response_model=WorkflowResponse)\nasync def create_workflow_endpoint(request: CreateWorkflowRequest) -> WorkflowResponse:\n    \"\"\"Create a new workflow session.\n\n    Args:\n        request: Workflow creation request.\n\n    Returns:\n        WorkflowResponse with created workflow state.\n    \"\"\"\n    workflow = create_workflow(\n        mode=request.mode,\n        scenario=request.scenario,\n        title=request.title,\n    )\n    return WorkflowResponse(workflow=workflow, message=f\"Created workflow {workflow.id}\")\n",
+          "insert_after": "return ArtifactResponse(artifact=deleted_artifact, message=f\"Deleted {artifact_id}{backup_msg}\")",
+          "verification_hint": "grep -A15 'def create_workflow_endpoint' gateway/services/devtools_service.py",
+          "checkpoint": false
+        },
+        {
+          "step_number": 4,
+          "step_type": "code", 
+          "instruction": "Add GET /workflows/{id}/status endpoint",
+          "file_path": "gateway/services/devtools_service.py",
+          "code_snippet": "\n\n@router.get(\"/workflows/{workflow_id}/status\", response_model=WorkflowResponse)\nasync def get_workflow_status_endpoint(workflow_id: str) -> WorkflowResponse:\n    \"\"\"Get current status of a workflow.\n\n    Args:\n        workflow_id: The workflow ID.\n\n    Returns:\n        WorkflowResponse with current state.\n    \"\"\"\n    workflow = get_workflow_status(workflow_id)\n    if not workflow:\n        raise HTTPException(status_code=404, detail=f\"Workflow {workflow_id} not found\")\n    return WorkflowResponse(workflow=workflow)\n",
+          "insert_after": "return WorkflowResponse(workflow=workflow, message=f\"Created workflow {workflow.id}\")",
+          "verification_hint": "grep -A12 'def get_workflow_status_endpoint' gateway/services/devtools_service.py",
+          "checkpoint": false
+        },
+        {
+          "step_number": 5,
+          "step_type": "code",
+          "instruction": "Add POST /workflows/{id}/advance endpoint",
+          "file_path": "gateway/services/devtools_service.py",
+          "code_snippet": "\n\n@router.post(\"/workflows/{workflow_id}/advance\", response_model=WorkflowResponse)\nasync def advance_workflow_endpoint(workflow_id: str) -> WorkflowResponse:\n    \"\"\"Advance workflow to the next stage.\n\n    Args:\n        workflow_id: The workflow ID.\n\n    Returns:\n        WorkflowResponse with updated state.\n    \"\"\"\n    new_stage = advance_workflow(workflow_id)\n    if new_stage is None:\n        raise HTTPException(status_code=400, detail=f\"Cannot advance workflow {workflow_id}\")\n    workflow = get_workflow_status(workflow_id)\n    return WorkflowResponse(workflow=workflow, message=f\"Advanced to {new_stage.value}\")\n",
+          "insert_after": "return WorkflowResponse(workflow=workflow)",
+          "verification_hint": "grep -A14 'def advance_workflow_endpoint' gateway/services/devtools_service.py",
+          "checkpoint": false
+        },
+        {
+          "step_number": 6,
+          "step_type": "code",
+          "instruction": "Add GET /artifacts/{id}/prompt endpoint for AI-Lite mode",
+          "file_path": "gateway/services/devtools_service.py",
+          "code_snippet": "\n\n@router.get(\"/artifacts/{artifact_id}/prompt\", response_model=PromptResponse)\nasync def get_artifact_prompt(\n    artifact_id: str,\n    target_type: ArtifactType = Query(..., description=\"Target artifact type to create\"),\n) -> PromptResponse:\n    \"\"\"Get context-aware AI prompt for creating next artifact.\n\n    Args:\n        artifact_id: Source artifact ID.\n        target_type: Target artifact type.\n\n    Returns:\n        PromptResponse with generated prompt.\n    \"\"\"\n    return generate_prompt(artifact_id=artifact_id, target_type=target_type)\n",
+          "insert_after": "return WorkflowResponse(workflow=workflow, message=f\"Advanced to {new_stage.value}\")",
+          "verification_hint": "grep -A13 'def get_artifact_prompt' gateway/services/devtools_service.py",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M10-07",
+      "description": "Write unit tests for workflow mode endpoints",
+      "verification_command": "pytest tests/gateway/test_devtools_workflow.py -k mode -v",
+      "status": "pending",
+      "context": [
+        "TEST: test_create_workflow_manual",
+        "TEST: test_create_workflow_ai_lite", 
+        "TEST: test_get_workflow_status",
+        "TEST: test_advance_workflow",
+        "TEST: test_generate_prompt"
+      ],
+      "hints": [
+        "Use pytest fixtures for client",
+        "Test each endpoint independently"
+      ],
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Add workflow mode tests to test_devtools_workflow.py",
+          "file_path": "tests/gateway/test_devtools_workflow.py",
+          "code_snippet": "\n\n# =============================================================================\n# Workflow Mode Tests (M10)\n# =============================================================================\n\n\nclass TestWorkflowModes:\n    \"\"\"Tests for workflow mode endpoints.\"\"\"\n\n    def test_create_workflow_manual(self, client: TestClient) -> None:\n        \"\"\"Test creating a manual workflow.\"\"\"\n        response = client.post(\n            \"/api/devtools/workflows\",\n            json={\n                \"mode\": \"manual\",\n                \"scenario\": \"new_feature\",\n                \"title\": \"Test Feature\",\n            },\n        )\n        assert response.status_code == 200\n        data = response.json()\n        assert data[\"workflow\"][\"mode\"] == \"manual\"\n        assert data[\"workflow\"][\"scenario\"] == \"new_feature\"\n        assert data[\"workflow\"][\"current_stage\"] == \"discussion\"\n\n    def test_create_workflow_ai_lite(self, client: TestClient) -> None:\n        \"\"\"Test creating an AI-Lite workflow.\"\"\"\n        response = client.post(\n            \"/api/devtools/workflows\",\n            json={\n                \"mode\": \"ai_lite\",\n                \"scenario\": \"bug_fix\",\n                \"title\": \"Bug Fix Test\",\n            },\n        )\n        assert response.status_code == 200\n        data = response.json()\n        assert data[\"workflow\"][\"mode\"] == \"ai_lite\"\n        assert data[\"workflow\"][\"current_stage\"] == \"plan\"  # Bug fix starts at plan\n\n    def test_get_workflow_status(self, client: TestClient) -> None:\n        \"\"\"Test getting workflow status.\"\"\"\n        # First create a workflow\n        create_response = client.post(\n            \"/api/devtools/workflows\",\n            json={\n                \"mode\": \"manual\",\n                \"scenario\": \"enhancement\",\n                \"title\": \"Enhancement Test\",\n            },\n        )\n        workflow_id = create_response.json()[\"workflow\"][\"id\"]\n\n        # Then get its status\n        response = client.get(f\"/api/devtools/workflows/{workflow_id}/status\")\n        assert response.status_code == 200\n        assert response.json()[\"workflow\"][\"current_stage\"] == \"spec\"  # Enhancement starts at spec\n\n    def test_advance_workflow(self, client: TestClient) -> None:\n        \"\"\"Test advancing workflow to next stage.\"\"\"\n        # Create workflow\n        create_response = client.post(\n            \"/api/devtools/workflows\",\n            json={\n                \"mode\": \"manual\",\n                \"scenario\": \"new_feature\",\n                \"title\": \"Advance Test\",\n            },\n        )\n        workflow_id = create_response.json()[\"workflow\"][\"id\"]\n\n        # Advance from discussion to ADR\n        response = client.post(f\"/api/devtools/workflows/{workflow_id}/advance\")\n        assert response.status_code == 200\n        assert response.json()[\"workflow\"][\"current_stage\"] == \"adr\"\n\n    def test_generate_prompt(self, client: TestClient) -> None:\n        \"\"\"Test generating AI-Lite prompt.\"\"\"\n        # Use existing artifact DISC-001\n        response = client.get(\n            \"/api/devtools/artifacts/DISC-001/prompt\",\n            params={\"target_type\": \"adr\"},\n        )\n        assert response.status_code == 200\n        data = response.json()\n        assert \"prompt\" in data\n        assert data[\"target_type\"] == \"adr\"\n        assert \"DISC-001\" in data[\"prompt\"]\n",
+          "insert_after": "# End of existing tests",
+          "verification_hint": "grep -A10 'class TestWorkflowModes' tests/gateway/test_devtools_workflow.py",
+          "checkpoint": true
+        },
+        {
+          "step_number": 2,
+          "step_type": "verify",
+          "instruction": "Run the new workflow mode tests",
+          "verification_hint": "pytest tests/gateway/test_devtools_workflow.py -k mode -v --tb=short",
+          "checkpoint": true,
+          "escalate_on_failure": true
+        }
+      ]
+    }
+  ],
+
+  "acceptance_criteria": [
+    {
+      "id": "AC-M10-01",
+      "description": "WorkflowMode and WorkflowState models exist in contracts",
+      "verification_command": "python -c \"from shared.contracts.devtools.workflow import WorkflowMode, WorkflowState; print('OK')\""
+    },
+    {
+      "id": "AC-M10-02",
+      "description": "POST /api/devtools/workflows creates workflow with mode",
+      "verification_command": "curl -X POST http://localhost:8000/api/devtools/workflows -H 'Content-Type: application/json' -d '{\"mode\":\"manual\",\"scenario\":\"new_feature\",\"title\":\"Test\"}' 2>/dev/null | python -c \"import sys,json; print(json.load(sys.stdin)['workflow']['mode'])\""
+    },
+    {
+      "id": "AC-M10-03",
+      "description": "GET /api/devtools/artifacts/{id}/prompt returns prompt",
+      "verification_command": "curl -s 'http://localhost:8000/api/devtools/artifacts/DISC-001/prompt?target_type=adr' | python -c \"import sys,json; print(json.load(sys.stdin)['prompt'][:50])\""
+    },
+    {
+      "id": "AC-M10-04",
+      "description": "All workflow mode tests pass",
+      "verification_command": "pytest tests/gateway/test_devtools_workflow.py -k mode -v"
+    }
+  ],
+
+  "_fragment_footer": {
+    "handoff_to_next": null,
+    "files_created": [],
+    "files_modified": [
+      "shared/contracts/devtools/workflow.py",
+      "gateway/services/workflow_service.py",
+      "gateway/services/devtools_service.py",
+      "tests/gateway/test_devtools_workflow.py"
+    ],
+    "patterns_to_maintain": [
+      "Functional style - no classes for services",
+      "All models inherit from BaseModel",
+      "5-value enums for status types",
+      "Google-style docstrings required"
+    ],
+    "checkpoint_command": "pytest tests/gateway/test_devtools_workflow.py -v && ruff check ."
+  }
+}

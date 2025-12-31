@@ -7,6 +7,7 @@
 | ID | Title | Status | Created | Session | Resulting Artifacts |
 |----|-------|--------|---------|---------|---------------------|
 | DISC-001 | DevTools-AI-Workflow-Integration | `draft` | 2025-12-30 | - | - |
+| DISC-002 | AI-Lite-Prompt-Chain-Workflow | `active` | 2025-12-30 | SESSION_016 | - |
 
 ## Resolved Discussions
 

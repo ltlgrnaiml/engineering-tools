@@ -5,7 +5,6 @@ development artifacts. Access is controlled by runtime flags.
 """
 
 import json
-import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -13,13 +12,25 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field, ValidationError
 
-from gateway.services.workflow_service import build_artifact_graph, scan_artifacts
+from gateway.services.workflow_service import (
+    build_artifact_graph,
+    scan_artifacts,
+    _get_file_format,
+    create_workflow,
+    get_workflow_status,
+    advance_workflow,
+    generate_prompt,
+    generate_artifact_content,
+    generate_full_workflow,
+)
 from shared.contracts.adr_schema import (
     ADRCreateRequest as SchemaADRCreateRequest,
     ADRFieldValidationRequest,
     ADRFieldValidationResponse,
     ADRSchema,
 )
+from shared.contracts.spec_schema import SPECSchema
+from shared.contracts.plan_schema import PlanSchema
 from shared.contracts.devtools.workflow import (
     ArtifactListResponse,
     ArtifactResponse,
@@ -27,8 +38,13 @@ from shared.contracts.devtools.workflow import (
     ArtifactSummary,
     ArtifactType,
     CreateArtifactRequest,
+    CreateWorkflowRequest,
     GraphResponse,
+    GenerationRequest,
+    GenerationResponse,
+    PromptResponse,
     UpdateArtifactRequest,
+    WorkflowResponse,
 )
 
 router = APIRouter()
@@ -126,6 +142,69 @@ async def update_devtools_config(
         _devtools_config.mode = mode
     return _devtools_config
 
+
+# =============================================================================
+# JSON Schema Endpoints - Serve Pydantic schemas for dynamic UI rendering
+# =============================================================================
+
+# Schema registry mapping artifact types to their Pydantic models
+SCHEMA_REGISTRY: dict[str, type] = {
+    "adr": ADRSchema,
+    "spec": SPECSchema,
+    "plan": PlanSchema,
+}
+
+
+@router.get("/schemas")
+async def list_schemas() -> dict[str, Any]:
+    """List all available JSON schemas.
+    
+    Returns:
+        Dict with schema names and their metadata.
+    """
+    schemas = {}
+    for name, model_class in SCHEMA_REGISTRY.items():
+        schema = model_class.model_json_schema()
+        schemas[name] = {
+            "title": schema.get("title", name),
+            "description": schema.get("description", ""),
+            "type": name,
+        }
+    return {"schemas": schemas}
+
+
+@router.get("/schemas/{schema_type}")
+async def get_schema(schema_type: str) -> dict[str, Any]:
+    """Get JSON Schema for a specific artifact type.
+    
+    This endpoint serves Pydantic-generated JSON Schema that can be used
+    by the frontend to dynamically render forms and viewers.
+    
+    Args:
+        schema_type: One of 'adr', 'spec', 'plan'
+        
+    Returns:
+        Full JSON Schema for the artifact type.
+    """
+    if schema_type not in SCHEMA_REGISTRY:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Unknown schema type: {schema_type}. Available: {list(SCHEMA_REGISTRY.keys())}"
+        )
+    
+    model_class = SCHEMA_REGISTRY[schema_type]
+    schema = model_class.model_json_schema()
+    
+    # Add metadata for frontend consumption
+    schema["$schema_type"] = schema_type
+    schema["$generated_from"] = model_class.__module__
+    
+    return schema
+
+
+# =============================================================================
+# ADR Endpoints
+# =============================================================================
 
 @router.get("/adrs", response_model=list[ADRSummary])
 async def list_adrs() -> list[ADRSummary]:
@@ -427,6 +506,7 @@ async def get_artifact(artifact_id: str) -> dict[str, Any]:
             "title": artifact.title,
             "status": artifact.status.value,
             "file_path": str(file_path),
+            "file_format": _get_file_format(file_path).value,
             "content": content,
         }
     except Exception as e:
@@ -633,3 +713,246 @@ async def delete_artifact(
         return ArtifactResponse(artifact=deleted_artifact, message=f"Deleted {artifact_id}{backup_msg}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error deleting artifact: {e}")
+
+
+# =============================================================================
+# Workflow Mode Endpoints (ADR-0045, PLAN-001 M10)
+# =============================================================================
+
+
+@router.post("/workflows", response_model=WorkflowResponse)
+async def create_workflow_endpoint(request: CreateWorkflowRequest) -> WorkflowResponse:
+    """Create a new workflow session.
+
+    Args:
+        request: Workflow creation request.
+
+    Returns:
+        WorkflowResponse with created workflow state.
+    """
+    workflow = create_workflow(
+        mode=request.mode,
+        scenario=request.scenario,
+        title=request.title,
+    )
+    return WorkflowResponse(workflow=workflow, message=f"Created workflow {workflow.id}")
+
+
+@router.get("/workflows/{workflow_id}/status", response_model=WorkflowResponse)
+async def get_workflow_status_endpoint(workflow_id: str) -> WorkflowResponse:
+    """Get current status of a workflow.
+
+    Args:
+        workflow_id: The workflow ID.
+
+    Returns:
+        WorkflowResponse with current state.
+    """
+    workflow = get_workflow_status(workflow_id)
+    if not workflow:
+        raise HTTPException(status_code=404, detail=f"Workflow {workflow_id} not found")
+    return WorkflowResponse(workflow=workflow)
+
+
+@router.post("/workflows/{workflow_id}/advance", response_model=WorkflowResponse)
+async def advance_workflow_endpoint(workflow_id: str) -> WorkflowResponse:
+    """Advance workflow to the next stage.
+
+    Args:
+        workflow_id: The workflow ID.
+
+    Returns:
+        WorkflowResponse with updated state.
+    """
+    new_stage = advance_workflow(workflow_id)
+    if new_stage is None:
+        raise HTTPException(status_code=400, detail=f"Cannot advance workflow {workflow_id}")
+    workflow = get_workflow_status(workflow_id)
+    return WorkflowResponse(workflow=workflow, message=f"Advanced to {new_stage.value}")
+
+
+@router.get("/artifacts/{artifact_id}/prompt", response_model=PromptResponse)
+async def get_artifact_prompt(
+    artifact_id: str,
+    target_type: ArtifactType = Query(..., description="Target artifact type to create"),
+) -> PromptResponse:
+    """Get context-aware AI prompt for creating next artifact.
+
+    Args:
+        artifact_id: Source artifact ID.
+        target_type: Target artifact type.
+
+    Returns:
+        PromptResponse with generated prompt.
+    """
+    return generate_prompt(artifact_id=artifact_id, target_type=target_type)
+
+
+# =============================================================================
+# AI-Full Mode Endpoints (M12)
+# =============================================================================
+
+
+@router.post("/artifacts/generate", response_model=GenerationResponse)
+async def generate_artifacts_endpoint(request: GenerationRequest) -> GenerationResponse:
+    """Generate artifact content using AI-Full mode.
+
+    Args:
+        request: Generation request with workflow and target types.
+
+    Returns:
+        GenerationResponse with created artifacts.
+    """
+    artifacts = []
+    errors = []
+
+    for target_type in request.target_types:
+        try:
+            content = generate_artifact_content(
+                artifact_type=target_type,
+                title=request.context.get("title", "Generated"),
+                description=request.context.get("description", ""),
+            )
+            artifact = ArtifactSummary(
+                id=f"{target_type.value.upper()}-GEN-{request.workflow_id}",
+                type=target_type,
+                title=request.context.get("title", "Generated"),
+                status=ArtifactStatus.DRAFT,
+                file_path=f"generated/{target_type.value}/{request.workflow_id}.json",
+            )
+            artifacts.append(artifact)
+        except Exception as e:
+            errors.append(f"Failed to generate {target_type.value}: {e}")
+
+    from shared.contracts.devtools.workflow import GenerationStatus
+    status = GenerationStatus.COMPLETED if not errors else GenerationStatus.FAILED
+    return GenerationResponse(artifacts=artifacts, status=status, errors=errors)
+
+
+@router.post("/workflows/{workflow_id}/generate-all", response_model=GenerationResponse)
+async def generate_all_endpoint(workflow_id: str) -> GenerationResponse:
+    """Generate all artifacts for a workflow (AI-Full mode).
+
+    Args:
+        workflow_id: The workflow ID.
+
+    Returns:
+        GenerationResponse with all created artifacts.
+    """
+    workflow = get_workflow_status(workflow_id)
+    if not workflow:
+        raise HTTPException(status_code=404, detail=f"Workflow {workflow_id} not found")
+
+    return generate_full_workflow(
+        workflow_id=workflow_id,
+        title=workflow.title,
+        description="",
+    )
+
+
+# =============================================================================
+# LLM Health Check
+# =============================================================================
+
+
+class ModelInfoResponse(BaseModel):
+    """Model information for frontend."""
+    id: str
+    name: str
+    context_window: int
+    rpm: int
+    input_price: float
+    output_price: float
+    category: str
+    reasoning: bool = False
+
+
+class LLMHealthResponse(BaseModel):
+    """Response for LLM health check."""
+    status: str
+    message: str
+    model: str | None = None
+    available: bool = False
+    models: list[ModelInfoResponse] = []
+
+
+@router.get("/llm/health", response_model=LLMHealthResponse)
+async def get_llm_health(refresh: bool = False) -> LLMHealthResponse:
+    """Check if the LLM service (xAI) is available.
+
+    Args:
+        refresh: Force refresh the health check cache.
+
+    Returns:
+        LLMHealthResponse with status and availability.
+    """
+    from gateway.services.llm_service import (
+        check_health,
+        LLMStatus,
+        get_available_models,
+        get_current_model,
+    )
+
+    health = check_health(force_refresh=refresh)
+    models = get_available_models()
+
+    return LLMHealthResponse(
+        status=health.status.value,
+        message=health.message,
+        model=get_current_model(),
+        available=health.status == LLMStatus.AVAILABLE,
+        models=[
+            ModelInfoResponse(
+                id=m.id,
+                name=m.name,
+                context_window=m.context_window,
+                rpm=m.rpm,
+                input_price=m.input_price,
+                output_price=m.output_price,
+                category=m.category,
+                reasoning=m.reasoning,
+            )
+            for m in models
+        ],
+    )
+
+
+class SetModelRequest(BaseModel):
+    """Request to set the current model."""
+    model_id: str
+
+
+class SetModelResponse(BaseModel):
+    """Response after setting model."""
+    success: bool
+    model_id: str
+    message: str
+
+
+@router.post("/llm/model", response_model=SetModelResponse)
+async def set_llm_model(request: SetModelRequest) -> SetModelResponse:
+    """Set the current LLM model.
+
+    Args:
+        request: Request with model_id to use.
+
+    Returns:
+        SetModelResponse with success status.
+    """
+    from gateway.services.llm_service import set_current_model, get_model_info
+
+    success = set_current_model(request.model_id)
+    model_info = get_model_info(request.model_id)
+
+    if success and model_info:
+        return SetModelResponse(
+            success=True,
+            model_id=request.model_id,
+            message=f"Model set to {model_info.name}",
+        )
+    else:
+        return SetModelResponse(
+            success=False,
+            model_id=request.model_id,
+            message=f"Unknown model: {request.model_id}",
+        )

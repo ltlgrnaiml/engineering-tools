@@ -16,6 +16,7 @@ authors = [
 # Core dependencies shared across all tools
 dependencies = [
     "fastapi>=0.109.0",
+    "python-dotenv>=1.0.0",
     "uvicorn[standard]>=0.27.0",
     "pydantic>=2.5.0",
     "pydantic-settings>=2.1.0",
@@ -43,6 +44,10 @@ sov = [
     "statsmodels>=0.14.0",
     "numpy>=1.26.0",
 ]
+ai = [
+    "xai-sdk>=0.0.1",
+    "openai>=1.0.0",
+]
 dev = [
     "ruff>=0.1.14",
     "pytest>=7.4.4",
@@ -58,7 +63,7 @@ docs = [
     "mkdocstrings[python]>=0.24.0",
 ]
 all = [
-    "engineering-tools[pptx,sov,dev,docs]",
+    "engineering-tools[pptx,sov,ai,dev,docs]",
 ]
 
 [project.scripts]

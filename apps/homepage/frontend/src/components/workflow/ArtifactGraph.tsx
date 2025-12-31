@@ -1,9 +1,8 @@
-import { useRef, useCallback, useState, useEffect } from 'react'
+import { useRef, useCallback } from 'react'
 import ForceGraph2D from 'react-force-graph-2d'
 import { cn } from '@/lib/utils'
-import type { ArtifactType } from './types'
-
-const API_BASE = 'http://localhost:8000/api/devtools'
+import { useArtifactGraph } from '@/hooks/useWorkflowApi'
+import type { ArtifactType, GraphNode } from './types'
 
 // Tier colors per ADR-0045
 const TYPE_COLORS: Record<ArtifactType, string> = {
@@ -12,25 +11,6 @@ const TYPE_COLORS: Record<ArtifactType, string> = {
   spec: '#22C55E',       // green
   plan: '#F59E0B',       // amber
   contract: '#EC4899',   // pink
-}
-
-interface GraphNode {
-  id: string
-  type: ArtifactType
-  label: string
-  status: string
-  file_path: string
-}
-
-interface GraphEdge {
-  source: string
-  target: string
-  relationship: string
-}
-
-interface GraphData {
-  nodes: GraphNode[]
-  edges: GraphEdge[]
 }
 
 interface ArtifactGraphProps {
@@ -42,28 +22,7 @@ interface ArtifactGraphProps {
 export function ArtifactGraph({ onNodeClick, selectedNodeId: _selectedNodeId, className }: ArtifactGraphProps) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const graphRef = useRef<any>(null)
-  const [graphData, setGraphData] = useState<GraphData>({ nodes: [], edges: [] })
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const fetchGraph = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/artifacts/graph`)
-        if (res.ok) {
-          const data = await res.json()
-          setGraphData({
-            nodes: data.nodes,
-            edges: data.edges.map((e: GraphEdge) => ({ ...e, source: e.source, target: e.target }))
-          })
-        }
-      } catch (err) {
-        console.error('Failed to fetch graph:', err)
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchGraph()
-  }, [])
+  const { data: graphData, loading } = useArtifactGraph()
 
   const handleNodeClick = useCallback((node: GraphNode) => {
     onNodeClick?.(node.id, node.type)
@@ -77,7 +36,7 @@ export function ArtifactGraph({ onNodeClick, selectedNodeId: _selectedNodeId, cl
     return `${node.id}\n${node.label}`
   }, [])
 
-  if (loading) {
+  if (loading || !graphData) {
     return <div className="flex items-center justify-center h-full text-zinc-500">Loading graph...</div>
   }
 

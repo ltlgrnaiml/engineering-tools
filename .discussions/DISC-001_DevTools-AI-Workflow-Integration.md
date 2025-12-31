@@ -834,11 +834,119 @@ DevTools Panel
 
 ---
 
+---
+
+### 2025-12-30 - Session Part 8: Workflow Modes & Scenarios
+
+**USER Request**:
+> "We need both USER Manual (as much as can be done) and AI assisted flows with different levels of AI assist. Please map out the most value added scenarios you can envision with our current scope."
+
+#### Three Workflow Modes Defined
+
+| Mode | User Effort | AI Involvement | Use Case |
+|------|-------------|----------------|----------|
+| **Manual** | High | None | Full control, learning, offline |
+| **AI-Lite** | Medium | Prompts + Templates | Guided structure, user writes content |
+| **AI-Full** | Low | End-to-end generation | Rapid prototyping, experienced users |
+
+#### Scenario 1: New Feature Development
+
+**Manual Flow**:
+```
+User clicks "New Feature" →
+  UI shows form: Title, Summary, Initial Thoughts →
+  Backend creates DISC-XXX.md from template →
+  User manually writes Discussion content →
+  User clicks "Create ADR from Discussion" →
+  UI shows ADR form pre-filled with DISC reference →
+  User writes ADR content →
+  ... repeat for SPEC, Contract, Plan
+```
+
+**AI-Lite Flow**:
+```
+User clicks "New Feature" →
+  UI shows form: Title, one-line description →
+  Backend creates DISC-XXX.md skeleton →
+  UI generates prompt: "I'm starting DISC-XXX about {title}. Help me flesh out..."
+  User copies prompt → pastes to AI chat →
+  AI helps write content → User pastes back or AI saves directly →
+  When complete, UI suggests: "Ready to create ADR? [Generate ADR Prompt]"
+```
+
+**AI-Full Flow**:
+```
+User clicks "New Feature" →
+  UI shows simple form: Title, 2-3 sentence description →
+  User clicks "Generate Full Workflow" →
+  Backend generates: DISC, ADR, SPEC (all with content) →
+  UI shows all created artifacts in graph →
+  User reviews, edits as needed
+```
+
+#### Scenario 2: Bug Fix
+
+**Manual**: User creates Plan directly with tasks, executes manually.
+
+**AI-Lite**: UI generates debugging prompt with error context, AI suggests tasks.
+
+**AI-Full**: Paste error log → AI creates full debugging plan with verification commands.
+
+#### Scenario 3: Architecture Change
+
+Full workflow (Discussion → ADR → SPEC → Contract → Plan) with mode-appropriate assistance at each stage.
+
+#### Scenario 4: Simple Enhancement
+
+SPEC-first workflow (SPEC → Plan → Fragment) for smaller changes.
+
+#### High-Value Backend APIs Required
+
+| Endpoint | Purpose | Mode Support |
+|----------|---------|--------------|
+| `POST /workflows` | Start workflow, create initial artifact | All |
+| `GET /workflows/{id}/status` | Check which artifacts exist | All |
+| `POST /workflows/{id}/advance` | Create next artifact in chain | Manual, AI-Lite |
+| `POST /artifacts/generate` | AI generates artifact content | AI-Full |
+| `GET /artifacts/{id}/prompt` | Get context-aware AI prompt | AI-Lite |
+| `POST /artifacts/from-template` | Create from template | Manual |
+| `GET /workflows/{id}/suggestions` | What should user do next? | All |
+
+#### High-Value Frontend Features
+
+| Feature | Manual | AI-Lite | AI-Full |
+|---------|--------|---------|---------|
+| Template-based creation | ✅ | ✅ | ✅ |
+| Form wizard per artifact type | ✅ | ✅ | ✅ |
+| Cross-reference linking UI | ✅ | ✅ | ✅ |
+| Progress tracking (file-based) | ✅ | ✅ | ✅ |
+| Copy prompt to clipboard | - | ✅ | - |
+| Prompt preview/customization | - | ✅ | - |
+| One-click generation | - | - | ✅ |
+| Review/approve workflow | - | - | ✅ |
+
+#### MVP Scope Decision
+
+**Phase 1: Manual + AI-Lite** (highest value, lowest risk)
+- Backend: Workflow creation, status tracking, prompt generation, templates
+- Frontend: Wizard forms, "Copy AI Prompt" button, file-based progress tracking
+
+**Phase 2: AI-Full**
+- Backend AI generation endpoints
+- One-click artifact generation
+- Review/approve UI
+
+#### TENTATIVE AGREEMENT ✅
+
+**Workflow Modes**: Three modes (Manual, AI-Lite, AI-Full) with phased delivery.
+
+---
+
 ## Resolution
 
 **Resolution Date**: 2025-12-30
 
-**Outcome**: Discussion COMPLETE — ready for ADR creation
+**Outcome**: Discussion COMPLETE — ready for ADR/SPEC updates
 
 **Decisions Made** (7 sessions):
 

@@ -171,6 +171,52 @@
         ],
         "shared_ssot": "Files on disk (both UI and AI read/write same files)"
       },
+      "workflow_modes": {
+        "rationale": "Support both manual and AI-assisted development with varying levels of automation to accommodate different user preferences, skill levels, and scenarios.",
+        "modes": {
+          "manual": {
+            "description": "Full user control with templates",
+            "user_effort": "High",
+            "ai_involvement": "None",
+            "use_case": "Learning the workflow, offline work, full control",
+            "features": [
+              "Create artifact from template",
+              "Form-based editing",
+              "Manual cross-reference linking",
+              "File-based progress tracking"
+            ]
+          },
+          "ai_lite": {
+            "description": "Guided structure with AI content assistance",
+            "user_effort": "Medium",
+            "ai_involvement": "Prompts + Templates",
+            "use_case": "Structured approach with AI help for content",
+            "features": [
+              "Create skeleton from template",
+              "Generate context-aware prompts",
+              "Copy prompt to clipboard for AI chat",
+              "AI refines content, user reviews",
+              "Suggest next steps"
+            ]
+          },
+          "ai_full": {
+            "description": "End-to-end AI generation with user review",
+            "user_effort": "Low",
+            "ai_involvement": "Full generation",
+            "use_case": "Rapid prototyping, experienced users",
+            "features": [
+              "One-click artifact chain generation",
+              "AI generates Discussion → ADR → SPEC",
+              "User reviews and approves",
+              "AI executes Plan tasks"
+            ]
+          }
+        },
+        "phased_delivery": {
+          "phase_1": ["manual", "ai_lite"],
+          "phase_2": ["ai_full"]
+        }
+      },
       "tiered_plan_granularity": {
         "rationale": "Enable cost-effective AI execution by allowing plans to be generated at different detail levels. Users with budget can use powerful models with minimal detail; users optimizing cost can generate detailed step-by-step instructions for cheaper models.",
         "levels": {

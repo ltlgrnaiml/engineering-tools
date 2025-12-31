@@ -17,6 +17,8 @@ export { CodeRenderer } from './CodeRenderer'
 export { ADRViewer } from './ADRViewer'
 export { SpecViewer } from './SpecViewer'
 export { PlanViewer } from './PlanViewer'
+export { SchemaViewer } from './SchemaViewer'
+export { SchemaInterpreter } from './SchemaInterpreter'
 
 // Editor
 export { ArtifactEditor } from './ArtifactEditor'
@@ -33,11 +35,15 @@ export { CommandPalette } from './CommandPalette'
 
 // Activity & Empty States
 export { ActivityFeed } from './ActivityFeed'
-export { EmptyState } from './EmptyState'
+export { EmptyState, WorkflowStartedState } from './EmptyState'
 
 // Workflow Stepper
 export { WorkflowStepper } from './WorkflowStepper'
 export type { WorkflowStage } from './WorkflowStepper'
 
+// AI-Full Mode Components
+export { GenerateWorkflowModal } from './GenerateWorkflowModal'
+export { ReviewApprovePanel } from './ReviewApprovePanel'
+
 // Types
-export type { ArtifactType, ArtifactStatus, ArtifactSummary, ArtifactListResponse } from './types'
+export type { ArtifactType, ArtifactStatus, FileFormat, ArtifactSummary, ArtifactListResponse, WorkflowState, WorkflowMode, WorkflowScenario, GraphResponse, PromptResponse } from './types'

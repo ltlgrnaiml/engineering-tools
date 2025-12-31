@@ -71,6 +71,12 @@ CONTRACT_MODULES = {
     ],
     "devtools": [
         "shared.contracts.devtools.api",
+        "shared.contracts.devtools.workflow",
+    ],
+    "workflow": [
+        "shared.contracts.adr_schema",
+        "shared.contracts.spec_schema",
+        "shared.contracts.plan_schema",
     ],
 }
 

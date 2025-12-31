@@ -8,16 +8,20 @@ import {
   CommandPalette,
   WorkflowStepper,
   EmptyState,
+  WorkflowStartedState,
+  GenerateWorkflowModal,
 } from '@/components/workflow'
 import { useWorkflowState } from '@/components/workflow/useWorkflowState'
-import type { ArtifactType, ArtifactSummary } from '@/components/workflow/types'
+import type { ArtifactType, FileFormat, ArtifactSummary } from '@/components/workflow/types'
+import type { WorkflowType } from '@/components/workflow/WorkflowStepper'
 
 const API_BASE = 'http://localhost:8000/api/devtools'
 
 export function WorkflowManagerPage() {
-  const [selectedArtifact, setSelectedArtifact] = useState<{ id: string; type: ArtifactType; filePath: string } | null>(null)
+  const [selectedArtifact, setSelectedArtifact] = useState<{ id: string; type: ArtifactType; filePath: string; fileFormat: FileFormat } | null>(null)
   const [editorOpen, setEditorOpen] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
+  const [generateModalOpen, setGenerateModalOpen] = useState(false)
   const [allArtifacts, setAllArtifacts] = useState<ArtifactSummary[]>([])
   const [view, setView] = useState<'list' | 'graph'>('list')
 
@@ -46,13 +50,17 @@ export function WorkflowManagerPage() {
   const handleArtifactSelect = useCallback((id: string, type: ArtifactType) => {
     const artifact = allArtifacts.find(a => a.id === id)
     if (artifact) {
-      setSelectedArtifact({ id, type, filePath: artifact.file_path })
+      setSelectedArtifact({ id, type, filePath: artifact.file_path, fileFormat: artifact.file_format || 'unknown' })
       setEditorOpen(false)
     }
   }, [allArtifacts])
 
   const handleNewWorkflow = useCallback((type: string) => {
-    workflow.startWorkflow(type)
+    if (type === 'ai_full') {
+      setGenerateModalOpen(true)
+    } else {
+      workflow.startWorkflow(type as WorkflowType)
+    }
   }, [workflow])
 
   return (
@@ -60,6 +68,7 @@ export function WorkflowManagerPage() {
       {/* Workflow Stepper */}
       {workflow.workflowType && (
         <WorkflowStepper
+          workflowType={workflow.workflowType}
           currentStage={workflow.currentStage}
           completedStages={workflow.completedStages}
         />
@@ -107,10 +116,35 @@ export function WorkflowManagerPage() {
             <ArtifactReader
               artifactId={selectedArtifact.id}
               artifactType={selectedArtifact.type}
+              fileFormat={selectedArtifact.fileFormat}
               filePath={selectedArtifact.filePath}
               onEdit={() => setEditorOpen(true)}
               className="flex-1"
             />
+          ) : workflow.workflowType ? (
+            <div className="flex-1 flex items-center justify-center">
+              <WorkflowStartedState
+                workflowType={workflow.workflowType}
+                currentStage={workflow.currentStage}
+                onCreateArtifact={() => {
+                  // TODO: Open editor for new artifact
+                  console.log('Create artifact for stage:', workflow.currentStage)
+                }}
+                onCopyPrompt={() => {
+                  // Copy a starter prompt for the current stage
+                  const stagePrompts: Record<string, string> = {
+                    discussion: `Create a new Discussion file for this feature.\n\nTemplate:\n# DISC-XXX: [Title]\n\n## Summary\n[One paragraph describing the feature]\n\n## Requirements\n### Functional Requirements\n- [ ] **FR-1**: [Requirement]\n\n## Open Questions\n| ID | Question | Status |\n|----|----------|--------|\n| Q-1 | [Question] | open |`,
+                    adr: 'Create an ADR (Architecture Decision Record) that documents the key architectural decision for this work. Include context, decision, consequences, and alternatives considered.',
+                    spec: 'Create a SPEC that defines the functional requirements, API contracts, and acceptance criteria for this feature.',
+                    plan: 'Create a Plan that breaks this work into milestones and tasks with verification commands.',
+                    contract: 'Create Pydantic contracts that define the data shapes needed for this feature.',
+                  }
+                  const prompt = stagePrompts[workflow.currentStage] || 'Create the next artifact for this workflow.'
+                  navigator.clipboard.writeText(prompt)
+                  alert('Prompt copied to clipboard! Paste it into your AI assistant.')
+                }}
+              />
+            </div>
           ) : (
             <div className="flex-1 flex items-center justify-center">
               <EmptyState type="adr" onAction={() => handleNewWorkflow('feature')} />
@@ -135,6 +169,23 @@ export function WorkflowManagerPage() {
         onClose={() => setPaletteOpen(false)}
         artifacts={allArtifacts}
         onSelect={handleArtifactSelect}
+      />
+
+      {/* AI-Full Mode Generate Modal */}
+      <GenerateWorkflowModal
+        isOpen={generateModalOpen}
+        onClose={() => setGenerateModalOpen(false)}
+        onSuccess={(artifacts) => {
+          // Refresh artifact list and select first generated artifact
+          fetch(`${API_BASE}/artifacts`)
+            .then(res => res.json())
+            .then(data => {
+              setAllArtifacts(data.items || [])
+              if (artifacts.length > 0) {
+                handleArtifactSelect(artifacts[0].id, artifacts[0].type)
+              }
+            })
+        }}
       />
     </div>
   )

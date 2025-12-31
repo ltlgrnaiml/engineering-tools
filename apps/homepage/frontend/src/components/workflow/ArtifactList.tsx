@@ -1,9 +1,7 @@
-import { useState, useEffect } from 'react'
 import { Search, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { ArtifactType, ArtifactSummary, ArtifactListResponse } from './types'
-
-const API_BASE = 'http://localhost:8000/api/devtools'
+import { useArtifacts } from '@/hooks/useWorkflowApi'
+import type { ArtifactType } from './types'
 
 interface ArtifactListProps {
   type: ArtifactType
@@ -20,33 +18,7 @@ export function ArtifactList({
   onSelect,
   selectedId,
 }: ArtifactListProps) {
-  const [artifacts, setArtifacts] = useState<ArtifactSummary[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    const fetchArtifacts = async () => {
-      setLoading(true)
-      setError(null)
-      try {
-        const params = new URLSearchParams()
-        params.set('artifact_type', type)
-        if (searchQuery) params.set('search', searchQuery)
-        
-        const res = await fetch(`${API_BASE}/artifacts?${params}`)
-        if (!res.ok) throw new Error('Failed to fetch')
-        
-        const data: ArtifactListResponse = await res.json()
-        setArtifacts(data.items)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error')
-      } finally {
-        setLoading(false)
-      }
-    }
-    
-    fetchArtifacts()
-  }, [type, searchQuery])
+  const { data: artifacts, loading, error } = useArtifacts(type, searchQuery)
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
@@ -73,10 +45,10 @@ export function ArtifactList({
         )}
         
         {error && (
-          <div className="p-4 text-red-400 text-sm">{error}</div>
+          <div className="p-4 text-red-400 text-sm">{error.message}</div>
         )}
         
-        {!loading && !error && artifacts.map((artifact) => (
+        {!loading && !error && artifacts?.map((artifact) => (
           <button
             key={artifact.id}
             onClick={() => onSelect(artifact.id, artifact.type)}
@@ -90,7 +62,7 @@ export function ArtifactList({
           </button>
         ))}
         
-        {!loading && !error && artifacts.length === 0 && (
+        {!loading && !error && (!artifacts || artifacts.length === 0) && (
           <div className="p-4 text-zinc-500 text-sm text-center">No artifacts found</div>
         )}
       </div>

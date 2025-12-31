@@ -263,7 +263,33 @@ try {
     } -ArgumentList $REPO_ROOT, $honchoArgs
     
     Write-Host "[INFO] Honcho job started (Job ID: $($honchoJob.Id))" -ForegroundColor Gray
-    Write-Host "[INFO] Press Ctrl+C to stop..." -ForegroundColor Gray
+    Write-Host "[INFO] Waiting for services to start..." -ForegroundColor Gray
+    
+    # Wait a bit for services to start, then show endpoints
+    Start-Sleep -Seconds 3
+    
+    Write-Host ""
+    Write-Host "========================================" -ForegroundColor Green
+    Write-Host " ENDPOINTS (Services Running)" -ForegroundColor Green
+    Write-Host "========================================" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "  Homepage:         " -NoNewline -ForegroundColor White
+    Write-Host "http://localhost:3000" -ForegroundColor Cyan
+    Write-Host "  Backend API:      " -NoNewline -ForegroundColor White
+    Write-Host "http://localhost:8000" -ForegroundColor Cyan
+    Write-Host "  Swagger Docs:     " -NoNewline -ForegroundColor Gray
+    Write-Host "http://localhost:8000/docs" -ForegroundColor Cyan
+    Write-Host "  MkDocs:           " -NoNewline -ForegroundColor White
+    Write-Host "http://localhost:8001" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "  Tool Frontends (embedded in Homepage):" -ForegroundColor Gray
+    Write-Host "    DAT:  http://localhost:5173" -ForegroundColor DarkGray
+    Write-Host "    SOV:  http://localhost:5174" -ForegroundColor DarkGray
+    Write-Host "    PPTX: http://localhost:5175" -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "  Press Ctrl+C to stop all services" -ForegroundColor Yellow
+    Write-Host "========================================" -ForegroundColor Green
+    Write-Host ""
     
     try {
         # Wait for job while streaming output - Ctrl+C will throw and land in finally block

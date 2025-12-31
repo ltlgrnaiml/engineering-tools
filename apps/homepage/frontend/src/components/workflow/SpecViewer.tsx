@@ -20,6 +20,19 @@ function Badge({ children, className, variant = 'default' }: BadgeProps) {
   )
 }
 
+interface FunctionalRequirement {
+  id: string
+  category?: string
+  description: string
+  acceptance_criteria?: string[]
+  api_endpoint?: {
+    method: string
+    path: string
+    query_params?: string[]
+    response_model?: string
+  }
+}
+
 interface SpecData {
   id?: string
   title?: string
@@ -27,12 +40,21 @@ interface SpecData {
   version?: string
   scope?: string
   implements_adr?: string[]
-  overview?: string
-  requirements?: string[]
+  source_discussion?: string
+  overview?: string | {
+    purpose?: string
+    scope?: string
+    out_of_scope?: string[]
+  }
+  requirements?: string[] | {
+    functional?: FunctionalRequirement[]
+    non_functional?: string[]
+  }
   behaviors?: Array<{ id: string; description: string; acceptance_criteria: string }>
   constraints?: string[]
   interfaces?: string[]
   testing_requirements?: string[]
+  tier_0_contracts?: Array<{ module: string; classes: string[] }>
   [key: string]: unknown
 }
 
@@ -105,13 +127,68 @@ export function SpecViewer({ content, className }: SpecViewerProps) {
 
       {/* Overview */}
       {data.overview && renderSection('Overview',
-        <p className="text-zinc-300 whitespace-pre-wrap">{data.overview}</p>
+        typeof data.overview === 'string' ? (
+          <p className="text-zinc-300 whitespace-pre-wrap">{data.overview}</p>
+        ) : (
+          <div className="space-y-3">
+            {data.overview.purpose && (
+              <div>
+                <h4 className="text-sm font-medium text-zinc-400 mb-1">Purpose</h4>
+                <p className="text-zinc-300">{data.overview.purpose}</p>
+              </div>
+            )}
+            {data.overview.scope && (
+              <div>
+                <h4 className="text-sm font-medium text-zinc-400 mb-1">Scope</h4>
+                <p className="text-zinc-300">{data.overview.scope}</p>
+              </div>
+            )}
+            {data.overview.out_of_scope?.length ? (
+              <div>
+                <h4 className="text-sm font-medium text-zinc-400 mb-1">Out of Scope</h4>
+                <ul className="list-disc list-inside text-zinc-400">
+                  {data.overview.out_of_scope.map((item, i) => <li key={i}>{item}</li>)}
+                </ul>
+              </div>
+            ) : null}
+          </div>
+        )
       )}
 
       {/* Requirements */}
-      {data.requirements?.length ? renderSection('Requirements',
-        renderList(data.requirements, <CheckCircle size={14} className="text-green-500 mt-0.5" />)
-      ) : null}
+      {data.requirements && renderSection('Requirements',
+        Array.isArray(data.requirements) ? (
+          renderList(data.requirements, <CheckCircle size={14} className="text-green-500 mt-0.5" />)
+        ) : (
+          <div className="space-y-4">
+            {data.requirements.functional?.map((req, i) => (
+              <div key={i} className="bg-zinc-800/50 rounded-lg p-4 border border-zinc-700">
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge variant="outline">{req.id}</Badge>
+                  {req.category && <Badge variant="secondary">{req.category}</Badge>}
+                </div>
+                <p className="text-zinc-300 mb-2">{req.description}</p>
+                {req.acceptance_criteria?.length ? (
+                  <div className="mt-2">
+                    <h4 className="text-sm font-medium text-zinc-400 mb-1">Acceptance Criteria</h4>
+                    <ul className="list-disc list-inside text-sm text-green-300 space-y-1">
+                      {req.acceptance_criteria.map((ac, j) => <li key={j}>{ac}</li>)}
+                    </ul>
+                  </div>
+                ) : null}
+                {req.api_endpoint && (
+                  <div className="mt-2 text-sm">
+                    <span className="text-zinc-500">API: </span>
+                    <code className="bg-zinc-900 px-2 py-0.5 rounded text-blue-300">
+                      {req.api_endpoint.method} {req.api_endpoint.path}
+                    </code>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )
+      )}
 
       {/* Behaviors */}
       {data.behaviors?.length ? renderSection('Behaviors',

@@ -2,8 +2,9 @@ import { Check, ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export type WorkflowStage = 'discussion' | 'adr' | 'spec' | 'contract' | 'plan' | 'fragment'
+export type WorkflowType = 'feature' | 'bugfix' | 'refactor' | 'enhancement'
 
-const STAGES: { id: WorkflowStage; label: string; description: string }[] = [
+const ALL_STAGES: { id: WorkflowStage; label: string; description: string }[] = [
   { id: 'discussion', label: 'Discussion', description: 'Capture design conversation' },
   { id: 'adr', label: 'ADR', description: 'Record architecture decision' },
   { id: 'spec', label: 'SPEC', description: 'Define requirements' },
@@ -12,19 +13,41 @@ const STAGES: { id: WorkflowStage; label: string; description: string }[] = [
   { id: 'fragment', label: 'Fragment', description: 'Execute & verify' },
 ]
 
+// Define which stages each workflow type uses
+const WORKFLOW_STAGES: Record<WorkflowType, WorkflowStage[]> = {
+  feature: ['discussion', 'adr', 'spec', 'contract', 'plan', 'fragment'],
+  bugfix: ['plan', 'fragment'],
+  refactor: ['adr', 'plan', 'fragment'],
+  enhancement: ['spec', 'plan', 'fragment'],
+}
+
+// Get the starting stage for a workflow type
+export function getStartingStage(workflowType: WorkflowType): WorkflowStage {
+  return WORKFLOW_STAGES[workflowType][0]
+}
+
+// Get stages for a workflow type
+export function getWorkflowStages(workflowType: WorkflowType): WorkflowStage[] {
+  return WORKFLOW_STAGES[workflowType]
+}
+
 interface WorkflowStepperProps {
+  workflowType: WorkflowType
   currentStage: WorkflowStage
   completedStages: WorkflowStage[]
   onStageClick?: (stage: WorkflowStage) => void
   className?: string
 }
 
-export function WorkflowStepper({ currentStage, completedStages, onStageClick, className }: WorkflowStepperProps) {
-  const currentIndex = STAGES.findIndex(s => s.id === currentStage)
+export function WorkflowStepper({ workflowType, currentStage, completedStages, onStageClick, className }: WorkflowStepperProps) {
+  // Filter stages based on workflow type
+  const stageIds = WORKFLOW_STAGES[workflowType]
+  const stages = ALL_STAGES.filter(s => stageIds.includes(s.id))
+  const currentIndex = stages.findIndex(s => s.id === currentStage)
 
   return (
     <div className={cn('flex items-center gap-2 p-4 bg-zinc-900 border-b border-zinc-800 overflow-x-auto', className)}>
-      {STAGES.map((stage, index) => {
+      {stages.map((stage, index) => {
         const isCompleted = completedStages.includes(stage.id)
         const isCurrent = stage.id === currentStage
         // isPast can be used for styling past steps differently
@@ -55,7 +78,7 @@ export function WorkflowStepper({ currentStage, completedStages, onStageClick, c
                 <div className="text-xs text-zinc-500">{stage.description}</div>
               </div>
             </button>
-            {index < STAGES.length - 1 && (
+            {index < stages.length - 1 && (
               <ArrowRight size={16} className="mx-2 text-zinc-600" />
             )}
           </div>

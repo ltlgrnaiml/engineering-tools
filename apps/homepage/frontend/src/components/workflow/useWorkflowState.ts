@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
-import type { WorkflowStage } from './WorkflowStepper'
+import type { WorkflowStage, WorkflowType } from './WorkflowStepper'
+import { getStartingStage } from './WorkflowStepper'
 
 const STORAGE_KEY = 'workflow-manager-state'
 
 interface WorkflowState {
-  workflowType: string | null
+  workflowType: WorkflowType | null
   currentStage: WorkflowStage
   completedStages: WorkflowStage[]
   artifactIds: Record<WorkflowStage, string | null>
@@ -41,10 +42,12 @@ export function useWorkflowState() {
     }
   }, [state])
 
-  const startWorkflow = useCallback((type: string) => {
+  const startWorkflow = useCallback((type: WorkflowType) => {
+    const startingStage = getStartingStage(type)
     setState({
       ...DEFAULT_STATE,
       workflowType: type,
+      currentStage: startingStage,
       startedAt: new Date().toISOString(),
     })
   }, [])
