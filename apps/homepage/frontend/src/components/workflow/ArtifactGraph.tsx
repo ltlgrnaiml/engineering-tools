@@ -104,6 +104,24 @@ export function ArtifactGraph({ onNodeClick, selectedNodeId, className }: Artifa
   const [hoveredNode, setHoveredNode] = useState<ExtendedGraphNode | null>(null)
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 })
 
+  // DEBUG: Log graph data with full edge details
+  useEffect(() => {
+    if (graphData) {
+      const nodeIds = new Set(graphData.nodes.map(n => n.id))
+      const invalidEdges = graphData.edges.filter(e => !nodeIds.has(e.source) || !nodeIds.has(e.target))
+      console.log('[ArtifactGraph] Graph data loaded:', {
+        nodes: graphData.nodes.length,
+        edges: graphData.edges.length,
+        invalidEdges: invalidEdges.length,
+        sampleEdges: graphData.edges.slice(0, 3),
+        sampleNodes: graphData.nodes.slice(0, 3).map(n => n.id),
+      })
+      if (invalidEdges.length > 0) {
+        console.warn('[ArtifactGraph] Invalid edges (missing nodes):', invalidEdges)
+      }
+    }
+  }, [graphData])
+
   // Track container dimensions only - NO auto zoom to prevent drift
   useEffect(() => {
     const container = containerRef.current
@@ -179,18 +197,16 @@ export function ArtifactGraph({ onNodeClick, selectedNodeId, className }: Artifa
     return neighbors?.has(node.id) ?? false
   }, [hoveredNode, selectedNodeId, adjacencyMap])
 
-  // Check if link should be highlighted
-  const isLinkHighlighted = useCallback((link: ExtendedGraphEdge): boolean => {
-    if (!hoveredNode && !selectedNodeId) return false
-    
-    const activeId = hoveredNode?.id || selectedNodeId
-    if (!activeId) return false
-    
-    const sourceId = typeof link.source === 'object' ? (link.source as ExtendedGraphNode).id : link.source
-    const targetId = typeof link.target === 'object' ? (link.target as ExtendedGraphNode).id : link.target
-    
-    return sourceId === activeId || targetId === activeId
-  }, [hoveredNode, selectedNodeId])
+  // Check if link should be highlighted (temporarily unused during debug)
+  // const isLinkHighlighted = useCallback((link: ExtendedGraphEdge): boolean => {
+  //   if (!hoveredNode && !selectedNodeId) return false
+  //   const activeId = hoveredNode?.id || selectedNodeId
+  //   if (!activeId) return false
+  //   const sourceId = typeof link.source === 'object' ? (link.source as ExtendedGraphNode).id : link.source
+  //   const targetId = typeof link.target === 'object' ? (link.target as ExtendedGraphNode).id : link.target
+  //   return sourceId === activeId || targetId === activeId
+  // }, [hoveredNode, selectedNodeId])
+  void hoveredNode // Suppress unused warning during debug
 
   const nodeCanvasObject = useCallback((node: ExtendedGraphNode, ctx: CanvasRenderingContext2D, globalScale: number) => {
     const isHighlighted = isNodeHighlighted(node)
@@ -241,19 +257,15 @@ export function ArtifactGraph({ onNodeClick, selectedNodeId, className }: Artifa
     }
   }, [hoveredNode, selectedNodeId, isNodeHighlighted])
 
-  const linkColor = useCallback((link: ExtendedGraphEdge) => {
-    if (isLinkHighlighted(link)) {
-      return '#FFFFFF'
-    }
-    if (hoveredNode || selectedNodeId) {
-      return '#1F2937' // dim when something is highlighted
-    }
-    return '#4B5563'
-  }, [hoveredNode, selectedNodeId, isLinkHighlighted])
-
-  const linkWidth = useCallback((link: ExtendedGraphEdge) => {
-    return isLinkHighlighted(link) ? 2 : 1
-  }, [isLinkHighlighted])
+  // Link styling callbacks - temporarily using inline functions for debugging
+  // const linkColor = useCallback((link: ExtendedGraphEdge) => {
+  //   if (isLinkHighlighted(link)) return '#FFFFFF'
+  //   if (hoveredNode || selectedNodeId) return '#1F2937'
+  //   return '#4B5563'
+  // }, [hoveredNode, selectedNodeId, isLinkHighlighted])
+  // const linkWidth = useCallback((link: ExtendedGraphEdge) => {
+  //   return isLinkHighlighted(link) ? 2 : 1
+  // }, [isLinkHighlighted])
 
   if (loading || !graphData) {
     return (
@@ -279,12 +291,12 @@ export function ArtifactGraph({ onNodeClick, selectedNodeId, className }: Artifa
         }}
         onNodeClick={handleNodeClick}
         onNodeHover={handleNodeHover}
-        linkColor={linkColor}
-        linkWidth={linkWidth}
+        linkColor={() => '#FF0000'}
+        linkWidth={() => 3}
         linkDirectionalArrowLength={6}
         linkDirectionalArrowRelPos={1}
         linkDirectionalParticles={2}
-        linkDirectionalParticleWidth={(link: ExtendedGraphEdge) => isLinkHighlighted(link) ? 3 : 0}
+        linkDirectionalParticleWidth={() => 2}
         linkDirectionalParticleSpeed={0.005}
         backgroundColor="#09090b"
         cooldownTicks={100}
