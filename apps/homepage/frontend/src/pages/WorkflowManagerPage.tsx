@@ -14,6 +14,7 @@ import {
 import { useWorkflowState } from '@/components/workflow/useWorkflowState'
 import type { ArtifactType, FileFormat, ArtifactSummary } from '@/components/workflow/types'
 import type { WorkflowType } from '@/components/workflow/WorkflowStepper'
+import { isStageInWorkflow, artifactTypeToStage } from '@/components/workflow/WorkflowStepper'
 
 const API_BASE = 'http://localhost:8000/api/devtools'
 
@@ -56,12 +57,36 @@ export function WorkflowManagerPage() {
   }, [allArtifacts])
 
   const handleNewWorkflow = useCallback((type: string) => {
+    // Warn user if they have an active workflow or selected artifact
+    if (workflow.workflowType || selectedArtifact) {
+      let msg = workflow.workflowType 
+        ? 'Starting a new workflow will reset your current workflow progress.'
+        : 'Starting a new workflow will clear your current selection.'
+      
+      // Check for workflow type mismatch with selected artifact
+      if (selectedArtifact && type !== 'ai_full') {
+        const selectedStage = artifactTypeToStage(selectedArtifact.type)
+        if (selectedStage && !isStageInWorkflow(selectedStage, type as WorkflowType)) {
+          msg += `\n\nNote: Your selected ${selectedArtifact.type.toUpperCase()} artifact is not part of the "${type}" workflow.`
+        }
+      }
+      
+      msg += '\n\nContinue?'
+      
+      if (!window.confirm(msg)) {
+        return
+      }
+      // Reset current state
+      setSelectedArtifact(null)
+      setEditorOpen(false)
+    }
+    
     if (type === 'ai_full') {
       setGenerateModalOpen(true)
     } else {
       workflow.startWorkflow(type as WorkflowType)
     }
-  }, [workflow])
+  }, [workflow, selectedArtifact])
 
   return (
     <div className="flex flex-col h-screen bg-zinc-950 text-white">

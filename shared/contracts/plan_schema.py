@@ -57,8 +57,76 @@ class ACStatus(str, Enum):
     """Status of an acceptance criterion."""
 
     PENDING = "pending"
-    PASSED = "passed"
-    FAILED = "failed"
+
+
+class CompletionType(str, Enum):
+    """How a plan was completed.
+
+    Per Option A (Milestone-Based Closure):
+    - Plans close when acceptance criteria are met
+    - Known bugs are documented, not blockers to closure
+    - Future work is deferred to new plans
+    """
+
+    MVP_SHIPPED = "mvp_shipped"         # Core functionality done, known bugs remain
+    FULLY_COMPLETE = "fully_complete"   # All work done, no known bugs
+    SUPERSEDED = "superseded"           # Replaced by another plan
+
+
+class BugSeverity(str, Enum):
+    """Severity of a known bug."""
+
+    LOW = "low"         # Cosmetic, minor UX issues
+    MEDIUM = "medium"   # Functional issue with workaround
+    HIGH = "high"       # Significant issue, should fix soon
+
+
+class DependencyType(str, Enum):
+    """Type of DISC dependency relationship.
+
+    Per ADR-0043 disc_dependency_management section (SESSION_020).
+    """
+
+    FINISH_TO_START = "FS"      # Can't start until dep resolves
+    FINISH_TO_FINISH = "FF"     # Aggregator waits for all
+    START_TO_START = "SS"       # Can start in parallel
+    SOFT = "soft"               # Can proceed with stub
+
+
+class DISCDependencyStatus(str, Enum):
+    """Status of a DISC dependency."""
+
+    PENDING = "pending"         # Not yet started
+    STUB = "stub"               # Using stub implementation
+    RESOLVED = "resolved"       # Fully resolved
+
+
+class DISCDependency(BaseModel):
+    """Tracks DISC dependencies for a Plan.
+
+    Per ADR-0043: When multiple DISCs converge on one feature,
+    track their resolution status and any stubs being used.
+    """
+
+    disc_id: str = Field(..., description="DISC ID (e.g., DISC-003)")
+    title: str = Field(..., description="DISC title for readability")
+    dependency_type: DependencyType = Field(
+        ..., description="Type of dependency relationship"
+    )
+    status: DISCDependencyStatus = Field(
+        default=DISCDependencyStatus.PENDING,
+        description="Current resolution status"
+    )
+    stub_location: str | None = Field(
+        None, description="Path to stub if using stub pattern"
+    )
+    blocker_for: list[str] = Field(
+        default_factory=list,
+        description="Milestone IDs blocked by this dependency"
+    )
+    resolution_note: str | None = Field(
+        None, description="How dependency was resolved"
+    )
 
 
 class GranularityLevel(str, Enum):
@@ -368,6 +436,40 @@ class Blocker(BaseModel):
 
 
 # =============================================================================
+# Known Bug Models (Option A: Milestone-Based Closure)
+# =============================================================================
+
+
+class KnownBug(BaseModel):
+    """A known bug documented at plan completion.
+
+    Per Option A (Milestone-Based Closure):
+    - Bugs don't block plan closure
+    - Bugs are documented with severity and optional deferral
+    - Future developers can see what was known but not fixed
+    """
+
+    id: str = Field(..., description="Bug ID (e.g., BUG-001)")
+    description: str = Field(..., description="What the bug is")
+    severity: BugSeverity = Field(..., description="How severe the bug is")
+    discovered_date: str = Field(..., description="When discovered (YYYY-MM-DD)")
+    affected_component: str | None = Field(
+        None, description="Component or file affected"
+    )
+    workaround: str | None = Field(None, description="Workaround if any")
+    deferred_to: str | None = Field(
+        None, description="Plan ID if deferred (e.g., PLAN-002)"
+    )
+
+    @field_validator("id")
+    @classmethod
+    def validate_bug_id(cls, v: str) -> str:
+        if not v.startswith("BUG-"):
+            raise ValueError("Bug ID must start with 'BUG-' (e.g., BUG-001)")
+        return v
+
+
+# =============================================================================
 # Global Acceptance Criteria
 # =============================================================================
 
@@ -613,6 +715,12 @@ class PlanSchema(BaseModel):
         default_factory=list, description="Source artifacts this plan implements"
     )
 
+    # DISC Dependencies (per ADR-0043 disc_dependency_management)
+    disc_dependencies: list[DISCDependency] = Field(
+        default_factory=list,
+        description="DISC dependencies for multi-DISC coordinated plans"
+    )
+
     # Prerequisites
     prerequisites: list[str] = Field(
         default_factory=list, description="Prerequisites that must be met before starting"
@@ -638,6 +746,22 @@ class PlanSchema(BaseModel):
     )
     handoff_notes: HandoffNotes | None = Field(
         None, description="Notes for the next session"
+    )
+
+    # Completion tracking (Option A: Milestone-Based Closure)
+    completion_type: CompletionType | None = Field(
+        None,
+        description="How the plan was completed (mvp_shipped, fully_complete, superseded)",
+    )
+    completion_date: str | None = Field(
+        None, description="When the plan was marked complete (YYYY-MM-DD)"
+    )
+    known_bugs: list[KnownBug] = Field(
+        default_factory=list,
+        description="Known bugs documented at completion (don't block closure)",
+    )
+    deferred_to: str | None = Field(
+        None, description="Plan ID if work continues (e.g., PLAN-002)"
     )
 
     @field_validator("id")

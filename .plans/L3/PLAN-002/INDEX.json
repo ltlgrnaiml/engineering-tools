@@ -1,0 +1,189 @@
+{
+  "_comment": "L3 Chunked Plan Index - Read this file FIRST before any chunk",
+  "schema_type": "l3_chunk_index",
+  "plan_id": "PLAN-002",
+  "granularity": "L3",
+  "title": "Knowledge Archive & RAG System Implementation",
+  "version": "2025.12.02",
+  "total_chunks": 5,
+  "target_model": "budget-models",
+  "session_required": true,
+  "verification_strictness": "stop_and_escalate",
+
+  "source_documents": {
+    "adr": "ADR-0047",
+    "spec": "SPEC-0043",
+    "discussions": ["DISC-003", "DISC-004", "DISC-005", "DISC-006"],
+    "parent_plan": ".plans/PLAN-002_Knowledge-Archive-Implementation.md"
+  },
+
+  "chunks": [
+    {
+      "chunk_id": "M1",
+      "chunk_file": "PLAN-002_L3_M1.json",
+      "name": "Archive Core",
+      "description": "Database schema, document parsers, archive service, file sync, export, migration",
+      "task_count": 9,
+      "task_ids": ["T-M1-01", "T-M1-02", "T-M1-03", "T-M1-04", "T-M1-05", "T-M1-06", "T-M1-07", "T-M1-08", "T-M1-09"],
+      "spec_coverage": ["AR01", "AR02", "AR03", "AR04", "AR05", "AR06", "API04", "API05", "API06", "API07", "API08"],
+      "line_count": 370,
+      "target_limit": 600,
+      "soft_limit": 800,
+      "status": "completed",
+      "warning_note": null
+    },
+    {
+      "chunk_id": "M2",
+      "chunk_file": "PLAN-002_L3_M2.json",
+      "name": "Search Layer",
+      "description": "FTS search, vector search, hybrid search with RRF, relationships, search API",
+      "task_count": 6,
+      "task_ids": ["T-M2-01", "T-M2-02", "T-M2-03", "T-M2-04", "T-M2-05", "T-M2-06"],
+      "spec_coverage": ["SE01", "SE02", "SE03", "SE04", "API01", "API02", "API03", "API11"],
+      "line_count": 278,
+      "target_limit": 600,
+      "soft_limit": 800,
+      "status": "completed",
+      "warning_note": null
+    },
+    {
+      "chunk_id": "M3a",
+      "chunk_file": "PLAN-002_L3_M3a.json",
+      "name": "RAG Layer Part 1 - Chunking & Embedding",
+      "description": "Chunking pipeline, embedding service, batch embedding, re-chunking",
+      "task_count": 4,
+      "task_ids": ["T-M3-01", "T-M3-02", "T-M3-03", "T-M3-04"],
+      "spec_coverage": ["CH01", "CH02", "CH03", "EM01", "EM02", "EM03", "EM04"],
+      "line_count": 216,
+      "target_limit": 600,
+      "soft_limit": 800,
+      "status": "completed",
+      "warning_note": null
+    },
+    {
+      "chunk_id": "M3b",
+      "chunk_file": "PLAN-002_L3_M3b.json",
+      "name": "RAG Layer Part 2 - Sanitization & Context",
+      "description": "PII sanitizer, context builder, token budget, caching, RAG API, tests",
+      "task_count": 4,
+      "task_ids": ["T-M3-05", "T-M3-06", "T-M3-07", "T-M3-08"],
+      "spec_coverage": ["SA01", "SA02", "SA03", "RA01", "RA02", "RA03", "RA04", "API10"],
+      "line_count": 221,
+      "target_limit": 600,
+      "soft_limit": 800,
+      "status": "completed",
+      "warning_note": null
+    },
+    {
+      "chunk_id": "M4",
+      "chunk_file": "PLAN-002_L3_M4.json",
+      "name": "Integration",
+      "description": "Langchain adapter, statistics endpoint, DevTools integration, E2E tests",
+      "task_count": 4,
+      "task_ids": ["T-M4-01", "T-M4-02", "T-M4-03", "T-M4-04"],
+      "spec_coverage": ["API09", "DISC-003"],
+      "line_count": 263,
+      "target_limit": 600,
+      "soft_limit": 800,
+      "status": "completed",
+      "warning_note": null
+    }
+  ],
+
+  "current_chunk": null,
+  "last_completed_task": "T-M4-04",
+
+  "continuation_context": {
+    "previous_chunk": "M3a",
+    "last_completed_task": "T-M3-04",
+    "files_created": [
+      "gateway/services/knowledge/__init__.py",
+      "gateway/services/knowledge/database.py",
+      "gateway/services/knowledge/parsers.py",
+      "gateway/services/knowledge/archive_service.py",
+      "gateway/services/knowledge/sync_service.py",
+      "gateway/services/knowledge/exporter.py",
+      "gateway/services/knowledge/migration.py",
+      "gateway/services/knowledge/search_service.py",
+      "gateway/services/knowledge/chunking.py",
+      "gateway/services/knowledge/embedding_service.py",
+      "gateway/routes/__init__.py",
+      "gateway/routes/knowledge.py",
+      "tests/knowledge/__init__.py",
+      "tests/knowledge/test_archive.py",
+      "tests/knowledge/test_search.py"
+    ],
+    "files_modified": [
+      "shared/contracts/knowledge/archive.py"
+    ],
+    "architecture_rules": [
+      "STYLE: Functional programming - NO classes except Pydantic models and service classes",
+      "IMPORTS: Use absolute imports from project root",
+      "CONTRACTS: All data models from shared/contracts/",
+      "DATABASE: workspace/knowledge.db - SQLite with FTS5",
+      "GUARDRAIL: NO hard deletes - use archived_at timestamp (soft delete)",
+      "GUARDRAIL: ALL content sanitized before LLM exposure",
+      "EMBEDDING: Consistent dimensions per model (768 for mpnet, 384 for minilm)"
+    ],
+    "patterns_established": [],
+    "active_blockers": []
+  },
+
+  "execution_history": [
+    {
+      "chunk_id": "M1",
+      "completed_by": "claude-sonnet-4-20250514",
+      "session_id": "SESSION_021",
+      "completed_date": "2025-12-30"
+    },
+    {
+      "chunk_id": "M2",
+      "completed_by": "claude-sonnet-4-20250514",
+      "session_id": "SESSION_021",
+      "completed_date": "2025-12-30"
+    },
+    {
+      "chunk_id": "M3a",
+      "completed_by": "claude-sonnet-4-20250514",
+      "session_id": "SESSION_021",
+      "completed_date": "2025-12-30"
+    },
+    {
+      "chunk_id": "M3b",
+      "completed_by": "claude-sonnet-4-20250514",
+      "session_id": "SESSION_021",
+      "completed_date": "2025-12-30"
+    },
+    {
+      "chunk_id": "M4",
+      "completed_by": "claude-sonnet-4-20250514",
+      "session_id": "SESSION_021",
+      "completed_date": "2025-12-30"
+    }
+  ],
+
+  "_instructions": {
+    "before_starting": [
+      "1. Read this INDEX file completely",
+      "2. Check current_chunk to know which chunk to execute",
+      "3. Read the chunk file specified in chunks[current_chunk].chunk_file",
+      "4. Create a session file: .sessions/SESSION_XXX_PLAN-002_<chunk>_<summary>.md",
+      "5. Run baseline tests: pytest tests/ -v (document if failing)",
+      "6. If baseline fails with RELATED errors, create .questions/ file and STOP"
+    ],
+    "during_execution": [
+      "1. Follow each step in order - do not skip steps",
+      "2. Run verification_hint after each step",
+      "3. If any step fails, create .questions/ file and STOP (L3 strictness)",
+      "4. Copy code snippets EXACTLY - do not modify",
+      "5. After every 5 tasks, update session file with progress"
+    ],
+    "after_completing_chunk": [
+      "1. Run all acceptance criteria verification commands",
+      "2. Update this INDEX file: current_chunk, last_completed_task, continuation_context",
+      "3. Add entry to execution_history with your model name",
+      "4. Update session file with handoff notes",
+      "5. Commit changes: git add -A && git commit -m 'PLAN-002 <chunk>: <summary>'"
+    ]
+  }
+}

@@ -1,0 +1,221 @@
+{
+  "_fragment_header": {
+    "fragment_meta": {
+      "fragment_id": "M3b",
+      "fragment_file": "PLAN-002_L3_M3b.json",
+      "line_count": 580,
+      "target_limit": 600,
+      "soft_limit": 800,
+      "warning_note": null
+    },
+    "continuation_from": {
+      "previous_fragment": "M3a",
+      "last_completed_task": "T-M3-04",
+      "files_created": [
+        "gateway/services/knowledge/chunking.py",
+        "gateway/services/knowledge/embedding_service.py"
+      ],
+      "files_modified": [],
+      "architecture_rules": [
+        "STYLE: Use ChunkingService for chunking",
+        "STYLE: Use EmbeddingService for embeddings",
+        "GUARDRAIL: ALL content sanitized before LLM exposure",
+        "VECTORS: 768 dims mpnet, 384 dims minilm"
+      ],
+      "patterns_established": [
+        "Vectors stored as BLOB via vector_to_blob()",
+        "Auto-fallback to smaller model on MemoryError"
+      ],
+      "active_blockers": []
+    },
+    "session_instruction": "Create SESSION_XXX_PLAN-002_M3b_sanitization-context.md before starting",
+    "verification_strictness": "stop_and_escalate"
+  },
+
+  "milestone": {
+    "id": "M3b",
+    "name": "RAG Layer Part 2 - Sanitization & Context",
+    "objective": "Implement PII sanitization, context builder, token budget, caching, and RAG API",
+    "spec_coverage": ["SA01", "SA02", "SA03", "RA01", "RA02", "RA03", "RA04", "API10"],
+    "estimated_duration": "3-4 days"
+  },
+
+  "preflight": [
+    {
+      "step": 1,
+      "instruction": "Create session file: .sessions/SESSION_XXX_PLAN-002_M3b_sanitization-context.md",
+      "verification_hint": "ls .sessions/SESSION_*.md | tail -1"
+    },
+    {
+      "step": 2,
+      "instruction": "Verify M3a completion",
+      "verification_hint": "python -c \"from gateway.services.knowledge.chunking import ChunkingService; from gateway.services.knowledge.embedding_service import EmbeddingService; print('M3a OK')\""
+    }
+  ],
+
+  "tasks": [
+    {
+      "id": "T-M3-05",
+      "description": "Implement PII Sanitizer with regex patterns",
+      "spec_ref": "SPEC-0043-SA01, SA02",
+      "verification_command": "python -c \"from gateway.services.knowledge.sanitizer import Sanitizer; print('Sanitizer OK')\"",
+      "status": "pending",
+      "context": [
+        "FILE: Create gateway/services/knowledge/sanitizer.py",
+        "FILE: Create config/pii_patterns.yaml",
+        "GUARDRAIL: <5% false positive rate"
+      ],
+      "hints": [
+        "Pattern categories: API keys, AWS keys, emails, internal IPs",
+        "Reversible redaction in dev mode only (IS_DEV_MODE)",
+        "Store redaction log for restore capability"
+      ],
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Create sanitizer.py",
+          "file_path": "gateway/services/knowledge/sanitizer.py",
+          "code_snippet": "\"\"\"PII Sanitizer - SPEC-0043-SA01, SA02.\n\nRegex-based PII detection and redaction.\nGUARDRAIL: ALL content must be sanitized before LLM exposure.\n\"\"\"\n\nimport os\nimport re\nfrom dataclasses import dataclass, field\n\n\n@dataclass\nclass RedactionEntry:\n    \"\"\"Record of a redaction for potential restore.\"\"\"\n    original: str\n    replacement: str\n    category: str\n    start: int\n    end: int\n\n\n@dataclass\nclass SanitizeResult:\n    \"\"\"Result of sanitization operation.\"\"\"\n    sanitized_content: str\n    redaction_count: int\n    redactions: list[RedactionEntry] = field(default_factory=list)\n\n\nclass Sanitizer:\n    \"\"\"PII sanitizer with configurable patterns.\"\"\"\n    \n    # Pattern definitions: (regex, replacement, category)\n    PATTERNS = [\n        (r'sk-[a-zA-Z0-9]{20,}', '[REDACTED_API_KEY]', 'api_key'),\n        (r'AKIA[A-Z0-9]{16}', '[REDACTED_AWS_KEY]', 'aws_key'),\n        (r'ghp_[a-zA-Z0-9]{36}', '[REDACTED_GITHUB_TOKEN]', 'github_token'),\n        (r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}', '[EMAIL]', 'email'),\n        (r'\\b(?:10|172\\.(?:1[6-9]|2[0-9]|3[01])|192\\.168)\\.[0-9.]+\\b', '[INTERNAL_IP]', 'internal_ip'),\n        (r'password[\"\\']?\\s*[:=]\\s*[\"\\'][^\"\\']+'+'[\"\\']', '[REDACTED_PASSWORD]', 'password'),\n        (r'secret[\"\\']?\\s*[:=]\\s*[\"\\'][^\"\\']+'+'[\"\\']', '[REDACTED_SECRET]', 'secret'),\n    ]\n\n    def __init__(self):\n        self._is_dev = os.getenv('IS_DEV_MODE', 'false').lower() == 'true'\n\n    def sanitize(self, content: str, reversible: bool = False) -> SanitizeResult:\n        \"\"\"Sanitize content by redacting PII patterns.\n        \n        Args:\n            content: Text to sanitize\n            reversible: If True (dev mode only), store originals for restore\n            \n        Returns:\n            SanitizeResult with sanitized content and redaction info\n        \"\"\"\n        # Only allow reversible in dev mode\n        reversible = reversible and self._is_dev\n        \n        sanitized = content\n        redactions = []\n        offset = 0  # Track position shifts from replacements\n        \n        for pattern, replacement, category in self.PATTERNS:\n            for match in re.finditer(pattern, content, re.IGNORECASE):\n                if reversible:\n                    redactions.append(RedactionEntry(\n                        original=match.group(),\n                        replacement=replacement,\n                        category=category,\n                        start=match.start(),\n                        end=match.end()\n                    ))\n                # Apply replacement\n                start = match.start() + offset\n                end = match.end() + offset\n                sanitized = sanitized[:start] + replacement + sanitized[end:]\n                offset += len(replacement) - (match.end() - match.start())\n        \n        return SanitizeResult(\n            sanitized_content=sanitized,\n            redaction_count=len(redactions) if reversible else sanitized.count('[REDACTED'),\n            redactions=redactions\n        )\n\n    def restore(self, result: SanitizeResult) -> str:\n        \"\"\"Restore original content from redactions (dev mode only).\"\"\"\n        if not result.redactions:\n            return result.sanitized_content\n        \n        content = result.sanitized_content\n        # Restore in reverse order to maintain positions\n        for entry in reversed(result.redactions):\n            content = content.replace(entry.replacement, entry.original, 1)\n        return content\n",
+          "verification_hint": "python -c \"from gateway.services.knowledge.sanitizer import Sanitizer; s=Sanitizer(); r=s.sanitize('email: test@example.com'); print(f'redacted: {r.redaction_count}')\"",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M3-06",
+      "description": "Implement Context Builder with sanitization pipeline",
+      "spec_ref": "SPEC-0043-RA01, RA02, SA03",
+      "verification_command": "python -c \"from gateway.services.knowledge.context_builder import ContextBuilder; print('Context OK')\"",
+      "status": "pending",
+      "context": [
+        "FILE: Create gateway/services/knowledge/context_builder.py",
+        "GUARDRAIL: ALL chunks MUST pass through sanitizer before LLM"
+      ],
+      "hints": [
+        "Use hybrid search to find relevant chunks",
+        "Format with source attribution template",
+        "Sanitize BEFORE assembling context"
+      ],
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Create context_builder.py",
+          "file_path": "gateway/services/knowledge/context_builder.py",
+          "code_snippet": "\"\"\"Context Builder - SPEC-0043-RA01, RA02, SA03.\n\nBuild RAG context from relevant chunks with sanitization.\nGUARDRAIL: ALL content sanitized before LLM exposure.\n\"\"\"\n\nimport hashlib\nimport time\nfrom dataclasses import dataclass, field\n\nfrom gateway.services.knowledge.search_service import SearchService, SearchHit\nfrom gateway.services.knowledge.sanitizer import Sanitizer\n\n\nCONTEXT_TEMPLATE = \"\"\"## Relevant Context\n\n{chunks}\n\n---\n\n## Your Task\n\n{prompt}\"\"\"\n\nCHUNK_TEMPLATE = \"### From {doc_type}: {title}\\n\\n{content}\\n\"\n\n\n@dataclass\nclass RAGContext:\n    \"\"\"RAG context result.\"\"\"\n    context: str\n    sources: list[str]\n    token_count: int\n    from_cache: bool = False\n\n\nclass ContextCache:\n    \"\"\"Simple TTL cache for context results (SPEC-0043-RA04).\"\"\"\n    \n    def __init__(self, ttl_seconds: int = 300):\n        self.ttl = ttl_seconds\n        self._cache: dict[str, tuple[RAGContext, float]] = {}\n\n    def _hash_query(self, prompt: str, top_k: int) -> str:\n        return hashlib.sha256(f\"{prompt}:{top_k}\".encode()).hexdigest()[:16]\n\n    def get(self, prompt: str, top_k: int) -> RAGContext | None:\n        key = self._hash_query(prompt, top_k)\n        if key in self._cache:\n            ctx, ts = self._cache[key]\n            if time.time() - ts < self.ttl:\n                return RAGContext(\n                    context=ctx.context,\n                    sources=ctx.sources,\n                    token_count=ctx.token_count,\n                    from_cache=True\n                )\n            del self._cache[key]\n        return None\n\n    def set(self, prompt: str, top_k: int, ctx: RAGContext):\n        key = self._hash_query(prompt, top_k)\n        self._cache[key] = (ctx, time.time())\n\n    def invalidate_all(self):\n        self._cache.clear()\n\n\nclass ContextBuilder:\n    \"\"\"Build RAG context with sanitization and caching.\"\"\"\n    \n    CHARS_PER_TOKEN = 4\n\n    def __init__(self, search: SearchService, sanitizer: Sanitizer | None = None):\n        self.search = search\n        self.sanitizer = sanitizer or Sanitizer()\n        self.cache = ContextCache()\n\n    def _estimate_tokens(self, text: str) -> int:\n        return len(text) // self.CHARS_PER_TOKEN\n\n    def _fit_to_budget(self, hits: list[SearchHit], max_tokens: int) -> list[SearchHit]:\n        \"\"\"Keep chunks until budget exhausted (SPEC-0043-RA03).\"\"\"\n        total = 0\n        selected = []\n        for hit in hits:\n            tokens = self._estimate_tokens(hit.snippet)\n            if total + tokens > max_tokens:\n                break\n            selected.append(hit)\n            total += tokens\n        return selected\n\n    def build_context(\n        self,\n        prompt: str,\n        max_tokens: int = 4000,\n        top_k: int = 10,\n        cache_enabled: bool = True\n    ) -> RAGContext:\n        \"\"\"Build RAG context for prompt.\n        \n        GUARDRAIL: Sanitizes ALL content before assembly.\n        \"\"\"\n        # Check cache\n        if cache_enabled:\n            cached = self.cache.get(prompt, top_k)\n            if cached:\n                return cached\n        \n        # Search for relevant chunks\n        results = self.search.hybrid_search(prompt, query_vector=None, top_k=top_k * 2)\n        \n        # Fit to token budget\n        results = self._fit_to_budget(results, max_tokens - self._estimate_tokens(prompt) - 100)\n        \n        # GUARDRAIL: Sanitize ALL chunks (SPEC-0043-SA03)\n        chunks_text = []\n        for hit in results:\n            sanitized = self.sanitizer.sanitize(hit.snippet)\n            chunks_text.append(CHUNK_TEMPLATE.format(\n                doc_type=hit.doc_type,\n                title=hit.title,\n                content=sanitized.sanitized_content\n            ))\n        \n        context = CONTEXT_TEMPLATE.format(\n            chunks=\"\\n\".join(chunks_text),\n            prompt=prompt\n        )\n        \n        result = RAGContext(\n            context=context,\n            sources=[hit.doc_id for hit in results],\n            token_count=self._estimate_tokens(context),\n            from_cache=False\n        )\n        \n        # Cache result\n        if cache_enabled:\n            self.cache.set(prompt, top_k, result)\n        \n        return result\n",
+          "verification_hint": "python -c \"from gateway.services.knowledge.context_builder import ContextBuilder; print('OK')\"",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M3-07",
+      "description": "Add RAG API Endpoint",
+      "spec_ref": "SPEC-0043-API10",
+      "verification_command": "grep '/context' gateway/routes/knowledge.py",
+      "status": "pending",
+      "context": [
+        "FILE: Modify gateway/routes/knowledge.py",
+        "PATTERN: GET /api/knowledge/context"
+      ],
+      "hints": [
+        "Accept prompt, max_tokens, cache_enabled params",
+        "Return RAGContext as JSON"
+      ],
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Add context endpoint to knowledge.py",
+          "file_path": "gateway/routes/knowledge.py",
+          "append_to_file": true,
+          "code_snippet": "\n\nfrom gateway.services.knowledge.context_builder import ContextBuilder, RAGContext\nfrom gateway.services.knowledge.sanitizer import Sanitizer\n\ndef get_context_builder(search: SearchService = Depends(get_search)) -> ContextBuilder:\n    return ContextBuilder(search, Sanitizer())\n\n\n@router.get(\"/context\")\nasync def build_context(\n    prompt: str,\n    max_tokens: int = 4000,\n    top_k: int = 10,\n    cache_enabled: bool = True,\n    builder: ContextBuilder = Depends(get_context_builder)\n) -> dict:\n    \"\"\"Build RAG context for prompt (SPEC-0043-API10).\"\"\"\n    ctx = builder.build_context(\n        prompt=prompt,\n        max_tokens=max_tokens,\n        top_k=top_k,\n        cache_enabled=cache_enabled\n    )\n    return {\n        'context': ctx.context,\n        'sources': ctx.sources,\n        'token_count': ctx.token_count,\n        'from_cache': ctx.from_cache\n    }\n",
+          "verification_hint": "grep '/context' gateway/routes/knowledge.py",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M3-08",
+      "description": "Write M3 Tests for RAG layer",
+      "spec_ref": "Testing",
+      "verification_command": "pytest tests/knowledge/test_sanitizer.py tests/knowledge/test_context_builder.py -v",
+      "status": "pending",
+      "context": [
+        "FILE: Create tests/knowledge/test_sanitizer.py",
+        "FILE: Create tests/knowledge/test_context_builder.py"
+      ],
+      "hints": [
+        "Test PII redaction patterns",
+        "Test token budget enforcement",
+        "Test cache TTL behavior"
+      ],
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Create test_sanitizer.py",
+          "file_path": "tests/knowledge/test_sanitizer.py",
+          "code_snippet": "\"\"\"Tests for Sanitizer - PLAN-002 M3.\"\"\"\n\nimport pytest\nfrom gateway.services.knowledge.sanitizer import Sanitizer\n\n\n@pytest.fixture\ndef sanitizer():\n    return Sanitizer()\n\n\ndef test_redact_email(sanitizer):\n    \"\"\"Test email redaction.\"\"\"\n    content = \"Contact me at test@example.com for help.\"\n    result = sanitizer.sanitize(content)\n    assert '[EMAIL]' in result.sanitized_content\n    assert 'test@example.com' not in result.sanitized_content\n\n\ndef test_redact_api_key(sanitizer):\n    \"\"\"Test API key redaction.\"\"\"\n    content = \"Use key: sk-abcdefghijklmnopqrstuvwxyz123456\"\n    result = sanitizer.sanitize(content)\n    assert '[REDACTED_API_KEY]' in result.sanitized_content\n\n\ndef test_redact_internal_ip(sanitizer):\n    \"\"\"Test internal IP redaction.\"\"\"\n    content = \"Server at 192.168.1.100 is down.\"\n    result = sanitizer.sanitize(content)\n    assert '[INTERNAL_IP]' in result.sanitized_content\n    assert '192.168.1.100' not in result.sanitized_content\n\n\ndef test_no_false_positives_code(sanitizer):\n    \"\"\"Test that code patterns aren't over-redacted.\"\"\"\n    content = \"def example_function():\\n    return 42\"\n    result = sanitizer.sanitize(content)\n    assert result.sanitized_content == content  # No redactions expected\n",
+          "verification_hint": "pytest tests/knowledge/test_sanitizer.py -v",
+          "checkpoint": false
+        },
+        {
+          "step_number": 2,
+          "step_type": "code",
+          "instruction": "Create test_context_builder.py",
+          "file_path": "tests/knowledge/test_context_builder.py",
+          "code_snippet": "\"\"\"Tests for Context Builder - PLAN-002 M3.\"\"\"\n\nimport pytest\nfrom unittest.mock import Mock\n\nfrom gateway.services.knowledge.context_builder import ContextBuilder, ContextCache, RAGContext\nfrom gateway.services.knowledge.search_service import SearchHit\nfrom gateway.services.knowledge.sanitizer import Sanitizer\n\n\n@pytest.fixture\ndef mock_search():\n    search = Mock()\n    search.hybrid_search.return_value = [\n        SearchHit(doc_id='doc1', title='Test Doc', snippet='Test content', score=0.9, doc_type='session'),\n        SearchHit(doc_id='doc2', title='Another Doc', snippet='More content', score=0.8, doc_type='adr'),\n    ]\n    return search\n\n\n@pytest.fixture\ndef builder(mock_search):\n    return ContextBuilder(mock_search, Sanitizer())\n\n\ndef test_build_context_returns_result(builder):\n    \"\"\"Test context building returns valid result.\"\"\"\n    result = builder.build_context('test query', max_tokens=4000)\n    assert isinstance(result, RAGContext)\n    assert result.context is not None\n    assert len(result.sources) > 0\n\n\ndef test_context_includes_prompt(builder):\n    \"\"\"Test that prompt is included in context.\"\"\"\n    result = builder.build_context('my specific query')\n    assert 'my specific query' in result.context\n\n\ndef test_cache_returns_same_result(builder):\n    \"\"\"Test that cache returns cached result.\"\"\"\n    result1 = builder.build_context('cache test', cache_enabled=True)\n    result2 = builder.build_context('cache test', cache_enabled=True)\n    assert result2.from_cache is True\n\n\ndef test_cache_disabled(builder):\n    \"\"\"Test that cache can be disabled.\"\"\"\n    result1 = builder.build_context('no cache', cache_enabled=False)\n    result2 = builder.build_context('no cache', cache_enabled=False)\n    assert result2.from_cache is False\n",
+          "verification_hint": "pytest tests/knowledge/test_context_builder.py -v",
+          "checkpoint": true,
+          "escalate_on_failure": true,
+          "on_failure_hint": "Check mock setup and import paths"
+        }
+      ]
+    }
+  ],
+
+  "acceptance_criteria": [
+    {
+      "id": "AC-M3b-01",
+      "description": "Sanitizer redacts PII patterns",
+      "verification_command": "python -c \"from gateway.services.knowledge.sanitizer import Sanitizer; s=Sanitizer(); r=s.sanitize('email: test@example.com key: sk-abcd1234567890abcdef'); print(r.sanitized_content)\""
+    },
+    {
+      "id": "AC-M3b-02",
+      "description": "Context builder creates formatted context",
+      "verification_command": "python -c \"from gateway.services.knowledge.context_builder import ContextBuilder; print('OK')\""
+    },
+    {
+      "id": "AC-M3b-03",
+      "description": "RAG API endpoint exists",
+      "verification_command": "grep '@router.get.*context' gateway/routes/knowledge.py"
+    },
+    {
+      "id": "AC-M3b-04",
+      "description": "All M3 tests pass",
+      "verification_command": "pytest tests/knowledge/test_sanitizer.py tests/knowledge/test_context_builder.py -v"
+    }
+  ],
+
+  "_fragment_footer": {
+    "handoff_to_next": "PLAN-002_L3_M4.json",
+    "files_created": [
+      "gateway/services/knowledge/sanitizer.py",
+      "gateway/services/knowledge/context_builder.py",
+      "tests/knowledge/test_sanitizer.py",
+      "tests/knowledge/test_context_builder.py"
+    ],
+    "files_modified": [
+      "gateway/routes/knowledge.py"
+    ],
+    "patterns_to_maintain": [
+      "GUARDRAIL: ALL content sanitized before LLM",
+      "Use ContextBuilder for RAG context",
+      "Cache with 5-minute TTL",
+      "Token budget via _fit_to_budget()"
+    ],
+    "checkpoint_command": "pytest tests/knowledge/test_sanitizer.py tests/knowledge/test_context_builder.py -v"
+  }
+}

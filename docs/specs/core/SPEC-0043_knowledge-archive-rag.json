@@ -1,0 +1,531 @@
+{
+  "id": "SPEC-0043_knowledge-archive-rag",
+  "title": "Knowledge Archive & RAG Specification",
+  "version": "2025.12.01",
+  "status": "active",
+  "created_date": "2025-12-30",
+  "updated_date": "2025-12-30",
+  "implements_adr": ["ADR-0047"],
+  "source_discussion": "DISC-006_Knowledge-Archive-RAG-System",
+  "tier_0_contracts": [
+    {
+      "module": "shared.contracts.knowledge.archive",
+      "classes": ["Document", "DocumentType", "SyncStatus", "SyncConfig"],
+      "status": "pending"
+    },
+    {
+      "module": "shared.contracts.knowledge.search",
+      "classes": ["SearchQuery", "SearchResult", "HybridSearchConfig"],
+      "status": "pending"
+    },
+    {
+      "module": "shared.contracts.knowledge.rag",
+      "classes": ["Chunk", "ChunkingStrategy", "RAGContext", "ContextRequest"],
+      "status": "pending"
+    },
+    {
+      "module": "shared.contracts.sanitization.pii",
+      "classes": ["SanitizeConfig", "SanitizeResult", "RedactionLog"],
+      "status": "stub"
+    },
+    {
+      "module": "shared.contracts.embedding.model",
+      "classes": ["EmbeddingConfig", "EmbeddingResult", "EmbeddingMode"],
+      "status": "stub"
+    }
+  ],
+  "overview": {
+    "purpose": "Define the behavioral requirements for the Knowledge Archive & RAG system, including document storage, search capabilities, embedding generation, PII sanitization, and context injection for LLM prompts.",
+    "scope": "Backend services and data layer. Does not cover UI components (see SPEC-0034 for DevTools integration).",
+    "out_of_scope": [
+      "DevTools UI integration (SPEC-0034)",
+      "LLM prompt templates (DISC-002)",
+      "Langchain workflow implementation details (DISC-003)"
+    ]
+  },
+  "requirements": {
+    "archive_layer": {
+      "id": "SPEC-0043-AR",
+      "description": "Persistent storage with bidirectional file sync",
+      "requirements": [
+        {
+          "id": "SPEC-0043-AR01",
+          "name": "Database Schema",
+          "description": "Create SQLite database at workspace/knowledge.db with defined schema",
+          "acceptance_criteria": [
+            "Database file exists at workspace/knowledge.db",
+            "All tables created: documents, llm_calls, chunks, embeddings, relationships",
+            "FTS5 virtual table content_fts exists",
+            "Foreign key constraints enforced"
+          ]
+        },
+        {
+          "id": "SPEC-0043-AR02",
+          "name": "Document Ingest",
+          "description": "Parse and store sessions, plans, DISCs, ADRs, SPECs",
+          "document_types": ["session", "plan", "discussion", "adr", "spec", "contract"],
+          "acceptance_criteria": [
+            "Each document type has parser function",
+            "Metadata extracted: id, title, status, dates",
+            "Content stored in documents table",
+            "Relationships extracted from cross-references"
+          ]
+        },
+        {
+          "id": "SPEC-0043-AR03",
+          "name": "File Watcher (Watchdog)",
+          "description": "Real-time sync on file save events",
+          "acceptance_criteria": [
+            "Watchdog monitors .discussions/, .plans/, .sessions/, .adrs/, docs/specs/",
+            "On file create/modify: upsert to database",
+            "On file delete: soft-delete (set archived_at)",
+            "Debounce rapid saves (100ms)"
+          ]
+        },
+        {
+          "id": "SPEC-0043-AR04",
+          "name": "Export to File",
+          "description": "Reconstruct original file format from database",
+          "acceptance_criteria": [
+            "Export preserves original format (JSON/Markdown)",
+            "Metadata fields map back to file headers",
+            "Round-trip: file → db → file produces identical content"
+          ]
+        },
+        {
+          "id": "SPEC-0043-AR05",
+          "name": "LLM Call Logging",
+          "description": "Track all LLM API calls with cost",
+          "acceptance_criteria": [
+            "llm_calls table captures: model, prompt, response, tokens, cost",
+            "session_id links to session documents",
+            "Migrate existing llm_logs.db data if present"
+          ]
+        },
+        {
+          "id": "SPEC-0043-AR06",
+          "name": "Soft Delete Only",
+          "description": "Never hard delete, use archived_at timestamp",
+          "acceptance_criteria": [
+            "No DELETE statements in archive service",
+            "archived_at column on documents table",
+            "Default queries filter WHERE archived_at IS NULL"
+          ]
+        }
+      ]
+    },
+    "search_layer": {
+      "id": "SPEC-0043-SE",
+      "description": "Full-text and semantic search capabilities",
+      "requirements": [
+        {
+          "id": "SPEC-0043-SE01",
+          "name": "Full-Text Search (FTS5)",
+          "description": "Keyword search across all content",
+          "acceptance_criteria": [
+            "FTS5 index on id, type, title, content",
+            "Search returns ranked results by relevance",
+            "Snippets with highlighted matches",
+            "Response time < 100ms for typical queries"
+          ]
+        },
+        {
+          "id": "SPEC-0043-SE02",
+          "name": "Semantic Search",
+          "description": "Vector similarity search on embeddings",
+          "acceptance_criteria": [
+            "Cosine similarity on embedding vectors",
+            "Top-K results with similarity scores",
+            "Configurable similarity threshold",
+            "Response time < 200ms for typical queries"
+          ]
+        },
+        {
+          "id": "SPEC-0043-SE03",
+          "name": "Hybrid Search with RRF",
+          "description": "Combine BM25 and vector results using Reciprocal Rank Fusion",
+          "acceptance_criteria": [
+            "BM25 results from FTS5",
+            "Vector results from embeddings",
+            "RRF formula: score = sum(1 / (k + rank)) across sources",
+            "k parameter configurable (default: 60)",
+            "Final results sorted by fused score"
+          ]
+        },
+        {
+          "id": "SPEC-0043-SE04",
+          "name": "Relationship Tracking",
+          "description": "Store and query cross-references between artifacts",
+          "acceptance_criteria": [
+            "relationships table with source_id, target_id, type",
+            "Relationship types: implements, references, supersedes, creates",
+            "Query relationships by source or target",
+            "Graph traversal for transitive relationships"
+          ]
+        }
+      ]
+    },
+    "embedding_layer": {
+      "id": "SPEC-0043-EM",
+      "description": "Vector embedding generation for semantic search",
+      "requirements": [
+        {
+          "id": "SPEC-0043-EM01",
+          "name": "Dual-Mode Embedding",
+          "description": "Support local and API embedding modes",
+          "acceptance_criteria": [
+            "KNOWLEDGE_EMBEDDING_MODE env var: local|api",
+            "Local mode: sentence-transformers",
+            "API mode: xAI/OpenAI embeddings",
+            "Runtime switching without restart"
+          ]
+        },
+        {
+          "id": "SPEC-0043-EM02",
+          "name": "Local Embedding Models",
+          "description": "Support all-mpnet-base-v2 (primary) and all-MiniLM-L6-v2 (fallback)",
+          "acceptance_criteria": [
+            "Primary: all-mpnet-base-v2 (768 dimensions)",
+            "Fallback: all-MiniLM-L6-v2 (384 dimensions)",
+            "Auto-fallback on memory pressure",
+            "Model lazy-loaded on first use"
+          ]
+        },
+        {
+          "id": "SPEC-0043-EM03",
+          "name": "Embedding Storage",
+          "description": "Store vectors in embeddings table",
+          "acceptance_criteria": [
+            "vector column as BLOB (float array)",
+            "Foreign key to chunks table",
+            "Dimension consistency enforced",
+            "Rebuild required if model changes"
+          ]
+        },
+        {
+          "id": "SPEC-0043-EM04",
+          "name": "Batch Embedding",
+          "description": "Efficient batch processing for initial indexing",
+          "acceptance_criteria": [
+            "Batch size configurable (default: 32)",
+            "Progress callback for UI feedback",
+            "Resume capability after interruption",
+            "Memory-efficient streaming for large corpora"
+          ]
+        }
+      ]
+    },
+    "chunking_layer": {
+      "id": "SPEC-0043-CH",
+      "description": "Content-aware text segmentation for RAG",
+      "requirements": [
+        {
+          "id": "SPEC-0043-CH01",
+          "name": "Content-Aware Chunking",
+          "description": "Chunk strategy varies by file type",
+          "strategies": {
+            "markdown": "Split on ## headers, then paragraphs",
+            "python": "Function/class-level boundaries",
+            "json": "Whole document (already structured)",
+            "session_logs": "Section-based"
+          },
+          "acceptance_criteria": [
+            "Chunker detects file type from extension/content",
+            "Chunks respect semantic boundaries",
+            "Target chunk size: 256-512 tokens",
+            "Overlap between chunks: 50 tokens"
+          ]
+        },
+        {
+          "id": "SPEC-0043-CH02",
+          "name": "Chunk Metadata",
+          "description": "Track chunk origin and position",
+          "acceptance_criteria": [
+            "chunks table with doc_id, chunk_index, content",
+            "Chunk can be traced back to source document",
+            "Character offsets stored for highlighting"
+          ]
+        },
+        {
+          "id": "SPEC-0043-CH03",
+          "name": "Re-chunking on Update",
+          "description": "Update chunks when source document changes",
+          "acceptance_criteria": [
+            "Detect document content changes",
+            "Delete old chunks for document",
+            "Re-chunk and re-embed updated content",
+            "Preserve chunk IDs where content unchanged"
+          ]
+        }
+      ]
+    },
+    "sanitization_layer": {
+      "id": "SPEC-0043-SA",
+      "description": "PII sanitization before LLM context injection",
+      "requirements": [
+        {
+          "id": "SPEC-0043-SA01",
+          "name": "Regex Pattern Matching",
+          "description": "Detect PII using configurable regex patterns",
+          "patterns": [
+            {"category": "api_keys", "pattern": "sk-[a-zA-Z0-9]{20,}", "replacement": "[REDACTED_API_KEY]"},
+            {"category": "api_keys", "pattern": "AKIA[A-Z0-9]{16}", "replacement": "[REDACTED_AWS_KEY]"},
+            {"category": "secrets", "pattern": "password\\s*=\\s*['\"][^'\"]+['\"]", "replacement": "[REDACTED_SECRET]"},
+            {"category": "emails", "pattern": "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}", "replacement": "[EMAIL]"},
+            {"category": "ips", "pattern": "\\b(?:10|172\\.(?:1[6-9]|2[0-9]|3[01])|192\\.168)\\.[0-9]{1,3}\\.[0-9]{1,3}\\b", "replacement": "[INTERNAL_IP]"},
+            {"category": "urls", "pattern": "https?://(?:localhost|127\\.0\\.0\\.1|internal)[^\\s]*", "replacement": "[INTERNAL_URL]"}
+          ],
+          "acceptance_criteria": [
+            "All pattern categories detected",
+            "Replacements applied consistently",
+            "False positive rate < 5%",
+            "Pattern config loaded from YAML file"
+          ]
+        },
+        {
+          "id": "SPEC-0043-SA02",
+          "name": "Reversible Redaction (Dev Only)",
+          "description": "Store redaction mapping for debugging",
+          "acceptance_criteria": [
+            "IS_DEV_MODE flag controls reversibility",
+            "Redaction log stores original → replacement mapping",
+            "restore_redactions() available in dev mode",
+            "Redaction log cleared on production builds"
+          ]
+        },
+        {
+          "id": "SPEC-0043-SA03",
+          "name": "Sanitization Pipeline",
+          "description": "Integrate sanitizer into RAG context builder",
+          "acceptance_criteria": [
+            "All chunks pass through sanitizer before LLM",
+            "Sanitization happens after retrieval, before context assembly",
+            "Sanitization errors logged, don't block retrieval"
+          ]
+        }
+      ]
+    },
+    "rag_layer": {
+      "id": "SPEC-0043-RA",
+      "description": "Context injection for LLM prompts",
+      "requirements": [
+        {
+          "id": "SPEC-0043-RA01",
+          "name": "Context Builder",
+          "description": "Assemble relevant chunks into LLM context",
+          "acceptance_criteria": [
+            "Input: user prompt string",
+            "Retrieve top-K chunks via hybrid search",
+            "Sanitize all chunks",
+            "Format with source attribution",
+            "Output: context string + prompt"
+          ]
+        },
+        {
+          "id": "SPEC-0043-RA02",
+          "name": "Context Formatting",
+          "description": "Structure context for LLM comprehension",
+          "format_template": "## Relevant Context\n\n{chunks}\n\n---\n\n## Your Task\n\n{prompt}",
+          "chunk_format": "### From {source_type}: {source_title}\n\n{content}\n",
+          "acceptance_criteria": [
+            "Context clearly delineated from prompt",
+            "Each chunk attributed to source",
+            "Total context + prompt < model context limit"
+          ]
+        },
+        {
+          "id": "SPEC-0043-RA03",
+          "name": "Token Budget Management",
+          "description": "Ensure context fits within model limits",
+          "acceptance_criteria": [
+            "Token count estimated before assembly",
+            "Configurable max_context_tokens (default: 4000)",
+            "Chunks truncated or dropped if over budget",
+            "Most relevant chunks prioritized"
+          ]
+        },
+        {
+          "id": "SPEC-0043-RA04",
+          "name": "Context Caching",
+          "description": "Cache context for repeated similar queries",
+          "acceptance_criteria": [
+            "Query hash used as cache key",
+            "TTL configurable (default: 5 minutes)",
+            "Cache invalidated on document updates",
+            "Optional: disable caching for real-time queries"
+          ]
+        }
+      ]
+    },
+    "api_layer": {
+      "id": "SPEC-0043-API",
+      "description": "REST API endpoints for knowledge services",
+      "base_path": "/api/knowledge",
+      "endpoints": [
+        {
+          "id": "SPEC-0043-API01",
+          "method": "GET",
+          "path": "/search",
+          "params": {"q": "string", "type": "string?", "limit": "int?"},
+          "response": "SearchResult[]",
+          "description": "Full-text search across documents"
+        },
+        {
+          "id": "SPEC-0043-API02",
+          "method": "GET",
+          "path": "/semantic",
+          "params": {"q": "string", "top_k": "int?", "threshold": "float?"},
+          "response": "SearchResult[]",
+          "description": "Semantic similarity search"
+        },
+        {
+          "id": "SPEC-0043-API03",
+          "method": "GET",
+          "path": "/hybrid",
+          "params": {"q": "string", "top_k": "int?"},
+          "response": "SearchResult[]",
+          "description": "Hybrid search with RRF fusion"
+        },
+        {
+          "id": "SPEC-0043-API04",
+          "method": "GET",
+          "path": "/docs/{id}",
+          "response": "Document",
+          "description": "Get document by ID"
+        },
+        {
+          "id": "SPEC-0043-API05",
+          "method": "GET",
+          "path": "/docs/{id}/export",
+          "response": "file",
+          "description": "Export document to original file format"
+        },
+        {
+          "id": "SPEC-0043-API06",
+          "method": "POST",
+          "path": "/sync",
+          "body": {"force": "bool?"},
+          "response": "SyncStatus",
+          "description": "Trigger full file sync"
+        },
+        {
+          "id": "SPEC-0043-API07",
+          "method": "POST",
+          "path": "/sync/{type}",
+          "response": "SyncStatus",
+          "description": "Sync specific document type"
+        },
+        {
+          "id": "SPEC-0043-API08",
+          "method": "GET",
+          "path": "/sync/status",
+          "response": "SyncStatus",
+          "description": "Get watchdog health and sync status"
+        },
+        {
+          "id": "SPEC-0043-API09",
+          "method": "GET",
+          "path": "/stats",
+          "response": "KnowledgeStats",
+          "description": "Usage statistics and cost tracking"
+        },
+        {
+          "id": "SPEC-0043-API10",
+          "method": "GET",
+          "path": "/context",
+          "params": {"prompt": "string", "max_tokens": "int?"},
+          "response": "RAGContext",
+          "description": "Build RAG context for prompt"
+        },
+        {
+          "id": "SPEC-0043-API11",
+          "method": "GET",
+          "path": "/relationships/{id}",
+          "response": "Relationship[]",
+          "description": "Get relationships for document"
+        }
+      ]
+    }
+  },
+  "guardrails": [
+    {
+      "id": "SPEC-0043-GR01",
+      "rule": "Files are always SSOT. Database rebuilds from files on conflict.",
+      "enforcement": "Sync service compares file mtime vs db updated_at"
+    },
+    {
+      "id": "SPEC-0043-GR02",
+      "rule": "ALL content MUST pass through PII sanitizer before LLM APIs",
+      "enforcement": "RAG context builder calls sanitize() on all chunks"
+    },
+    {
+      "id": "SPEC-0043-GR03",
+      "rule": "Never hard delete documents. Soft delete only.",
+      "enforcement": "No DELETE statements; only UPDATE archived_at"
+    },
+    {
+      "id": "SPEC-0043-GR04",
+      "rule": "Embedding dimensions must be consistent within database",
+      "enforcement": "Check vector length on insert; rebuild on model change"
+    },
+    {
+      "id": "SPEC-0043-GR05",
+      "rule": "Sanitization errors must not block retrieval",
+      "enforcement": "Try/catch around sanitize(); log and continue on error"
+    }
+  ],
+  "testing_requirements": [
+    {
+      "id": "SPEC-0043-TEST01",
+      "category": "Unit Tests",
+      "tests": [
+        "test_document_parser_markdown",
+        "test_document_parser_json",
+        "test_chunker_markdown_headers",
+        "test_chunker_python_functions",
+        "test_sanitizer_api_keys",
+        "test_sanitizer_emails",
+        "test_rrf_fusion_calculation"
+      ]
+    },
+    {
+      "id": "SPEC-0043-TEST02",
+      "category": "Integration Tests",
+      "tests": [
+        "test_file_sync_create",
+        "test_file_sync_update",
+        "test_file_sync_delete",
+        "test_search_fts5",
+        "test_search_semantic",
+        "test_search_hybrid",
+        "test_context_builder_end_to_end"
+      ]
+    },
+    {
+      "id": "SPEC-0043-TEST03",
+      "category": "Performance Tests",
+      "tests": [
+        "test_fts_search_latency_under_100ms",
+        "test_semantic_search_latency_under_200ms",
+        "test_embedding_batch_throughput"
+      ]
+    }
+  ],
+  "tags": [
+    "knowledge-management",
+    "rag",
+    "semantic-search",
+    "embeddings",
+    "pii-sanitization",
+    "sqlite",
+    "fts5"
+  ],
+  "affected_components": [
+    "workspace/knowledge.db",
+    "gateway/services/knowledge_service.py",
+    "gateway/routes/knowledge.py",
+    "shared/contracts/knowledge/",
+    "shared/contracts/sanitization/",
+    "shared/contracts/embedding/"
+  ]
+}

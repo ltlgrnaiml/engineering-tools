@@ -5,6 +5,9 @@
 > **Updated**: {YYYY-MM-DD}
 > **Author**: {Name}
 > **AI Session**: SESSION_{XXX}
+> **Depends On**: {DISC-XXX, DISC-YYY} | None
+> **Blocks**: {DISC-ZZZ} | None
+> **Dependency Level**: L0 | L1 | L2 | ...
 
 ---
 
@@ -123,6 +126,24 @@
 
 - {Item 1 - reason}
 - {Item 2 - reason}
+
+---
+
+## Cross-DISC Dependencies
+
+<!-- Document dependencies on other DISCs (per ADR-0043 disc_dependency_management) -->
+
+| Dependency | Type | Status | Blocker For | Notes |
+|------------|------|--------|-------------|-------|
+| DISC-{XXX} | `FS` / `FF` / `SS` / `soft` | `pending` / `stub` / `resolved` | {Milestones} | {Notes} |
+
+### Stub Strategy (if applicable)
+
+<!-- Document stubs used when dependencies aren't resolved -->
+
+| DISC | Stub Location | Stub Behavior |
+|------|---------------|---------------|
+| DISC-{XXX} | `path/to/stub.py` | {What the stub does} |
 
 ---
 

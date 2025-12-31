@@ -45,6 +45,7 @@ ARTIFACT_DIRECTORIES: dict[ArtifactType, str] = {
 
 # In-memory workflow storage (POC - would be file-based in production)
 _active_workflows: dict[str, WorkflowState] = {}
+_generated_content: dict[str, dict] = {}
 _workflow_counter = 0
 
 # Scenario to starting stage mapping per ADR-0045
@@ -1323,20 +1324,52 @@ def generate_full_workflow(
         ArtifactType.PLAN,
     ]
 
+    # Ensure output directory exists
+    output_dir = PROJECT_ROOT / "workspace" / "generated" / workflow_id
+    output_dir.mkdir(parents=True, exist_ok=True)
+
     for atype in types_to_generate:
         try:
             content = generate_artifact_content(atype, title, description)
+            artifact_id = f"{atype.value.upper()}-GEN-{workflow_id}"
+            
+            # Write to file for persistence
+            file_path = output_dir / f"{atype.value.upper()}.json"
+            with open(file_path, "w", encoding="utf-8") as f:
+                json.dump({
+                    "id": artifact_id,
+                    "type": atype.value,
+                    "title": title,
+                    "description": description,
+                    "generated_at": datetime.now().isoformat(),
+                    "content": content,
+                }, f, indent=2)
+            
             artifact = ArtifactSummary(
-                id=f"{atype.value.upper()}-GEN-{workflow_id}",
+                id=artifact_id,
                 type=atype,
                 title=title,
                 status=ArtifactStatus.DRAFT,
-                file_path=f"generated/{atype.value}/{workflow_id}.json",
+                file_path=str(file_path.relative_to(PROJECT_ROOT)),
             )
             artifacts.append(artifact)
-            workflow.artifacts_created.append(artifact.id)
+            workflow.artifacts_created.append(artifact_id)
+            # Store generated content for retrieval (also keep in memory)
+            _generated_content[artifact_id] = content
         except Exception as e:
             errors.append(f"Failed to generate {atype.value}: {e}")
 
     status = GenerationStatus.COMPLETED if not errors else GenerationStatus.FAILED
     return GenerationResponse(artifacts=artifacts, status=status, errors=errors)
+
+
+def get_generated_content(artifact_id: str) -> dict | None:
+    """Retrieve generated content by artifact ID.
+
+    Args:
+        artifact_id: The artifact ID (e.g., DISCUSSION-GEN-WF-001).
+
+    Returns:
+        The generated content dict, or None if not found.
+    """
+    return _generated_content.get(artifact_id)

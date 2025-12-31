@@ -1,6 +1,6 @@
 import { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { Presentation } from 'lucide-react'
+import { Presentation, Home } from 'lucide-react'
 
 interface LayoutProps {
   children: ReactNode
@@ -27,6 +27,14 @@ export function Layout({ children }: LayoutProps) {
               >
                 Projects
               </Link>
+              <a
+                href="http://localhost:5174"
+                target="_top"
+                className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded-md transition-colors"
+              >
+                <Home className="w-4 h-4" />
+                <span>Engineering Tools</span>
+              </a>
             </div>
           </div>
         </div>

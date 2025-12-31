@@ -7,6 +7,8 @@ Includes validation, retry logic, and health checking.
 import json
 import os
 import logging
+import sqlite3
+from datetime import datetime
 from typing import Any, TypeVar
 from dataclasses import dataclass
 from enum import Enum
@@ -25,6 +27,135 @@ except ImportError:
     pass  # dotenv not installed, rely on system env vars
 
 logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# SQLite Logging for LLM API Calls
+# =============================================================================
+
+LLM_LOG_DB = Path(__file__).parent.parent.parent / "workspace" / "llm_logs.db"
+
+
+def _init_llm_log_db() -> None:
+    """Initialize the SQLite database for LLM logging."""
+    LLM_LOG_DB.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(str(LLM_LOG_DB))
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS llm_calls (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TEXT NOT NULL,
+            model TEXT NOT NULL,
+            prompt TEXT NOT NULL,
+            system_prompt TEXT,
+            response_raw TEXT,
+            response_parsed TEXT,
+            success INTEGER NOT NULL,
+            error_message TEXT,
+            input_tokens INTEGER,
+            output_tokens INTEGER,
+            latency_ms INTEGER,
+            cost_estimate REAL
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+
+def _log_llm_call(
+    model: str,
+    prompt: str,
+    system_prompt: str | None,
+    response_raw: str | None,
+    response_parsed: Any | None,
+    success: bool,
+    error_message: str | None = None,
+    input_tokens: int | None = None,
+    output_tokens: int | None = None,
+    latency_ms: int | None = None,
+) -> int:
+    """Log an LLM API call to SQLite.
+
+    Returns:
+        The row ID of the logged call.
+    """
+    _init_llm_log_db()
+
+    # Estimate cost based on model pricing
+    cost_estimate = None
+    if input_tokens and output_tokens:
+        model_info = get_model_info(model)
+        if model_info:
+            cost_estimate = (
+                (input_tokens / 1_000_000) * model_info.input_price +
+                (output_tokens / 1_000_000) * model_info.output_price
+            )
+
+    conn = sqlite3.connect(str(LLM_LOG_DB))
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO llm_calls (
+            timestamp, model, prompt, system_prompt, response_raw,
+            response_parsed, success, error_message, input_tokens,
+            output_tokens, latency_ms, cost_estimate
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        datetime.utcnow().isoformat(),
+        model,
+        prompt,
+        system_prompt,
+        response_raw,
+        json.dumps(response_parsed) if response_parsed else None,
+        1 if success else 0,
+        error_message,
+        input_tokens,
+        output_tokens,
+        latency_ms,
+        cost_estimate,
+    ))
+    row_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+
+    logger.info(f"Logged LLM call #{row_id}: model={model}, success={success}, cost=${cost_estimate:.6f}" if cost_estimate else f"Logged LLM call #{row_id}")
+    return row_id
+
+
+def get_llm_usage_stats() -> dict:
+    """Get usage statistics from the log database.
+
+    Returns:
+        Dict with total calls, tokens, and estimated cost.
+    """
+    if not LLM_LOG_DB.exists():
+        return {"total_calls": 0, "total_cost": 0.0, "total_input_tokens": 0, "total_output_tokens": 0}
+
+    conn = sqlite3.connect(str(LLM_LOG_DB))
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT
+            COUNT(*) as total_calls,
+            SUM(COALESCE(cost_estimate, 0)) as total_cost,
+            SUM(COALESCE(input_tokens, 0)) as total_input_tokens,
+            SUM(COALESCE(output_tokens, 0)) as total_output_tokens
+        FROM llm_calls
+    """)
+    row = cursor.fetchone()
+    conn.close()
+
+    return {
+        "total_calls": row[0] or 0,
+        "total_cost": row[1] or 0.0,
+        "total_input_tokens": row[2] or 0,
+        "total_output_tokens": row[3] or 0,
+    }
+
+
+# TODO: Langchain/Langgraph Integration
+# - Add LangchainCallbackHandler for unified logging
+# - Implement LangGraph state machine for multi-step generation
+# - Add vector store integration for RAG with xAI Collections
+# - See: https://python.langchain.com/docs/integrations/callbacks/
 
 # =============================================================================
 # Configuration
@@ -426,6 +557,23 @@ IMPORTANT:
                 # Validate against schema
                 try:
                     validated = schema.model_validate(parsed)
+                    # Extract token usage from response
+                    usage = data.get("usage", {})
+                    input_tokens = usage.get("prompt_tokens")
+                    output_tokens = usage.get("completion_tokens")
+                    
+                    # Log successful call
+                    _log_llm_call(
+                        model=_current_model,
+                        prompt=prompt,
+                        system_prompt=system_prompt,
+                        response_raw=content,
+                        response_parsed=validated.model_dump(),
+                        success=True,
+                        input_tokens=input_tokens,
+                        output_tokens=output_tokens,
+                    )
+                    
                     return LLMResponse(
                         success=True,
                         data=validated.model_dump(),
@@ -450,6 +598,17 @@ IMPORTANT:
             last_error = f"Request error: {e}"
             logger.error(f"Request error on attempt {attempts}: {e}")
 
+    # Log failed call
+    _log_llm_call(
+        model=_current_model,
+        prompt=prompt,
+        system_prompt=system_prompt,
+        response_raw=last_raw,
+        response_parsed=None,
+        success=False,
+        error_message=last_error,
+    )
+    
     return LLMResponse(
         success=False,
         data=None,

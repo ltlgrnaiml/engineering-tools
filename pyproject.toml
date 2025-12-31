@@ -7,7 +7,7 @@ name = "engineering-tools"
 version = "0.1.0"
 description = "Monorepo for Engineering Tools Platform: Data Aggregator, SOV Analyzer, PowerPoint Generator"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.14"  # Phoenix requires <3.14
 license = {text = "MIT"}
 authors = [
     {name = "Engineering Tools Team"}
@@ -47,6 +47,15 @@ sov = [
 ai = [
     "xai-sdk>=0.0.1",
     "openai>=1.0.0",
+    # LangChain + LangGraph
+    "langchain>=0.3.0",
+    "langchain-openai>=0.2.0",
+    "langgraph>=0.2.0",
+    # Phoenix Observability (local, free)
+    "arize-phoenix>=8.0.0",
+    "arize-phoenix-otel>=0.8.0",
+    "openinference-instrumentation-langchain>=0.1.0",
+    # TODO: Migrate to Langfuse for production team features
 ]
 dev = [
     "ruff>=0.1.14",

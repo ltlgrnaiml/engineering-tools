@@ -1,0 +1,420 @@
+{
+  "schema_type": "adr",
+  "id": "ADR-0047_knowledge-archive-rag-system",
+  "title": "Knowledge Archive & RAG System Architecture",
+  "status": "active",
+  "date": "2025-12-30",
+  "review_date": "2026-06-30",
+  "deciders": "Mycahya Eggleston",
+  "scope": "core",
+  "source_discussion": "DISC-006_Knowledge-Archive-RAG-System",
+  "provenance": [
+    {
+      "at": "2025-12-30",
+      "by": "AI-Assisted Design Session",
+      "note": "Initial draft from DISC-006 discussion, incorporating decisions from DISC-003, DISC-004, DISC-005"
+    }
+  ],
+  "context": {
+    "description": "As AI-assisted development matures, historical context becomes critical for quality output. LLMs generate generic content (72/100 score) without project awareness. Historical context is scattered across files, not queryable, and not linked. The 2M token context window is utilized at less than 1% capacity.",
+    "problem": "Need a unified system that: (1) provides persistent storage for sessions, plans, and artifacts with bidirectional file sync, (2) enables semantic search across all project knowledge, (3) injects relevant context into LLM prompts (RAG), (4) tracks LLM usage costs per session/project, (5) maintains relationship graph between artifacts.",
+    "constraints": [
+      "Must work locally (no mandatory cloud dependencies)",
+      "Must preserve existing file-based artifact storage (files remain SSOT)",
+      "Must support offline operation with degraded functionality",
+      "Must integrate with existing AI Development Workflow (ADR-0043)",
+      "Must sanitize PII before any content is sent to LLM APIs"
+    ]
+  },
+  "decision": {
+    "summary": "Implement a SQLite-based Knowledge Archive (workspace/knowledge.db) that serves as both persistent storage for artifact metadata and RAG corpus for semantic search. Use hybrid search (BM25 + vector embeddings), content-aware chunking, and Langchain/Langgraph for LLM orchestration.",
+    "details": {
+      "architecture_overview": {
+        "database": "workspace/knowledge.db (SQLite)",
+        "layers": [
+          {
+            "layer": 1,
+            "name": "Archive (Storage)",
+            "purpose": "Persistent storage with bidirectional file sync"
+          },
+          {
+            "layer": 2,
+            "name": "Search (Retrieval)",
+            "purpose": "Full-text (FTS5) and semantic (vector) search"
+          },
+          {
+            "layer": 3,
+            "name": "RAG (Context Injection)",
+            "purpose": "Build context from relevant chunks for LLM prompts"
+          }
+        ]
+      },
+      "schema": {
+        "documents": {
+          "purpose": "Store sessions, plans, DISCs, ADRs with metadata",
+          "fields": ["id", "type", "title", "status", "created_at", "updated_at", "file_path", "content", "metadata JSON", "archived_at"]
+        },
+        "llm_calls": {
+          "purpose": "Track LLM API usage and costs",
+          "fields": ["id", "session_id", "timestamp", "model", "prompt", "response", "tokens_in", "tokens_out", "cost", "success"]
+        },
+        "chunks": {
+          "purpose": "Text segments for RAG retrieval",
+          "fields": ["id", "doc_id", "chunk_index", "content"]
+        },
+        "embeddings": {
+          "purpose": "Vector representations for semantic search",
+          "fields": ["chunk_id", "vector BLOB (768-dim or 384-dim)"]
+        },
+        "content_fts": {
+          "purpose": "Full-text search index",
+          "type": "FTS5 virtual table",
+          "indexed_fields": ["id", "type", "title", "content"]
+        },
+        "relationships": {
+          "purpose": "Cross-references between artifacts",
+          "fields": ["source_id", "target_id", "type (implements, references, supersedes)"]
+        }
+      },
+      "embedding_model": {
+        "decision": "Dual-mode local + API with runtime switching",
+        "source_disc": "DISC-005",
+        "primary_local": {
+          "model": "all-mpnet-base-v2",
+          "dimensions": 768,
+          "use_case": "High-memory desktops, offline operation"
+        },
+        "fallback_local": {
+          "model": "all-MiniLM-L6-v2",
+          "dimensions": 384,
+          "use_case": "Resource-constrained environments"
+        },
+        "api_mode": {
+          "models": ["xAI embeddings", "OpenAI embeddings"],
+          "use_case": "Cloud deployment, latest models"
+        },
+        "config": "KNOWLEDGE_EMBEDDING_MODE=local|api environment variable"
+      },
+      "search_strategy": {
+        "decision": "Hybrid search with Reciprocal Rank Fusion",
+        "source_disc": "DISC-005",
+        "rationale": "BM25 excels at exact keyword matches (function names, error codes); vector search excels at semantic similarity (concepts, intent). Combined approach covers both use cases.",
+        "implementation": {
+          "bm25_search": "FTS5 full-text search",
+          "vector_search": "Cosine similarity on embeddings",
+          "fusion": "Reciprocal Rank Fusion (RRF) to merge results",
+          "top_k": 10
+        }
+      },
+      "chunking_strategy": {
+        "decision": "Content-aware chunking based on file type",
+        "target_size": "256-512 tokens",
+        "strategies": {
+          "markdown": "Split on ## headers, then paragraphs",
+          "python": "Function/class-level boundaries",
+          "json": "Whole document (already structured)",
+          "session_logs": "Section-based"
+        }
+      },
+      "sync_strategy": {
+        "decision": "Watchdog (real-time) with manual fallback",
+        "default_mode": "watchdog",
+        "watchdog": {
+          "trigger": "File save event",
+          "use_case": "Desktop with resources"
+        },
+        "manual": {
+          "trigger": "API call POST /api/knowledge/sync",
+          "use_case": "Laptop/resource-limited"
+        },
+        "config": "KNOWLEDGE_SYNC_MODE=watchdog|manual environment variable"
+      },
+      "pii_sanitization": {
+        "decision": "Regex-based MVP with configurable patterns",
+        "source_disc": "DISC-004",
+        "false_positive_threshold": "<5%",
+        "reversibility": "Dev mode only (IS_DEV_MODE flag)",
+        "pattern_categories": [
+          {"category": "API Keys", "pattern": "sk-..., AKIA...", "replacement": "[REDACTED_API_KEY]"},
+          {"category": "Secrets", "pattern": "password=...", "replacement": "[REDACTED_SECRET]"},
+          {"category": "Emails", "pattern": "user@domain.com", "replacement": "[EMAIL]"},
+          {"category": "IPs", "pattern": "192.168.x.x", "replacement": "[INTERNAL_IP]"},
+          {"category": "URLs", "pattern": "https://internal...", "replacement": "[INTERNAL_URL]"}
+        ],
+        "config_file": "config/pii_patterns.yaml"
+      },
+      "llm_orchestration": {
+        "decision": "Langchain + Langgraph for unified orchestration",
+        "source_disc": "DISC-003",
+        "rationale": [
+          "Full state machine support for multi-step artifact generation",
+          "Parallel execution and cycles for sophisticated workflows",
+          "Industry momentum and ecosystem growth",
+          "Built-in retry, caching, and observability"
+        ],
+        "implementation": {
+          "adapter_pattern": "Wrap existing xAI calls with Langchain adapter",
+          "workflows": "Langgraph for multi-step: DISC→ADR→SPEC→Plan",
+          "memory": "Persist conversation context to knowledge.db"
+        },
+        "deferred": {
+          "langsmith_tier": "Evaluate after 30 days production",
+          "agent_patterns": "Define during PLAN-002 Phase 4"
+        }
+      },
+      "retention_policy": {
+        "decision": "Archive everything, soft delete only",
+        "rationale": "Aligns with ADR-0002 artifact preservation principle",
+        "implementation": "archived_at timestamp for soft archival",
+        "default_query": "SELECT * FROM documents WHERE archived_at IS NULL",
+        "future": "Configurable retention limits per artifact type (PROD)"
+      },
+      "api_endpoints": {
+        "base_path": "/api/knowledge",
+        "endpoints": [
+          {"method": "GET", "path": "/search", "params": "q=...", "description": "Full-text search"},
+          {"method": "GET", "path": "/semantic", "params": "q=...", "description": "Semantic/vector search"},
+          {"method": "GET", "path": "/docs/{id}", "description": "Get document by ID"},
+          {"method": "GET", "path": "/docs/{id}/export", "description": "Export document to file"},
+          {"method": "POST", "path": "/sync", "description": "Force file sync"},
+          {"method": "POST", "path": "/sync/{type}", "description": "Sync specific artifact type"},
+          {"method": "GET", "path": "/sync/status", "description": "Watchdog health check"},
+          {"method": "GET", "path": "/stats", "description": "Usage statistics"},
+          {"method": "GET", "path": "/context", "params": "prompt=...", "description": "Build RAG context for prompt"}
+        ]
+      }
+    }
+  },
+  "consequences": {
+    "positive": [
+      "Unified queryable knowledge base for all project artifacts",
+      "Semantic search enables finding related content by meaning, not just keywords",
+      "RAG context injection improves LLM output quality (estimated 72→85+ score)",
+      "Cost tracking enables ROI measurement for AI-assisted development",
+      "Bidirectional sync preserves file-based SSOT while enabling database queries",
+      "Hybrid search (BM25 + vectors) covers both exact and semantic matching",
+      "Local embedding model enables fully offline operation"
+    ],
+    "negative": [
+      "Additional storage for embeddings (~2MB per 1000 chunks)",
+      "Initial indexing time for large codebases",
+      "Memory usage for embedding model (~500MB for all-mpnet-base-v2)",
+      "Complexity of maintaining sync between files and database"
+    ],
+    "risks": [
+      {
+        "risk": "Sync conflicts between file edits and database state",
+        "mitigation": "Files always win; database rebuilds from files on conflict"
+      },
+      {
+        "risk": "PII leakage through RAG context",
+        "mitigation": "Sanitization pipeline with <5% false positive threshold"
+      },
+      {
+        "risk": "Embedding model quality degradation on code",
+        "mitigation": "Hybrid search ensures keyword fallback; upgrade to code-specific model if accuracy <80%"
+      }
+    ]
+  },
+  "incorporated_decisions": {
+    "description": "This ADR aggregates decisions from multiple dependency discussions",
+    "decisions": [
+      {
+        "source": "DISC-003",
+        "title": "Langchain/Langgraph Integration",
+        "decision": "Use Langchain + Langgraph for LLM orchestration",
+        "incorporated_in": "llm_orchestration section"
+      },
+      {
+        "source": "DISC-004",
+        "title": "PII Sanitization Pipeline",
+        "decision": "Regex-based MVP with <5% false positive rate, reversible in dev only",
+        "incorporated_in": "pii_sanitization section"
+      },
+      {
+        "source": "DISC-005",
+        "title": "Embedding Model Selection",
+        "decision": "all-mpnet-base-v2 primary, all-MiniLM-L6-v2 fallback, hybrid search with RRF",
+        "incorporated_in": "embedding_model and search_strategy sections"
+      }
+    ]
+  },
+  "alternatives_considered": [
+    {
+      "name": "PostgreSQL with pgvector",
+      "description": "Use PostgreSQL with vector extension for embeddings",
+      "pros": ["Production-grade", "Scalable", "Full SQL support"],
+      "cons": ["Requires server setup", "Not portable", "Overkill for solo-dev"],
+      "rejected_reason": "SQLite meets all requirements with zero setup"
+    },
+    {
+      "name": "Vector-only database (Pinecone, Weaviate)",
+      "description": "Dedicated vector database for embeddings",
+      "pros": ["Optimized for vector search", "Managed service options"],
+      "cons": ["Cloud dependency", "Additional cost", "Separate from metadata"],
+      "rejected_reason": "Local-first requirement; SQLite handles both"
+    },
+    {
+      "name": "Keyword search only (no embeddings)",
+      "description": "FTS5 only, skip vector embeddings",
+      "pros": ["Simpler", "No ML dependencies", "Faster indexing"],
+      "cons": ["Miss semantic relationships", "Poor for conceptual queries"],
+      "rejected_reason": "Semantic search is core value proposition for RAG"
+    },
+    {
+      "name": "Cloud embedding APIs only",
+      "description": "Use OpenAI/xAI embeddings exclusively",
+      "pros": ["No local model loading", "Latest models"],
+      "cons": ["Per-query cost", "No offline support", "Latency"],
+      "rejected_reason": "Local-first requirement for offline operation"
+    }
+  ],
+  "guardrails": [
+    {
+      "id": "knowledge-file-ssot",
+      "rule": "Files are always SSOT. Database is cache/index. On conflict, rebuild from files.",
+      "enforcement": "Sync service checks file mtime vs db updated_at",
+      "scope": "core"
+    },
+    {
+      "id": "knowledge-pii-sanitize-before-llm",
+      "rule": "ALL content MUST pass through PII sanitizer before being sent to LLM APIs",
+      "enforcement": "RAG context builder calls sanitize() on all chunks",
+      "scope": "core"
+    },
+    {
+      "id": "knowledge-soft-delete-only",
+      "rule": "Never hard delete documents. Use archived_at for soft archival.",
+      "enforcement": "No DELETE statements; only UPDATE archived_at",
+      "scope": "core"
+    },
+    {
+      "id": "knowledge-embedding-dimension-consistency",
+      "rule": "All embeddings in a database must have same dimensions",
+      "enforcement": "Check vector length on insert; rebuild required if model changes",
+      "scope": "core"
+    }
+  ],
+  "cross_cutting_guardrails": [
+    "ADR-0002#artifact-preservation: Never delete user artifacts",
+    "ADR-0010#contracts-ssot: Data structures in shared/contracts/",
+    "ADR-0029#api-naming: Endpoints at /api/knowledge/*",
+    "ADR-0043#session-discipline: All work tracked in session files"
+  ],
+  "implementation_phases": {
+    "phase_1_archive_core": {
+      "duration": "3-4 days",
+      "tasks": [
+        "Create workspace/knowledge.db schema",
+        "Document ingest (sessions, plans, DISCs, ADRs)",
+        "File watcher for auto-sync (watchdog)",
+        "Export to original format",
+        "Migrate llm_logs.db data"
+      ],
+      "blockers": "None"
+    },
+    "phase_2_search": {
+      "duration": "2-3 days",
+      "tasks": [
+        "FTS5 indexing",
+        "Search API endpoints",
+        "Relationship tracking",
+        "Basic query UI (DevTools integration)"
+      ],
+      "blockers": "None"
+    },
+    "phase_3_rag": {
+      "duration": "5-7 days",
+      "tasks": [
+        "Chunking pipeline (content-aware)",
+        "Embedding generation (sentence-transformers)",
+        "Vector similarity search",
+        "Hybrid search with RRF",
+        "Context builder",
+        "PII sanitizer integration"
+      ],
+      "blockers": "None (DISC-004, DISC-005 resolved)"
+    },
+    "phase_4_integration": {
+      "duration": "2-3 days",
+      "tasks": [
+        "Inject context into LLM prompts",
+        "Langchain adapter",
+        "Cost dashboard",
+        "DevTools Knowledge panel"
+      ],
+      "blockers": "None (DISC-003 resolved)"
+    }
+  },
+  "contracts_required": [
+    {
+      "path": "shared/contracts/knowledge/archive.py",
+      "models": ["Document", "DocumentType", "SyncStatus"],
+      "status": "pending"
+    },
+    {
+      "path": "shared/contracts/knowledge/search.py",
+      "models": ["SearchResult", "SearchQuery", "HybridSearchConfig"],
+      "status": "pending"
+    },
+    {
+      "path": "shared/contracts/knowledge/rag.py",
+      "models": ["Chunk", "EmbeddingVector", "RAGContext"],
+      "status": "pending"
+    },
+    {
+      "path": "shared/contracts/sanitization/pii.py",
+      "models": ["SanitizeResult", "PatternConfig", "RedactionLog"],
+      "status": "pending"
+    },
+    {
+      "path": "shared/contracts/embedding/model.py",
+      "models": ["EmbeddingConfig", "EmbeddingResult"],
+      "status": "pending"
+    }
+  ],
+  "references": [
+    "DISC-006_Knowledge-Archive-RAG-System",
+    "DISC-003_Langchain-Langgraph-Integration",
+    "DISC-004_PII-Sanitization-Pipeline",
+    "DISC-005_Embedding-Model-Selection",
+    "ADR-0043_AI-Development-Workflow",
+    "ADR-0002_Artifact-Lifecycle-Preservation",
+    "https://www.sbert.net/docs/pretrained_models.html",
+    "https://python.langchain.com/docs/",
+    "https://langchain-ai.github.io/langgraph/"
+  ],
+  "tags": [
+    "knowledge-management",
+    "rag",
+    "semantic-search",
+    "embeddings",
+    "langchain",
+    "pii-sanitization",
+    "sqlite",
+    "ai-context"
+  ],
+  "affected_components": [
+    "workspace/knowledge.db (new)",
+    "gateway/services/knowledge_service.py (new)",
+    "gateway/routes/knowledge.py (new)",
+    "shared/contracts/knowledge/ (new)",
+    "shared/contracts/sanitization/ (new)",
+    "shared/contracts/embedding/ (new)",
+    "apps/homepage/frontend/src/components/KnowledgePanel.tsx (new)"
+  ],
+  "resulting_specs": [
+    {
+      "id": "SPEC-0043",
+      "title": "Knowledge Archive & RAG Specification",
+      "status": "pending"
+    }
+  ],
+  "resulting_plans": [
+    {
+      "id": "PLAN-002",
+      "title": "Knowledge Archive Implementation",
+      "status": "pending"
+    }
+  ]
+}

@@ -31,6 +31,23 @@ export function getWorkflowStages(workflowType: WorkflowType): WorkflowStage[] {
   return WORKFLOW_STAGES[workflowType]
 }
 
+// Check if a stage is included in a workflow type
+export function isStageInWorkflow(stage: WorkflowStage, workflowType: WorkflowType): boolean {
+  return WORKFLOW_STAGES[workflowType].includes(stage)
+}
+
+// Map artifact types to workflow stages
+export function artifactTypeToStage(artifactType: string): WorkflowStage | null {
+  const mapping: Record<string, WorkflowStage> = {
+    discussion: 'discussion',
+    adr: 'adr',
+    spec: 'spec',
+    contract: 'contract',
+    plan: 'plan',
+  }
+  return mapping[artifactType.toLowerCase()] || null
+}
+
 interface WorkflowStepperProps {
   workflowType: WorkflowType
   currentStage: WorkflowStage

@@ -1,0 +1,370 @@
+{
+  "_fragment_header": {
+    "fragment_meta": {
+      "fragment_id": "M1",
+      "fragment_file": "PLAN-002_L3_M1.json",
+      "line_count": 650,
+      "target_limit": 600,
+      "soft_limit": 800,
+      "warning_note": null
+    },
+    "continuation_from": {
+      "previous_fragment": null,
+      "last_completed_task": null,
+      "files_created": [],
+      "files_modified": [],
+      "architecture_rules": [
+        "STYLE: Functional programming - service classes OK, no random classes",
+        "IMPORTS: Use absolute imports from project root",
+        "CONTRACTS: All data models from shared/contracts/knowledge/",
+        "DATABASE: workspace/knowledge.db - SQLite with FTS5",
+        "GUARDRAIL: NO hard deletes - use archived_at timestamp (soft delete)"
+      ],
+      "patterns_established": [],
+      "active_blockers": []
+    },
+    "session_instruction": "Create SESSION_XXX_PLAN-002_M1_archive-core.md before starting",
+    "verification_strictness": "stop_and_escalate"
+  },
+
+  "milestone": {
+    "id": "M1",
+    "name": "Archive Core",
+    "objective": "Create SQLite database schema, document parsers, archive service, file sync, export, and migration",
+    "spec_coverage": ["AR01", "AR02", "AR03", "AR04", "AR05", "AR06", "API04", "API05", "API06", "API07", "API08"],
+    "estimated_duration": "4-5 days"
+  },
+
+  "preflight": [
+    {
+      "step": 1,
+      "instruction": "Create session file: .sessions/SESSION_XXX_PLAN-002_M1_archive-core.md",
+      "verification_hint": "ls .sessions/SESSION_*.md | tail -1"
+    },
+    {
+      "step": 2,
+      "instruction": "Run baseline tests to verify starting state",
+      "verification_hint": "pytest tests/ -v --tb=short 2>&1 | tail -10"
+    },
+    {
+      "step": 3,
+      "instruction": "Verify knowledge contracts exist from previous work",
+      "verification_hint": "python -c \"from shared.contracts.knowledge import Document; print('Contracts OK')\""
+    }
+  ],
+
+  "tasks": [
+    {
+      "id": "T-M1-01",
+      "description": "Create Database Schema - workspace/knowledge.db with all required tables",
+      "spec_ref": "SPEC-0043-AR01",
+      "verification_command": "python -c \"from gateway.services.knowledge.database import init_database; print('DB OK')\"",
+      "status": "pending",
+      "context": [
+        "ARCHITECTURE: SQLite with FTS5 for full-text search",
+        "FILE: Create gateway/services/knowledge/__init__.py",
+        "FILE: Create gateway/services/knowledge/database.py"
+      ],
+      "hints": [
+        "Use WAL mode for concurrent access",
+        "Create triggers for updated_at",
+        "FTS5 table content_fts for full-text search"
+      ],
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Create package init file",
+          "file_path": "gateway/services/knowledge/__init__.py",
+          "code_snippet": "\"\"\"Knowledge Archive Service Package.\n\nPer ADR-0047 and SPEC-0043.\n\"\"\"\n\n__version__ = \"2025.12.01\"\n",
+          "verification_hint": "cat gateway/services/knowledge/__init__.py",
+          "checkpoint": false
+        },
+        {
+          "step_number": 2,
+          "step_type": "code",
+          "instruction": "Create database.py with schema",
+          "file_path": "gateway/services/knowledge/database.py",
+          "code_snippet": "\"\"\"Database Schema and Initialization - SPEC-0043-AR01.\n\nPer ADR-0047: SQLite database at workspace/knowledge.db.\n\"\"\"\n\nimport sqlite3\nfrom pathlib import Path\n\nDB_PATH = Path(\"workspace/knowledge.db\")\n\nSCHEMA = \"\"\"\n-- Documents table (SPEC-0043-AR01)\nCREATE TABLE IF NOT EXISTS documents (\n    id TEXT PRIMARY KEY,\n    type TEXT NOT NULL,\n    title TEXT NOT NULL,\n    content TEXT NOT NULL,\n    file_path TEXT NOT NULL UNIQUE,\n    file_hash TEXT NOT NULL,\n    created_at TEXT DEFAULT (datetime('now')),\n    updated_at TEXT DEFAULT (datetime('now')),\n    archived_at TEXT DEFAULT NULL\n);\n\n-- Chunks table (SPEC-0043-CH01)\nCREATE TABLE IF NOT EXISTS chunks (\n    id INTEGER PRIMARY KEY AUTOINCREMENT,\n    doc_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,\n    chunk_index INTEGER NOT NULL,\n    content TEXT NOT NULL,\n    start_char INTEGER,\n    end_char INTEGER,\n    token_count INTEGER,\n    UNIQUE(doc_id, chunk_index)\n);\n\n-- Embeddings table (SPEC-0043-EM01)\nCREATE TABLE IF NOT EXISTS embeddings (\n    id INTEGER PRIMARY KEY AUTOINCREMENT,\n    chunk_id INTEGER NOT NULL REFERENCES chunks(id) ON DELETE CASCADE,\n    vector BLOB NOT NULL,\n    model TEXT NOT NULL,\n    dimensions INTEGER NOT NULL,\n    created_at TEXT DEFAULT (datetime('now'))\n);\n\n-- Relationships table (SPEC-0043-SE04)\nCREATE TABLE IF NOT EXISTS relationships (\n    id INTEGER PRIMARY KEY AUTOINCREMENT,\n    source_id TEXT NOT NULL REFERENCES documents(id),\n    target_id TEXT NOT NULL REFERENCES documents(id),\n    relationship_type TEXT NOT NULL,\n    created_at TEXT DEFAULT (datetime('now')),\n    UNIQUE(source_id, target_id, relationship_type)\n);\n\n-- LLM Calls table (SPEC-0043-AR05)\nCREATE TABLE IF NOT EXISTS llm_calls (\n    id INTEGER PRIMARY KEY AUTOINCREMENT,\n    session_id TEXT,\n    timestamp TEXT DEFAULT (datetime('now')),\n    model TEXT NOT NULL,\n    prompt TEXT,\n    response TEXT,\n    tokens_in INTEGER DEFAULT 0,\n    tokens_out INTEGER DEFAULT 0,\n    cost REAL DEFAULT 0.0\n);\n\n-- FTS5 virtual table for full-text search (SPEC-0043-SE01)\nCREATE VIRTUAL TABLE IF NOT EXISTS content_fts USING fts5(\n    title, content, doc_id UNINDEXED, content='documents', content_rowid='rowid'\n);\n\n-- Triggers for FTS sync\nCREATE TRIGGER IF NOT EXISTS documents_ai AFTER INSERT ON documents BEGIN\n    INSERT INTO content_fts(rowid, title, content, doc_id) VALUES (new.rowid, new.title, new.content, new.id);\nEND;\n\nCREATE TRIGGER IF NOT EXISTS documents_ad AFTER DELETE ON documents BEGIN\n    INSERT INTO content_fts(content_fts, rowid, title, content, doc_id) VALUES ('delete', old.rowid, old.title, old.content, old.id);\nEND;\n\nCREATE TRIGGER IF NOT EXISTS documents_au AFTER UPDATE ON documents BEGIN\n    INSERT INTO content_fts(content_fts, rowid, title, content, doc_id) VALUES ('delete', old.rowid, old.title, old.content, old.id);\n    INSERT INTO content_fts(rowid, title, content, doc_id) VALUES (new.rowid, new.title, new.content, new.id);\nEND;\n\n-- Updated_at trigger\nCREATE TRIGGER IF NOT EXISTS update_documents_timestamp AFTER UPDATE ON documents BEGIN\n    UPDATE documents SET updated_at = datetime('now') WHERE id = new.id;\nEND;\n\n-- Indexes\nCREATE INDEX IF NOT EXISTS idx_documents_type ON documents(type);\nCREATE INDEX IF NOT EXISTS idx_documents_archived ON documents(archived_at);\nCREATE INDEX IF NOT EXISTS idx_chunks_doc_id ON chunks(doc_id);\nCREATE INDEX IF NOT EXISTS idx_embeddings_chunk_id ON embeddings(chunk_id);\n\"\"\"\n\ndef get_connection() -> sqlite3.Connection:\n    \"\"\"Get database connection with row factory.\"\"\"\n    DB_PATH.parent.mkdir(parents=True, exist_ok=True)\n    conn = sqlite3.connect(DB_PATH)\n    conn.row_factory = sqlite3.Row\n    conn.execute(\"PRAGMA foreign_keys = ON\")\n    conn.execute(\"PRAGMA journal_mode = WAL\")\n    return conn\n\ndef init_database() -> sqlite3.Connection:\n    \"\"\"Initialize database with schema.\"\"\"\n    conn = get_connection()\n    conn.executescript(SCHEMA)\n    conn.commit()\n    return conn\n",
+          "verification_hint": "python -c \"from gateway.services.knowledge.database import init_database; c=init_database(); print('Tables:', [r[0] for r in c.execute(\\\"SELECT name FROM sqlite_master WHERE type='table'\\\").fetchall()])\"",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M1-02",
+      "description": "Create Document Parsers for Markdown and JSON files",
+      "spec_ref": "SPEC-0043-AR02",
+      "verification_command": "python -c \"from gateway.services.knowledge.parsers import parse_markdown_document; print('Parsers OK')\"",
+      "status": "pending",
+      "context": [
+        "FILE: Create gateway/services/knowledge/parsers.py",
+        "PATTERN: Extract title from first heading or filename"
+      ],
+      "hints": [
+        "Use hashlib.sha256 for file_hash",
+        "Parse JSON for title field, fallback to filename"
+      ],
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Create parsers.py",
+          "file_path": "gateway/services/knowledge/parsers.py",
+          "code_snippet": "\"\"\"Document Parsers - SPEC-0043-AR02.\n\nParse markdown and JSON files into Document format.\n\"\"\"\n\nimport hashlib\nimport json\nimport re\nfrom pathlib import Path\n\nfrom shared.contracts.knowledge.archive import Document, DocumentType\n\n\ndef _compute_hash(content: str) -> str:\n    \"\"\"Compute SHA-256 hash of content.\"\"\"\n    return hashlib.sha256(content.encode()).hexdigest()[:16]\n\n\ndef _extract_markdown_title(content: str, filepath: Path) -> str:\n    \"\"\"Extract title from markdown heading or filename.\"\"\"\n    match = re.search(r'^#\\s+(.+)$', content, re.MULTILINE)\n    if match:\n        return match.group(1).strip()\n    return filepath.stem.replace('_', ' ').replace('-', ' ').title()\n\n\ndef _detect_document_type(filepath: Path) -> DocumentType:\n    \"\"\"Detect document type from path.\"\"\"\n    path_str = str(filepath).lower()\n    if '.sessions/' in path_str:\n        return DocumentType.SESSION\n    elif '.plans/' in path_str:\n        return DocumentType.PLAN\n    elif '.discussions/' in path_str:\n        return DocumentType.DISCUSSION\n    elif '.adrs/' in path_str:\n        return DocumentType.ADR\n    elif 'specs/' in path_str:\n        return DocumentType.SPEC\n    elif 'contracts/' in path_str:\n        return DocumentType.CONTRACT\n    return DocumentType.SESSION  # Default\n\n\ndef parse_markdown_document(filepath: Path) -> Document:\n    \"\"\"Parse markdown file into Document.\"\"\"\n    content = filepath.read_text(encoding='utf-8')\n    title = _extract_markdown_title(content, filepath)\n    doc_type = _detect_document_type(filepath)\n    doc_id = f\"{doc_type.value}_{_compute_hash(str(filepath))}\"\n    \n    return Document(\n        id=doc_id,\n        type=doc_type,\n        title=title,\n        content=content,\n        file_path=str(filepath),\n        file_hash=_compute_hash(content)\n    )\n\n\ndef parse_json_document(filepath: Path) -> Document:\n    \"\"\"Parse JSON file into Document.\"\"\"\n    content = filepath.read_text(encoding='utf-8')\n    data = json.loads(content)\n    title = data.get('title', data.get('name', filepath.stem))\n    doc_type = _detect_document_type(filepath)\n    doc_id = f\"{doc_type.value}_{_compute_hash(str(filepath))}\"\n    \n    return Document(\n        id=doc_id,\n        type=doc_type,\n        title=title,\n        content=content,\n        file_path=str(filepath),\n        file_hash=_compute_hash(content)\n    )\n\n\ndef parse_document(filepath: Path) -> Document:\n    \"\"\"Parse any supported document type.\"\"\"\n    if filepath.suffix == '.json':\n        return parse_json_document(filepath)\n    return parse_markdown_document(filepath)\n",
+          "verification_hint": "python -c \"from gateway.services.knowledge.parsers import parse_document; print('OK')\"",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M1-03",
+      "description": "Create Archive Service with CRUD operations and soft delete",
+      "spec_ref": "SPEC-0043-AR03, AR06",
+      "verification_command": "python -c \"from gateway.services.knowledge.archive_service import ArchiveService; print('Archive OK')\"",
+      "status": "pending",
+      "context": [
+        "FILE: Create gateway/services/knowledge/archive_service.py",
+        "GUARDRAIL: NO hard deletes - use archived_at for soft delete"
+      ],
+      "hints": [
+        "upsert_document checks file_hash to skip unchanged",
+        "archive_document sets archived_at, never DELETE"
+      ],
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Create archive_service.py",
+          "file_path": "gateway/services/knowledge/archive_service.py",
+          "code_snippet": "\"\"\"Archive Service - SPEC-0043-AR03, AR06.\n\nDocument CRUD with soft delete semantics.\nGUARDRAIL: No hard deletes - always use archived_at.\n\"\"\"\n\nimport sqlite3\nfrom datetime import datetime\n\nfrom shared.contracts.knowledge.archive import Document, DocumentType\nfrom gateway.services.knowledge.database import get_connection\n\n\nclass ArchiveService:\n    \"\"\"Document archive with soft delete.\"\"\"\n\n    def __init__(self, conn: sqlite3.Connection | None = None):\n        self.conn = conn or get_connection()\n\n    def upsert_document(self, doc: Document) -> bool:\n        \"\"\"Insert or update document. Returns True if changed.\"\"\"\n        existing = self.conn.execute(\n            \"SELECT file_hash FROM documents WHERE id = ?\", (doc.id,)\n        ).fetchone()\n        \n        if existing and existing['file_hash'] == doc.file_hash:\n            return False  # No change\n        \n        self.conn.execute(\"\"\"\n            INSERT INTO documents (id, type, title, content, file_path, file_hash)\n            VALUES (?, ?, ?, ?, ?, ?)\n            ON CONFLICT(id) DO UPDATE SET\n                title = excluded.title,\n                content = excluded.content,\n                file_hash = excluded.file_hash,\n                archived_at = NULL\n        \"\"\", (doc.id, doc.type.value, doc.title, doc.content, doc.file_path, doc.file_hash))\n        self.conn.commit()\n        return True\n\n    def get_document(self, doc_id: str) -> Document | None:\n        \"\"\"Get document by ID.\"\"\"\n        row = self.conn.execute(\n            \"SELECT * FROM documents WHERE id = ? AND archived_at IS NULL\", (doc_id,)\n        ).fetchone()\n        if not row:\n            return None\n        return Document(\n            id=row['id'],\n            type=DocumentType(row['type']),\n            title=row['title'],\n            content=row['content'],\n            file_path=row['file_path'],\n            file_hash=row['file_hash']\n        )\n\n    def list_documents(self, doc_type: DocumentType | None = None) -> list[Document]:\n        \"\"\"List all non-archived documents.\"\"\"\n        if doc_type:\n            rows = self.conn.execute(\n                \"SELECT * FROM documents WHERE type = ? AND archived_at IS NULL\",\n                (doc_type.value,)\n            ).fetchall()\n        else:\n            rows = self.conn.execute(\n                \"SELECT * FROM documents WHERE archived_at IS NULL\"\n            ).fetchall()\n        return [\n            Document(\n                id=r['id'], type=DocumentType(r['type']), title=r['title'],\n                content=r['content'], file_path=r['file_path'], file_hash=r['file_hash']\n            )\n            for r in rows\n        ]\n\n    def archive_document(self, doc_id: str) -> bool:\n        \"\"\"Soft delete document. GUARDRAIL: No hard deletes.\"\"\"\n        result = self.conn.execute(\n            \"UPDATE documents SET archived_at = datetime('now') WHERE id = ? AND archived_at IS NULL\",\n            (doc_id,)\n        )\n        self.conn.commit()\n        return result.rowcount > 0\n",
+          "verification_hint": "python -c \"from gateway.services.knowledge.archive_service import ArchiveService; print('OK')\"",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M1-04",
+      "description": "Create Sync Service with file watcher using watchdog",
+      "spec_ref": "SPEC-0043-AR06",
+      "verification_command": "python -c \"from gateway.services.knowledge.sync_service import SyncService; print('Sync OK')\"",
+      "status": "pending",
+      "context": [
+        "FILE: Create gateway/services/knowledge/sync_service.py",
+        "PATTERN: Debounce rapid file changes (0.5s)"
+      ],
+      "hints": [
+        "Use watchdog.observers for file watching",
+        "Support both MANUAL and WATCH modes"
+      ],
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Create sync_service.py",
+          "file_path": "gateway/services/knowledge/sync_service.py",
+          "code_snippet": "\"\"\"Sync Service - SPEC-0043-AR06.\n\nFile watcher for automatic document sync.\n\"\"\"\n\nimport time\nfrom pathlib import Path\nfrom threading import Timer\nfrom typing import Callable\n\nfrom shared.contracts.knowledge.archive import SyncMode, SyncStatus, SyncConfig\nfrom gateway.services.knowledge.parsers import parse_document\nfrom gateway.services.knowledge.archive_service import ArchiveService\n\n\nDEFAULT_WATCH_PATHS = [\n    Path('.sessions'),\n    Path('.plans'),\n    Path('.discussions'),\n    Path('.adrs'),\n    Path('docs/specs'),\n    Path('shared/contracts'),\n]\n\n\nclass SyncService:\n    \"\"\"Document synchronization with optional file watching.\"\"\"\n\n    def __init__(self, archive: ArchiveService, config: SyncConfig | None = None):\n        self.archive = archive\n        self.config = config or SyncConfig()\n        self._observer = None\n        self._debounce_timers: dict[str, Timer] = {}\n        self._is_running = False\n\n    def sync_all(self) -> int:\n        \"\"\"Sync all documents from configured paths. Returns count.\"\"\"\n        count = 0\n        for watch_path in DEFAULT_WATCH_PATHS:\n            if not watch_path.exists():\n                continue\n            for filepath in watch_path.rglob('*'):\n                if filepath.is_file() and filepath.suffix in ('.md', '.json'):\n                    try:\n                        doc = parse_document(filepath)\n                        if self.archive.upsert_document(doc):\n                            count += 1\n                    except Exception:\n                        continue\n        return count\n\n    def sync_path(self, path: Path) -> int:\n        \"\"\"Sync documents from specific path.\"\"\"\n        count = 0\n        if path.is_file():\n            doc = parse_document(path)\n            if self.archive.upsert_document(doc):\n                count = 1\n        elif path.is_dir():\n            for filepath in path.rglob('*'):\n                if filepath.is_file() and filepath.suffix in ('.md', '.json'):\n                    try:\n                        doc = parse_document(filepath)\n                        if self.archive.upsert_document(doc):\n                            count += 1\n                    except Exception:\n                        continue\n        return count\n\n    def get_status(self) -> SyncStatus:\n        \"\"\"Get current sync status.\"\"\"\n        return SyncStatus(\n            mode=self.config.mode,\n            is_running=self._is_running,\n            last_sync=None,\n            documents_synced=0\n        )\n\n    def start_watching(self) -> bool:\n        \"\"\"Start file watcher (requires watchdog).\"\"\"\n        try:\n            from watchdog.observers import Observer\n            from watchdog.events import FileSystemEventHandler\n\n            class Handler(FileSystemEventHandler):\n                def __init__(self, sync_svc: 'SyncService'):\n                    self.sync_svc = sync_svc\n\n                def on_modified(self, event):\n                    if not event.is_directory:\n                        self.sync_svc._debounced_sync(Path(event.src_path))\n\n            self._observer = Observer()\n            handler = Handler(self)\n            for path in DEFAULT_WATCH_PATHS:\n                if path.exists():\n                    self._observer.schedule(handler, str(path), recursive=True)\n            self._observer.start()\n            self._is_running = True\n            return True\n        except ImportError:\n            return False\n\n    def stop_watching(self):\n        \"\"\"Stop file watcher.\"\"\"\n        if self._observer:\n            self._observer.stop()\n            self._observer.join()\n            self._is_running = False\n\n    def _debounced_sync(self, path: Path, delay: float = 0.5):\n        \"\"\"Debounce rapid file changes.\"\"\"\n        key = str(path)\n        if key in self._debounce_timers:\n            self._debounce_timers[key].cancel()\n        timer = Timer(delay, lambda: self.sync_path(path))\n        self._debounce_timers[key] = timer\n        timer.start()\n",
+          "verification_hint": "python -c \"from gateway.services.knowledge.sync_service import SyncService; print('OK')\"",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M1-05",
+      "description": "Create API Routes for documents and sync",
+      "spec_ref": "SPEC-0043-API04, API06, API08",
+      "verification_command": "python -c \"from gateway.routes.knowledge import router; print('Routes OK')\"",
+      "status": "pending",
+      "context": [
+        "FILE: Create gateway/routes/knowledge.py",
+        "PATTERN: Follow existing route patterns in gateway/routes/"
+      ],
+      "hints": [
+        "Use APIRouter with prefix /api/knowledge",
+        "Include response_model for type safety"
+      ],
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Create knowledge.py routes",
+          "file_path": "gateway/routes/knowledge.py",
+          "code_snippet": "\"\"\"Knowledge API Routes - SPEC-0043-API.\n\nREST endpoints for knowledge archive.\n\"\"\"\n\nfrom fastapi import APIRouter, HTTPException, Depends\nfrom fastapi.responses import PlainTextResponse\n\nfrom shared.contracts.knowledge.archive import Document, SyncStatus, SyncMode\nfrom gateway.services.knowledge.database import init_database\nfrom gateway.services.knowledge.archive_service import ArchiveService\nfrom gateway.services.knowledge.sync_service import SyncService\n\nrouter = APIRouter(prefix=\"/api/knowledge\", tags=[\"knowledge\"])\n\n# Dependency injection\ndef get_archive() -> ArchiveService:\n    conn = init_database()\n    return ArchiveService(conn)\n\ndef get_sync(archive: ArchiveService = Depends(get_archive)) -> SyncService:\n    return SyncService(archive)\n\n\n@router.get(\"/docs/{doc_id}\", response_model=Document)\nasync def get_document(doc_id: str, archive: ArchiveService = Depends(get_archive)) -> Document:\n    \"\"\"Get document by ID (SPEC-0043-API04).\"\"\"\n    doc = archive.get_document(doc_id)\n    if not doc:\n        raise HTTPException(status_code=404, detail=\"Document not found\")\n    return doc\n\n\n@router.get(\"/docs\", response_model=list[Document])\nasync def list_documents(\n    doc_type: str | None = None,\n    archive: ArchiveService = Depends(get_archive)\n) -> list[Document]:\n    \"\"\"List all documents, optionally filtered by type.\"\"\"\n    from shared.contracts.knowledge.archive import DocumentType\n    dtype = DocumentType(doc_type) if doc_type else None\n    return archive.list_documents(dtype)\n\n\n@router.post(\"/sync\", response_model=SyncStatus)\nasync def force_sync(sync: SyncService = Depends(get_sync)) -> SyncStatus:\n    \"\"\"Force sync all documents (SPEC-0043-API06).\"\"\"\n    count = sync.sync_all()\n    return SyncStatus(mode=SyncMode.MANUAL, is_running=False, documents_synced=count)\n\n\n@router.get(\"/sync/status\", response_model=SyncStatus)\nasync def get_sync_status(sync: SyncService = Depends(get_sync)) -> SyncStatus:\n    \"\"\"Get sync status (SPEC-0043-API08).\"\"\"\n    return sync.get_status()\n",
+          "verification_hint": "python -c \"from gateway.routes.knowledge import router; print('OK')\"",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M1-06",
+      "description": "Add Sync by Type endpoint",
+      "spec_ref": "SPEC-0043-API07",
+      "verification_command": "grep 'sync/{doc_type}' gateway/routes/knowledge.py",
+      "status": "pending",
+      "context": [
+        "FILE: Modify gateway/routes/knowledge.py",
+        "PATTERN: Add POST /sync/{doc_type}"
+      ],
+      "hints": [
+        "Validate doc_type against DocumentType enum"
+      ],
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Add sync by type endpoint to knowledge.py",
+          "file_path": "gateway/routes/knowledge.py",
+          "append_to_file": true,
+          "code_snippet": "\n\n@router.post(\"/sync/{doc_type}\", response_model=SyncStatus)\nasync def sync_by_type(doc_type: str, sync: SyncService = Depends(get_sync)) -> SyncStatus:\n    \"\"\"Sync specific document type (SPEC-0043-API07).\"\"\"\n    valid_types = ['session', 'plan', 'discussion', 'adr', 'spec', 'contract']\n    if doc_type not in valid_types:\n        raise HTTPException(status_code=400, detail=f\"Invalid type. Valid: {valid_types}\")\n    # Map type to path\n    type_paths = {\n        'session': '.sessions', 'plan': '.plans', 'discussion': '.discussions',\n        'adr': '.adrs', 'spec': 'docs/specs', 'contract': 'shared/contracts'\n    }\n    from pathlib import Path\n    count = sync.sync_path(Path(type_paths[doc_type]))\n    return SyncStatus(mode=SyncMode.MANUAL, is_running=False, documents_synced=count)\n",
+          "verification_hint": "grep 'sync/{doc_type}' gateway/routes/knowledge.py",
+          "checkpoint": false
+        }
+      ]
+    },
+    {
+      "id": "T-M1-07",
+      "description": "Implement Export to File functionality",
+      "spec_ref": "SPEC-0043-AR04, API05",
+      "verification_command": "python -c \"from gateway.services.knowledge.exporter import export_document; print('Export OK')\"",
+      "status": "pending",
+      "context": [
+        "FILE: Create gateway/services/knowledge/exporter.py",
+        "FILE: Add export endpoint to knowledge.py"
+      ],
+      "hints": [
+        "Round-trip: file → db → file should produce identical content"
+      ],
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Create exporter.py",
+          "file_path": "gateway/services/knowledge/exporter.py",
+          "code_snippet": "\"\"\"Document Exporter - SPEC-0043-AR04.\n\nExport documents back to file format.\n\"\"\"\n\nfrom pathlib import Path\nfrom shared.contracts.knowledge.archive import Document\n\n\ndef export_document(doc: Document) -> str:\n    \"\"\"Export document to original format string.\"\"\"\n    return doc.content\n\n\ndef export_to_file(doc: Document, output_path: Path | None = None) -> Path:\n    \"\"\"Write document to file.\"\"\"\n    target = output_path or Path(doc.file_path)\n    target.parent.mkdir(parents=True, exist_ok=True)\n    target.write_text(export_document(doc), encoding='utf-8')\n    return target\n",
+          "verification_hint": "python -c \"from gateway.services.knowledge.exporter import export_document; print('OK')\"",
+          "checkpoint": false
+        },
+        {
+          "step_number": 2,
+          "step_type": "code",
+          "instruction": "Add export endpoint to knowledge.py",
+          "file_path": "gateway/routes/knowledge.py",
+          "append_to_file": true,
+          "code_snippet": "\n\n@router.get(\"/docs/{doc_id}/export\")\nasync def export_document_endpoint(doc_id: str, archive: ArchiveService = Depends(get_archive)) -> PlainTextResponse:\n    \"\"\"Export document to original format (SPEC-0043-API05).\"\"\"\n    doc = archive.get_document(doc_id)\n    if not doc:\n        raise HTTPException(status_code=404, detail=\"Document not found\")\n    content_type = \"application/json\" if doc.type.value in ['adr', 'spec', 'plan'] else \"text/markdown\"\n    return PlainTextResponse(content=doc.content, media_type=content_type)\n",
+          "verification_hint": "grep 'export' gateway/routes/knowledge.py",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M1-08",
+      "description": "Implement LLM Logs Migration from legacy database",
+      "spec_ref": "SPEC-0043-AR05",
+      "verification_command": "python -c \"from gateway.services.knowledge.migration import migrate_llm_logs; print('Migration OK')\"",
+      "status": "pending",
+      "context": [
+        "FILE: Create gateway/services/knowledge/migration.py",
+        "PATTERN: Check for workspace/llm_logs.db existence"
+      ],
+      "hints": [
+        "Preserve all historical cost data",
+        "Use INSERT OR IGNORE to avoid duplicates"
+      ],
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Create migration.py",
+          "file_path": "gateway/services/knowledge/migration.py",
+          "code_snippet": "\"\"\"Database Migration - SPEC-0043-AR05.\n\nMigrate legacy llm_logs.db to knowledge.db.\n\"\"\"\n\nimport sqlite3\nfrom pathlib import Path\n\n\ndef migrate_llm_logs(source_db: Path, target_conn: sqlite3.Connection) -> int:\n    \"\"\"Migrate LLM call logs from legacy database.\n    \n    Args:\n        source_db: Path to legacy llm_logs.db\n        target_conn: Connection to knowledge.db\n        \n    Returns:\n        Number of records migrated\n    \"\"\"\n    if not source_db.exists():\n        return 0\n    \n    source = sqlite3.connect(source_db)\n    source.row_factory = sqlite3.Row\n    \n    try:\n        rows = source.execute(\"SELECT * FROM llm_calls\").fetchall()\n    except sqlite3.OperationalError:\n        source.close()\n        return 0\n    \n    migrated = 0\n    for row in rows:\n        try:\n            target_conn.execute(\"\"\"\n                INSERT OR IGNORE INTO llm_calls \n                (session_id, timestamp, model, prompt, response, tokens_in, tokens_out, cost)\n                VALUES (?, ?, ?, ?, ?, ?, ?, ?)\n            \"\"\", (\n                row['session_id'] if 'session_id' in row.keys() else None,\n                row['timestamp'] if 'timestamp' in row.keys() else None,\n                row['model'] if 'model' in row.keys() else 'unknown',\n                row.get('prompt'),\n                row.get('response'),\n                row.get('tokens_in', 0),\n                row.get('tokens_out', 0),\n                row.get('cost', 0.0)\n            ))\n            migrated += 1\n        except Exception:\n            continue\n    \n    target_conn.commit()\n    source.close()\n    return migrated\n",
+          "verification_hint": "python -c \"from gateway.services.knowledge.migration import migrate_llm_logs; print('OK')\"",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M1-09",
+      "description": "Write M1 Tests for archive layer",
+      "spec_ref": "Testing",
+      "verification_command": "pytest tests/knowledge/test_archive.py -v",
+      "status": "pending",
+      "context": [
+        "FILE: Create tests/knowledge/__init__.py",
+        "FILE: Create tests/knowledge/test_archive.py"
+      ],
+      "hints": [
+        "Test soft delete behavior (NO DELETE statements)",
+        "Test export round-trip"
+      ],
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Create tests/knowledge/__init__.py",
+          "file_path": "tests/knowledge/__init__.py",
+          "code_snippet": "\"\"\"Knowledge Archive Tests.\"\"\"\n",
+          "verification_hint": "cat tests/knowledge/__init__.py",
+          "checkpoint": false
+        },
+        {
+          "step_number": 2,
+          "step_type": "code",
+          "instruction": "Create test_archive.py",
+          "file_path": "tests/knowledge/test_archive.py",
+          "code_snippet": "\"\"\"Tests for Archive Service - PLAN-002 M1.\"\"\"\n\nimport pytest\nimport sqlite3\nfrom pathlib import Path\n\nfrom shared.contracts.knowledge.archive import Document, DocumentType\nfrom gateway.services.knowledge.database import init_database\nfrom gateway.services.knowledge.archive_service import ArchiveService\nfrom gateway.services.knowledge.parsers import parse_markdown_document\nfrom gateway.services.knowledge.exporter import export_document\n\n\n@pytest.fixture\ndef db_conn():\n    \"\"\"In-memory database for testing.\"\"\"\n    conn = sqlite3.connect(':memory:')\n    conn.row_factory = sqlite3.Row\n    # Apply schema\n    from gateway.services.knowledge.database import SCHEMA\n    conn.executescript(SCHEMA)\n    return conn\n\n\n@pytest.fixture\ndef archive(db_conn):\n    return ArchiveService(db_conn)\n\n\ndef test_upsert_document(archive):\n    \"\"\"Test document insert and update.\"\"\"\n    doc = Document(\n        id='test_001',\n        type=DocumentType.SESSION,\n        title='Test Document',\n        content='# Test\\n\\nContent here.',\n        file_path='.sessions/test.md',\n        file_hash='abc123'\n    )\n    \n    # First insert\n    assert archive.upsert_document(doc) is True\n    \n    # Same hash - no change\n    assert archive.upsert_document(doc) is False\n    \n    # Updated content\n    doc.file_hash = 'def456'\n    assert archive.upsert_document(doc) is True\n\n\ndef test_soft_delete(archive):\n    \"\"\"Test that archive_document uses soft delete, not hard delete.\"\"\"\n    doc = Document(\n        id='test_soft',\n        type=DocumentType.SESSION,\n        title='Soft Delete Test',\n        content='Content',\n        file_path='.sessions/soft.md',\n        file_hash='soft123'\n    )\n    archive.upsert_document(doc)\n    \n    # Archive (soft delete)\n    assert archive.archive_document('test_soft') is True\n    \n    # Should not appear in list\n    docs = archive.list_documents()\n    assert not any(d.id == 'test_soft' for d in docs)\n    \n    # But still exists in database (soft deleted)\n    row = archive.conn.execute(\n        \"SELECT * FROM documents WHERE id = ?\", ('test_soft',)\n    ).fetchone()\n    assert row is not None\n    assert row['archived_at'] is not None\n\n\ndef test_export_roundtrip():\n    \"\"\"Test that export produces identical content.\"\"\"\n    original_content = '# Test\\n\\nThis is test content.'\n    doc = Document(\n        id='roundtrip',\n        type=DocumentType.SESSION,\n        title='Roundtrip Test',\n        content=original_content,\n        file_path='.sessions/roundtrip.md',\n        file_hash='rt123'\n    )\n    \n    exported = export_document(doc)\n    assert exported == original_content\n",
+          "verification_hint": "pytest tests/knowledge/test_archive.py -v",
+          "checkpoint": true,
+          "escalate_on_failure": true,
+          "on_failure_hint": "Check imports and ensure all services are correctly implemented"
+        }
+      ]
+    }
+  ],
+
+  "acceptance_criteria": [
+    {
+      "id": "AC-M1-01",
+      "description": "Database created at workspace/knowledge.db with all 6 tables",
+      "verification_command": "python -c \"from gateway.services.knowledge.database import init_database; c=init_database(); print([r[0] for r in c.execute(\\\"SELECT name FROM sqlite_master WHERE type='table'\\\").fetchall()])\""
+    },
+    {
+      "id": "AC-M1-02",
+      "description": "All services import successfully",
+      "verification_command": "python -c \"from gateway.services.knowledge.archive_service import ArchiveService; from gateway.services.knowledge.sync_service import SyncService; from gateway.services.knowledge.exporter import export_document; from gateway.services.knowledge.migration import migrate_llm_logs; print('All imports OK')\""
+    },
+    {
+      "id": "AC-M1-03",
+      "description": "API routes defined and importable",
+      "verification_command": "python -c \"from gateway.routes.knowledge import router; print('Routes:', [r.path for r in router.routes])\""
+    },
+    {
+      "id": "AC-M1-04",
+      "description": "All M1 tests pass",
+      "verification_command": "pytest tests/knowledge/test_archive.py -v"
+    }
+  ],
+
+  "_fragment_footer": {
+    "handoff_to_next": "PLAN-002_L3_M2.json",
+    "files_created": [
+      "gateway/services/knowledge/__init__.py",
+      "gateway/services/knowledge/database.py",
+      "gateway/services/knowledge/parsers.py",
+      "gateway/services/knowledge/archive_service.py",
+      "gateway/services/knowledge/sync_service.py",
+      "gateway/services/knowledge/exporter.py",
+      "gateway/services/knowledge/migration.py",
+      "gateway/routes/knowledge.py",
+      "tests/knowledge/__init__.py",
+      "tests/knowledge/test_archive.py"
+    ],
+    "files_modified": [],
+    "patterns_to_maintain": [
+      "Use ArchiveService for all document operations",
+      "GUARDRAIL: Soft delete only (archived_at)",
+      "Import contracts from shared.contracts.knowledge",
+      "Use get_connection() for database access"
+    ],
+    "checkpoint_command": "pytest tests/knowledge/test_archive.py -v && ruff check gateway/services/knowledge/"
+  }
+}

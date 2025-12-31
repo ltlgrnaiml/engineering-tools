@@ -151,8 +151,55 @@ Before marking plan complete:
 - [ ] All milestones completed
 - [ ] Global acceptance criteria pass
 - [ ] No open blockers
-- [ ] Completion checklist verified
+- [ ] Known bugs documented (if any)
+- [ ] Completion type selected
 - [ ] INDEX.md updated
+
+---
+
+## WINDSURF_SPECIFIC: Option A - Milestone-Based Closure
+
+### Completion Types
+
+| Type | When to Use | Known Bugs |
+|------|-------------|------------|
+| `mvp_shipped` | Core functionality works, polish/edge cases remain | Document in `known_bugs[]` |
+| `fully_complete` | All work done, no known bugs | Empty `known_bugs[]` |
+| `superseded` | Replaced by another plan | Link via `deferred_to` |
+
+### Known Bug Documentation
+
+When closing a plan with `mvp_shipped`:
+
+1. **Document each bug** with ID, severity, and description
+2. **Assess severity**: low (cosmetic), medium (workaround exists), high (significant)
+3. **Optionally defer** to a follow-up plan via `deferred_to`
+4. **Bugs do NOT block closure** - they're tracked, not blockers
+
+```json
+{
+  "completion_type": "mvp_shipped",
+  "completion_date": "2025-12-30",
+  "known_bugs": [
+    {
+      "id": "BUG-001",
+      "description": "AI input box doesn't shrink on small screens",
+      "severity": "low",
+      "affected_component": "WorkflowStepper.tsx",
+      "workaround": "Scroll the page",
+      "deferred_to": "PLAN-002"
+    }
+  ],
+  "deferred_to": "PLAN-002"
+}
+```
+
+### Why This Pattern?
+
+1. **Clean signal**: Plan is DONE even if imperfect
+2. **Bug visibility**: Future developers see known bugs
+3. **No infinite plans**: Bugs don't keep plans open forever
+4. **Traceability**: Bugs link to follow-up work
 
 ---
 

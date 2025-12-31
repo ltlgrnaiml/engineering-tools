@@ -114,6 +114,12 @@ These ADRs define patterns that ALL tools (DAT, PPTX, SOV) MUST follow:
 | ADR-0028 | DevTools Page Architecture | ADR-0001 |
 | ADR-0045 | DevTools Workflow Manager UI | ADR-0028 |
 
+### Knowledge & AI
+
+| ID | Title | Extends |
+|----|-------|--------|
+| ADR-0047 | Knowledge Archive & RAG System | ADR-0043 |
+
 ## Orthogonality Matrix
 
 Each ADR addresses a distinct concern (no overlaps):
@@ -139,7 +145,8 @@ Each ADR addresses a distinct concern (no overlaps):
 | Dev Environment | ADR-0038 | - |
 | CI/CD | ADR-0039 | - |
 | Deployment | ADR-0040 | - |
-| AI Workflow | ADR-0043 | - |
+| AI Workflow | ADR-0043 | ADR-0047 |
+| Knowledge/RAG | ADR-0047 | - |
 | Frontend Integration | ADR-0044 | - |
 
 ## ADR Numbering Refactor (2025-12-30)
@@ -208,4 +215,4 @@ See `.adrs/TODO_CODE_VALIDATION.md` for the validation checklist.
 
 *Last Updated: 2025-12-30*
 *Maintainer: Mycahya Eggleston*
-*Total ADRs: 45 (28 core + 9 DAT + 4 PPTX + 3 SOV + 2 DevTools - 1 shared)*
+*Total ADRs: 46 (29 core + 9 DAT + 4 PPTX + 3 SOV + 2 DevTools - 1 shared)*

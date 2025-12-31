@@ -49,6 +49,32 @@ from shared.contracts.devtools.workflow import (
 
 router = APIRouter()
 
+
+def get_knowledge_context(prompt: str, max_tokens: int = 4000) -> dict | None:
+    """Get RAG context from knowledge archive for DevTools.
+
+    PLAN-002 M4: Integration with Knowledge Archive.
+    """
+    try:
+        from gateway.services.knowledge.database import init_database
+        from gateway.services.knowledge.search_service import SearchService
+        from gateway.services.knowledge.context_builder import ContextBuilder
+        from gateway.services.knowledge.sanitizer import Sanitizer
+
+        conn = init_database()
+        search = SearchService(conn)
+        builder = ContextBuilder(search, Sanitizer())
+
+        ctx = builder.build_context(prompt, max_tokens=max_tokens)
+        return {
+            'context': ctx.context,
+            'sources': ctx.sources,
+            'token_count': ctx.token_count
+        }
+    except Exception:
+        return None
+
+
 # Get project root (parent of gateway/)
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 ADRS_DIR = PROJECT_ROOT / ".adrs"
@@ -478,6 +504,15 @@ async def get_artifact(artifact_id: str) -> dict[str, Any]:
     Returns:
         Dict with artifact metadata and content.
     """
+    from gateway.services.workflow_service import get_generated_content
+
+    # Check if this is a generated artifact first
+    if "-GEN-" in artifact_id:
+        content = get_generated_content(artifact_id)
+        if content:
+            return {"id": artifact_id, "content": content}
+        raise HTTPException(status_code=404, detail=f"Generated artifact {artifact_id} not found")
+
     # Find the artifact in all scanned artifacts
     artifacts = scan_artifacts()
     artifact = next((a for a in artifacts if a.id == artifact_id), None)
@@ -929,6 +964,14 @@ class SetModelResponse(BaseModel):
     message: str
 
 
+class LLMUsageStats(BaseModel):
+    """Usage statistics for LLM API calls."""
+    total_calls: int
+    total_cost: float
+    total_input_tokens: int
+    total_output_tokens: int
+
+
 @router.post("/llm/model", response_model=SetModelResponse)
 async def set_llm_model(request: SetModelRequest) -> SetModelResponse:
     """Set the current LLM model.
@@ -956,3 +999,16 @@ async def set_llm_model(request: SetModelRequest) -> SetModelResponse:
             model_id=request.model_id,
             message=f"Unknown model: {request.model_id}",
         )
+
+
+@router.get("/llm/usage", response_model=LLMUsageStats)
+async def get_llm_usage() -> LLMUsageStats:
+    """Get LLM API usage statistics.
+
+    Returns:
+        LLMUsageStats with total calls, tokens, and cost.
+    """
+    from gateway.services.llm_service import get_llm_usage_stats
+
+    stats = get_llm_usage_stats()
+    return LLMUsageStats(**stats)

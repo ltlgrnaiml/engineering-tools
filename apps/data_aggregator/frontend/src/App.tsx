@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { FileSpreadsheet, Loader2 } from 'lucide-react'
+import { FileSpreadsheet, Loader2, Home } from 'lucide-react'
 import { SelectionPanel } from './components/stages/SelectionPanel'
 import { ContextPanel } from './components/stages/ContextPanel'
 import { TableAvailabilityPanel } from './components/stages/TableAvailabilityPanel'
@@ -179,14 +179,24 @@ function App() {
       <div className="min-h-screen bg-slate-50 flex flex-col">
         {/* Header */}
         <header className="bg-white border-b border-slate-200 px-6 py-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-emerald-500 flex items-center justify-center">
-              <FileSpreadsheet className="w-5 h-5 text-white" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-emerald-500 flex items-center justify-center">
+                <FileSpreadsheet className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl font-semibold text-slate-900">Data Aggregator</h1>
+                <p className="text-sm text-slate-500">Parse, transform, and aggregate data</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-xl font-semibold text-slate-900">Data Aggregator</h1>
-              <p className="text-sm text-slate-500">Parse, transform, and aggregate data</p>
-            </div>
+            <a
+              href="http://localhost:5174"
+              target="_top"
+              className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-colors"
+            >
+              <Home className="w-4 h-4" />
+              <span>Engineering Tools</span>
+            </a>
           </div>
         </header>
 

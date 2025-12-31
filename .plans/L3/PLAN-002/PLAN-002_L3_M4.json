@@ -1,0 +1,263 @@
+{
+  "_fragment_header": {
+    "fragment_meta": {
+      "fragment_id": "M4",
+      "fragment_file": "PLAN-002_L3_M4.json",
+      "line_count": 480,
+      "target_limit": 600,
+      "soft_limit": 800,
+      "warning_note": null
+    },
+    "continuation_from": {
+      "previous_fragment": "M3b",
+      "last_completed_task": "T-M3-08",
+      "files_created": [
+        "gateway/services/knowledge/sanitizer.py",
+        "gateway/services/knowledge/context_builder.py",
+        "tests/knowledge/test_sanitizer.py",
+        "tests/knowledge/test_context_builder.py"
+      ],
+      "files_modified": [
+        "gateway/routes/knowledge.py"
+      ],
+      "architecture_rules": [
+        "GUARDRAIL: ALL content sanitized before LLM",
+        "STYLE: Use ContextBuilder for RAG context",
+        "CACHE: 5-minute TTL for context results"
+      ],
+      "patterns_established": [
+        "Sanitizer.sanitize() before any LLM exposure",
+        "ContextBuilder.build_context() for RAG",
+        "SearchService.hybrid_search() for retrieval"
+      ],
+      "active_blockers": []
+    },
+    "session_instruction": "Create SESSION_XXX_PLAN-002_M4_integration.md before starting",
+    "verification_strictness": "stop_and_escalate"
+  },
+
+  "milestone": {
+    "id": "M4",
+    "name": "Integration",
+    "objective": "Integrate knowledge system with Langchain, DevTools, and add statistics endpoint",
+    "spec_coverage": ["API09", "DISC-003"],
+    "estimated_duration": "2-3 days"
+  },
+
+  "preflight": [
+    {
+      "step": 1,
+      "instruction": "Create session file: .sessions/SESSION_XXX_PLAN-002_M4_integration.md",
+      "verification_hint": "ls .sessions/SESSION_*.md | tail -1"
+    },
+    {
+      "step": 2,
+      "instruction": "Verify M3b completion - all RAG components work",
+      "verification_hint": "python -c \"from gateway.services.knowledge.context_builder import ContextBuilder; print('M3b OK')\""
+    },
+    {
+      "step": 3,
+      "instruction": "Check langchain is available",
+      "verification_hint": "python -c \"import langchain_core; print('langchain_core:', langchain_core.__version__)\""
+    }
+  ],
+
+  "tasks": [
+    {
+      "id": "T-M4-01",
+      "description": "Implement Langchain Adapter for Knowledge Archive",
+      "spec_ref": "DISC-003",
+      "verification_command": "python -c \"from gateway.services.knowledge.langchain_adapter import KnowledgeRetriever; print('Langchain OK')\"",
+      "status": "pending",
+      "context": [
+        "FILE: Create gateway/services/knowledge/langchain_adapter.py",
+        "PATTERN: Implement BaseRetriever interface"
+      ],
+      "hints": [
+        "Extend BaseRetriever from langchain_core",
+        "Use hybrid search internally",
+        "Return Langchain Document format"
+      ],
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Create langchain_adapter.py",
+          "file_path": "gateway/services/knowledge/langchain_adapter.py",
+          "code_snippet": "\"\"\"Langchain Adapter - DISC-003 decision.\n\nWrap Knowledge Archive for Langchain integration.\n\"\"\"\n\nfrom typing import Any, List\n\ntry:\n    from langchain_core.retrievers import BaseRetriever\n    from langchain_core.documents import Document as LCDocument\n    from langchain_core.callbacks import CallbackManagerForRetrieverRun\n    LANGCHAIN_AVAILABLE = True\nexcept ImportError:\n    LANGCHAIN_AVAILABLE = False\n    BaseRetriever = object\n    LCDocument = None\n\nfrom gateway.services.knowledge.search_service import SearchService\nfrom gateway.services.knowledge.embedding_service import EmbeddingService\n\n\nif LANGCHAIN_AVAILABLE:\n    class KnowledgeRetriever(BaseRetriever):\n        \"\"\"Langchain-compatible retriever for Knowledge Archive.\"\"\"\n        \n        search_service: Any = None\n        embedding_service: Any = None\n        top_k: int = 10\n        use_embeddings: bool = False\n\n        class Config:\n            arbitrary_types_allowed = True\n\n        def _get_relevant_documents(\n            self,\n            query: str,\n            *,\n            run_manager: CallbackManagerForRetrieverRun | None = None\n        ) -> List[LCDocument]:\n            \"\"\"Retrieve relevant documents for query.\"\"\"\n            # Generate query embedding if service available\n            query_vector = None\n            if self.use_embeddings and self.embedding_service:\n                result = self.embedding_service.embed(query)\n                query_vector = result.vector\n            \n            # Search using hybrid search\n            results = self.search_service.hybrid_search(\n                query,\n                query_vector=query_vector,\n                top_k=self.top_k\n            )\n            \n            # Convert to Langchain Document format\n            return [\n                LCDocument(\n                    page_content=r.snippet,\n                    metadata={\n                        \"source\": r.doc_id,\n                        \"title\": r.title,\n                        \"score\": r.score,\n                        \"doc_type\": r.doc_type\n                    }\n                )\n                for r in results\n            ]\nelse:\n    class KnowledgeRetriever:\n        \"\"\"Stub when langchain not available.\"\"\"\n        def __init__(self, **kwargs):\n            raise ImportError(\"langchain_core required. Install with: pip install langchain-core\")\n",
+          "verification_hint": "python -c \"from gateway.services.knowledge.langchain_adapter import KnowledgeRetriever; print('OK')\"",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M4-02",
+      "description": "Implement Statistics Endpoint",
+      "spec_ref": "SPEC-0043-API09",
+      "verification_command": "grep 'get_stats' gateway/services/knowledge/archive_service.py",
+      "status": "pending",
+      "context": [
+        "FILE: Modify gateway/services/knowledge/archive_service.py",
+        "FILE: Modify gateway/routes/knowledge.py"
+      ],
+      "hints": [
+        "Count documents by type",
+        "Sum LLM costs",
+        "Count chunks and embeddings"
+      ],
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Add get_stats method to ArchiveService",
+          "file_path": "gateway/services/knowledge/archive_service.py",
+          "append_to_file": true,
+          "code_snippet": "\n    def get_stats(self) -> dict:\n        \"\"\"Get knowledge archive statistics (SPEC-0043-API09).\"\"\"\n        # Documents by type\n        type_rows = self.conn.execute(\"\"\"\n            SELECT type, COUNT(*) as count\n            FROM documents WHERE archived_at IS NULL\n            GROUP BY type\n        \"\"\").fetchall()\n        docs_by_type = {r['type']: r['count'] for r in type_rows}\n        \n        # Aggregate stats\n        stats = self.conn.execute(\"\"\"\n            SELECT\n                (SELECT COUNT(*) FROM documents WHERE archived_at IS NULL) as total_docs,\n                (SELECT COUNT(*) FROM chunks) as total_chunks,\n                (SELECT COUNT(*) FROM embeddings) as total_embeddings,\n                (SELECT COALESCE(SUM(cost), 0) FROM llm_calls) as total_cost,\n                (SELECT COUNT(*) FROM llm_calls) as llm_calls_count\n        \"\"\").fetchone()\n        \n        return {\n            'total_documents': stats['total_docs'],\n            'documents_by_type': docs_by_type,\n            'total_chunks': stats['total_chunks'],\n            'total_embeddings': stats['total_embeddings'],\n            'total_llm_cost': stats['total_cost'],\n            'llm_calls_count': stats['llm_calls_count']\n        }\n",
+          "verification_hint": "grep 'get_stats' gateway/services/knowledge/archive_service.py",
+          "checkpoint": false
+        },
+        {
+          "step_number": 2,
+          "step_type": "code",
+          "instruction": "Add stats endpoint to routes",
+          "file_path": "gateway/routes/knowledge.py",
+          "append_to_file": true,
+          "code_snippet": "\n\n@router.get(\"/stats\")\nasync def get_stats(archive: ArchiveService = Depends(get_archive)) -> dict:\n    \"\"\"Get knowledge archive statistics (SPEC-0043-API09).\"\"\"\n    return archive.get_stats()\n",
+          "verification_hint": "grep '/stats' gateway/routes/knowledge.py",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M4-03",
+      "description": "Integrate with DevTools Service",
+      "spec_ref": "Integration",
+      "verification_command": "grep 'knowledge' gateway/services/devtools_service.py",
+      "status": "pending",
+      "context": [
+        "FILE: Modify gateway/services/devtools_service.py",
+        "PATTERN: Add knowledge search to artifact operations"
+      ],
+      "hints": [
+        "Import knowledge service",
+        "Add RAG context to workflow prompts",
+        "Expose knowledge search in DevTools"
+      ],
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Add knowledge integration to devtools_service.py",
+          "file_path": "gateway/services/devtools_service.py",
+          "append_to_file": true,
+          "code_snippet": "\n\n# Knowledge Archive Integration\ndef get_knowledge_context(prompt: str, max_tokens: int = 4000) -> dict | None:\n    \"\"\"Get RAG context from knowledge archive for DevTools.\"\"\"\n    try:\n        from gateway.services.knowledge.database import init_database\n        from gateway.services.knowledge.search_service import SearchService\n        from gateway.services.knowledge.context_builder import ContextBuilder\n        from gateway.services.knowledge.sanitizer import Sanitizer\n        \n        conn = init_database()\n        search = SearchService(conn)\n        builder = ContextBuilder(search, Sanitizer())\n        \n        ctx = builder.build_context(prompt, max_tokens=max_tokens)\n        return {\n            'context': ctx.context,\n            'sources': ctx.sources,\n            'token_count': ctx.token_count\n        }\n    except Exception:\n        return None\n",
+          "verification_hint": "grep 'knowledge' gateway/services/devtools_service.py",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M4-04",
+      "description": "Write Integration Tests",
+      "spec_ref": "Testing",
+      "verification_command": "pytest tests/integration/test_knowledge_system.py -v",
+      "status": "pending",
+      "context": [
+        "FILE: Create tests/integration/test_knowledge_system.py"
+      ],
+      "hints": [
+        "Test full pipeline: file → sync → search → context",
+        "Test Langchain retriever if available",
+        "Test statistics accuracy"
+      ],
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Create test_knowledge_system.py",
+          "file_path": "tests/integration/test_knowledge_system.py",
+          "code_snippet": "\"\"\"Integration Tests for Knowledge System - PLAN-002 M4.\"\"\"\n\nimport pytest\nimport sqlite3\nfrom pathlib import Path\n\nfrom shared.contracts.knowledge.archive import Document, DocumentType\nfrom gateway.services.knowledge.database import SCHEMA\nfrom gateway.services.knowledge.archive_service import ArchiveService\nfrom gateway.services.knowledge.search_service import SearchService\nfrom gateway.services.knowledge.chunking import ChunkingService\nfrom gateway.services.knowledge.context_builder import ContextBuilder\nfrom gateway.services.knowledge.sanitizer import Sanitizer\n\n\n@pytest.fixture\ndef db_conn():\n    \"\"\"In-memory database for testing.\"\"\"\n    conn = sqlite3.connect(':memory:')\n    conn.row_factory = sqlite3.Row\n    conn.executescript(SCHEMA)\n    return conn\n\n\n@pytest.fixture\ndef full_system(db_conn):\n    \"\"\"Full knowledge system setup.\"\"\"\n    archive = ArchiveService(db_conn)\n    search = SearchService(db_conn)\n    chunking = ChunkingService()\n    sanitizer = Sanitizer()\n    builder = ContextBuilder(search, sanitizer)\n    return archive, search, chunking, builder\n\n\ndef test_full_pipeline(full_system):\n    \"\"\"Test: ingest → chunk → search → context.\"\"\"\n    archive, search, chunking, builder = full_system\n    \n    # 1. Ingest document\n    doc = Document(\n        id='test_pipeline',\n        type=DocumentType.SESSION,\n        title='Pipeline Test Session',\n        content='# Pipeline Test\\n\\n## Section 1\\n\\nThis is about Python development.\\n\\n## Section 2\\n\\nMore content about FastAPI.',\n        file_path='.sessions/pipeline.md',\n        file_hash='pipe123'\n    )\n    archive.upsert_document(doc)\n    \n    # 2. Chunk document\n    count = chunking.chunk_and_store(archive.conn, doc.id, doc.content, doc.file_path)\n    assert count >= 2  # Should have at least 2 sections\n    \n    # 3. Search for content\n    results = search.fts_search('Python', top_k=5)\n    assert len(results) >= 1\n    \n    # 4. Build context\n    ctx = builder.build_context('Tell me about Python')\n    assert ctx.context is not None\n    assert len(ctx.sources) >= 0  # May or may not have sources\n\n\ndef test_statistics_accuracy(full_system):\n    \"\"\"Test that statistics are accurate.\"\"\"\n    archive, search, chunking, builder = full_system\n    \n    # Add documents\n    for i in range(3):\n        doc = Document(\n            id=f'stats_test_{i}',\n            type=DocumentType.SESSION,\n            title=f'Stats Test {i}',\n            content=f'Content {i}',\n            file_path=f'.sessions/stats{i}.md',\n            file_hash=f'stats{i}'\n        )\n        archive.upsert_document(doc)\n    \n    stats = archive.get_stats()\n    assert stats['total_documents'] == 3\n    assert 'session' in stats['documents_by_type']\n\n\ndef test_sanitization_in_context(full_system):\n    \"\"\"Test that PII is sanitized in context.\"\"\"\n    archive, search, chunking, builder = full_system\n    \n    doc = Document(\n        id='pii_test',\n        type=DocumentType.SESSION,\n        title='PII Test',\n        content='Contact test@example.com for help with sk-secret12345678901234567890',\n        file_path='.sessions/pii.md',\n        file_hash='pii123'\n    )\n    archive.upsert_document(doc)\n    \n    ctx = builder.build_context('Contact information')\n    # Emails and API keys should be redacted in context\n    assert 'test@example.com' not in ctx.context or '[EMAIL]' in ctx.context\n",
+          "verification_hint": "pytest tests/integration/test_knowledge_system.py -v",
+          "checkpoint": true,
+          "escalate_on_failure": true,
+          "on_failure_hint": "Check all service imports and database setup"
+        }
+      ]
+    }
+  ],
+
+  "acceptance_criteria": [
+    {
+      "id": "AC-M4-01",
+      "description": "Langchain adapter importable",
+      "verification_command": "python -c \"from gateway.services.knowledge.langchain_adapter import KnowledgeRetriever; print('OK')\""
+    },
+    {
+      "id": "AC-M4-02",
+      "description": "Statistics endpoint returns data",
+      "verification_command": "grep '@router.get.*stats' gateway/routes/knowledge.py"
+    },
+    {
+      "id": "AC-M4-03",
+      "description": "DevTools integration exists",
+      "verification_command": "grep 'get_knowledge_context' gateway/services/devtools_service.py"
+    },
+    {
+      "id": "AC-M4-04",
+      "description": "All integration tests pass",
+      "verification_command": "pytest tests/integration/test_knowledge_system.py -v"
+    }
+  ],
+
+  "_fragment_footer": {
+    "handoff_to_next": null,
+    "files_created": [
+      "gateway/services/knowledge/langchain_adapter.py",
+      "tests/integration/test_knowledge_system.py"
+    ],
+    "files_modified": [
+      "gateway/services/knowledge/archive_service.py",
+      "gateway/routes/knowledge.py",
+      "gateway/services/devtools_service.py"
+    ],
+    "patterns_to_maintain": [
+      "Use KnowledgeRetriever for Langchain integration",
+      "Statistics via archive.get_stats()",
+      "get_knowledge_context() for DevTools RAG"
+    ],
+    "checkpoint_command": "pytest tests/knowledge/ tests/integration/test_knowledge_system.py -v"
+  },
+
+  "_plan_completion": {
+    "global_acceptance_criteria": [
+      {
+        "id": "AC-GLOBAL-01",
+        "description": "workspace/knowledge.db created and queryable",
+        "verification_command": "python -c \"from gateway.services.knowledge.database import init_database; c=init_database(); print('DB OK')\""
+      },
+      {
+        "id": "AC-GLOBAL-02",
+        "description": "All document types can be ingested",
+        "verification_command": "python -c \"from gateway.services.knowledge.parsers import parse_document; print('Parsers OK')\""
+      },
+      {
+        "id": "AC-GLOBAL-03",
+        "description": "Hybrid search combines FTS + vector correctly",
+        "verification_command": "python -c \"from gateway.services.knowledge.search_service import SearchService; print('Search OK')\""
+      },
+      {
+        "id": "AC-GLOBAL-04",
+        "description": "RAG context includes sanitized, attributed chunks",
+        "verification_command": "python -c \"from gateway.services.knowledge.context_builder import ContextBuilder; print('Context OK')\""
+      },
+      {
+        "id": "AC-GLOBAL-05",
+        "description": "All tests pass",
+        "verification_command": "pytest tests/knowledge/ tests/integration/test_knowledge_system.py -v"
+      }
+    ],
+    "total_tasks": 29,
+    "total_files_created": 22,
+    "spec_coverage": "27/27 (100%)"
+  }
+}

@@ -1,0 +1,278 @@
+{
+  "_fragment_header": {
+    "fragment_meta": {
+      "fragment_id": "M2",
+      "fragment_file": "PLAN-002_L3_M2.json",
+      "line_count": 550,
+      "target_limit": 600,
+      "soft_limit": 800,
+      "warning_note": null
+    },
+    "continuation_from": {
+      "previous_fragment": "M1",
+      "last_completed_task": "T-M1-09",
+      "files_created": [
+        "gateway/services/knowledge/__init__.py",
+        "gateway/services/knowledge/database.py",
+        "gateway/services/knowledge/parsers.py",
+        "gateway/services/knowledge/archive_service.py",
+        "gateway/services/knowledge/sync_service.py",
+        "gateway/services/knowledge/exporter.py",
+        "gateway/services/knowledge/migration.py",
+        "gateway/routes/knowledge.py",
+        "tests/knowledge/__init__.py",
+        "tests/knowledge/test_archive.py"
+      ],
+      "files_modified": [],
+      "architecture_rules": [
+        "STYLE: Use ArchiveService for document operations",
+        "DATABASE: workspace/knowledge.db with FTS5",
+        "GUARDRAIL: Soft delete only (archived_at)",
+        "CONTRACTS: shared.contracts.knowledge.*"
+      ],
+      "patterns_established": [
+        "Use get_connection() for database access",
+        "Import Document, DocumentType from shared.contracts.knowledge.archive"
+      ],
+      "active_blockers": []
+    },
+    "session_instruction": "Create SESSION_XXX_PLAN-002_M2_search-layer.md before starting",
+    "verification_strictness": "stop_and_escalate"
+  },
+
+  "milestone": {
+    "id": "M2",
+    "name": "Search Layer",
+    "objective": "Implement FTS search, vector search, hybrid search with RRF, and relationships",
+    "spec_coverage": ["SE01", "SE02", "SE03", "SE04", "API01", "API02", "API03", "API11"],
+    "estimated_duration": "2-3 days"
+  },
+
+  "preflight": [
+    {
+      "step": 1,
+      "instruction": "Create session file: .sessions/SESSION_XXX_PLAN-002_M2_search-layer.md",
+      "verification_hint": "ls .sessions/SESSION_*.md | tail -1"
+    },
+    {
+      "step": 2,
+      "instruction": "Verify M1 completion - all imports work",
+      "verification_hint": "python -c \"from gateway.services.knowledge.archive_service import ArchiveService; print('M1 OK')\""
+    },
+    {
+      "step": 3,
+      "instruction": "Run M1 tests to ensure baseline",
+      "verification_hint": "pytest tests/knowledge/test_archive.py -v"
+    }
+  ],
+
+  "tasks": [
+    {
+      "id": "T-M2-01",
+      "description": "Implement FTS Search using SQLite FTS5",
+      "spec_ref": "SPEC-0043-SE01",
+      "verification_command": "python -c \"from gateway.services.knowledge.search_service import SearchService; print('Search OK')\"",
+      "status": "pending",
+      "context": [
+        "FILE: Create gateway/services/knowledge/search_service.py",
+        "PATTERN: Use content_fts virtual table for full-text search"
+      ],
+      "hints": [
+        "FTS5 MATCH syntax for query",
+        "Use bm25() for relevance scoring",
+        "Return highlighted snippets with snippet() function"
+      ],
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Create search_service.py with FTS search",
+          "file_path": "gateway/services/knowledge/search_service.py",
+          "code_snippet": "\"\"\"Search Service - SPEC-0043-SE01, SE02, SE03, SE04.\n\nFull-text search, vector search, and hybrid search.\n\"\"\"\n\nimport sqlite3\nfrom dataclasses import dataclass\n\nfrom shared.contracts.knowledge.search import SearchResult, SearchQuery\nfrom gateway.services.knowledge.database import get_connection\n\n\n@dataclass\nclass SearchHit:\n    \"\"\"Internal search result.\"\"\"\n    doc_id: str\n    title: str\n    snippet: str\n    score: float\n    doc_type: str\n\n\nclass SearchService:\n    \"\"\"Search service with FTS, vector, and hybrid modes.\"\"\"\n\n    def __init__(self, conn: sqlite3.Connection | None = None):\n        self.conn = conn or get_connection()\n\n    def fts_search(self, query: str, top_k: int = 10) -> list[SearchHit]:\n        \"\"\"Full-text search using FTS5 (SPEC-0043-SE01).\"\"\"\n        rows = self.conn.execute(\"\"\"\n            SELECT \n                d.id as doc_id,\n                d.title,\n                snippet(content_fts, 1, '<mark>', '</mark>', '...', 32) as snippet,\n                bm25(content_fts) as score,\n                d.type as doc_type\n            FROM content_fts\n            JOIN documents d ON content_fts.doc_id = d.id\n            WHERE content_fts MATCH ? AND d.archived_at IS NULL\n            ORDER BY bm25(content_fts)\n            LIMIT ?\n        \"\"\", (query, top_k)).fetchall()\n        \n        return [\n            SearchHit(\n                doc_id=r['doc_id'],\n                title=r['title'],\n                snippet=r['snippet'],\n                score=abs(r['score']),  # BM25 returns negative\n                doc_type=r['doc_type']\n            )\n            for r in rows\n        ]\n",
+          "verification_hint": "python -c \"from gateway.services.knowledge.search_service import SearchService; print('OK')\"",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M2-02",
+      "description": "Implement Vector Search with cosine similarity",
+      "spec_ref": "SPEC-0043-SE02",
+      "verification_command": "grep 'vector_search' gateway/services/knowledge/search_service.py",
+      "status": "pending",
+      "context": [
+        "FILE: Modify gateway/services/knowledge/search_service.py",
+        "PATTERN: Cosine similarity on embedding vectors"
+      ],
+      "hints": [
+        "Load vectors from embeddings table",
+        "Compute dot product for normalized vectors",
+        "vectors are stored as BLOB, need to deserialize"
+      ],
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Add vector search method to SearchService",
+          "file_path": "gateway/services/knowledge/search_service.py",
+          "append_to_file": true,
+          "code_snippet": "\n    def _blob_to_vector(self, blob: bytes) -> list[float]:\n        \"\"\"Deserialize vector from BLOB.\"\"\"\n        import struct\n        count = len(blob) // 4  # float32 = 4 bytes\n        return list(struct.unpack(f'{count}f', blob))\n\n    def _cosine_similarity(self, v1: list[float], v2: list[float]) -> float:\n        \"\"\"Compute cosine similarity between two vectors.\"\"\"\n        dot = sum(a * b for a, b in zip(v1, v2))\n        norm1 = sum(a * a for a in v1) ** 0.5\n        norm2 = sum(b * b for b in v2) ** 0.5\n        if norm1 == 0 or norm2 == 0:\n            return 0.0\n        return dot / (norm1 * norm2)\n\n    def vector_search(self, query_vector: list[float], top_k: int = 10) -> list[SearchHit]:\n        \"\"\"Vector similarity search (SPEC-0043-SE02).\"\"\"\n        rows = self.conn.execute(\"\"\"\n            SELECT \n                e.vector,\n                c.doc_id,\n                c.content as snippet,\n                d.title,\n                d.type as doc_type\n            FROM embeddings e\n            JOIN chunks c ON e.chunk_id = c.id\n            JOIN documents d ON c.doc_id = d.id\n            WHERE d.archived_at IS NULL\n        \"\"\").fetchall()\n        \n        scored = []\n        for r in rows:\n            vec = self._blob_to_vector(r['vector'])\n            sim = self._cosine_similarity(query_vector, vec)\n            scored.append(SearchHit(\n                doc_id=r['doc_id'],\n                title=r['title'],\n                snippet=r['snippet'][:200],\n                score=sim,\n                doc_type=r['doc_type']\n            ))\n        \n        scored.sort(key=lambda x: x.score, reverse=True)\n        return scored[:top_k]\n",
+          "verification_hint": "grep 'vector_search' gateway/services/knowledge/search_service.py",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M2-03",
+      "description": "Implement Hybrid Search with Reciprocal Rank Fusion",
+      "spec_ref": "SPEC-0043-SE03",
+      "verification_command": "grep 'hybrid_search' gateway/services/knowledge/search_service.py",
+      "status": "pending",
+      "context": [
+        "FILE: Modify gateway/services/knowledge/search_service.py",
+        "PATTERN: RRF formula: 1/(k + rank) with k=60"
+      ],
+      "hints": [
+        "Run FTS and vector search in parallel",
+        "Merge results using RRF scoring",
+        "Default weights: 0.5 FTS, 0.5 vector"
+      ],
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Add hybrid search method to SearchService",
+          "file_path": "gateway/services/knowledge/search_service.py",
+          "append_to_file": true,
+          "code_snippet": "\n    def hybrid_search(\n        self,\n        query: str,\n        query_vector: list[float] | None = None,\n        top_k: int = 10,\n        fts_weight: float = 0.5,\n        vec_weight: float = 0.5\n    ) -> list[SearchHit]:\n        \"\"\"Hybrid search with Reciprocal Rank Fusion (SPEC-0043-SE03).\n        \n        RRF formula: score = sum(1 / (k + rank)) where k=60\n        \"\"\"\n        k = 60  # RRF constant\n        rrf_scores: dict[str, float] = {}\n        doc_data: dict[str, SearchHit] = {}\n        \n        # FTS results\n        fts_results = self.fts_search(query, top_k * 2)\n        for rank, hit in enumerate(fts_results):\n            rrf_scores[hit.doc_id] = rrf_scores.get(hit.doc_id, 0) + fts_weight / (k + rank + 1)\n            doc_data[hit.doc_id] = hit\n        \n        # Vector results (if vector provided)\n        if query_vector:\n            vec_results = self.vector_search(query_vector, top_k * 2)\n            for rank, hit in enumerate(vec_results):\n                rrf_scores[hit.doc_id] = rrf_scores.get(hit.doc_id, 0) + vec_weight / (k + rank + 1)\n                if hit.doc_id not in doc_data:\n                    doc_data[hit.doc_id] = hit\n        \n        # Sort by RRF score\n        sorted_ids = sorted(rrf_scores.keys(), key=lambda x: rrf_scores[x], reverse=True)\n        \n        return [\n            SearchHit(\n                doc_id=doc_data[doc_id].doc_id,\n                title=doc_data[doc_id].title,\n                snippet=doc_data[doc_id].snippet,\n                score=rrf_scores[doc_id],\n                doc_type=doc_data[doc_id].doc_type\n            )\n            for doc_id in sorted_ids[:top_k]\n        ]\n",
+          "verification_hint": "grep 'hybrid_search' gateway/services/knowledge/search_service.py",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M2-04",
+      "description": "Implement Relationship Tracking",
+      "spec_ref": "SPEC-0043-SE04",
+      "verification_command": "grep 'get_relationships' gateway/services/knowledge/archive_service.py",
+      "status": "pending",
+      "context": [
+        "FILE: Modify gateway/services/knowledge/archive_service.py",
+        "PATTERN: Parse @references from content"
+      ],
+      "hints": [
+        "Detect ADR, SPEC, DISC references in content",
+        "Store in relationships table",
+        "Types: references, implements, supersedes"
+      ],
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Add relationship methods to ArchiveService",
+          "file_path": "gateway/services/knowledge/archive_service.py",
+          "append_to_file": true,
+          "code_snippet": "\n    def extract_relationships(self, doc: Document) -> list[tuple[str, str, str]]:\n        \"\"\"Extract document references from content.\n        \n        Returns list of (source_id, target_id, relationship_type).\n        \"\"\"\n        import re\n        relationships = []\n        \n        # Pattern for ADR, SPEC, DISC, PLAN references\n        patterns = [\n            (r'ADR-\\d{4}', 'references'),\n            (r'SPEC-\\d{4}', 'references'),\n            (r'DISC-\\d{3}', 'references'),\n            (r'PLAN-\\d{3}', 'references'),\n        ]\n        \n        for pattern, rel_type in patterns:\n            matches = re.findall(pattern, doc.content)\n            for match in matches:\n                target_id = f\"{match.split('-')[0].lower()}_{match.replace('-', '_').lower()}\"\n                relationships.append((doc.id, target_id, rel_type))\n        \n        return relationships\n\n    def save_relationships(self, doc: Document):\n        \"\"\"Save extracted relationships to database.\"\"\"\n        rels = self.extract_relationships(doc)\n        for source, target, rel_type in rels:\n            self.conn.execute(\"\"\"\n                INSERT OR IGNORE INTO relationships (source_id, target_id, relationship_type)\n                VALUES (?, ?, ?)\n            \"\"\", (source, target, rel_type))\n        self.conn.commit()\n\n    def get_relationships(self, doc_id: str) -> list[dict]:\n        \"\"\"Get all relationships for a document.\"\"\"\n        rows = self.conn.execute(\"\"\"\n            SELECT source_id, target_id, relationship_type\n            FROM relationships\n            WHERE source_id = ? OR target_id = ?\n        \"\"\", (doc_id, doc_id)).fetchall()\n        \n        return [\n            {'source': r['source_id'], 'target': r['target_id'], 'type': r['relationship_type']}\n            for r in rows\n        ]\n",
+          "verification_hint": "grep 'get_relationships' gateway/services/knowledge/archive_service.py",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M2-05",
+      "description": "Add Search API Endpoints",
+      "spec_ref": "SPEC-0043-API01, API02, API03, API11",
+      "verification_command": "grep '/search' gateway/routes/knowledge.py",
+      "status": "pending",
+      "context": [
+        "FILE: Modify gateway/routes/knowledge.py",
+        "PATTERN: GET /search, /search/semantic, /search/hybrid, /relationships"
+      ],
+      "hints": [
+        "Use query params for search terms",
+        "Return list of SearchResult"
+      ],
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Add search endpoints to knowledge.py",
+          "file_path": "gateway/routes/knowledge.py",
+          "append_to_file": true,
+          "code_snippet": "\n\nfrom gateway.services.knowledge.search_service import SearchService\n\ndef get_search(archive: ArchiveService = Depends(get_archive)) -> SearchService:\n    return SearchService(archive.conn)\n\n\n@router.get(\"/search\")\nasync def fts_search(\n    q: str,\n    top_k: int = 10,\n    search: SearchService = Depends(get_search)\n) -> list[dict]:\n    \"\"\"Full-text search (SPEC-0043-API01).\"\"\"\n    results = search.fts_search(q, top_k)\n    return [{'doc_id': r.doc_id, 'title': r.title, 'snippet': r.snippet, 'score': r.score} for r in results]\n\n\n@router.get(\"/search/hybrid\")\nasync def hybrid_search(\n    q: str,\n    top_k: int = 10,\n    search: SearchService = Depends(get_search)\n) -> list[dict]:\n    \"\"\"Hybrid search - FTS only without embedding (SPEC-0043-API03).\"\"\"\n    results = search.hybrid_search(q, query_vector=None, top_k=top_k)\n    return [{'doc_id': r.doc_id, 'title': r.title, 'snippet': r.snippet, 'score': r.score} for r in results]\n\n\n@router.get(\"/docs/{doc_id}/relationships\")\nasync def get_relationships(\n    doc_id: str,\n    archive: ArchiveService = Depends(get_archive)\n) -> list[dict]:\n    \"\"\"Get document relationships (SPEC-0043-API11).\"\"\"\n    return archive.get_relationships(doc_id)\n",
+          "verification_hint": "grep '/search' gateway/routes/knowledge.py",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M2-06",
+      "description": "Write M2 Tests for search layer",
+      "spec_ref": "Testing",
+      "verification_command": "pytest tests/knowledge/test_search.py -v",
+      "status": "pending",
+      "context": [
+        "FILE: Create tests/knowledge/test_search.py"
+      ],
+      "hints": [
+        "Test FTS with sample documents",
+        "Test RRF score calculation"
+      ],
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Create test_search.py",
+          "file_path": "tests/knowledge/test_search.py",
+          "code_snippet": "\"\"\"Tests for Search Service - PLAN-002 M2.\"\"\"\n\nimport pytest\nimport sqlite3\n\nfrom shared.contracts.knowledge.archive import Document, DocumentType\nfrom gateway.services.knowledge.database import SCHEMA\nfrom gateway.services.knowledge.archive_service import ArchiveService\nfrom gateway.services.knowledge.search_service import SearchService\n\n\n@pytest.fixture\ndef db_conn():\n    \"\"\"In-memory database for testing.\"\"\"\n    conn = sqlite3.connect(':memory:')\n    conn.row_factory = sqlite3.Row\n    conn.executescript(SCHEMA)\n    return conn\n\n\n@pytest.fixture\ndef archive(db_conn):\n    return ArchiveService(db_conn)\n\n\n@pytest.fixture\ndef search(db_conn):\n    return SearchService(db_conn)\n\n\n@pytest.fixture\ndef sample_docs(archive):\n    \"\"\"Insert sample documents for search testing.\"\"\"\n    docs = [\n        Document(\n            id='doc_001',\n            type=DocumentType.SESSION,\n            title='Python Development Session',\n            content='# Python Development\\n\\nWorking on Python code with FastAPI.',\n            file_path='.sessions/python.md',\n            file_hash='hash1'\n        ),\n        Document(\n            id='doc_002',\n            type=DocumentType.ADR,\n            title='Architecture Decision: Database',\n            content='# ADR-0001\\n\\nUsing SQLite for local storage. References ADR-0002.',\n            file_path='.adrs/adr-0001.md',\n            file_hash='hash2'\n        ),\n    ]\n    for doc in docs:\n        archive.upsert_document(doc)\n    return docs\n\n\ndef test_fts_search(search, sample_docs):\n    \"\"\"Test FTS search returns relevant results.\"\"\"\n    results = search.fts_search('Python', top_k=5)\n    assert len(results) >= 1\n    assert any('Python' in r.title or 'Python' in r.snippet for r in results)\n\n\ndef test_fts_no_results(search, sample_docs):\n    \"\"\"Test FTS with no matching query.\"\"\"\n    results = search.fts_search('NonexistentTerm12345', top_k=5)\n    assert len(results) == 0\n\n\ndef test_hybrid_search_fts_only(search, sample_docs):\n    \"\"\"Test hybrid search falls back to FTS when no vector.\"\"\"\n    results = search.hybrid_search('SQLite', query_vector=None, top_k=5)\n    assert len(results) >= 1\n\n\ndef test_relationship_extraction(archive):\n    \"\"\"Test that ADR references are extracted.\"\"\"\n    doc = Document(\n        id='test_rel',\n        type=DocumentType.SESSION,\n        title='Relationship Test',\n        content='This references ADR-0001 and SPEC-0043.',\n        file_path='.sessions/rel.md',\n        file_hash='relhash'\n    )\n    rels = archive.extract_relationships(doc)\n    assert len(rels) == 2\n    assert any('adr' in r[1] for r in rels)\n    assert any('spec' in r[1] for r in rels)\n",
+          "verification_hint": "pytest tests/knowledge/test_search.py -v",
+          "checkpoint": true,
+          "escalate_on_failure": true,
+          "on_failure_hint": "Check FTS5 triggers and document insertion"
+        }
+      ]
+    }
+  ],
+
+  "acceptance_criteria": [
+    {
+      "id": "AC-M2-01",
+      "description": "FTS search returns highlighted snippets",
+      "verification_command": "python -c \"from gateway.services.knowledge.search_service import SearchService; s=SearchService(); print('FTS OK')\""
+    },
+    {
+      "id": "AC-M2-02",
+      "description": "Hybrid search method exists and callable",
+      "verification_command": "grep 'def hybrid_search' gateway/services/knowledge/search_service.py"
+    },
+    {
+      "id": "AC-M2-03",
+      "description": "Relationship extraction works",
+      "verification_command": "grep 'def get_relationships' gateway/services/knowledge/archive_service.py"
+    },
+    {
+      "id": "AC-M2-04",
+      "description": "All M2 tests pass",
+      "verification_command": "pytest tests/knowledge/test_search.py -v"
+    }
+  ],
+
+  "_fragment_footer": {
+    "handoff_to_next": "PLAN-002_L3_M3a.json",
+    "files_created": [
+      "gateway/services/knowledge/search_service.py",
+      "tests/knowledge/test_search.py"
+    ],
+    "files_modified": [
+      "gateway/services/knowledge/archive_service.py",
+      "gateway/routes/knowledge.py"
+    ],
+    "patterns_to_maintain": [
+      "Use SearchService for all search operations",
+      "RRF constant k=60 for hybrid search",
+      "FTS uses content_fts virtual table",
+      "Vectors stored as BLOB (float32 array)"
+    ],
+    "checkpoint_command": "pytest tests/knowledge/test_search.py -v && ruff check gateway/services/knowledge/"
+  }
+}

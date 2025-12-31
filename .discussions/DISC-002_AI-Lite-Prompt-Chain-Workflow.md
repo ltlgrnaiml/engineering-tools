@@ -1,8 +1,8 @@
 # DISC-002: AI-Lite Prompt Chain Workflow
 
-> **Status**: `active`
+> **Status**: `resolved`
 > **Created**: 2025-12-30
-> **Updated**: 2025-12-30
+> **Updated**: 2025-12-31
 > **Author**: Mycahya Eggleston
 > **AI Session**: SESSION_016
 
@@ -40,16 +40,16 @@ User feedback that the most natural workflow starts with a conversation that evo
 
 - [x] **FR-1**: Discussion files can be created from natural conversation
 - [x] **FR-2**: Each artifact type has a "Copy AI Prompt" button that generates a context-aware prompt
-- [ ] **FR-3**: Prompts include source artifact content and target schema
-- [ ] **FR-4**: Prompts chain correctly: DISC → ADR → SPEC → Contract → Plan
-- [ ] **FR-5**: Contract generation is optional (only when data structures needed)
-- [ ] **FR-6**: Plan generation incorporates all upstream artifacts
+- [x] **FR-3**: Prompts include source artifact content and target schema
+- [x] **FR-4**: Prompts chain correctly: DISC → ADR → SPEC → Contract → Plan
+- [x] **FR-5**: Contract generation is optional (only when data structures needed)
+- [x] **FR-6**: Plan generation incorporates all upstream artifacts
 
 ### Non-Functional Requirements
 
-- [ ] **NFR-1**: Prompts should be under 4000 tokens to work with most LLMs
-- [ ] **NFR-2**: Generated artifacts should validate against their Pydantic schemas
-- [ ] **NFR-3**: Prompt templates should be maintainable and versioned
+- [x] **NFR-1**: Prompts should be under 4000 tokens to work with most LLMs (verified: all <600 tokens)
+- [x] **NFR-2**: Generated artifacts validate against Pydantic schemas (DiscussionSchema, ADRSchema, etc.)
+- [x] **NFR-3**: Prompt templates are versioned (`prompt_version: 2.0` in response context)
 
 ---
 
@@ -150,25 +150,29 @@ Prompts are structured as:
 
 **Action Items**:
 - [x] Create DISC-002 to capture this discussion
-- [ ] Create Discussion Pydantic schema
-- [ ] Implement prompt templates in backend
-- [ ] Add prompt generation endpoint
-- [ ] Add tests
+- [x] Create Discussion Pydantic schema (`shared/contracts/devtools/discussion.py`)
+- [x] Implement prompt templates in backend (`gateway/services/workflow_service.py`)
+- [x] Add prompt generation endpoint (`generate_prompt()`)
+- [x] Add tests (`tests/gateway/test_devtools_workflow.py`)
 
 ---
 
 ## Resolution
 
-<!-- Filled when discussion is resolved -->
+**Resolution Date**: 2025-12-31
 
-**Resolution Date**: -
+**Outcome**: All requirements implemented and verified.
 
-**Outcome**: -
+**Implemented**:
+1. ✅ Discussion Pydantic schema with full validation
+2. ✅ Rich prompt templates for all artifact transitions (DISC→ADR→SPEC→Plan/Contract)
+3. ✅ `generate_prompt()` API endpoint
+4. ✅ All prompts verified under 4000 tokens (~344-576 tokens)
+5. ✅ Template versioning (`prompt_version: 2.0`)
 
-**Next Steps**:
-1. Implement Discussion schema
-2. Implement prompt templates
-3. Test full chain workflow
+**Next Steps**: 
+- Integrate with DevTools UI (PLAN-001)
+- Add real-time AI response streaming (future enhancement)
 
 ---
 

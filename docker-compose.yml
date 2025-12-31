@@ -1,0 +1,112 @@
+version: "3.9"
+
+services:
+  # =============================================================================
+  # Backend API Gateway
+  # =============================================================================
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - /app/.venv  # Exclude venv from mount
+    env_file:
+      - .env
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: uvicorn gateway.main:app --host 0.0.0.0 --port 8000 --reload
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # =============================================================================
+  # Phoenix AI Observability
+  # =============================================================================
+  phoenix:
+    build:
+      context: .
+      dockerfile: docker/phoenix.Dockerfile
+    ports:
+      - "6006:6006"
+    volumes:
+      - phoenix_data:/root/.phoenix
+    environment:
+      - PHOENIX_PORT=6006
+
+  # =============================================================================
+  # MkDocs Documentation
+  # =============================================================================
+  mkdocs:
+    build:
+      context: .
+      dockerfile: docker/mkdocs.Dockerfile
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./docs:/app/docs:ro
+      - ./mkdocs.yml:/app/mkdocs.yml:ro
+    command: mkdocs serve --dev-addr 0.0.0.0:8001
+
+  # =============================================================================
+  # Homepage Frontend
+  # =============================================================================
+  homepage:
+    build:
+      context: ./apps/homepage/frontend
+      dockerfile: ../../../docker/frontend.Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./apps/homepage/frontend:/app
+      - /app/node_modules  # Exclude node_modules from mount
+    command: npm run dev -- --host 0.0.0.0 --port 3000
+
+  # =============================================================================
+  # DAT Frontend
+  # =============================================================================
+  dat:
+    build:
+      context: ./apps/data_aggregator/frontend
+      dockerfile: ../../../docker/frontend.Dockerfile
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./apps/data_aggregator/frontend:/app
+      - /app/node_modules
+    command: npm run dev -- --host 0.0.0.0 --port 5173
+
+  # =============================================================================
+  # SOV Frontend
+  # =============================================================================
+  sov:
+    build:
+      context: ./apps/sov_analyzer/frontend
+      dockerfile: ../../../docker/frontend.Dockerfile
+    ports:
+      - "5174:5174"
+    volumes:
+      - ./apps/sov_analyzer/frontend:/app
+      - /app/node_modules
+    command: npm run dev -- --host 0.0.0.0 --port 5174
+
+  # =============================================================================
+  # PPTX Frontend
+  # =============================================================================
+  pptx:
+    build:
+      context: ./apps/pptx_generator/frontend
+      dockerfile: ../../../docker/frontend.Dockerfile
+    ports:
+      - "5175:5175"
+    volumes:
+      - ./apps/pptx_generator/frontend:/app
+      - /app/node_modules
+    command: npm run dev -- --host 0.0.0.0 --port 5175
+
+volumes:
+  phoenix_data:

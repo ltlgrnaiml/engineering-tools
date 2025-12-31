@@ -6,7 +6,8 @@
 
 | ID | Title | Status | Progress | Source | Updated | Format |
 |----|-------|--------|----------|--------|---------|--------|
-| PLAN-001 | DevTools Workflow Manager Implementation | `draft` | 0% (0/56) | DISC-001, ADR-0045, SPEC-0003 | 2025-12-30 | JSON |
+| PLAN-001 | DevTools Workflow Manager Implementation | `draft` | 0% (0/56) | DISC-001, ADR-0045, SPEC-0034 | 2025-12-30 | JSON |
+| PLAN-002 | Knowledge Archive & RAG Implementation | `draft` | 0% (0/22) | DISC-006, ADR-0047, SPEC-0043 | 2025-12-30 | L3 Markdown |
 
 ## Completed Plans
 
@@ -24,8 +25,8 @@
 
 ## Statistics
 
-- **Total Plans**: 1
-- **Active**: 1
+- **Total Plans**: 2
+- **Active**: 2
 - **Completed**: 0
 - **Blocked**: 0
 

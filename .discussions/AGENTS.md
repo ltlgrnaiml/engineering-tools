@@ -68,6 +68,45 @@ When discussion is ready to transition:
 
 ---
 
+## WINDSURF_SPECIFIC: Option A - Milestone-Based Closure
+
+### Discussion Closure Criteria
+
+**A Discussion is RESOLVED when DESIGN is complete, NOT when implementation is done.**
+
+| Artifact | Closes When |
+|----------|-------------|
+| **Discussion** | Architectural questions answered, artifacts created |
+| **Plan** | Acceptance criteria met (MVP or full) |
+| **Bugs** | Documented in Plan's `known_bugs[]`, don't block closure |
+
+### Resolution Types
+
+| Type | When to Use |
+|------|-------------|
+| `design_complete` | All design decisions made, ADR/SPEC/Plan created |
+| `deferred` | Parked for later, context preserved |
+| `abandoned` | No longer relevant, document why |
+
+### Example Resolution
+
+```markdown
+## Resolution
+
+**Resolution Date**: 2025-12-30
+**Resolution Type**: design_complete
+**Outcome**: UI & workflow design complete
+
+**Artifacts Created**:
+- ADR-0045: UI Architecture
+- SPEC-0034: Workflow Manager
+- PLAN-001: Implementation
+
+**Known Bugs**: Tracked in PLAN-001 (don't block DISC closure)
+```
+
+---
+
 ## WINDSURF_SPECIFIC: Gate Rules
 
 ### Gate: Discussion → ADR
@@ -159,6 +198,65 @@ Key sections:
 | Leaving discussions orphaned | Resolve or abandon with clear status |
 | Not linking resulting artifacts | Always update Resulting Artifacts table |
 | Skipping conversation log | Log key points every session |
+
+---
+
+## WINDSURF_SPECIFIC: Multi-DISC Dependencies
+
+### Dependency Types
+
+| Type | Notation | Meaning |
+|------|----------|---------|
+| **Finish-to-Start (FS)** | DISC-B depends on DISC-A | B can't start until A complete |
+| **Finish-to-Finish (FF)** | DISC-C aggregates A,B | C can't finish until A,B finish |
+| **Start-to-Start (SS)** | DISC-A,B parallel | A,B can start together |
+| **Soft Dependency** | DISC-B soft-depends A | B can use stub until A complete |
+
+### When Creating Discussions with Dependencies
+
+1. **Check DISC-DEPENDENCY-GRAPH.md** for existing dependency chains
+2. **Add `Depends On:` field** in discussion metadata
+3. **Update dependency graph** when adding new dependencies
+4. **Identify dependency type** (FS, FF, SS, soft)
+
+### Aggregator Discussions
+
+When a DISC depends on multiple other DISCs (like DISC-006):
+
+1. **List all dependencies** in Cross-DISC Dependencies section
+2. **Map phases to dependencies**: Which phase needs which DISC?
+3. **Identify stubbable dependencies**: Can we proceed with a stub?
+4. **Plan for integration**: Last phase should integrate all dependencies
+
+### Stub Pattern for Soft Dependencies
+
+When a dependency isn't complete but work can proceed:
+
+```python
+# Example: DISC-004-STUB
+def sanitize_pii(content: str) -> str:
+    """Stub: Pass-through until DISC-004 complete."""
+    # TODO(DISC-004): Replace with real implementation
+    return content
+```
+
+### Multi-DISC Plan Strategy
+
+| Approach | When to Use |
+|----------|-------------|
+| **Hierarchical Phased Plan** | One DISC aggregates multiple dependencies |
+| **Parallel Independent Plans** | DISCs at same level, no cross-deps |
+| **Sequential Plans** | Strict finish-to-start dependency |
+
+### Recommended Execution Order
+
+Always use **topological sort** based on dependency levels:
+
+1. **Level 0**: No dependencies (start first)
+2. **Level 1**: Depends only on Level 0
+3. **Level N**: Depends on Level N-1
+
+See `DISC-DEPENDENCY-GRAPH.md` for current project state.
 
 ---
 

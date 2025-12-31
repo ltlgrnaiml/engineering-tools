@@ -218,6 +218,22 @@ Per SESSION_017/018 lessons:
 | Contract → Plan | Imports verified |
 | Task → Complete | Verification command passes |
 
+### Artifact Lifecycle (Option A: Milestone-Based Closure)
+
+| Artifact | Closes When | Bugs |
+|----------|-------------|------|
+| **Discussion** | Design complete, ADR/SPEC/Plan created | N/A - design only |
+| **Plan** | Acceptance criteria met (MVP or full) | Document in `known_bugs[]` |
+| **Bugs** | Tracked in Plan, don't block closure | Deferred to next Plan |
+
+**Completion Types for Plans**:
+
+- `mvp_shipped`: Core done, known bugs documented
+- `fully_complete`: All done, no known bugs
+- `superseded`: Replaced by another plan
+
+**Key Principle**: Bugs don't block closure—they're documented and tracked.
+
 ### Plan Granularity Levels (ADR-0043)
 
 | Level | Target Models | Task Requirements | On Failure |

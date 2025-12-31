@@ -1,0 +1,216 @@
+{
+  "_fragment_header": {
+    "fragment_meta": {
+      "fragment_id": "M3a",
+      "fragment_file": "PLAN-002_L3_M3a.json",
+      "line_count": 520,
+      "target_limit": 600,
+      "soft_limit": 800,
+      "warning_note": null
+    },
+    "continuation_from": {
+      "previous_fragment": "M2",
+      "last_completed_task": "T-M2-06",
+      "files_created": [
+        "gateway/services/knowledge/search_service.py",
+        "tests/knowledge/test_search.py"
+      ],
+      "files_modified": [
+        "gateway/services/knowledge/archive_service.py",
+        "gateway/routes/knowledge.py"
+      ],
+      "architecture_rules": [
+        "STYLE: Use SearchService for search operations",
+        "RRF: k=60 constant for hybrid fusion",
+        "VECTORS: Stored as BLOB (float32 array)",
+        "EMBEDDING: 768 dims for mpnet, 384 for minilm"
+      ],
+      "patterns_established": [
+        "FTS uses content_fts virtual table",
+        "Cosine similarity for vector comparison"
+      ],
+      "active_blockers": []
+    },
+    "session_instruction": "Create SESSION_XXX_PLAN-002_M3a_chunking-embedding.md before starting",
+    "verification_strictness": "stop_and_escalate"
+  },
+
+  "milestone": {
+    "id": "M3a",
+    "name": "RAG Layer Part 1 - Chunking & Embedding",
+    "objective": "Implement content chunking and embedding generation with fallback model support",
+    "spec_coverage": ["CH01", "CH02", "CH03", "EM01", "EM02", "EM03", "EM04"],
+    "estimated_duration": "2-3 days"
+  },
+
+  "preflight": [
+    {
+      "step": 1,
+      "instruction": "Create session file: .sessions/SESSION_XXX_PLAN-002_M3a_chunking-embedding.md",
+      "verification_hint": "ls .sessions/SESSION_*.md | tail -1"
+    },
+    {
+      "step": 2,
+      "instruction": "Verify M2 completion",
+      "verification_hint": "python -c \"from gateway.services.knowledge.search_service import SearchService; print('M2 OK')\""
+    },
+    {
+      "step": 3,
+      "instruction": "Check sentence-transformers is available",
+      "verification_hint": "python -c \"import sentence_transformers; print('ST version:', sentence_transformers.__version__)\""
+    }
+  ],
+
+  "tasks": [
+    {
+      "id": "T-M3-01",
+      "description": "Implement Chunking Pipeline with content-aware segmentation",
+      "spec_ref": "SPEC-0043-CH01, CH02",
+      "verification_command": "python -c \"from gateway.services.knowledge.chunking import ChunkingService; print('Chunking OK')\"",
+      "status": "pending",
+      "context": [
+        "FILE: Create gateway/services/knowledge/chunking.py",
+        "PATTERN: Different strategies per file type"
+      ],
+      "hints": [
+        "Markdown: split on ## headers",
+        "Python: split on def/class boundaries",
+        "JSON: whole document as single chunk",
+        "Target: 256-512 tokens per chunk"
+      ],
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Create chunking.py with content-aware chunking",
+          "file_path": "gateway/services/knowledge/chunking.py",
+          "code_snippet": "\"\"\"Chunking Service - SPEC-0043-CH01, CH02, CH03.\n\nContent-aware text segmentation with metadata tracking.\n\"\"\"\n\nimport re\nfrom pathlib import Path\nfrom dataclasses import dataclass\n\n\n@dataclass\nclass Chunk:\n    \"\"\"A chunk of document content.\"\"\"\n    doc_id: str\n    chunk_index: int\n    content: str\n    start_char: int\n    end_char: int\n    token_count: int\n    strategy: str\n\n\nclass ChunkingService:\n    \"\"\"Content-aware chunking service.\"\"\"\n    \n    TARGET_TOKENS = 384  # Middle of 256-512 range\n    CHARS_PER_TOKEN = 4  # Rough approximation\n    MAX_CHUNK_CHARS = 2048  # ~512 tokens\n    OVERLAP_CHARS = 200  # ~50 tokens overlap\n\n    def chunk_document(self, doc_id: str, content: str, file_ext: str) -> list[Chunk]:\n        \"\"\"Chunk document based on file type.\"\"\"\n        if file_ext in ('.md', '.markdown'):\n            return self._chunk_markdown(doc_id, content)\n        elif file_ext == '.py':\n            return self._chunk_python(doc_id, content)\n        elif file_ext == '.json':\n            return self._chunk_json(doc_id, content)\n        return self._chunk_paragraphs(doc_id, content)\n\n    def _chunk_markdown(self, doc_id: str, content: str) -> list[Chunk]:\n        \"\"\"Split markdown on ## headers (SPEC-0043-CH01).\"\"\"\n        sections = re.split(r'\\n(?=## )', content)\n        chunks = []\n        char_pos = 0\n        \n        for i, section in enumerate(sections):\n            if not section.strip():\n                char_pos += len(section)\n                continue\n            chunks.append(Chunk(\n                doc_id=doc_id,\n                chunk_index=i,\n                content=section.strip(),\n                start_char=char_pos,\n                end_char=char_pos + len(section),\n                token_count=len(section) // self.CHARS_PER_TOKEN,\n                strategy='markdown_headers'\n            ))\n            char_pos += len(section)\n        \n        return chunks if chunks else [self._single_chunk(doc_id, content, 'markdown_whole')]\n\n    def _chunk_python(self, doc_id: str, content: str) -> list[Chunk]:\n        \"\"\"Split Python on function/class boundaries.\"\"\"\n        pattern = r'\\n(?=(?:def |class |async def ))'\n        sections = re.split(pattern, content)\n        chunks = []\n        char_pos = 0\n        \n        for i, section in enumerate(sections):\n            if not section.strip():\n                char_pos += len(section)\n                continue\n            chunks.append(Chunk(\n                doc_id=doc_id,\n                chunk_index=i,\n                content=section.strip(),\n                start_char=char_pos,\n                end_char=char_pos + len(section),\n                token_count=len(section) // self.CHARS_PER_TOKEN,\n                strategy='python_functions'\n            ))\n            char_pos += len(section)\n        \n        return chunks if chunks else [self._single_chunk(doc_id, content, 'python_whole')]\n\n    def _chunk_json(self, doc_id: str, content: str) -> list[Chunk]:\n        \"\"\"JSON as single chunk (SPEC-0043-CH01).\"\"\"\n        return [self._single_chunk(doc_id, content, 'json_whole')]\n\n    def _chunk_paragraphs(self, doc_id: str, content: str) -> list[Chunk]:\n        \"\"\"Fallback: split on double newlines.\"\"\"\n        paragraphs = re.split(r'\\n\\n+', content)\n        chunks = []\n        char_pos = 0\n        \n        for i, para in enumerate(paragraphs):\n            if not para.strip():\n                char_pos += len(para) + 2\n                continue\n            chunks.append(Chunk(\n                doc_id=doc_id,\n                chunk_index=i,\n                content=para.strip(),\n                start_char=char_pos,\n                end_char=char_pos + len(para),\n                token_count=len(para) // self.CHARS_PER_TOKEN,\n                strategy='paragraphs'\n            ))\n            char_pos += len(para) + 2\n        \n        return chunks if chunks else [self._single_chunk(doc_id, content, 'single')]\n\n    def _single_chunk(self, doc_id: str, content: str, strategy: str) -> Chunk:\n        \"\"\"Create single chunk for entire content.\"\"\"\n        return Chunk(\n            doc_id=doc_id,\n            chunk_index=0,\n            content=content,\n            start_char=0,\n            end_char=len(content),\n            token_count=len(content) // self.CHARS_PER_TOKEN,\n            strategy=strategy\n        )\n",
+          "verification_hint": "python -c \"from gateway.services.knowledge.chunking import ChunkingService; print('OK')\"",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M3-02",
+      "description": "Implement Embedding Service with dual-mode and fallback",
+      "spec_ref": "SPEC-0043-EM01, EM02, EM03",
+      "verification_command": "python -c \"from gateway.services.knowledge.embedding_service import EmbeddingService; print('Embedding OK')\"",
+      "status": "pending",
+      "context": [
+        "FILE: Create gateway/services/knowledge/embedding_service.py",
+        "PATTERN: Primary model with auto-fallback on MemoryError"
+      ],
+      "hints": [
+        "Primary: all-mpnet-base-v2 (768 dims)",
+        "Fallback: all-MiniLM-L6-v2 (384 dims)",
+        "Lazy model loading to save memory",
+        "KNOWLEDGE_EMBEDDING_MODE env var: local|api"
+      ],
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Create embedding_service.py",
+          "file_path": "gateway/services/knowledge/embedding_service.py",
+          "code_snippet": "\"\"\"Embedding Service - SPEC-0043-EM01, EM02, EM03, EM04.\n\nGenerate embeddings with dual-mode and auto-fallback.\n\"\"\"\n\nimport os\nimport struct\nfrom dataclasses import dataclass\nfrom typing import Callable\n\n\n@dataclass\nclass EmbeddingResult:\n    \"\"\"Result of embedding operation.\"\"\"\n    vector: list[float]\n    model: str\n    dimensions: int\n\n\nclass EmbeddingService:\n    \"\"\"Embedding generation with fallback support.\"\"\"\n    \n    PRIMARY_MODEL = 'all-mpnet-base-v2'  # 768 dims\n    FALLBACK_MODEL = 'all-MiniLM-L6-v2'  # 384 dims\n    \n    def __init__(self, batch_size: int = 32):\n        self.batch_size = batch_size\n        self._model = None\n        self._model_name: str | None = None\n        self._mode = os.getenv('KNOWLEDGE_EMBEDDING_MODE', 'local')\n\n    def _load_model(self, model_name: str):\n        \"\"\"Lazy load model with fallback on MemoryError.\"\"\"\n        if self._model_name == model_name:\n            return\n        \n        try:\n            from sentence_transformers import SentenceTransformer\n            self._model = SentenceTransformer(model_name)\n            self._model_name = model_name\n        except MemoryError:\n            if model_name == self.PRIMARY_MODEL:\n                # Auto-fallback (SPEC-0043-EM02)\n                self._load_model(self.FALLBACK_MODEL)\n            else:\n                raise\n        except ImportError:\n            raise ImportError(\"sentence-transformers required. Install with: pip install sentence-transformers\")\n\n    def embed(self, text: str) -> EmbeddingResult:\n        \"\"\"Generate embedding for single text.\"\"\"\n        self._load_model(self.PRIMARY_MODEL)\n        vec = self._model.encode(text, normalize_embeddings=True)\n        return EmbeddingResult(\n            vector=vec.tolist(),\n            model=self._model_name,\n            dimensions=len(vec)\n        )\n\n    def embed_batch(self, texts: list[str]) -> list[EmbeddingResult]:\n        \"\"\"Generate embeddings for multiple texts.\"\"\"\n        self._load_model(self.PRIMARY_MODEL)\n        vectors = self._model.encode(texts, normalize_embeddings=True, batch_size=self.batch_size)\n        return [\n            EmbeddingResult(vector=v.tolist(), model=self._model_name, dimensions=len(v))\n            for v in vectors\n        ]\n\n    @staticmethod\n    def vector_to_blob(vector: list[float]) -> bytes:\n        \"\"\"Serialize vector to BLOB for SQLite storage.\"\"\"\n        return struct.pack(f'{len(vector)}f', *vector)\n\n    @staticmethod\n    def blob_to_vector(blob: bytes) -> list[float]:\n        \"\"\"Deserialize vector from BLOB.\"\"\"\n        count = len(blob) // 4\n        return list(struct.unpack(f'{count}f', blob))\n",
+          "verification_hint": "python -c \"from gateway.services.knowledge.embedding_service import EmbeddingService; print('OK')\"",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M3-03",
+      "description": "Implement Batch Embedding with Resume capability",
+      "spec_ref": "SPEC-0043-EM04",
+      "verification_command": "grep 'embed_all_chunks' gateway/services/knowledge/embedding_service.py",
+      "status": "pending",
+      "context": [
+        "FILE: Modify gateway/services/knowledge/embedding_service.py",
+        "PATTERN: Resume by only embedding chunks without embeddings"
+      ],
+      "hints": [
+        "Query chunks LEFT JOIN embeddings WHERE embedding IS NULL",
+        "Process in batches with progress callback",
+        "Commit after each batch for resume"
+      ],
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Add batch embedding method",
+          "file_path": "gateway/services/knowledge/embedding_service.py",
+          "append_to_file": true,
+          "code_snippet": "\n    def embed_all_chunks(\n        self,\n        conn,\n        progress_callback: Callable[[int, int], None] | None = None\n    ) -> int:\n        \"\"\"Embed all chunks without embeddings (resume-capable).\n        \n        SPEC-0043-EM04: Batch processing with progress callback.\n        \"\"\"\n        # Find unembedded chunks\n        rows = conn.execute(\"\"\"\n            SELECT c.id, c.content FROM chunks c\n            LEFT JOIN embeddings e ON e.chunk_id = c.id\n            WHERE e.chunk_id IS NULL\n        \"\"\").fetchall()\n        \n        if not rows:\n            return 0\n        \n        self._load_model(self.PRIMARY_MODEL)\n        total = len(rows)\n        embedded = 0\n        \n        for i in range(0, total, self.batch_size):\n            batch = rows[i:i + self.batch_size]\n            texts = [r['content'] for r in batch]\n            vectors = self._model.encode(texts, normalize_embeddings=True)\n            \n            for row, vec in zip(batch, vectors):\n                conn.execute(\n                    \"INSERT INTO embeddings (chunk_id, vector, model, dimensions) VALUES (?,?,?,?)\",\n                    (row['id'], self.vector_to_blob(vec.tolist()), self._model_name, len(vec))\n                )\n                embedded += 1\n            \n            conn.commit()  # Commit each batch for resume\n            \n            if progress_callback:\n                progress_callback(embedded, total)\n        \n        return embedded\n",
+          "verification_hint": "grep 'embed_all_chunks' gateway/services/knowledge/embedding_service.py",
+          "checkpoint": true
+        }
+      ]
+    },
+    {
+      "id": "T-M3-04",
+      "description": "Implement Re-chunking on Document Update",
+      "spec_ref": "SPEC-0043-CH03",
+      "verification_command": "grep 'rechunk_document' gateway/services/knowledge/chunking.py",
+      "status": "pending",
+      "context": [
+        "FILE: Modify gateway/services/knowledge/chunking.py",
+        "PATTERN: Delete old chunks, create new ones"
+      ],
+      "hints": [
+        "CASCADE delete handles embeddings automatically",
+        "Call after document update detected"
+      ],
+      "steps": [
+        {
+          "step_number": 1,
+          "step_type": "code",
+          "instruction": "Add rechunk method to ChunkingService",
+          "file_path": "gateway/services/knowledge/chunking.py",
+          "append_to_file": true,
+          "code_snippet": "\n    def rechunk_document(self, conn, doc_id: str) -> int:\n        \"\"\"Re-chunk document after update (SPEC-0043-CH03).\n        \n        Deletes old chunks (embeddings CASCADE) and creates new ones.\n        \"\"\"\n        # Delete old chunks (embeddings cascade delete via FK)\n        conn.execute(\"DELETE FROM chunks WHERE doc_id = ?\", (doc_id,))\n        \n        # Get document content\n        row = conn.execute(\n            \"SELECT content, file_path FROM documents WHERE id = ?\", (doc_id,)\n        ).fetchone()\n        \n        if not row:\n            return 0\n        \n        # Re-chunk based on file extension\n        ext = Path(row['file_path']).suffix\n        chunks = self.chunk_document(doc_id, row['content'], ext)\n        \n        # Store new chunks\n        for chunk in chunks:\n            conn.execute(\"\"\"\n                INSERT INTO chunks (doc_id, chunk_index, content, start_char, end_char, token_count)\n                VALUES (?, ?, ?, ?, ?, ?)\n            \"\"\", (chunk.doc_id, chunk.chunk_index, chunk.content,\n                  chunk.start_char, chunk.end_char, chunk.token_count))\n        \n        conn.commit()\n        return len(chunks)\n\n    def chunk_and_store(self, conn, doc_id: str, content: str, file_path: str) -> int:\n        \"\"\"Chunk document and store in database.\"\"\"\n        ext = Path(file_path).suffix\n        chunks = self.chunk_document(doc_id, content, ext)\n        \n        for chunk in chunks:\n            conn.execute(\"\"\"\n                INSERT OR REPLACE INTO chunks \n                (doc_id, chunk_index, content, start_char, end_char, token_count)\n                VALUES (?, ?, ?, ?, ?, ?)\n            \"\"\", (chunk.doc_id, chunk.chunk_index, chunk.content,\n                  chunk.start_char, chunk.end_char, chunk.token_count))\n        \n        conn.commit()\n        return len(chunks)\n",
+          "verification_hint": "grep 'rechunk_document' gateway/services/knowledge/chunking.py",
+          "checkpoint": true
+        }
+      ]
+    }
+  ],
+
+  "acceptance_criteria": [
+    {
+      "id": "AC-M3a-01",
+      "description": "ChunkingService chunks markdown on headers",
+      "verification_command": "python -c \"from gateway.services.knowledge.chunking import ChunkingService; c=ChunkingService(); chunks=c._chunk_markdown('test', '# H1\\n## H2\\ntext\\n## H3\\nmore'); print(f'{len(chunks)} chunks')\""
+    },
+    {
+      "id": "AC-M3a-02",
+      "description": "EmbeddingService generates 768-dim vectors",
+      "verification_command": "python -c \"from gateway.services.knowledge.embedding_service import EmbeddingService; e=EmbeddingService(); r=e.embed('test'); print(f'dims={r.dimensions}')\""
+    },
+    {
+      "id": "AC-M3a-03",
+      "description": "Batch embedding with resume exists",
+      "verification_command": "grep 'def embed_all_chunks' gateway/services/knowledge/embedding_service.py"
+    },
+    {
+      "id": "AC-M3a-04",
+      "description": "Rechunk method exists",
+      "verification_command": "grep 'def rechunk_document' gateway/services/knowledge/chunking.py"
+    }
+  ],
+
+  "_fragment_footer": {
+    "handoff_to_next": "PLAN-002_L3_M3b.json",
+    "files_created": [
+      "gateway/services/knowledge/chunking.py",
+      "gateway/services/knowledge/embedding_service.py"
+    ],
+    "files_modified": [],
+    "patterns_to_maintain": [
+      "Use ChunkingService for all chunking operations",
+      "Use EmbeddingService for all embedding operations",
+      "Vectors stored as BLOB via vector_to_blob()",
+      "Auto-fallback to smaller model on MemoryError"
+    ],
+    "checkpoint_command": "python -c \"from gateway.services.knowledge.chunking import ChunkingService; from gateway.services.knowledge.embedding_service import EmbeddingService; print('M3a OK')\""
+  }
+}

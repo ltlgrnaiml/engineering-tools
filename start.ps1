@@ -197,7 +197,7 @@ try {
     # Clean stale processes (if requested or always for safety)
     # -------------------------------------------------------------------------
     
-    $ALL_PORTS = @(8000, 8001, 3000, 5173, 5174, 5175)
+    $ALL_PORTS = @(8000, 8001, 6006, 3000, 5173, 5174, 5175)
     
     if ($Clean) {
         Clear-StaleProcesses -Ports $ALL_PORTS
@@ -238,6 +238,7 @@ try {
     Write-Host "  Backend API:      http://localhost:8000" -ForegroundColor White
     Write-Host "  Swagger Docs:     http://localhost:8000/docs" -ForegroundColor Gray
     Write-Host "  MkDocs:           http://localhost:8001" -ForegroundColor White
+    Write-Host "  Phoenix:          http://localhost:6006" -ForegroundColor White
     Write-Host "  Homepage:         http://localhost:3000" -ForegroundColor White
     Write-Host "  DAT Frontend:     http://localhost:5173" -ForegroundColor Gray
     Write-Host "  SOV Frontend:     http://localhost:5174" -ForegroundColor Gray
@@ -251,69 +252,25 @@ try {
     # -------------------------------------------------------------------------
     
     # All ports used by our services
-    $ALL_PORTS = @(8000, 8001, 3000, 5173, 5174, 5175)
+    $ALL_PORTS = @(8000, 8001, 6006, 3000, 5173, 5174, 5175)
     
-    # Start honcho as a background job so we can control cleanup
-    $honchoArgs = if ($services.Count -eq 0) { "start" } else { "start $($services -join ' ')" }
+    # Build honcho command
+    $honchoExe = Join-Path $venvPath "Scripts\honcho.exe"
+    $honchoArgs = if ($services.Count -eq 0) { @("start") } else { @("start") + $services }
     
-    $honchoJob = Start-Job -ScriptBlock {
-        param($repoRoot, $honchoCommand)
-        Set-Location $repoRoot
-        & honcho $honchoCommand.Split(' ')
-    } -ArgumentList $REPO_ROOT, $honchoArgs
-    
-    Write-Host "[INFO] Honcho job started (Job ID: $($honchoJob.Id))" -ForegroundColor Gray
-    Write-Host "[INFO] Waiting for services to start..." -ForegroundColor Gray
-    
-    # Wait a bit for services to start, then show endpoints
-    Start-Sleep -Seconds 3
-    
-    Write-Host ""
-    Write-Host "========================================" -ForegroundColor Green
-    Write-Host " ENDPOINTS (Services Running)" -ForegroundColor Green
-    Write-Host "========================================" -ForegroundColor Green
-    Write-Host ""
-    Write-Host "  Homepage:         " -NoNewline -ForegroundColor White
-    Write-Host "http://localhost:3000" -ForegroundColor Cyan
-    Write-Host "  Backend API:      " -NoNewline -ForegroundColor White
-    Write-Host "http://localhost:8000" -ForegroundColor Cyan
-    Write-Host "  Swagger Docs:     " -NoNewline -ForegroundColor Gray
-    Write-Host "http://localhost:8000/docs" -ForegroundColor Cyan
-    Write-Host "  MkDocs:           " -NoNewline -ForegroundColor White
-    Write-Host "http://localhost:8001" -ForegroundColor Cyan
-    Write-Host ""
-    Write-Host "  Tool Frontends (embedded in Homepage):" -ForegroundColor Gray
-    Write-Host "    DAT:  http://localhost:5173" -ForegroundColor DarkGray
-    Write-Host "    SOV:  http://localhost:5174" -ForegroundColor DarkGray
-    Write-Host "    PPTX: http://localhost:5175" -ForegroundColor DarkGray
-    Write-Host ""
-    Write-Host "  Press Ctrl+C to stop all services" -ForegroundColor Yellow
-    Write-Host "========================================" -ForegroundColor Green
+    Write-Host "[INFO] Starting services with honcho..." -ForegroundColor Gray
     Write-Host ""
     
     try {
-        # Wait for job while streaming output - Ctrl+C will throw and land in finally block
-        while ($honchoJob.State -eq 'Running') {
-            # Receive and display job output
-            $output = Receive-Job -Job $honchoJob -ErrorAction SilentlyContinue
-            if ($output) {
-                $output | ForEach-Object {
-                    # Filter out the InterruptedError traceback noise
-                    if ($_ -notmatch "InterruptedError|Traceback|File.*runpy|frozen runpy") {
-                        Write-Host $_
-                    }
-                }
-            }
-            Start-Sleep -Milliseconds 100
-        }
+        # Run honcho directly in foreground - Ctrl+C will interrupt it
+        & $honchoExe $honchoArgs
     } catch {
         # Ctrl+C throws - this is expected, cleanup will run in finally
     } finally {
         Write-Host "`n[SHUTDOWN] Stopping all services..." -ForegroundColor Yellow
         
-        # Stop the job first
-        Stop-Job -Job $honchoJob -ErrorAction SilentlyContinue
-        Remove-Job -Job $honchoJob -Force -ErrorAction SilentlyContinue
+        # Small delay to let honcho finish its cleanup
+        Start-Sleep -Milliseconds 500
         
         # Kill ALL processes on our ports using taskkill /T (kills entire process tree)
         foreach ($port in $ALL_PORTS) {
@@ -329,14 +286,21 @@ try {
             } catch { }
         }
         
-        # Also kill any remaining python/node processes that might be orphaned
-        # Only kill those started recently (within last hour) to avoid killing unrelated processes
-        $recentThreshold = (Get-Date).AddHours(-1)
+        # Small delay before orphan cleanup
+        Start-Sleep -Milliseconds 300
+        
+        # Kill any remaining python/node processes that might be orphaned
+        # Only kill those started recently (within last 5 minutes) to avoid killing unrelated processes
+        $recentThreshold = (Get-Date).AddMinutes(-5)
         Get-Process -Name "python", "node" -ErrorAction SilentlyContinue | Where-Object {
             $_.StartTime -gt $recentThreshold
         } | ForEach-Object {
-            Write-Host "  Stopping orphan $($_.Name) (PID $($_.Id))" -ForegroundColor Gray
-            taskkill /F /T /PID $_.Id 2>$null | Out-Null
+            # Check if process still exists before trying to kill
+            $proc = Get-Process -Id $_.Id -ErrorAction SilentlyContinue
+            if ($proc) {
+                Write-Host "  Stopping orphan $($_.Name) (PID $($_.Id))" -ForegroundColor Gray
+                taskkill /F /T /PID $_.Id 2>$null | Out-Null
+            }
         }
         
         Write-Host "[OK] All services stopped." -ForegroundColor Green

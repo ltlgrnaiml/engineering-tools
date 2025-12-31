@@ -10,12 +10,14 @@
 # Port Assignments (per SPEC-0045):
 #   Backend Gateway:  8000
 #   MkDocs:           8001
+#   Phoenix:          6006  (AI Observability)
 #   Homepage:         3000
 #   DAT Frontend:     5173
 #   SOV Frontend:     5174
 #   PPTX Frontend:    5175
 
 backend: python -m uvicorn gateway.main:app --host 0.0.0.0 --port 8000 --reload
+phoenix: python scripts/start_phoenix.py
 mkdocs: mkdocs serve --dev-addr 127.0.0.1:8001
 homepage: npm run dev --prefix apps/homepage/frontend -- --port 3000 --host
 dat: npm run dev --prefix apps/data_aggregator/frontend -- --port 5173 --host

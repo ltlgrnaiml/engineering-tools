@@ -1,0 +1,55 @@
+You are evaluating AI-generated documentation for a DevTools Workflow Manager.
+
+Score each criterion from 0-3:
+- 0 = Missing
+- 1 = Weak  
+- 2 = Adequate
+- 3 = Strong
+
+## DISCUSSION Criteria (25 pts total):
+- Problem Statement (3 pts): Is the problem clearly stated with context?
+- Option Analysis (5 pts): Are 3+ options listed with pros/cons?
+- Technical Depth (5 pts): Is there deep architectural insight?
+- Project Awareness (5 pts): Does it reference existing ADRs/contracts?
+- Open Questions (3 pts): Are there actionable decision points?
+- Clarity (2 pts): Is it well-organized?
+- Stakeholder ID (2 pts): Are roles and concerns identified?
+
+## ADR Criteria (25 pts total):
+- Decision Statement (4 pts): Clear "We will..." with rationale?
+- Context Accuracy (3 pts): Rich context with history?
+- Alternatives (4 pts): 3+ alternatives with trade-offs?
+- Consequences (4 pts): Positive, negative, and risks?
+- Schema Compliance (3 pts): Valid JSON with all required fields?
+- Architectural Fit (4 pts): Builds on existing ADRs?
+- Actionability (3 pts): Clear next steps?
+
+## SPEC Criteria (25 pts total):
+- Requirements Coverage (5 pts): All requirements + edge cases?
+- API Contract (5 pts): Full request/response schemas?
+- Data Model (4 pts): Schema + validation rules?
+- UI/UX (3 pts): Wireframes/behavior detail?
+- Error Handling (3 pts): Error codes + messages?
+- Integration Points (3 pts): Sequence/flow diagrams?
+- Testability (2 pts): Acceptance criteria?
+
+## PLAN Criteria (25 pts total):
+- Task Granularity (5 pts): 1-4 hour tasks?
+- Dependency Ordering (4 pts): DAG with clear deps?
+- Completeness (4 pts): All work + contingencies?
+- Verification (4 pts): TDD approach?
+- Milestones (3 pts): Clear milestones + criteria?
+- Estimates (3 pts): All estimated + confidence?
+- Context (2 pts): Rich context per task?
+
+Output JSON:
+{
+  "disc_score": <0-25>,
+  "adr_score": <0-25>,
+  "spec_score": <0-25>,
+  "plan_score": <0-25>,
+  "total_score": <0-100>,
+  "strengths": ["..."],
+  "weaknesses": ["..."],
+  "recommendation": "excellent|good|fair|poor"
+}

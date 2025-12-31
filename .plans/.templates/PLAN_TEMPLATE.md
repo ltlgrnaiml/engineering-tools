@@ -166,8 +166,27 @@ Before marking this plan as COMPLETED:
 - [ ] All acceptance criteria passed
 - [ ] All tests pass
 - [ ] No blockers remain open
-- [ ] Session handoff notes written
+- [ ] Known bugs documented (if any)
+- [ ] Completion type selected (mvp_shipped / fully_complete)
 - [ ] INDEX.md updated
+
+---
+
+## Completion Status
+
+<!-- Fill this section when closing the plan -->
+
+**Completion Type**: `mvp_shipped` | `fully_complete` | `superseded`
+**Completion Date**: {YYYY-MM-DD}
+**Deferred To**: {PLAN-XXX if work continues, or "None"}
+
+### Known Bugs
+
+<!-- Option A: Milestone-Based Closure - Bugs don't block closure, they're documented -->
+
+| ID | Description | Severity | Component | Workaround | Deferred To |
+|----|-------------|----------|-----------|------------|-------------|
+| BUG-001 | {Bug description} | `low` / `medium` / `high` | {file/component} | {workaround if any} | {PLAN-XXX} |
 
 ---
 

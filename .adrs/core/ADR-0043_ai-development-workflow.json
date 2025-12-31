@@ -434,6 +434,51 @@
       ]
     }
   },
+  "disc_dependency_management": {
+    "description": "Strategy for managing dependencies between Discussion artifacts (DISCs) when one design decision depends on another",
+    "dependency_types": {
+      "hard_blocker": {
+        "description": "Cannot proceed without dependency resolution",
+        "example": "DISC-006 (RAG) requires DISC-004 (PII sanitization) to be RESOLVED before Phase 3"
+      },
+      "soft_blocker": {
+        "description": "Can proceed with stub/interface, replace when resolved",
+        "example": "DISC-006 can start Phase 1-2 with embedding stub while DISC-005 finalizes"
+      },
+      "informational": {
+        "description": "Related context, no blocking relationship",
+        "example": "DISC-003 (Langchain) informs DISC-006 Phase 4 integration approach"
+      }
+    },
+    "execution_patterns": {
+      "topological_sort": {
+        "description": "Execute DISCs by dependency level (L0 → L1 → L2)",
+        "when_to_use": "Always - determines execution order"
+      },
+      "stub_pattern": {
+        "description": "Interface-first development, replace implementation when dependency resolves",
+        "when_to_use": "Soft blockers - allows parallel progress",
+        "stub_location": "shared/{domain}/{module}_stub.py"
+      },
+      "finish_to_finish": {
+        "description": "Aggregator waits for all dependencies before final phase",
+        "when_to_use": "Integration phases that combine multiple resolved decisions"
+      },
+      "phase_alignment": {
+        "description": "Map plan phases to dependency levels",
+        "when_to_use": "Multi-DISC plans where phases have different dependency requirements"
+      }
+    },
+    "disc_header_fields": {
+      "depends_on": "List of DISC IDs this discussion depends on",
+      "blocks": "List of DISC IDs that depend on this discussion",
+      "dependency_level": "Integer (0 = no dependencies, higher = deeper in dependency tree)"
+    },
+    "tracking_artifacts": {
+      "dependency_graph": ".discussions/DISC-DEPENDENCY-GRAPH.md",
+      "index_columns": ["Level", "Depends On", "Status"]
+    }
+  },
   "guardrails": [
     {
       "id": "workflow-fragment-verification-required",

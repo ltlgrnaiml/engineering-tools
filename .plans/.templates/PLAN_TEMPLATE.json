@@ -92,5 +92,11 @@
   "execution_log": [],
   "blockers": [],
   "lessons_learned": [],
-  "handoff_notes": null
+  "handoff_notes": null,
+
+  "_comment_completion": "Option A: Milestone-Based Closure - Fill when closing plan",
+  "completion_type": null,
+  "completion_date": null,
+  "known_bugs": [],
+  "deferred_to": null
 }

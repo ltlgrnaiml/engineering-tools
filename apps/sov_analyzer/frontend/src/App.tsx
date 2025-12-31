@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BarChart3 } from 'lucide-react'
+import { BarChart3, Home } from 'lucide-react'
 import { DataSetSelector } from './components/DataSetSelector'
 import { AnalysisConfig } from './components/AnalysisConfig'
 import { ResultsPanel } from './components/ResultsPanel'
@@ -31,14 +31,24 @@ export default function App() {
     <div className="min-h-screen">
       {/* Header */}
       <header className="bg-white border-b border-slate-200 px-6 py-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-purple-500 flex items-center justify-center">
-            <BarChart3 className="w-5 h-5 text-white" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-purple-500 flex items-center justify-center">
+              <BarChart3 className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-semibold text-slate-900">SOV Analyzer</h1>
+              <p className="text-sm text-slate-500">Source of Variation Analysis</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl font-semibold text-slate-900">SOV Analyzer</h1>
-            <p className="text-sm text-slate-500">Source of Variation Analysis</p>
-          </div>
+          <a
+            href="http://localhost:5174"
+            target="_top"
+            className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-colors"
+          >
+            <Home className="w-4 h-4" />
+            <span>Engineering Tools</span>
+          </a>
         </div>
       </header>
 

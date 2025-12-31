@@ -99,7 +99,7 @@ export function GenerateWorkflowModal({ isOpen, onClose, onSuccess }: GenerateWo
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60" onClick={handleClose} />
-      <div className="relative w-full max-w-lg bg-zinc-900 rounded-lg border border-zinc-700 shadow-xl">
+      <div className="relative w-full max-w-lg max-h-[90vh] flex flex-col bg-zinc-900 rounded-lg border border-zinc-700 shadow-xl">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-zinc-800">
           <div className="flex items-center gap-2">
@@ -111,8 +111,8 @@ export function GenerateWorkflowModal({ isOpen, onClose, onSuccess }: GenerateWo
           </button>
         </div>
 
-        {/* Content */}
-        <div className="p-4">
+        {/* Content - scrollable when viewport is small */}
+        <div className="p-4 overflow-y-auto flex-1 min-h-0">
           {step === 'input' && (
             <div className="space-y-4">
               <div>

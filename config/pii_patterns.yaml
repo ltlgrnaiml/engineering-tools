@@ -1,0 +1,70 @@
+# PII Patterns Configuration - SPEC-0043-SA01
+# Pattern categories for sensitive content detection
+
+patterns:
+  # API Keys and Secrets
+  api_key:
+    pattern: 'sk-[a-zA-Z0-9]{20,}'
+    replacement: '[API_KEY]'
+    description: OpenAI-style API keys
+
+  aws_key:
+    pattern: 'AKIA[0-9A-Z]{16}'
+    replacement: '[AWS_KEY]'
+    description: AWS Access Key IDs
+
+  bearer_token:
+    pattern: 'Bearer\s+[a-zA-Z0-9._-]+'
+    replacement: '[BEARER_TOKEN]'
+    description: Bearer authentication tokens
+
+  # Personal Information
+  email:
+    pattern: '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
+    replacement: '[EMAIL]'
+    description: Email addresses
+
+  phone:
+    pattern: '\b\d{3}[-.]?\d{3}[-.]?\d{4}\b'
+    replacement: '[PHONE]'
+    description: US phone numbers
+
+  ssn:
+    pattern: '\b\d{3}-\d{2}-\d{4}\b'
+    replacement: '[SSN]'
+    description: Social Security Numbers
+
+  credit_card:
+    pattern: '\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b'
+    replacement: '[CARD]'
+    description: Credit card numbers
+
+  # Network Information
+  ip_address:
+    pattern: '\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b'
+    replacement: '[IP]'
+    description: IPv4 addresses
+
+  internal_ip:
+    pattern: '\b(?:10|172\.(?:1[6-9]|2[0-9]|3[01])|192\.168)\.[0-9.]+\b'
+    replacement: '[INTERNAL_IP]'
+    description: Private/internal IP addresses
+
+# Allowlist - patterns that should NOT be redacted
+allowlist:
+  - 'example\.com'
+  - 'localhost'
+  - '127\.0\.0\.1'
+  - 'test@test\.com'
+  - '0\.0\.0\.0'
+
+# Configuration
+config:
+  # Maximum false positive rate target
+  max_false_positive_rate: 0.05
+
+  # Enable reversible redaction in dev mode
+  reversible_in_dev: true
+
+  # Log redactions for audit
+  log_redactions: true
