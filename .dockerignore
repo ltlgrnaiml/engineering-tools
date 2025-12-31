@@ -1,0 +1,54 @@
+# Python
+.venv/
+.venv313/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+.npm/
+dist/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Workspace artifacts
+workspace/
+*.db
+*.sqlite
+
+# Logs
+*.log
+logs/
+
+# Build artifacts
+build/
+*.egg
+
+# Documentation build
+site/
+
+# Test artifacts
+.coverage
+htmlcov/
+.tox/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Large files
+*.zip
+*.tar.gz
+*.whl

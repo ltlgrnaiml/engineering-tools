@@ -864,12 +864,21 @@ async def generate_artifacts_endpoint(request: GenerationRequest) -> GenerationR
     return GenerationResponse(artifacts=artifacts, status=status, errors=errors)
 
 
+class GenerateAllRequest(BaseModel):
+    """Request body for generate-all endpoint."""
+    use_reranking: bool = True  # UI toggle for LLM re-ranking
+
+
 @router.post("/workflows/{workflow_id}/generate-all", response_model=GenerationResponse)
-async def generate_all_endpoint(workflow_id: str) -> GenerationResponse:
+async def generate_all_endpoint(
+    workflow_id: str,
+    request: GenerateAllRequest | None = None,
+) -> GenerationResponse:
     """Generate all artifacts for a workflow (AI-Full mode).
 
     Args:
         workflow_id: The workflow ID.
+        request: Optional request body with generation options.
 
     Returns:
         GenerationResponse with all created artifacts.
@@ -878,10 +887,13 @@ async def generate_all_endpoint(workflow_id: str) -> GenerationResponse:
     if not workflow:
         raise HTTPException(status_code=404, detail=f"Workflow {workflow_id} not found")
 
+    use_reranking = request.use_reranking if request else True
+
     return generate_full_workflow(
         workflow_id=workflow_id,
         title=workflow.title,
         description="",
+        use_reranking=use_reranking,
     )
 
 

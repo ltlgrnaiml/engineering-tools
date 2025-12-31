@@ -1,0 +1,9 @@
+Implement DevTools Workflow Manager backend foundation (PLAN-001 M1)
+
+- Add workflow_service.py with artifact scanning, graph building, and workflow orchestration
+- Implement AI-Lite mode prompt generation for artifact transitions
+- Update devtools_service.py with artifacts endpoints and workflow management
+- Enhance llm_service.py with workflow integration and reranking support
+- Update Docker configurations for new dependencies
+- Add new scripts for knowledge enhancement and embeddings management
+- Update gateway/main.py with service integrations

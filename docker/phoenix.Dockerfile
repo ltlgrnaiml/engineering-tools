@@ -2,8 +2,14 @@ FROM python:3.13-slim
 
 WORKDIR /app
 
-# Install Phoenix
-RUN pip install arize-phoenix
+# Install Phoenix and provider SDKs
+RUN pip install --no-cache-dir \
+    arize-phoenix \
+    openai \
+    anthropic \
+    google-generativeai \
+    google-genai \
+    boto3
 
 ENV PHOENIX_PORT=6006
 

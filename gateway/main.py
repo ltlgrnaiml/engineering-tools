@@ -8,6 +8,7 @@ The gateway:
 Run with: python -m gateway.main
 """
 
+import os
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,8 +17,13 @@ from fastapi.staticfiles import StaticFiles
 from gateway.services.dataset_service import router as dataset_router
 from gateway.services.pipeline_service import router as pipeline_router
 from gateway.services.devtools_service import router as devtools_router
+from gateway.services.observability import init_phoenix
 
 __version__ = "0.1.0"
+
+# Initialize Phoenix tracing (sends traces to Phoenix container or local server)
+PHOENIX_ENDPOINT = os.getenv("PHOENIX_ENDPOINT", "http://phoenix:6006/v1/traces")
+init_phoenix(project_name="engineering-tools", endpoint=PHOENIX_ENDPOINT)
 
 app = FastAPI(
     title="Engineering Tools Platform",

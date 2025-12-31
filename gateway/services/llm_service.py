@@ -15,6 +15,7 @@ from enum import Enum
 from pathlib import Path
 
 import httpx
+from openai import OpenAI
 from pydantic import BaseModel, ValidationError
 
 # Load .env file if it exists
@@ -169,6 +170,21 @@ XAI_MAX_RETRIES = int(os.getenv("XAI_MAX_RETRIES", "3"))
 
 # Currently selected model (can be changed at runtime)
 _current_model: str = XAI_DEFAULT_MODEL
+
+# OpenAI client for xAI (initialized lazily)
+_openai_client: OpenAI | None = None
+
+
+def _get_openai_client() -> OpenAI:
+    """Get or create the OpenAI client for xAI API."""
+    global _openai_client
+    if _openai_client is None:
+        _openai_client = OpenAI(
+            api_key=XAI_API_KEY,
+            base_url=XAI_BASE_URL,
+            timeout=XAI_TIMEOUT,
+        )
+    return _openai_client
 
 
 @dataclass
@@ -511,92 +527,72 @@ IMPORTANT:
         attempts += 1
 
         try:
-            with httpx.Client(timeout=XAI_TIMEOUT) as client:
-                response = client.post(
-                    f"{XAI_BASE_URL}/chat/completions",
-                    headers={
-                        "Authorization": f"Bearer {XAI_API_KEY}",
-                        "Content-Type": "application/json",
-                    },
-                    json={
-                        "model": _current_model,
-                        "messages": messages,
-                        "response_format": {"type": "json_object"},
-                        "temperature": 0.7,
-                    },
+            # Use OpenAI SDK for automatic instrumentation/tracing
+            client = _get_openai_client()
+            response = client.chat.completions.create(
+                model=_current_model,
+                messages=messages,
+                response_format={"type": "json_object"},
+                temperature=0.7,
+            )
+            
+            content = response.choices[0].message.content or ""
+            last_raw = content
+
+            # Parse JSON
+            try:
+                parsed = json.loads(content)
+            except json.JSONDecodeError as e:
+                last_error = f"Invalid JSON: {e}"
+                logger.warning(f"Invalid JSON on attempt {attempts}: {e}")
+                # Add error feedback for retry
+                messages.append({"role": "assistant", "content": content})
+                messages.append({
+                    "role": "user",
+                    "content": f"Your response was not valid JSON. Error: {e}. Please respond with ONLY valid JSON.",
+                })
+                continue
+
+            # Validate against schema
+            try:
+                validated = schema.model_validate(parsed)
+                # Extract token usage from OpenAI SDK response
+                input_tokens = response.usage.prompt_tokens if response.usage else None
+                output_tokens = response.usage.completion_tokens if response.usage else None
+                
+                # Log successful call
+                _log_llm_call(
+                    model=_current_model,
+                    prompt=prompt,
+                    system_prompt=system_prompt,
+                    response_raw=content,
+                    response_parsed=validated.model_dump(),
+                    success=True,
+                    input_tokens=input_tokens,
+                    output_tokens=output_tokens,
                 )
+                
+                return LLMResponse(
+                    success=True,
+                    data=validated.model_dump(),
+                    attempts=attempts,
+                    raw_response=content,
+                )
+            except ValidationError as e:
+                last_error = f"Schema validation failed: {e}"
+                logger.warning(f"Validation failed on attempt {attempts}: {e}")
+                # Add error feedback for retry
+                messages.append({"role": "assistant", "content": content})
+                messages.append({
+                    "role": "user",
+                    "content": f"Your response did not match the required schema. Errors:\n{e}\n\nPlease fix and respond with valid JSON matching the schema.",
+                })
+                continue
 
-                if response.status_code == 429:
-                    last_error = "Rate limited"
-                    logger.warning(f"Rate limited on attempt {attempts}")
-                    continue
-
-                if response.status_code != 200:
-                    last_error = f"API error: {response.status_code}"
-                    logger.error(f"API error: {response.text}")
-                    continue
-
-                data = response.json()
-                content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
-                last_raw = content
-
-                # Parse JSON
-                try:
-                    parsed = json.loads(content)
-                except json.JSONDecodeError as e:
-                    last_error = f"Invalid JSON: {e}"
-                    logger.warning(f"Invalid JSON on attempt {attempts}: {e}")
-                    # Add error feedback for retry
-                    messages.append({"role": "assistant", "content": content})
-                    messages.append({
-                        "role": "user",
-                        "content": f"Your response was not valid JSON. Error: {e}. Please respond with ONLY valid JSON.",
-                    })
-                    continue
-
-                # Validate against schema
-                try:
-                    validated = schema.model_validate(parsed)
-                    # Extract token usage from response
-                    usage = data.get("usage", {})
-                    input_tokens = usage.get("prompt_tokens")
-                    output_tokens = usage.get("completion_tokens")
-                    
-                    # Log successful call
-                    _log_llm_call(
-                        model=_current_model,
-                        prompt=prompt,
-                        system_prompt=system_prompt,
-                        response_raw=content,
-                        response_parsed=validated.model_dump(),
-                        success=True,
-                        input_tokens=input_tokens,
-                        output_tokens=output_tokens,
-                    )
-                    
-                    return LLMResponse(
-                        success=True,
-                        data=validated.model_dump(),
-                        attempts=attempts,
-                        raw_response=content,
-                    )
-                except ValidationError as e:
-                    last_error = f"Schema validation failed: {e}"
-                    logger.warning(f"Validation failed on attempt {attempts}: {e}")
-                    # Add error feedback for retry
-                    messages.append({"role": "assistant", "content": content})
-                    messages.append({
-                        "role": "user",
-                        "content": f"Your response did not match the required schema. Errors:\n{e}\n\nPlease fix and respond with valid JSON matching the schema.",
-                    })
-                    continue
-
-        except httpx.TimeoutException:
-            last_error = "Request timeout"
-            logger.warning(f"Timeout on attempt {attempts}")
-        except httpx.RequestError as e:
-            last_error = f"Request error: {e}"
-            logger.error(f"Request error on attempt {attempts}: {e}")
+        except Exception as e:
+            # Handle OpenAI SDK exceptions (rate limits, timeouts, etc.)
+            last_error = f"API error: {e}"
+            logger.error(f"API error on attempt {attempts}: {e}")
 
     # Log failed call
     _log_llm_call(

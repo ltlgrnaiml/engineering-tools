@@ -47,6 +47,7 @@ def init_phoenix(
         import phoenix as px
         from phoenix.otel import register
         from openinference.instrumentation.langchain import LangChainInstrumentor
+        from openinference.instrumentation.openai import OpenAIInstrumentor
         
         # Start Phoenix server if no endpoint provided
         if endpoint is None:
@@ -63,6 +64,9 @@ def init_phoenix(
         
         # Instrument LangChain
         LangChainInstrumentor().instrument(tracer_provider=_tracer_provider)
+        
+        # Instrument OpenAI SDK (also works for xAI since it's OpenAI-compatible)
+        OpenAIInstrumentor().instrument(tracer_provider=_tracer_provider)
         
         logger.info(f"Phoenix tracing initialized for project: {project_name}")
         return True

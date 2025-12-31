@@ -30,6 +30,8 @@ from shared.contracts.devtools.workflow import (
 
 __version__ = "2025.12.01"
 
+# Get project root (parent of gateway/services/)
+PROJECT_ROOT = Path(__file__).parent.parent.parent
 
 # =============================================================================
 # Constants
@@ -1148,15 +1150,47 @@ GENERATION_TEMPLATES: dict[ArtifactType, dict] = {
 }
 
 
+def _get_rag_context(
+    query: str,
+    artifact_type: str | None = None,
+    use_reranking: bool = True,
+) -> str:
+    """Retrieve relevant context from Knowledge Archive via Enhanced RAG.
+    
+    Uses multi-level retrieval:
+    - Level 1: Query Enhancement (always on)
+    - Level 2: LLM Re-ranking (configurable via use_reranking)
+    - Level 3: Graph-Aware Retrieval (always on)
+    
+    Args:
+        query: Search query for relevant documents.
+        artifact_type: Type of artifact being generated (for query expansion).
+        use_reranking: Whether to use LLM re-ranking (UI toggle).
+        
+    Returns:
+        Formatted context string with relevant ADRs, SPECs, etc.
+    """
+    try:
+        from gateway.services.knowledge.enhanced_rag import get_enhanced_context
+        return get_enhanced_context(query, artifact_type, use_reranking)
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Enhanced RAG context retrieval failed: {e}")
+        return ""
+
+
 def generate_artifact_content(
     artifact_type: ArtifactType,
     title: str,
     description: str = "",
     use_llm: bool = True,
+    use_rag: bool = True,
+    use_reranking: bool = True,
 ) -> dict:
     """Generate content for an artifact based on type.
 
     Uses xAI LLM for intelligent generation with structured output.
+    Optionally retrieves RAG context from Knowledge Archive.
     Falls back to templates if LLM is unavailable.
 
     Args:
@@ -1164,6 +1198,8 @@ def generate_artifact_content(
         title: Title for the artifact.
         description: Optional description/context.
         use_llm: Whether to use LLM generation (default True).
+        use_rag: Whether to include RAG context (default True).
+        use_reranking: Whether to use LLM re-ranking for RAG (default True, UI toggle).
 
     Returns:
         Dictionary with generated content.
@@ -1178,11 +1214,27 @@ def generate_artifact_content(
     if use_llm and is_available():
         schema = ARTIFACT_SCHEMAS.get(artifact_type.value)
         if schema:
-            prompt = _build_generation_prompt(artifact_type, title, description)
+            # Get RAG context if enabled
+            rag_context = ""
+            if use_rag:
+                rag_query = f"{title} {description}"
+                rag_context = _get_rag_context(
+                    query=rag_query,
+                    artifact_type=artifact_type.value,
+                    use_reranking=use_reranking,
+                )
+            
+            prompt = _build_generation_prompt(artifact_type, title, description, rag_context)
+            
+            system_prompt = f"""You are generating a {artifact_type.value} artifact for the Engineering Tools platform.
+This is a solo-dev, AI-assisted project following first-principles development.
+Use the PROJECT CONTEXT to reference existing ADRs, patterns, and conventions.
+Be specific to this project - avoid generic boilerplate."""
+            
             response = generate_structured(
                 prompt=prompt,
                 schema=schema,
-                system_prompt=f"You are generating a {artifact_type.value} artifact for a software development workflow.",
+                system_prompt=system_prompt,
             )
 
             if response.success and response.data:
@@ -1205,6 +1257,7 @@ def _build_generation_prompt(
     artifact_type: ArtifactType,
     title: str,
     description: str,
+    rag_context: str = "",
 ) -> str:
     """Build a prompt for generating an artifact.
 
@@ -1212,6 +1265,7 @@ def _build_generation_prompt(
         artifact_type: Type of artifact to generate.
         title: Title for the artifact.
         description: Description/context for generation.
+        rag_context: Optional RAG context from Knowledge Archive.
 
     Returns:
         Prompt string for the LLM.
@@ -1219,6 +1273,8 @@ def _build_generation_prompt(
     base_context = f"""
 Title: {title}
 Description: {description or 'No additional description provided.'}
+
+{rag_context}
 """
 
     prompts = {
@@ -1287,6 +1343,7 @@ def generate_full_workflow(
     workflow_id: str,
     title: str,
     description: str = "",
+    use_reranking: bool = True,
 ) -> GenerationResponse:
     """Generate all artifacts for a full workflow.
 
@@ -1294,6 +1351,7 @@ def generate_full_workflow(
         workflow_id: The workflow ID.
         title: Title for the workflow.
         description: Description/context.
+        use_reranking: Whether to use LLM re-ranking for RAG (default True, UI toggle).
 
     Returns:
         GenerationResponse with all created artifacts.
@@ -1330,7 +1388,9 @@ def generate_full_workflow(
 
     for atype in types_to_generate:
         try:
-            content = generate_artifact_content(atype, title, description)
+            content = generate_artifact_content(
+                atype, title, description, use_reranking=use_reranking
+            )
             artifact_id = f"{atype.value.upper()}-GEN-{workflow_id}"
             
             # Write to file for persistence

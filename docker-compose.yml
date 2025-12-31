@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   # =============================================================================
   # Backend API Gateway
@@ -35,6 +33,8 @@ services:
       - "6006:6006"
     volumes:
       - phoenix_data:/root/.phoenix
+    env_file:
+      - .env
     environment:
       - PHOENIX_PORT=6006
 
