@@ -30,7 +30,10 @@
     ],
     "implementation_specs": [
       "SPEC-0006_Table-Availability-Status-Spec",
-      "SPEC-0003_Frontend-Panel-Status-Integration"
+      "SPEC-0003_Frontend-Panel-Status-Integration",
+      "SPEC-0005",
+      "SPEC-0024",
+      "SPEC-0029"
     ]
   },
   "consequences": [
@@ -84,7 +87,9 @@
   "references": [
     "ADR-0001_Guided-Workflow-FSM-Orchestration: Core FSM pattern for stage transitions",
     "ADR-0004_Deterministic-Content-Addressed-IDs: Deterministic ID generation",
-    "ADR-0017_Cross-Cutting-Guardrails: Platform-wide guardrails"
+    "ADR-0017_Cross-Cutting-Guardrails: Platform-wide guardrails",
+    "ADR-0037",
+    "ADR-0015"
   ],
   "tags": [
     "table-availability",

@@ -14,15 +14,15 @@ dynamic content injection at runtime.
 """
 
 from shared.contracts.messages.catalog import (
-    MessageSeverity,
+    ErrorMessage,
+    LocalizedMessage,
+    MessageCatalog,
     MessageCategory,
     MessageDefinition,
-    MessageCatalog,
     MessageRef,
-    LocalizedMessage,
-    ErrorMessage,
-    ProgressMessage,
+    MessageSeverity,
     NotificationMessage,
+    ProgressMessage,
     ValidationMessage,
     format_message,
 )

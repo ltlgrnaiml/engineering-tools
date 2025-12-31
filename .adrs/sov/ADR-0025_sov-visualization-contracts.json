@@ -32,7 +32,8 @@
       "Chart types: bar, pareto, line, heatmap"
     ],
     "implementation_specs": [
-      "SPEC-0027_SOV-Visualization-Contracts-Spec"
+      "SPEC-0027_SOV-Visualization-Contracts-Spec",
+      "SPEC-0007"
     ]
   },
   "consequences": [
@@ -92,7 +93,9 @@
     "ADR-0009_Type-Safety-Contract-Discipline",
     "ADR-0028_Unified-Rendering-Engine",
     "shared/contracts/",
-    "shared/contracts/core/rendering.py"
+    "shared/contracts/core/rendering.py",
+    "ADR-0027",
+    "ADR-0024"
   ],
   "tags": [
     "sov",

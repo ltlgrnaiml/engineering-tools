@@ -6,12 +6,20 @@
   "created_date": "2024-12-27",
   "updated_date": "2024-12-27",
   "implements_adr": [
-    "ADR-0014"
+    "ADR-0014",
+    "ADR-0029"
   ],
   "tier_0_contracts": [
     {
       "module": "shared.contracts.dat.cancellation",
-      "classes": ["CancellationRequest", "CancellationResult", "Checkpoint", "CheckpointRegistry", "CleanupRequest", "CleanupResult"]
+      "classes": [
+        "CancellationRequest",
+        "CancellationResult",
+        "Checkpoint",
+        "CheckpointRegistry",
+        "CleanupRequest",
+        "CleanupResult"
+      ]
     }
   ],
   "overview": {

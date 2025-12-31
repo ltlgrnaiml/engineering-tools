@@ -9,9 +9,9 @@ from uuid import UUID
 from fastapi import APIRouter, File, UploadFile, status
 
 from apps.pptx_generator.backend.api.errors import (
+    raise_internal_error,
     raise_not_found,
     raise_validation_error,
-    raise_internal_error,
 )
 from apps.pptx_generator.backend.api.projects import projects_db
 from apps.pptx_generator.backend.core.config import settings

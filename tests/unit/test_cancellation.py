@@ -4,9 +4,7 @@ Per ADR-0014: Cancellation Semantics for Parse & Export.
 Tests for soft cancellation, checkpointing, and audit trails.
 """
 
-from datetime import datetime, timezone
-
-import pytest
+from datetime import UTC, datetime
 
 from shared.contracts.dat.cancellation import (
     CancellableOperation,
@@ -69,8 +67,8 @@ class TestCancellationResult:
             preserved_artifacts=["artifact_1", "artifact_2"],
             discarded_partial_data=True,
             discarded_items_count=5,
-            requested_at=datetime.now(timezone.utc),
-            completed_at=datetime.now(timezone.utc),
+            requested_at=datetime.now(UTC),
+            completed_at=datetime.now(UTC),
             message="Cancelled successfully",
         )
 
@@ -87,7 +85,7 @@ class TestCancellationResult:
             reason=CancellationReason.USER_REQUESTED,
             preserved_artifacts=["table_1", "table_2", "table_3"],
             preserved_checkpoints=["checkpoint_1", "checkpoint_2"],
-            requested_at=datetime.now(timezone.utc),
+            requested_at=datetime.now(UTC),
         )
 
         # Per ADR-0014: preserved_artifacts should contain completed work
@@ -104,7 +102,7 @@ class TestCheckpoint:
             checkpoint_id="cp_001",
             checkpoint_type=CheckpointType.TABLE_COMPLETE,
             stage_id="parse_abc",
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
             data_hash="abc123",
             items_completed=10,
             items_total=20,
@@ -129,7 +127,7 @@ class TestCheckpoint:
                 checkpoint_id="test",
                 checkpoint_type=cp_type,
                 stage_id="stage_1",
-                created_at=datetime.now(timezone.utc),
+                created_at=datetime.now(UTC),
                 data_hash="hash",
             )
             assert checkpoint.checkpoint_type == cp_type
@@ -147,7 +145,7 @@ class TestCheckpointRegistry:
 
     def test_registry_with_checkpoints(self) -> None:
         """Registry should track multiple checkpoints."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         checkpoints = [
             Checkpoint(
                 checkpoint_id="cp_1",
@@ -175,7 +173,7 @@ class TestCheckpointRegistry:
 
     def test_safe_point_detection(self) -> None:
         """Per ADR-0014: TABLE_COMPLETE is a safe cancellation point."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # Table complete = safe
         safe_registry = CheckpointRegistry(
@@ -237,7 +235,7 @@ class TestCancellableOperation:
 
     def test_can_cancel_safely_running(self) -> None:
         """Running operations need checkpoint check."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # With safe checkpoint
         operation_safe = CancellableOperation(
@@ -298,8 +296,8 @@ class TestCleanupResult:
             cleaned_count=8,
             failed_count=2,
             bytes_freed=1024000,
-            started_at=datetime.now(timezone.utc),
-            completed_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
+            completed_at=datetime.now(UTC),
         )
 
         assert result.state == CleanupState.COMPLETED
@@ -343,7 +341,7 @@ class TestCancellationAuditLog:
         entry = CancellationAuditEntry(
             event_id="evt_001",
             event_type="cancel_requested",
-            timestamp=datetime.now(timezone.utc).replace(microsecond=0),
+            timestamp=datetime.now(UTC).replace(microsecond=0),
             job_id="job_123",
             actor="user",
         )

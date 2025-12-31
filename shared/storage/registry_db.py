@@ -9,11 +9,10 @@ Per ADR-0009: All timestamps are ISO-8601 UTC.
 """
 
 import json
-import sqlite3
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import AsyncGenerator
 
 import aiosqlite
 
@@ -74,19 +73,19 @@ CREATE INDEX IF NOT EXISTS idx_lineage_child ON lineage_edges(child_id);
 
 class RegistryDB:
     """SQLite-backed artifact registry."""
-    
+
     def __init__(self, db_path: Path | None = None) -> None:
         if db_path is None:
             workspace = get_workspace_path()
             workspace.mkdir(parents=True, exist_ok=True)
             db_path = workspace / ".registry.db"
         self.db_path = db_path
-    
+
     async def initialize(self) -> None:
         """Initialize database schema."""
         async with aiosqlite.connect(self.db_path) as db:
             await db.executescript(CREATE_TABLES_SQL)
-            
+
             # Check/set schema version
             cursor = await db.execute(
                 "SELECT version FROM schema_version LIMIT 1"
@@ -98,14 +97,14 @@ class RegistryDB:
                     (SCHEMA_VERSION,)
                 )
             await db.commit()
-    
+
     @asynccontextmanager
     async def _connection(self) -> AsyncGenerator[aiosqlite.Connection, None]:
         """Get a database connection."""
         async with aiosqlite.connect(self.db_path) as db:
             db.row_factory = aiosqlite.Row
             yield db
-    
+
     async def register(self, record: ArtifactRecord) -> None:
         """Register an artifact in the registry."""
         async with self._connection() as db:
@@ -138,7 +137,7 @@ class RegistryDB:
                 )
             )
             await db.commit()
-    
+
     async def get(self, artifact_id: str) -> ArtifactRecord | None:
         """Get an artifact by ID."""
         async with self._connection() as db:
@@ -150,40 +149,40 @@ class RegistryDB:
             if row is None:
                 return None
             return self._row_to_record(row)
-    
+
     async def query(self, query: ArtifactQuery) -> list[ArtifactRecord]:
         """Query artifacts with filters."""
         conditions = []
         params = []
-        
+
         if query.artifact_type:
             conditions.append("artifact_type = ?")
             params.append(query.artifact_type.value)
-        
+
         if query.created_by_tool:
             conditions.append("created_by_tool = ?")
             params.append(query.created_by_tool)
-        
+
         if query.state:
             conditions.append("state = ?")
             params.append(query.state.value)
-        
+
         if query.parent_id:
             conditions.append("parent_ids LIKE ?")
             params.append(f'%"{query.parent_id}"%')
-        
+
         if query.created_after:
             conditions.append("created_at >= ?")
             params.append(query.created_after.isoformat())
-        
+
         if query.created_before:
             conditions.append("created_at <= ?")
             params.append(query.created_before.isoformat())
-        
+
         if query.name_contains:
             conditions.append("name LIKE ?")
             params.append(f"%{query.name_contains}%")
-        
+
         where_clause = " AND ".join(conditions) if conditions else "1=1"
         sql = f"""
             SELECT * FROM artifacts
@@ -192,12 +191,12 @@ class RegistryDB:
             LIMIT ? OFFSET ?
         """
         params.extend([query.limit, query.offset])
-        
+
         async with self._connection() as db:
             cursor = await db.execute(sql, params)
             rows = await cursor.fetchall()
             return [self._row_to_record(row) for row in rows]
-    
+
     async def get_stats(self) -> ArtifactStats:
         """Get summary statistics for the registry."""
         async with self._connection() as db:
@@ -208,25 +207,25 @@ class RegistryDB:
             row = await cursor.fetchone()
             total_count = row[0] or 0
             total_size = row[1] or 0
-            
+
             # By type
             cursor = await db.execute(
                 "SELECT artifact_type, COUNT(*) FROM artifacts GROUP BY artifact_type"
             )
             by_type = {row[0]: row[1] for row in await cursor.fetchall()}
-            
+
             # By tool
             cursor = await db.execute(
                 "SELECT created_by_tool, COUNT(*) FROM artifacts GROUP BY created_by_tool"
             )
             by_tool = {row[0]: row[1] for row in await cursor.fetchall()}
-            
+
             # By state
             cursor = await db.execute(
                 "SELECT state, COUNT(*) FROM artifacts GROUP BY state"
             )
             by_state = {row[0]: row[1] for row in await cursor.fetchall()}
-        
+
         return ArtifactStats(
             total_artifacts=total_count,
             total_size_bytes=total_size,
@@ -234,15 +233,15 @@ class RegistryDB:
             by_tool=by_tool,
             by_state=by_state,
         )
-    
+
     async def update_state(
         self,
         artifact_id: str,
         state: ArtifactState,
     ) -> None:
         """Update artifact state (per ADR-0002: preserve on unlock)."""
-        now = datetime.now(timezone.utc).isoformat()
-        
+        now = datetime.now(UTC).isoformat()
+
         async with self._connection() as db:
             if state == ArtifactState.LOCKED:
                 await db.execute(
@@ -260,7 +259,7 @@ class RegistryDB:
                     (state.value, now, artifact_id)
                 )
             await db.commit()
-    
+
     async def get_children(self, parent_id: str) -> list[str]:
         """Get child artifact IDs efficiently using reverse index (per ADR-0026).
         
@@ -273,7 +272,7 @@ class RegistryDB:
             )
             rows = await cursor.fetchall()
             return [row[0] for row in rows]
-    
+
     async def get_parents(self, child_id: str) -> list[str]:
         """Get parent artifact IDs efficiently using reverse index."""
         async with self._connection() as db:
@@ -283,14 +282,14 @@ class RegistryDB:
             )
             rows = await cursor.fetchall()
             return [row[0] for row in rows]
-    
+
     async def _update_lineage_edges(
         self,
         artifact_id: str,
         parent_ids: list[str],
     ) -> None:
         """Update lineage edges for an artifact."""
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         async with self._connection() as db:
             # Remove old edges
             await db.execute(
@@ -304,7 +303,7 @@ class RegistryDB:
                     (parent_id, artifact_id, now)
                 )
             await db.commit()
-    
+
     def _row_to_record(self, row: aiosqlite.Row) -> ArtifactRecord:
         """Convert a database row to an ArtifactRecord."""
         return ArtifactRecord(

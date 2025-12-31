@@ -5,8 +5,8 @@ Generate embeddings with dual-mode and auto-fallback.
 
 import os
 import struct
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 
 @dataclass

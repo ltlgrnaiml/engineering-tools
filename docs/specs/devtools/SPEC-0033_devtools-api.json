@@ -6,12 +6,19 @@
   "created_date": "2024-12-27",
   "updated_date": "2024-12-27",
   "implements_adr": [
-    "ADR-0028"
+    "ADR-0028",
+    "ADR-0029"
   ],
   "tier_0_contracts": [
     {
       "module": "shared.contracts.devtools.api",
-      "classes": ["DevToolsState", "ADRListResponse", "ADRSaveRequest", "SchemaValidationRequest", "APITestRequest"]
+      "classes": [
+        "DevToolsState",
+        "ADRListResponse",
+        "ADRSaveRequest",
+        "SchemaValidationRequest",
+        "APITestRequest"
+      ]
     }
   ],
   "overview": {

@@ -163,7 +163,9 @@
     "SPEC-0009_Engineering-Docs-Tenets-Spec (implements this ADR)",
     "docs/_schema/tech_spec.schema.json (Spec tier schema)",
     "docs/_schema/how_to_guide.schema.json (Guide tier schema)",
-    ".adrs/_schema/adr_schema.json (ADR tier schema)"
+    ".adrs/_schema/adr_schema.json (ADR tier schema)",
+    "ADR-0018",
+    "ADR-0031"
   ],
   "tags": [
     "documentation",

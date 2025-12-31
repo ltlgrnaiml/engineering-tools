@@ -6,18 +6,16 @@ User controls context application at output time via toggles:
 - include_image_context: Add image-level context (ImageName, etc.)
 """
 
-import pytest
-import polars as pl
-from pathlib import Path
-from unittest.mock import MagicMock, AsyncMock
 
-from apps.data_aggregator.backend.src.dat_aggregation.profiles.profile_executor import (
-    ProfileExecutor,
-    ExtractionResult,
-)
+import polars as pl
+import pytest
+
 from apps.data_aggregator.backend.src.dat_aggregation.profiles.output_builder import (
-    OutputBuilder,
     ContextOptions,
+    OutputBuilder,
+)
+from apps.data_aggregator.backend.src.dat_aggregation.profiles.profile_executor import (
+    ExtractionResult,
 )
 
 
@@ -152,14 +150,16 @@ class TestOutputBuilderContextApplication:
 
     def test_build_output_with_run_context(self):
         """_build_output should apply run context when option is True."""
-        from apps.data_aggregator.backend.src.dat_aggregation.profiles.profile_loader import OutputConfig
+        from apps.data_aggregator.backend.src.dat_aggregation.profiles.profile_loader import (
+            OutputConfig,
+        )
 
         builder = OutputBuilder()
         tables = {"test_table": pl.DataFrame({"col1": [1, 2]})}
         run_context = {"LotID": "LOT123", "WaferID": "W01"}
         options = ContextOptions(include_run_context=True, include_image_context=False)
 
-        config = OutputConfig(id="output1", from_tables=["test_table"])
+        config = OutputConfig(id="output1", from_level="test", from_tables=["test_table"])
         result = builder._build_output(config, tables, run_context, {}, options)
 
         assert "LotID" in result.columns
@@ -167,21 +167,25 @@ class TestOutputBuilderContextApplication:
 
     def test_build_output_without_context(self):
         """_build_output should not apply context when options are False."""
-        from apps.data_aggregator.backend.src.dat_aggregation.profiles.profile_loader import OutputConfig
+        from apps.data_aggregator.backend.src.dat_aggregation.profiles.profile_loader import (
+            OutputConfig,
+        )
 
         builder = OutputBuilder()
         tables = {"test_table": pl.DataFrame({"col1": [1, 2]})}
         run_context = {"LotID": "LOT123"}
         options = ContextOptions(include_run_context=False, include_image_context=False)
 
-        config = OutputConfig(id="output1", from_tables=["test_table"])
+        config = OutputConfig(id="output1", from_level="test", from_tables=["test_table"], include_context=False)
         result = builder._build_output(config, tables, run_context, {}, options)
 
         assert "LotID" not in result.columns
 
     def test_build_output_selective_keys(self):
         """_build_output should only apply specified context keys."""
-        from apps.data_aggregator.backend.src.dat_aggregation.profiles.profile_loader import OutputConfig
+        from apps.data_aggregator.backend.src.dat_aggregation.profiles.profile_loader import (
+            OutputConfig,
+        )
 
         builder = OutputBuilder()
         tables = {"test_table": pl.DataFrame({"col1": [1]})}
@@ -192,7 +196,7 @@ class TestOutputBuilderContextApplication:
             run_context_keys=["LotID", "WaferID"],  # Exclude RecipeName
         )
 
-        config = OutputConfig(id="output1", from_tables=["test_table"])
+        config = OutputConfig(id="output1", from_level="test", from_tables=["test_table"])
         result = builder._build_output(config, tables, run_context, {}, options)
 
         assert "LotID" in result.columns
@@ -233,7 +237,7 @@ class TestContextSeparationAcceptanceCriteria:
             tables={"test": pl.DataFrame({"data": [1, 2, 3]})},
             run_context={"LotID": "LOT123"},
         )
-        
+
         # Raw tables should not have context
         raw_table = result.tables["test"]
         assert "LotID" not in raw_table.columns, "Raw tables should not have context columns"
@@ -245,7 +249,7 @@ class TestContextSeparationAcceptanceCriteria:
             run_context={"LotID": "LOT123", "WaferID": "W01"},
             image_contexts={"IMG_001": {"ImageName": "test.png"}},
         )
-        
+
         # Context is in separate attributes
         assert result.run_context == {"LotID": "LOT123", "WaferID": "W01"}
         assert result.image_contexts == {"IMG_001": {"ImageName": "test.png"}}
@@ -256,11 +260,11 @@ class TestContextSeparationAcceptanceCriteria:
             tables={"test": pl.DataFrame({"data": [1]})},
             run_context={"LotID": "LOT123"},
         )
-        
+
         # Without run context
         tables_no_ctx = result.get_tables_with_context(include_run_context=False)
         assert "LotID" not in tables_no_ctx["test"].columns
-        
+
         # With run context
         tables_with_ctx = result.get_tables_with_context(include_run_context=True)
         assert "LotID" in tables_with_ctx["test"].columns
@@ -271,11 +275,11 @@ class TestContextSeparationAcceptanceCriteria:
             tables={"test": pl.DataFrame({"image_id": ["IMG_001"], "data": [1]})},
             image_contexts={"IMG_001": {"ImageName": "test.png"}},
         )
-        
+
         # Without image context
         tables_no_ctx = result.get_tables_with_context(include_image_context=False)
         assert "ImageName" not in tables_no_ctx["test"].columns
-        
+
         # With image context - note: apply_image_context needs image_id column
         tables_with_ctx = result.apply_image_context()
         # Image context application requires matching image_id
@@ -284,9 +288,9 @@ class TestContextSeparationAcceptanceCriteria:
     def test_ac5_context_options_default_to_sensible_values(self):
         """AC-5: Context options must default to sensible values."""
         options = ContextOptions()
-        
+
         # Run context ON by default (most common use case)
         assert options.include_run_context is True
-        
+
         # Image context OFF by default (less common)
         assert options.include_image_context is False

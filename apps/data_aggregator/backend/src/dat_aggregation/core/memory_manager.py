@@ -16,11 +16,11 @@ from __future__ import annotations
 import gc
 import os
 import tempfile
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
-from typing import Callable
 
 import psutil
 
@@ -92,7 +92,7 @@ class MemorySnapshot:
         usage_pct = (process_memory / config.max_memory_mb) * 100
 
         return cls(
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             process_memory_mb=round(process_memory, 2),
             available_memory_mb=round(available, 2),
             usage_pct=round(usage_pct, 1),

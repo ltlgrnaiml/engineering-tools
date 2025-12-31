@@ -124,7 +124,8 @@
     ],
     "implementation_specs": [
       "SPEC-0001_Stage-Orchestration-State-Machine",
-      "SPEC-0013_Artifact-Lifecycle-Preservation-Spec"
+      "SPEC-0013_Artifact-Lifecycle-Preservation-Spec",
+      "SPEC-0024"
     ]
   },
   "consequences": [
@@ -166,7 +167,9 @@
   "references": [
     "ADR-0001_Guided-Workflow-FSM-Orchestration: Core FSM pattern this extends",
     "ADR-0002_Artifact-Preservation-on-Unlock: Detailed artifact preservation policy",
-    "ADR-0004_Deterministic-Stage-IDs: Stage identity hashing"
+    "ADR-0004_Deterministic-Stage-IDs: Stage identity hashing",
+    "ADR-0012",
+    "ADR-0042"
   ],
   "tags": [
     "dat",

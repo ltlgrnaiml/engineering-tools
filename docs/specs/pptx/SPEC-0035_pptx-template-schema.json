@@ -7,7 +7,8 @@
   "date": "2025-12-30",
   "author": "Mycahya Eggleston",
   "implements_adr": [
-    "ADR-0018_PPTX-Template-Processing-Model"
+    "ADR-0018_PPTX-Template-Processing-Model",
+    "ADR-0032"
   ],
   "tier_0_contracts": [
     {

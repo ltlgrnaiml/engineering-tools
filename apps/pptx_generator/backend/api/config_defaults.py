@@ -10,16 +10,15 @@ from typing import Any
 from uuid import UUID
 
 import yaml
-from fastapi import APIRouter, status
+from fastapi import APIRouter
 from pydantic import BaseModel
 
 from apps.pptx_generator.backend.api.errors import (
+    raise_conflict_error,
+    raise_internal_error,
     raise_not_found,
     raise_validation_error,
-    raise_internal_error,
-    raise_conflict_error,
 )
-
 from apps.pptx_generator.backend.models.drm import AggregationType, MappingSourceType
 from apps.pptx_generator.backend.models.mapping_manifest import ContextMapping, MetricMapping
 

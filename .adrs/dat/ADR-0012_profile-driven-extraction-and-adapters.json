@@ -199,7 +199,8 @@
       "SPEC-0026_dat-adapter-interface-registry",
       "SPEC-0028_dat-profile-file-management",
       "SPEC-0030_dat-profile-schema",
-      "SPEC-0031_dat-extraction-strategies"
+      "SPEC-0031_dat-extraction-strategies",
+      "SPEC-0002"
     ],
     "tier_0_contracts": [
       "shared.contracts.dat.adapter.BaseFileAdapter",
@@ -347,7 +348,9 @@
     "ADR-0009_Type-Safety-Contract-Discipline: Profile schemas as Pydantic contracts",
     "ADR-0017_Cross-Cutting-Guardrails: Platform-wide guardrails",
     "ADR-0040_Large-File-Streaming-Strategy: Streaming mode for large files",
-    "Industry patterns: dbt (declarative config), Singer (composable pipelines), Great Expectations (validation)"
+    "Industry patterns: dbt (declarative config), Singer (composable pipelines), Great Expectations (validation)",
+    "ADR-0041",
+    "ADR-0023"
   ],
   "tags": [
     "profile-driven",

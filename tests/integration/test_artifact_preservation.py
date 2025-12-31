@@ -12,12 +12,12 @@ These tests verify that:
 
 import json
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 
-from shared.contracts.core.dataset import DataSetManifest, ColumnMeta
+from shared.contracts.core.dataset import ColumnMeta, DataSetManifest
 from shared.storage.artifact_store import ArtifactStore
 
 
@@ -44,7 +44,7 @@ class TestArtifactPreservationOnUnlock:
         return DataSetManifest(
             dataset_id="test_dataset_001",
             name="Test Dataset",
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
             created_by_tool="dat",
             columns=[
                 ColumnMeta(name="col1", dtype="int64"),
@@ -60,7 +60,7 @@ class TestArtifactPreservationOnUnlock:
         # Save initial manifest
         dataset_dir = artifact_store.workspace / "datasets" / sample_manifest.dataset_id
         dataset_dir.mkdir(parents=True, exist_ok=True)
-        
+
         manifest_path = dataset_dir / "manifest.json"
         with open(manifest_path, "w") as f:
             json.dump(sample_manifest.model_dump(mode="json"), f)
@@ -76,7 +76,7 @@ class TestArtifactPreservationOnUnlock:
 
         # Verify file still exists after unlock
         assert manifest_path.exists(), "Manifest must be preserved after unlock"
-        
+
         # Verify content is still valid
         updated_manifest = json.loads(manifest_path.read_text())
         assert updated_manifest["dataset_id"] == sample_manifest.dataset_id
@@ -89,7 +89,7 @@ class TestArtifactPreservationOnUnlock:
         # Create dummy parquet file
         dataset_dir = temp_workspace / "datasets" / "test_dataset_002"
         dataset_dir.mkdir(parents=True, exist_ok=True)
-        
+
         parquet_path = dataset_dir / "data.parquet"
         parquet_path.write_bytes(b"dummy parquet content")
 
@@ -97,11 +97,11 @@ class TestArtifactPreservationOnUnlock:
         manifest_data = {
             "dataset_id": "test_dataset_002",
             "name": "Test",
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
             "created_by_tool": "dat",
             "columns": [],
             "row_count": 0,
-            "locked_at": datetime.now(timezone.utc).isoformat(),
+            "locked_at": datetime.now(UTC).isoformat(),
         }
         manifest_path.write_text(json.dumps(manifest_data))
 
@@ -124,11 +124,11 @@ class TestArtifactPreservationOnUnlock:
         manifest_data = {
             "dataset_id": "test_dataset_003",
             "name": "Locked Dataset",
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
             "created_by_tool": "dat",
             "columns": [],
             "row_count": 50,
-            "locked_at": datetime.now(timezone.utc).isoformat(),
+            "locked_at": datetime.now(UTC).isoformat(),
         }
         manifest_path.write_text(json.dumps(manifest_data))
 
@@ -176,7 +176,7 @@ class TestArtifactPreservationOnCancellation:
         # Per ADR-0014: Preserve completed artifacts
         cancellation_log = job_dir / "cancellation.json"
         cancellation_log.write_text(json.dumps({
-            "cancelled_at": datetime.now(timezone.utc).isoformat(),
+            "cancelled_at": datetime.now(UTC).isoformat(),
             "cancelled_stage": "stage_3",
             "preserved_artifacts": ["stage_1_output.parquet", "stage_2_output.parquet"],
         }))
@@ -236,11 +236,11 @@ class TestIdempotentRecomputation:
 
         # First computation (using keyword arguments per API)
         original_id = compute_dataset_id(run_id="test-run", columns=["x", "y"])
-        
+
         # Simulate unlock (metadata change only)
         # ... unlock logic ...
-        
+
         # Re-lock with same inputs
         recomputed_id = compute_dataset_id(run_id="test-run", columns=["x", "y"])
-        
+
         assert original_id == recomputed_id, "Re-lock must preserve artifact ID"

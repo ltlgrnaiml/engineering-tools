@@ -3,20 +3,18 @@
 Wrap Knowledge Archive for Langchain integration.
 """
 
-from typing import Any, List
+from typing import Any
 
 try:
-    from langchain_core.retrievers import BaseRetriever
-    from langchain_core.documents import Document as LCDocument
     from langchain_core.callbacks import CallbackManagerForRetrieverRun
+    from langchain_core.documents import Document as LCDocument
+    from langchain_core.retrievers import BaseRetriever
     LANGCHAIN_AVAILABLE = True
 except ImportError:
     LANGCHAIN_AVAILABLE = False
     BaseRetriever = object
     LCDocument = None
 
-from gateway.services.knowledge.search_service import SearchService
-from gateway.services.knowledge.embedding_service import EmbeddingService
 
 
 if LANGCHAIN_AVAILABLE:
@@ -36,7 +34,7 @@ if LANGCHAIN_AVAILABLE:
             query: str,
             *,
             run_manager: CallbackManagerForRetrieverRun | None = None
-        ) -> List[LCDocument]:
+        ) -> list[LCDocument]:
             """Retrieve relevant documents for query."""
             # Generate query embedding if service available
             query_vector = None

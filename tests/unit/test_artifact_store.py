@@ -1,11 +1,10 @@
 """Unit tests for ArtifactStore."""
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
-import polars as pl
 
-from shared.contracts.core.dataset import DataSetManifest, ColumnMeta
+from shared.contracts.core.dataset import ColumnMeta, DataSetManifest
 from shared.storage.artifact_store import ArtifactStore
 
 
@@ -15,7 +14,7 @@ class TestArtifactStore:
     def test_init_creates_directories(self, temp_workspace: Path):
         """Store initialization creates required directories."""
         store = ArtifactStore(workspace_path=temp_workspace)
-        
+
         assert (temp_workspace / "datasets").exists()
         assert (temp_workspace / "pipelines").exists()
 
@@ -26,7 +25,7 @@ class TestArtifactStore:
         manifest = DataSetManifest(
             dataset_id=dataset_id,
             name="Test Dataset",
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
             created_by_tool="dat",
             columns=[
                 ColumnMeta(name=col, dtype=str(sample_dataframe[col].dtype))
@@ -34,13 +33,13 @@ class TestArtifactStore:
             ],
             row_count=len(sample_dataframe),
         )
-        
+
         # Write
         await artifact_store.write_dataset(dataset_id, sample_dataframe, manifest)
-        
+
         # Read back
         read_df, read_manifest = await artifact_store.read_dataset_with_manifest(dataset_id)
-        
+
         assert read_manifest.dataset_id == dataset_id
         assert read_manifest.name == "Test Dataset"
         assert len(read_df) == len(sample_dataframe)
@@ -52,16 +51,16 @@ class TestArtifactStore:
         manifest = DataSetManifest(
             dataset_id=dataset_id,
             name="Test",
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
             created_by_tool="dat",
             columns=[ColumnMeta(name="col", dtype="str")],
             row_count=1,
         )
-        
+
         assert not await artifact_store.dataset_exists(dataset_id)
-        
+
         await artifact_store.write_dataset(dataset_id, sample_dataframe, manifest)
-        
+
         assert await artifact_store.dataset_exists(dataset_id)
 
     @pytest.mark.asyncio
@@ -73,15 +72,15 @@ class TestArtifactStore:
             manifest = DataSetManifest(
                 dataset_id=dataset_id,
                 name=f"Dataset {i}",
-                created_at=datetime.now(timezone.utc),
+                created_at=datetime.now(UTC),
                 created_by_tool="dat",
                 columns=[ColumnMeta(name="col", dtype="str")],
                 row_count=1,
             )
             await artifact_store.write_dataset(dataset_id, sample_dataframe, manifest)
-        
+
         datasets = await artifact_store.list_datasets()
-        
+
         assert len(datasets) >= 3
         dataset_ids = [d.dataset_id for d in datasets]
         assert "ds_list0" in dataset_ids
@@ -91,10 +90,10 @@ class TestArtifactStore:
     def test_path_construction(self, artifact_store: ArtifactStore):
         """Test that paths are constructed correctly."""
         dataset_id = "ds_path123"
-        
+
         # Verify workspace path exists
         assert artifact_store.workspace.exists()
-        
+
         # Verify datasets directory is within workspace
         datasets_dir = artifact_store.workspace / "datasets"
         assert datasets_dir.exists()

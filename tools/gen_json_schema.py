@@ -26,7 +26,7 @@ import argparse
 import importlib
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -140,7 +140,7 @@ def write_schema_file(
     """
     # Add metadata
     schema["$comment"] = {
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
         "source_module": module_name,
         "model_name": model_name,
         "generator": "tools/gen_json_schema.py",
@@ -168,7 +168,7 @@ def generate_index(
         "$schema": "http://json-schema.org/draft-07/schema#",
         "title": "Engineering Tools Contract Schemas",
         "description": "Index of all Pydantic contract JSON Schemas",
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
         "categories": {},
     }
 

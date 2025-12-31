@@ -3,17 +3,16 @@
 Per ADR-0015: Output as Parquet with JSON manifest.
 Multi-format export support: Parquet (default), CSV, Excel.
 """
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 
 import polars as pl
 
-from shared.contracts.core.dataset import DataSetManifest, ColumnMeta
+from shared.contracts.core.dataset import ColumnMeta, DataSetManifest
 from shared.storage.artifact_store import ArtifactStore
 from shared.utils.stage_id import compute_dataset_id
 
 from .parse import ParseResult
-
 
 # Per ADR-0015: Supported export formats
 SUPPORTED_EXPORT_FORMATS = {"parquet", "csv", "excel", "json"}
@@ -82,7 +81,7 @@ async def execute_export(
     )
 
     # Build manifest
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     default_name = name or f"DAT Export - {run_id[:8]}"
 
     manifest = DataSetManifest(

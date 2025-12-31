@@ -6,7 +6,7 @@ Per ADR-0010: Uses shared Pydantic contracts for external interfaces.
 Internal computation uses lightweight dataclasses for performance.
 """
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Literal
 
 import numpy as np
@@ -15,7 +15,11 @@ from scipy import stats
 
 from shared.contracts.sov.anova import (
     ANOVAConfig as ANOVAConfigContract,
+)
+from shared.contracts.sov.anova import (
     ANOVAResult as ANOVAResultContract,
+)
+from shared.contracts.sov.anova import (
     ANOVASummary,
     ANOVAType,
     EffectType,
@@ -116,14 +120,14 @@ class ANOVAResult:
         Returns:
             ANOVAResultContract for API responses.
         """
-        now = datetime.now(timezone.utc)
-        
+        now = datetime.now(UTC)
+
         # Convert rows to FactorEffect contracts
         effects: list[FactorEffect] = []
         for row in self.rows:
             if row.source in ("Total", "Residual"):
                 continue  # These go in summary, not effects
-            
+
             effects.append(FactorEffect(
                 effect_name=row.source,
                 effect_type=EffectType.FIXED,
@@ -137,11 +141,11 @@ class ANOVAResult:
                 is_significant=row.significant,
                 alpha=config.alpha,
             ))
-        
+
         # Build summary from Total and Residual rows
         total_row = next((r for r in self.rows if r.source == "Total"), None)
         residual_row = next((r for r in self.rows if r.source == "Residual"), None)
-        
+
         summary = ANOVASummary(
             grand_mean=0.0,  # Would need to compute from data
             grand_std=0.0,
@@ -153,7 +157,7 @@ class ANOVAResult:
             error_ms=residual_row.mean_square if residual_row else 0.0,
             model_r_squared=self.r_squared,
         )
-        
+
         # Build variance components
         variance_components: list[VarianceComponent] = []
         for row in self.rows:
@@ -164,7 +168,7 @@ class ANOVAResult:
                 variance_estimate=row.sum_squares,
                 variance_percent=row.variance_pct,
             ))
-        
+
         # Create config contract
         config_contract = ANOVAConfigContract(
             anova_type=_map_anova_type(config.anova_type),
@@ -174,7 +178,7 @@ class ANOVAResult:
             alpha=config.alpha,
             seed=getattr(config, 'seed', 42),
         )
-        
+
         return ANOVAResultContract(
             analysis_id=analysis_id,
             analysis_type=_map_anova_type(config.anova_type),
@@ -253,42 +257,42 @@ def _one_way_anova(
     # Get groups
     groups = data.group_by(factor).agg(pl.col(response_col).alias("values"))
     group_values = [g.to_numpy() for g in groups["values"]]
-    
+
     # Perform ANOVA
     f_stat, p_value = stats.f_oneway(*group_values)
-    
+
     # Calculate sum of squares
     grand_mean = data[response_col].mean()
     n_total = len(data)
-    
+
     # Between-group SS
     ss_between = sum(
         len(g) * (np.mean(g) - grand_mean) ** 2
         for g in group_values
     )
-    
-    # Within-group SS  
+
+    # Within-group SS
     ss_within = sum(
         np.sum((g - np.mean(g)) ** 2)
         for g in group_values
     )
-    
+
     # Total SS
     ss_total = np.sum((data[response_col].to_numpy() - grand_mean) ** 2)
-    
+
     # Degrees of freedom
     k = len(group_values)  # number of groups
     df_between = k - 1
     df_within = n_total - k
     df_total = n_total - 1
-    
+
     # Mean squares
     ms_between = ss_between / df_between if df_between > 0 else 0
     ms_within = ss_within / df_within if df_within > 0 else 0
-    
+
     # Variance percentages
     total_var = ss_total if ss_total > 0 else 1
-    
+
     rows = [
         ANOVAResultRow(
             source=factor,
@@ -321,7 +325,7 @@ def _one_way_anova(
             significant=False,
         ),
     ]
-    
+
     return ANOVAResult(
         response_column=response_col,
         rows=rows,
@@ -356,35 +360,35 @@ def _n_way_anova(
     grand_mean = np.mean(response)
     n_total = len(data)
     ss_total = np.sum((response - grand_mean) ** 2)
-    
+
     rows: list[ANOVAResultRow] = []
     ss_explained = 0.0
     df_explained = 0
-    
+
     # Store main effect SS for interaction calculation
     main_effect_ss: dict[str, float] = {}
     factor_levels: dict[str, int] = {}
-    
+
     # Calculate main effects for each factor
     for factor in factors:
         groups = data.group_by(factor).agg(pl.col(response_col).alias("values"))
         group_values = [g.to_numpy() for g in groups["values"]]
-        
+
         # Between-group SS for this factor
         ss_factor = sum(
             len(g) * (np.mean(g) - grand_mean) ** 2
             for g in group_values
         )
-        
+
         k = len(group_values)
         df_factor = k - 1
         ms_factor = ss_factor / df_factor if df_factor > 0 else 0
-        
+
         ss_explained += ss_factor
         df_explained += df_factor
         main_effect_ss[factor] = ss_factor
         factor_levels[factor] = k
-        
+
         rows.append(ANOVAResultRow(
             source=factor,
             sum_squares=float(ss_factor),
@@ -395,7 +399,7 @@ def _n_way_anova(
             variance_pct=float(ss_factor / ss_total * 100) if ss_total > 0 else 0,
             significant=False,
         ))
-    
+
     # Calculate 2-way interaction effects (A×B terms)
     if include_interactions and len(factors) >= 2:
         for i, factor_a in enumerate(factors):
@@ -404,7 +408,7 @@ def _n_way_anova(
                 interaction_groups = data.group_by([factor_a, factor_b]).agg(
                     pl.col(response_col).alias("values")
                 )
-                
+
                 # Calculate SS for interaction (cell means - main effects)
                 # SS_AB = SS_cells - SS_A - SS_B
                 cell_ss = 0.0
@@ -412,17 +416,17 @@ def _n_way_anova(
                     cell_values = row_data["values"]
                     cell_mean = np.mean(cell_values)
                     cell_ss += len(cell_values) * (cell_mean - grand_mean) ** 2
-                
+
                 # Interaction SS = Cell SS - Main effect A - Main effect B
                 ss_interaction = max(0, cell_ss - main_effect_ss[factor_a] - main_effect_ss[factor_b])
-                
+
                 # DF for interaction = (levels_A - 1) * (levels_B - 1)
                 df_interaction = (factor_levels[factor_a] - 1) * (factor_levels[factor_b] - 1)
                 ms_interaction = ss_interaction / df_interaction if df_interaction > 0 else 0
-                
+
                 ss_explained += ss_interaction
                 df_explained += df_interaction
-                
+
                 interaction_name = f"{factor_a}:{factor_b}"
                 rows.append(ANOVAResultRow(
                     source=interaction_name,
@@ -434,12 +438,12 @@ def _n_way_anova(
                     variance_pct=float(ss_interaction / ss_total * 100) if ss_total > 0 else 0,
                     significant=False,
                 ))
-    
+
     # Residual
     ss_residual = max(0, ss_total - ss_explained)  # Ensure non-negative
     df_residual = n_total - df_explained - 1
     ms_residual = ss_residual / df_residual if df_residual > 0 else 0
-    
+
     # Update F-statistics and p-values
     for row in rows:
         if ms_residual > 0:
@@ -448,7 +452,7 @@ def _n_way_anova(
             row.f_statistic = float(f_stat)
             row.p_value = float(p_value)
             row.significant = p_value < alpha
-    
+
     rows.append(ANOVAResultRow(
         source="Residual",
         sum_squares=float(ss_residual),
@@ -459,7 +463,7 @@ def _n_way_anova(
         variance_pct=float(ss_residual / ss_total * 100) if ss_total > 0 else 0,
         significant=False,
     ))
-    
+
     rows.append(ANOVAResultRow(
         source="Total",
         sum_squares=float(ss_total),
@@ -470,7 +474,7 @@ def _n_way_anova(
         variance_pct=100.0,
         significant=False,
     ))
-    
+
     return ANOVAResult(
         response_column=response_col,
         rows=rows,

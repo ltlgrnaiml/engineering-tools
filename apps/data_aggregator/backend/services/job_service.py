@@ -16,8 +16,9 @@ Features:
 
 import asyncio
 import secrets
-from datetime import datetime, timezone
-from typing import Any, Callable, Coroutine
+from collections.abc import Callable, Coroutine
+from datetime import UTC, datetime
+from typing import Any
 
 from shared.contracts.dat.jobs import (
     BackgroundJob,
@@ -111,7 +112,7 @@ class JobService:
             The created BackgroundJob.
         """
         job_id = self._generate_job_id()
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         job = BackgroundJob(
             job_id=job_id,
@@ -216,7 +217,7 @@ class JobService:
 
             # Update job status
             job.status = JobStatus.CANCELLED
-            job.completed_at = datetime.now(timezone.utc)
+            job.completed_at = datetime.now(UTC)
             self.jobs[job_id] = job
 
         return job
@@ -272,7 +273,7 @@ class JobService:
         Returns:
             JobQueueStatus with queue metrics.
         """
-        today = datetime.now(timezone.utc).date()
+        today = datetime.now(UTC).date()
 
         pending = sum(1 for j in self.jobs.values() if j.status == JobStatus.PENDING)
         running = sum(1 for j in self.jobs.values() if j.status == JobStatus.RUNNING)
@@ -322,7 +323,7 @@ class JobService:
 
             # Start the job
             next_job.status = JobStatus.RUNNING
-            next_job.started_at = datetime.now(timezone.utc)
+            next_job.started_at = datetime.now(UTC)
             self.jobs[next_job.job_id] = next_job
 
         # Execute job in background
@@ -353,20 +354,20 @@ class JobService:
             async with self._lock:
                 job.status = JobStatus.COMPLETED
                 job.result = result
-                job.completed_at = datetime.now(timezone.utc)
+                job.completed_at = datetime.now(UTC)
                 job.progress.percentage = 100.0
                 self.jobs[job_id] = job
 
         except asyncio.CancelledError:
             # Job was cancelled
             pass
-        except asyncio.TimeoutError:
+        except TimeoutError:
             async with self._lock:
                 job = self.jobs.get(job_id)
                 if job:
                     job.status = JobStatus.FAILED
                     job.error = "Job timed out"
-                    job.completed_at = datetime.now(timezone.utc)
+                    job.completed_at = datetime.now(UTC)
                     self.jobs[job_id] = job
         except Exception as e:
             async with self._lock:
@@ -381,7 +382,7 @@ class JobService:
                         # Max retries exceeded
                         job.status = JobStatus.FAILED
                         job.error = str(e)
-                        job.completed_at = datetime.now(timezone.utc)
+                        job.completed_at = datetime.now(UTC)
                         job.result = JobResult(
                             success=False,
                             error_message=str(e),

@@ -34,7 +34,7 @@ class ContextExtractor:
     Extracts context values from multiple sources and merges them
     according to priority (higher priority values override lower).
     """
-    
+
     def extract(
         self,
         profile: DATProfile,
@@ -54,12 +54,12 @@ class ContextExtractor:
             Merged context dictionary
         """
         context: dict[str, Any] = {}
-        
+
         # Priority 4: Defaults (lowest)
         if profile.context_defaults and profile.context_defaults.defaults:
             context.update(profile.context_defaults.defaults)
             logger.debug(f"Applied {len(profile.context_defaults.defaults)} defaults")
-        
+
         # Priority 3: Regex from filename
         if profile.context_defaults and profile.context_defaults.regex_patterns:
             regex_values = self._extract_regex(
@@ -68,7 +68,7 @@ class ContextExtractor:
             )
             context.update(regex_values)
             logger.debug(f"Extracted {len(regex_values)} values via regex")
-        
+
         # Priority 2: JSONPath from content (content_patterns)
         if file_content and profile.context_defaults and profile.context_defaults.content_patterns:
             content_values = self._extract_content_patterns(
@@ -77,7 +77,7 @@ class ContextExtractor:
             )
             context.update(content_values)
             logger.debug(f"Extracted {len(content_values)} values via content patterns")
-        
+
         # Priority 1: User overrides (highest, allowlisted)
         if user_overrides:
             allowed = (
@@ -93,9 +93,9 @@ class ContextExtractor:
                     logger.warning(f"User override for '{key}' not allowed; ignored")
             context.update(applied)
             logger.debug(f"Applied {len(applied)} user overrides (allowlisted)")
-        
+
         return context
-    
+
     def _extract_regex(
         self,
         patterns: list[RegexPattern],
@@ -111,10 +111,10 @@ class ContextExtractor:
             Dictionary of extracted values
         """
         results: dict[str, Any] = {}
-        
+
         for pattern in patterns:
             scope_value = self._get_scope_value(pattern.scope, file_path)
-            
+
             try:
                 match = re.search(pattern.pattern, scope_value)
                 if match:
@@ -140,9 +140,9 @@ class ContextExtractor:
                         )
             except re.error as e:
                 logger.error(f"Invalid regex for {pattern.field}: {e}")
-        
+
         return results
-    
+
     def _extract_content_patterns(
         self,
         patterns: list[ContentPattern],
@@ -169,7 +169,7 @@ class ContextExtractor:
             except Exception as e:
                 logger.error(f"JSONPath error for {pattern.field}: {e}")
         return results
-    
+
     def _get_scope_value(self, scope: str, file_path: Path) -> str:
         """Get string value based on scope.
         
@@ -188,7 +188,7 @@ class ContextExtractor:
             return str(file_path)
         else:
             return file_path.name
-    
+
     def _get_jsonpath_value(self, data: dict, path: str) -> Any:
         """Get value at JSONPath.
         
@@ -201,7 +201,7 @@ class ContextExtractor:
         """
         if not path.startswith("$"):
             path = f"$.{path}"
-        
+
         try:
             expr = jsonpath_parse(path)
             matches = expr.find(data)
@@ -209,9 +209,9 @@ class ContextExtractor:
                 return matches[0].value
         except Exception:
             pass
-        
+
         return None
-    
+
     def _apply_transform(
         self,
         value: str,
@@ -229,7 +229,7 @@ class ContextExtractor:
             Transformed value
         """
         args = args or {}
-        
+
         if transform == "parse_date":
             fmt = args.get("format", "%Y%m%d")
             try:

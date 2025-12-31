@@ -212,7 +212,18 @@
     "ADR-0002_Artifact-Preservation-on-Unlock: Detailed artifact preservation policy (originally DAT, applicable to all)",
     "ADR-0004_Deterministic-Stage-IDs: Stage identity hashing for idempotent re-computation",
     "ADR-0017_Cross-Cutting-Guardrails: Platform-wide guardrails referenced by FSM",
-    "shared/workflows/: Shared FSM implementation location"
+    "shared/workflows/: Shared FSM implementation location",
+    "ADR-0005",
+    "ADR-0026",
+    "ADR-0027",
+    "ADR-0036",
+    "ADR-0003",
+    "ADR-0006",
+    "ADR-0008",
+    "ADR-0012",
+    "ADR-0014",
+    "ADR-0015",
+    "ADR-0020"
   ],
   "tags": [
     "core",

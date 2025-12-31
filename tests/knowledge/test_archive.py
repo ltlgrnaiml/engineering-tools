@@ -1,14 +1,13 @@
 """Tests for Archive Service - PLAN-002 M1."""
 
-import pytest
 import sqlite3
-from pathlib import Path
 
-from shared.contracts.knowledge.archive import Document, DocumentType
-from gateway.services.knowledge.database import SCHEMA
+import pytest
+
 from gateway.services.knowledge.archive_service import ArchiveService
-from gateway.services.knowledge.parsers import parse_markdown_document
+from gateway.services.knowledge.database import SCHEMA
 from gateway.services.knowledge.exporter import export_document
+from shared.contracts.knowledge.archive import Document, DocumentType
 
 
 @pytest.fixture

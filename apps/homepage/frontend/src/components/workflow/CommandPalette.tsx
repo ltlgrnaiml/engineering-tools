@@ -15,7 +15,7 @@ interface CommandPaletteProps {
   isOpen: boolean
   onClose: () => void
   artifacts: ArtifactSummary[]
-  onSelect: (id: string, type: ArtifactType) => void
+  onSelect: (artifact: ArtifactSummary) => void
   recentIds?: string[]
 }
 
@@ -48,7 +48,7 @@ export function CommandPalette({ isOpen, onClose, artifacts, onSelect, recentIds
       if (e.key === 'ArrowDown') { e.preventDefault(); setSelectedIndex(i => Math.min(i + 1, filtered.length - 1)) }
       if (e.key === 'ArrowUp') { e.preventDefault(); setSelectedIndex(i => Math.max(i - 1, 0)) }
       if (e.key === 'Enter' && filtered[selectedIndex]) {
-        onSelect(filtered[selectedIndex].id, filtered[selectedIndex].type)
+        onSelect(filtered[selectedIndex])
         onClose()
       }
       if (e.key === 'Escape') onClose()
@@ -84,7 +84,7 @@ export function CommandPalette({ isOpen, onClose, artifacts, onSelect, recentIds
             filtered.map((artifact, i) => (
               <button
                 key={artifact.id}
-                onClick={() => { onSelect(artifact.id, artifact.type); onClose() }}
+                onClick={() => { onSelect(artifact); onClose() }}
                 className={cn(
                   'w-full flex items-center gap-3 px-4 py-2.5 text-left',
                   i === selectedIndex ? 'bg-blue-600/20' : 'hover:bg-zinc-800'

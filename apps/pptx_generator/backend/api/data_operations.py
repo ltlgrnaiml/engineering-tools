@@ -8,13 +8,13 @@ from typing import Any
 from uuid import UUID
 
 import pandas as pd
-from fastapi import APIRouter, status
+from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
 from apps.pptx_generator.backend.api.errors import (
+    raise_internal_error,
     raise_not_found,
     raise_validation_error,
-    raise_internal_error,
 )
 
 router = APIRouter()

@@ -1,15 +1,14 @@
 """Pytest configuration and fixtures for DAT tests."""
 import json
 import tempfile
+from collections.abc import Generator
 from pathlib import Path
-from typing import Generator
 
-import pytest
-import pytest_asyncio
 import polars as pl
+import pytest
 
-from apps.data_aggregator.backend.src.dat_aggregation.core.run_store import RunStore
 from apps.data_aggregator.backend.src.dat_aggregation.core.run_manager import RunManager
+from apps.data_aggregator.backend.src.dat_aggregation.core.run_store import RunStore
 
 
 @pytest.fixture
@@ -103,8 +102,8 @@ def sample_json_data() -> dict:
 def sample_json_file(sample_json_data) -> Generator[Path, None, None]:
     """Create a temporary JSON file with sample data."""
     with tempfile.NamedTemporaryFile(
-        mode='w', 
-        suffix='.json', 
+        mode='w',
+        suffix='.json',
         delete=False,
         prefix="LOTTEST001_W01_CDSEM001_20251227_"
     ) as f:

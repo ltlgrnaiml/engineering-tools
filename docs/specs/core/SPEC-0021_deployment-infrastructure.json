@@ -193,5 +193,8 @@
     "feature-flags",
     "infrastructure",
     "specification"
+  ],
+  "implements_adr": [
+    "ADR-0020"
   ]
 }

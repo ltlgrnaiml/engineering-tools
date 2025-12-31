@@ -1,6 +1,6 @@
 """Integration tests for Gateway API."""
 import pytest
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
 
 from gateway.main import app
 
@@ -22,7 +22,7 @@ async def client():
 async def test_health_endpoint(client: AsyncClient):
     """Test health check endpoint returns 200."""
     response = await client.get("/api/health")
-    
+
     assert response.status_code == 200
     data = response.json()
     assert "status" in data
@@ -33,7 +33,7 @@ async def test_health_endpoint(client: AsyncClient):
 async def test_openapi_docs(client: AsyncClient):
     """Test OpenAPI docs are available."""
     response = await client.get("/docs")
-    
+
     # Docs endpoint redirects or returns HTML
     assert response.status_code in [200, 307]
 
@@ -42,7 +42,7 @@ async def test_openapi_docs(client: AsyncClient):
 async def test_datasets_list_empty(client: AsyncClient):
     """Test listing datasets when none exist."""
     response = await client.get("/api/datasets")
-    
+
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)
@@ -52,7 +52,7 @@ async def test_datasets_list_empty(client: AsyncClient):
 async def test_pipelines_list_empty(client: AsyncClient):
     """Test listing pipelines when none exist."""
     response = await client.get("/api/pipelines")
-    
+
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)
@@ -72,9 +72,9 @@ async def test_create_pipeline(client: AsyncClient):
             }
         ],
     }
-    
+
     response = await client.post("/api/pipelines", json=pipeline_data)
-    
+
     assert response.status_code == 200
     data = response.json()
     assert "pipeline_id" in data
@@ -85,7 +85,7 @@ async def test_create_pipeline(client: AsyncClient):
 async def test_get_nonexistent_dataset(client: AsyncClient):
     """Test getting a dataset that doesn't exist."""
     response = await client.get("/api/datasets/nonexistent123")
-    
+
     assert response.status_code == 404
 
 
@@ -93,5 +93,5 @@ async def test_get_nonexistent_dataset(client: AsyncClient):
 async def test_get_nonexistent_pipeline(client: AsyncClient):
     """Test getting a pipeline that doesn't exist."""
     response = await client.get("/api/pipelines/nonexistent123")
-    
+
     assert response.status_code == 404

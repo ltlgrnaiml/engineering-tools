@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import pytest
 import polars as pl
+import pytest
 
 
 @pytest.fixture
@@ -31,7 +31,7 @@ def two_way_known_dataset() -> pl.DataFrame:
     2x3 factorial design with factors A (2 levels) and B (3 levels).
     """
     return pl.DataFrame({
-        "factor_a": ["A1", "A1", "A1", "A1", "A1", "A1", 
+        "factor_a": ["A1", "A1", "A1", "A1", "A1", "A1",
                      "A2", "A2", "A2", "A2", "A2", "A2"],
         "factor_b": ["B1", "B1", "B2", "B2", "B3", "B3",
                      "B1", "B1", "B2", "B2", "B3", "B3"],

@@ -3,44 +3,43 @@
 Per ADR-0030: All routes use /api/{tool}/{resource} pattern (no version prefix).
 Per ADR-0014: Cancellation events are logged for audit.
 """
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, BackgroundTasks, Body
+from fastapi import APIRouter, BackgroundTasks, Body, HTTPException
 
-from shared.contracts.dat.cancellation import (
-    CancellationAuditLog,
-    CleanupTarget,
-)
-from shared.contracts.dat.profile import DATProfile
 from apps.data_aggregator.backend.services.cleanup import cleanup
 from apps.data_aggregator.backend.services.profile_service import ProfileService
-from shared.contracts.core.path_safety import make_relative
 from shared.contracts.core.error_response import (
     ErrorCategory,
     create_error_response,
 )
-from ..core.state_machine import Stage, StageState, StageStatus
+from shared.contracts.core.path_safety import make_relative
+from shared.contracts.dat.cancellation import (
+    CancellationAuditLog,
+    CleanupTarget,
+)
+
 from ..core.run_manager import RunManager
-from ..stages.selection import execute_selection
-from ..stages.parse import execute_parse, ParseConfig, CancellationToken
+from ..core.state_machine import Stage, StageState, StageStatus
 from ..stages.export import execute_export
+from ..stages.parse import CancellationToken, ParseConfig, execute_parse
+from ..stages.selection import execute_selection
 from .schemas import (
+    ContextInfo,
+    ContextOptionsRequest,
     CreateRunRequest,
-    CreateRunResponse,
+    ExportRequest,
+    ExtractionResponse,
+    FileInfoResponse,
+    ParseRequest,
+    PreviewResponse,
     RunResponse,
-    StageStatusResponse,
     ScanRequest,
     SelectionRequest,
     SelectionResponse,
-    FileInfoResponse,
+    StageStatusResponse,
     TableSelectionRequest,
-    ParseRequest,
-    ExportRequest,
-    PreviewResponse,
-    ContextOptionsRequest,
-    ContextInfo,
-    ExtractionResponse,
 )
 
 # Per ADR-0030: Tool-specific routes use no version prefix (mounted at /api/dat by gateway)
@@ -247,8 +246,7 @@ async def lock_discovery(run_id: str, request: ScanRequest):
         )
 
     # Discover files
-    from ..stages.discovery import execute_discovery
-    from ..stages.discovery import DiscoveryConfig
+    from ..stages.discovery import DiscoveryConfig, execute_discovery
 
     try:
         config = DiscoveryConfig(root_path=source_path)
@@ -566,7 +564,7 @@ async def cancel_parse(run_id: str, reason: str = "user_requested", actor: str =
             stage_id="parse",
             details={
                 "reason": reason,
-                "requested_at": datetime.now(timezone.utc).isoformat(),
+                "requested_at": datetime.now(UTC).isoformat(),
             },
             message=f"Parse cancellation requested by {actor}: {reason}",
         )
@@ -676,7 +674,7 @@ async def get_profile_tables(profile_id: str):
     for level_name, table_config in profile.get_all_tables():
         if level_name not in tables_by_level:
             tables_by_level[level_name] = []
-        
+
         tables_by_level[level_name].append({
             "id": table_config.id,
             "label": table_config.label,
@@ -803,10 +801,10 @@ async def execute_profile_extraction(run_id: str, request: ParseRequest | None =
       - available_run_keys: List of available run context keys for UI
       - available_image_keys: List of available image context keys for UI
     """
+    from ..profiles.profile_executor import ExtractionResult, ProfileExecutor
     from ..profiles.profile_loader import get_profile_by_id
-    from ..profiles.profile_executor import ProfileExecutor, ExtractionResult
-    from ..profiles.validation_engine import ValidationEngine
     from ..profiles.transform_pipeline import TransformPipeline
+    from ..profiles.validation_engine import ValidationEngine
 
     sm = run_manager.get_state_machine(run_id)
     run_state = await sm.store.get_run(run_id)
@@ -905,9 +903,9 @@ async def apply_context_to_tables(
     Returns:
         Tables with context applied per user options
     """
+    from ..profiles.output_builder import ContextOptions
+    from ..profiles.profile_executor import ExtractionResult, ProfileExecutor
     from ..profiles.profile_loader import get_profile_by_id
-    from ..profiles.profile_executor import ProfileExecutor, ExtractionResult
-    from ..profiles.output_builder import OutputBuilder, ContextOptions
 
     sm = run_manager.get_state_machine(run_id)
     run_state = await sm.store.get_run(run_id)
@@ -1013,11 +1011,11 @@ async def scan_table_availability(run_id: str):
     # If profile selected, return profile-defined tables
     if profile_id:
         from ..profiles.profile_loader import get_profile_by_id
-        
+
         profile = get_profile_by_id(profile_id)
         if not profile:
             raise HTTPException(status_code=404, detail=f"Profile not found: {profile_id}")
-        
+
         tables = []
         for level_name, table_config in profile.get_all_tables():
             tables.append({
@@ -1028,13 +1026,13 @@ async def scan_table_availability(run_id: str):
                 "file": ", ".join([Path(f).name for f in selected_files]),
                 "available": True,  # Profile tables are always "available" - extraction will handle actual data
             })
-        
+
         return tables
 
     # Fallback: Get tables from selected files (legacy file-based mode)
     from apps.data_aggregator.backend.adapters import create_default_registry
     from shared.contracts.dat.adapter import ReadOptions
-    
+
     registry = create_default_registry()
     tables = []
     for file_path in selected_files:
@@ -1046,7 +1044,7 @@ async def scan_table_availability(run_id: str):
                 file_tables = [s.sheet_name for s in probe_result.sheets] if probe_result.sheets else [Path(file_path).name]
             else:
                 file_tables = [Path(file_path).name]
-            
+
             for table in file_tables:
                 # Get actual row and column counts using async adapter
                 try:
@@ -1104,11 +1102,11 @@ async def lock_table_availability(run_id: str):
     # If profile selected, use profile-defined tables
     if profile_id:
         from ..profiles.profile_loader import get_profile_by_id
-        
+
         profile = get_profile_by_id(profile_id)
         if not profile:
             raise HTTPException(status_code=404, detail=f"Profile not found: {profile_id}")
-        
+
         tables = []
         for level_name, table_config in profile.get_all_tables():
             tables.append({
@@ -1118,7 +1116,7 @@ async def lock_table_availability(run_id: str):
                 "level": level_name,
                 "available": True,
             })
-        
+
         async def execute():
             return {
                 "discovered_tables": tables,
@@ -1136,7 +1134,7 @@ async def lock_table_availability(run_id: str):
     # Fallback: Discover tables from selected files (legacy file-based mode)
     from apps.data_aggregator.backend.adapters import create_default_registry
     from shared.contracts.dat.adapter import ReadOptions
-    
+
     registry = create_default_registry()
     tables = []
     for file_path in selected_files:
@@ -1148,7 +1146,7 @@ async def lock_table_availability(run_id: str):
                 file_tables = [s.sheet_name for s in probe_result.sheets] if probe_result.sheets else [Path(file_path).name]
             else:
                 file_tables = [Path(file_path).name]
-            
+
             for table in file_tables:
                 # Get actual row and column counts using async adapter
                 try:
@@ -1304,8 +1302,8 @@ async def lock_preview(run_id: str):
 
         # Profile-based preview: use ProfileExecutor to extract tables
         if profile_id:
-            from ..profiles.profile_loader import get_profile_by_id
             from ..profiles.profile_executor import ProfileExecutor
+            from ..profiles.profile_loader import get_profile_by_id
 
             profile = get_profile_by_id(profile_id)
             if not profile:
@@ -1316,7 +1314,7 @@ async def lock_preview(run_id: str):
                 }
 
             selected_table_ids = table_sel_artifact.get("selected_tables", {}).get("profile", [])
-            
+
             executor = ProfileExecutor(profile)
             for file_path in selected_files[:3]:  # Limit files for preview
                 try:
@@ -1324,7 +1322,7 @@ async def lock_preview(run_id: str):
                         file_path,
                         table_ids=selected_table_ids[:5] if selected_table_ids else None,  # Limit tables
                     )
-                    
+
                     for table_id, df in result.tables.items():
                         if len(df) > 0:
                             preview_df = df.head(preview_rows_per_table)
@@ -1436,7 +1434,7 @@ async def lock_export(run_id: str, request: ExportRequest):
     """Lock export stage with dataset generation."""
     import logging
     import traceback
-    
+
     logger = logging.getLogger(__name__)
 
     try:

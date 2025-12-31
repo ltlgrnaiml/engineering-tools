@@ -3,6 +3,7 @@ import os
 import random
 from datetime import datetime
 
+
 # Function to generate synthetic data for one process (post_litho or post_etch)
 def generate_data(process):
     means = {'post_litho': {'cd': 180, 'lwr': 5}, 'post_etch': {'cd': 130, 'lwr': 4}}
@@ -11,7 +12,7 @@ def generate_data(process):
     sigma_cd = sigmas[process]['cd']
     mean_lwr = means[process]['lwr']
     sigma_lwr = sigmas[process]['lwr']
-    
+
     data = {}
     for w in range(1, 4):  # 3 wafers
         wafer_id = f'W{w:02d}'

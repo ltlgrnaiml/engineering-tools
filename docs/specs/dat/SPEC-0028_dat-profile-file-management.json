@@ -335,5 +335,10 @@
     "devtools",
     "configuration",
     "editor"
+  ],
+  "implements_adr": [
+    "ADR-0001",
+    "ADR-0026",
+    "ADR-0012"
   ]
 }

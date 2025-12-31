@@ -4,8 +4,8 @@ Content-aware text segmentation with metadata tracking.
 """
 
 import re
-from pathlib import Path
 from dataclasses import dataclass
+from pathlib import Path
 
 
 @dataclass

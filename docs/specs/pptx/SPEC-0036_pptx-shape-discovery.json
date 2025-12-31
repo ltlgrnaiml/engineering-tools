@@ -8,7 +8,8 @@
   "author": "Mycahya Eggleston",
   "implements_adr": [
     "ADR-0018_PPTX-Template-Processing-Model",
-    "ADR-0021_PPTX-Renderer-Architecture"
+    "ADR-0021_PPTX-Renderer-Architecture",
+    "ADR-0033"
   ],
   "tier_0_contracts": [
     {

@@ -2,20 +2,20 @@
 
 Tests for ArtifactStore and RegistryDB operations.
 """
-import pytest
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import polars as pl
+import pytest
 
-from shared.contracts.core.dataset import DataSetManifest, ColumnMeta
 from shared.contracts.core.artifact_registry import (
-    ArtifactRecord,
-    ArtifactType,
-    ArtifactState,
     ArtifactQuery,
+    ArtifactRecord,
+    ArtifactState,
+    ArtifactType,
 )
+from shared.contracts.core.dataset import ColumnMeta, DataSetManifest
 from shared.storage.artifact_store import ArtifactStore
 from shared.storage.registry_db import RegistryDB
 
@@ -42,8 +42,8 @@ class TestArtifactStore:
             "col1": [1.0, 2.0, 3.0],
             "col2": ["a", "b", "c"],
         })
-        
-        now = datetime.now(timezone.utc)
+
+        now = datetime.now(UTC)
         manifest = DataSetManifest(
             dataset_id="ds_test123",
             name="Test Dataset",
@@ -55,16 +55,16 @@ class TestArtifactStore:
             ],
             row_count=3,
         )
-        
+
         # Write dataset
         path = await store.write_dataset("ds_test123", df, manifest)
         assert path == Path("datasets/ds_test123")
-        
+
         # Read back
         read_df = await store.read_dataset("ds_test123")
         assert len(read_df) == 3
         assert "col1" in read_df.columns
-        
+
         # Get manifest
         read_manifest = await store.get_manifest("ds_test123")
         assert read_manifest.dataset_id == "ds_test123"
@@ -76,7 +76,7 @@ class TestArtifactStore:
         # Create multiple datasets
         for i in range(3):
             df = pl.DataFrame({"val": [i]})
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             manifest = DataSetManifest(
                 dataset_id=f"ds_list_{i}",
                 name=f"Dataset {i}",
@@ -86,11 +86,11 @@ class TestArtifactStore:
                 row_count=1,
             )
             await store.write_dataset(f"ds_list_{i}", df, manifest)
-        
+
         # List all
         all_refs = await store.list_datasets()
         assert len(all_refs) == 3
-        
+
         # Filter by tool
         dat_refs = await store.list_datasets(tool="dat")
         assert len(dat_refs) == 2
@@ -99,10 +99,10 @@ class TestArtifactStore:
     async def test_dataset_exists(self, store):
         """Test checking if dataset exists."""
         assert not await store.dataset_exists("ds_nonexistent")
-        
+
         # Create a dataset
         df = pl.DataFrame({"val": [1]})
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         manifest = DataSetManifest(
             dataset_id="ds_exists",
             name="Existing",
@@ -112,7 +112,7 @@ class TestArtifactStore:
             row_count=1,
         )
         await store.write_dataset("ds_exists", df, manifest)
-        
+
         assert await store.dataset_exists("ds_exists")
 
     def test_relative_path_conversion(self, store):
@@ -121,7 +121,7 @@ class TestArtifactStore:
         rel_path = store.get_relative_path(abs_path)
         # Normalize path separators for cross-platform compatibility
         assert rel_path.replace("\\", "/") == "datasets/test"
-        
+
         back_to_abs = store.get_absolute_path(rel_path)
         assert back_to_abs == abs_path
 
@@ -145,7 +145,7 @@ class TestRegistryDB:
     @pytest.mark.asyncio
     async def test_register_and_get_artifact(self, registry):
         """Test registering and retrieving an artifact."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         record = ArtifactRecord(
             artifact_id="art_test123",
             artifact_type=ArtifactType.DATASET,
@@ -156,9 +156,9 @@ class TestRegistryDB:
             created_by_tool="dat",
             size_bytes=1024,
         )
-        
+
         await registry.register(record)
-        
+
         retrieved = await registry.get("art_test123")
         assert retrieved is not None
         assert retrieved.artifact_id == "art_test123"
@@ -168,8 +168,8 @@ class TestRegistryDB:
     @pytest.mark.asyncio
     async def test_query_artifacts(self, registry):
         """Test querying artifacts with filters."""
-        now = datetime.now(timezone.utc)
-        
+        now = datetime.now(UTC)
+
         # Register multiple artifacts
         for i in range(5):
             record = ArtifactRecord(
@@ -182,13 +182,13 @@ class TestRegistryDB:
                 created_by_tool="dat" if i % 2 == 0 else "sov",
             )
             await registry.register(record)
-        
+
         # Query by type
         datasets = await registry.query(ArtifactQuery(
             artifact_type=ArtifactType.DATASET
         ))
         assert len(datasets) == 3
-        
+
         # Query by tool
         dat_artifacts = await registry.query(ArtifactQuery(
             created_by_tool="dat"
@@ -198,7 +198,7 @@ class TestRegistryDB:
     @pytest.mark.asyncio
     async def test_update_state(self, registry):
         """Test updating artifact state (per ADR-0002)."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         record = ArtifactRecord(
             artifact_id="art_state",
             artifact_type=ArtifactType.DATASET,
@@ -209,13 +209,13 @@ class TestRegistryDB:
             created_by_tool="dat",
         )
         await registry.register(record)
-        
+
         # Update to locked
         await registry.update_state("art_state", ArtifactState.LOCKED)
         locked = await registry.get("art_state")
         assert locked.state == ArtifactState.LOCKED
         assert locked.locked_at is not None
-        
+
         # Update to unlocked (artifact preserved per ADR-0002)
         await registry.update_state("art_state", ArtifactState.UNLOCKED)
         unlocked = await registry.get("art_state")
@@ -225,8 +225,8 @@ class TestRegistryDB:
     @pytest.mark.asyncio
     async def test_get_stats(self, registry):
         """Test getting registry statistics."""
-        now = datetime.now(timezone.utc)
-        
+        now = datetime.now(UTC)
+
         for i in range(3):
             record = ArtifactRecord(
                 artifact_id=f"art_stats_{i}",
@@ -239,7 +239,7 @@ class TestRegistryDB:
                 size_bytes=100 * (i + 1),
             )
             await registry.register(record)
-        
+
         stats = await registry.get_stats()
         assert stats.total_artifacts == 3
         assert stats.total_size_bytes == 600  # 100 + 200 + 300

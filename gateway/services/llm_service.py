@@ -5,14 +5,14 @@ Includes validation, retry logic, and health checking.
 """
 
 import json
-import os
 import logging
+import os
 import sqlite3
-from datetime import datetime
-from typing import Any, TypeVar
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
+from typing import Any, TypeVar
 
 import httpx
 from openai import OpenAI
@@ -535,7 +535,7 @@ IMPORTANT:
                 response_format={"type": "json_object"},
                 temperature=0.7,
             )
-            
+
             content = response.choices[0].message.content or ""
             last_raw = content
 
@@ -559,7 +559,7 @@ IMPORTANT:
                 # Extract token usage from OpenAI SDK response
                 input_tokens = response.usage.prompt_tokens if response.usage else None
                 output_tokens = response.usage.completion_tokens if response.usage else None
-                
+
                 # Log successful call
                 _log_llm_call(
                     model=_current_model,
@@ -571,7 +571,7 @@ IMPORTANT:
                     input_tokens=input_tokens,
                     output_tokens=output_tokens,
                 )
-                
+
                 return LLMResponse(
                     success=True,
                     data=validated.model_dump(),
@@ -604,7 +604,7 @@ IMPORTANT:
         success=False,
         error_message=last_error,
     )
-    
+
     return LLMResponse(
         success=False,
         data=None,

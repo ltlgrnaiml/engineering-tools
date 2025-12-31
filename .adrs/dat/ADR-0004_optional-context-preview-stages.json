@@ -32,7 +32,8 @@
     ],
     "implementation_specs": [
       "SPEC-0002_Profile-Context-Orchestration",
-      "SPEC-0003_Frontend-Panel-Status-Integration"
+      "SPEC-0003_Frontend-Panel-Status-Integration",
+      "SPEC-0024"
     ]
   },
   "consequences": [
@@ -86,7 +87,18 @@
     "ADR-0003_stage-graph-configuration: DAT-specific stage graph",
     "ADR-0002_Artifact-Preservation-on-Unlock: Artifact preservation policy",
     "ADR-0005_deterministic-content-addressed-ids: Deterministic ID generation",
-    "ADR-0017_Cross-Cutting-Guardrails"
+    "ADR-0017_Cross-Cutting-Guardrails",
+    "ADR-0009",
+    "ADR-0013",
+    "ADR-0018",
+    "ADR-0026",
+    "ADR-0027",
+    "ADR-0037",
+    "ADR-0006",
+    "ADR-0008",
+    "ADR-0014",
+    "ADR-0015",
+    "ADR-0042"
   ],
   "tags": [
     "workflow-flexibility",

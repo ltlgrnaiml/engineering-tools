@@ -1,13 +1,13 @@
 import { Search, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useArtifacts } from '@/hooks/useWorkflowApi'
-import type { ArtifactType } from './types'
+import type { ArtifactType, ArtifactSummary } from './types'
 
 interface ArtifactListProps {
   type: ArtifactType
   searchQuery: string
   onSearchChange: (query: string) => void
-  onSelect: (id: string, type: ArtifactType) => void
+  onSelect: (artifact: ArtifactSummary) => void
   selectedId?: string
 }
 
@@ -51,7 +51,7 @@ export function ArtifactList({
         {!loading && !error && artifacts?.map((artifact) => (
           <button
             key={artifact.id}
-            onClick={() => onSelect(artifact.id, artifact.type)}
+            onClick={() => onSelect(artifact)}
             className={cn(
               'w-full text-left px-3 py-2 text-sm hover:bg-zinc-800 border-b border-zinc-800/50',
               selectedId === artifact.id && 'bg-zinc-800'

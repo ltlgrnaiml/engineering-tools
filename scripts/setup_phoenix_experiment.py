@@ -19,6 +19,7 @@ sys.path.insert(0, PROJECT_ROOT)
 
 # Load .env
 from dotenv import load_dotenv
+
 load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
 
 
@@ -36,18 +37,17 @@ def check_phoenix():
 def start_phoenix():
     """Start Phoenix server."""
     import phoenix as px
-    
+
     # Launch Phoenix
     session = px.launch_app()
-    print(f"✅ Phoenix UI: http://localhost:6006")
+    print("✅ Phoenix UI: http://localhost:6006")
     return session
 
 
 def create_exp002_dataset():
     """Create Phoenix dataset from EXP-002 test scenario."""
     import phoenix as px
-    from phoenix.experiments.types import Example
-    
+
     # EXP-002 Test Scenario
     test_scenario = {
         "title": "Artifact Version History",
@@ -64,14 +64,14 @@ Key constraints:
 - Version data should be stored alongside artifacts, not in a separate database
 - Must integrate with the existing artifact API endpoints"""
     }
-    
+
     # Create dataset with the test scenario as examples
     client = px.Client()
-    
+
     # Check if dataset exists
     try:
         dataset = client.get_dataset(name="EXP-002-Model-Quality")
-        print(f"✅ Dataset 'EXP-002-Model-Quality' already exists")
+        print("✅ Dataset 'EXP-002-Model-Quality' already exists")
     except:
         # Create new dataset
         dataset = client.upload_dataset(
@@ -83,15 +83,15 @@ Key constraints:
                 {"expected_artifacts": ["DISC", "ADR", "SPEC", "PLAN"]}
             ],
         )
-        print(f"✅ Created dataset 'EXP-002-Model-Quality'")
-    
+        print("✅ Created dataset 'EXP-002-Model-Quality'")
+
     return dataset
 
 
 def print_xai_config():
     """Print xAI configuration instructions for Phoenix."""
     xai_key = os.getenv("XAI_API_KEY", "")
-    
+
     print("\n" + "="*60)
     print("📋 xAI Configuration for Phoenix Playground")
     print("="*60)
@@ -103,7 +103,7 @@ def print_xai_config():
     print("4. In Playground → Model Config:")
     print("   - Base URL: https://api.x.ai/v1")
     print("   - Model: grok-3-fast (or grok-4-fast-reasoning)")
-    
+
     print("\nOption 2: Environment Variables (already set)")
     print("-" * 40)
     if xai_key:
@@ -111,7 +111,7 @@ def print_xai_config():
         print("   XAI_BASE_URL: https://api.x.ai/v1")
     else:
         print("   ❌ XAI_API_KEY not found in .env")
-    
+
     print("\n" + "="*60)
 
 
@@ -172,7 +172,7 @@ Output JSON:
   "weaknesses": ["..."],
   "recommendation": "excellent|good|fair|poor"
 }'''
-    
+
     print("\n" + "="*60)
     print("📊 Rubric-Based Evaluator Prompt")
     print("="*60)
@@ -180,15 +180,15 @@ Output JSON:
     print("-" * 40)
     print(evaluator_prompt[:500] + "...\n")
     print("(Full prompt saved to .experiments/EXP-002_Model-Quality-Evaluation/EVALUATOR_PROMPT.txt)")
-    
+
     # Save full prompt
     evaluator_path = os.path.join(
-        PROJECT_ROOT, 
+        PROJECT_ROOT,
         ".experiments/EXP-002_Model-Quality-Evaluation/EVALUATOR_PROMPT.txt"
     )
     with open(evaluator_path, "w") as f:
         f.write(evaluator_prompt)
-    
+
     return evaluator_prompt
 
 
@@ -196,29 +196,29 @@ def main():
     """Setup Phoenix experiment."""
     print("🔬 Setting up Phoenix Experiment from EXP-002")
     print("="*60)
-    
+
     # Check Phoenix
     if not check_phoenix():
         print("\nInstall with: pip install arize-phoenix")
         return 1
-    
+
     # Start Phoenix
     print("\n📡 Starting Phoenix server...")
     session = start_phoenix()
-    
+
     # Print xAI configuration
     print_xai_config()
-    
+
     # Create dataset
     print("\n📦 Creating experiment dataset...")
     try:
         dataset = create_exp002_dataset()
     except Exception as e:
         print(f"⚠️ Dataset creation skipped: {e}")
-    
+
     # Print evaluator prompt
     print_rubric_evaluator()
-    
+
     # Summary
     print("\n" + "="*60)
     print("🎯 Next Steps")
@@ -242,7 +242,7 @@ def main():
 
 Press Ctrl+C to stop Phoenix when done.
 """)
-    
+
     # Keep running
     try:
         import time
@@ -250,7 +250,7 @@ Press Ctrl+C to stop Phoenix when done.
             time.sleep(1)
     except KeyboardInterrupt:
         print("\n👋 Shutting down Phoenix...")
-    
+
     return 0
 
 

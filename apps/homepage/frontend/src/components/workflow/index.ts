@@ -39,7 +39,8 @@ export { EmptyState, WorkflowStartedState } from './EmptyState'
 
 // Workflow Stepper
 export { WorkflowStepper } from './WorkflowStepper'
-export type { WorkflowStage } from './WorkflowStepper'
+export type { WorkflowStage, WorkflowType } from './workflowUtils'
+export { getStartingStage, getWorkflowStages, isStageInWorkflow, artifactTypeToStage } from './workflowUtils'
 
 // AI-Full Mode Components
 export { GenerateWorkflowModal } from './GenerateWorkflowModal'

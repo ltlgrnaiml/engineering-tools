@@ -23,13 +23,13 @@ from shared.contracts.dat.cancellation import (
 )
 
 from ..core.checkpoint_manager import CheckpointManager
-from ..profiles.profile_loader import DATProfile, get_profile_by_id
-from ..profiles.profile_executor import ProfileExecutor
 from ..profiles.context_extractor import ContextExtractor
-from ..profiles.validation_engine import ValidationEngine
-from ..profiles.transform_pipeline import TransformPipeline
 from ..profiles.output_builder import OutputBuilder
 from ..profiles.population_strategies import apply_population_strategy
+from ..profiles.profile_executor import ProfileExecutor
+from ..profiles.profile_loader import DATProfile, get_profile_by_id
+from ..profiles.transform_pipeline import TransformPipeline
+from ..profiles.validation_engine import ValidationEngine
 
 # Per ADR-0041: Large file streaming threshold
 STREAMING_THRESHOLD_BYTES = 10 * 1024 * 1024  # 10MB
@@ -172,11 +172,11 @@ async def _execute_profile_extraction(
     # Priority 1: User overrides, Priority 2: JSONPath, Priority 3: Regex, Priority 4: Defaults
     context_extractor = ContextExtractor()
     executor = ProfileExecutor()
-    
+
     for file_path in config.selected_files:
         # Load file content for JSONPath extraction (Priority 2)
         file_content = await executor._load_file(file_path, profile)
-        
+
         file_context = context_extractor.extract(
             profile=profile,
             file_path=file_path,
@@ -187,7 +187,7 @@ async def _execute_profile_extraction(
 
     if progress_callback:
         progress_callback(10, "Context extracted, executing profile...")
-    
+
     # Get selected tables from config or use all
     selected_tables = None
     if config.selected_tables:
@@ -218,12 +218,12 @@ async def _execute_profile_extraction(
     # Validate extraction
     validation_engine = ValidationEngine()
     validation_summary = validation_engine.validate_extraction(extracted_tables, profile)
-    
+
     # Per DESIGN §7: Handle validation failures based on on_validation_fail policy
     quarantine_tables: dict[str, pl.DataFrame] = {}
     if not validation_summary.valid:
         on_fail = getattr(profile, 'on_validation_fail', 'continue')
-        
+
         if on_fail == "stop":
             err_count = validation_summary.error_count
             logger.error(f"Validation failed with {err_count} errors - stopping")
@@ -250,19 +250,19 @@ async def _execute_profile_extraction(
     for table_id, df in extracted_tables.items():
         # 1. Apply normalization (NaN replacement, numeric coercion, row filters, units)
         df = transform_pipeline.apply_normalization(df, profile)
-        
+
         # 2. Per DESIGN §6: Apply global column renames if defined
         if hasattr(profile, 'column_renames') and profile.column_renames:
             df = transform_pipeline.apply_column_renames(df, profile.column_renames)
-        
+
         # 3. Per DESIGN §6: Apply calculated columns if defined
         if hasattr(profile, 'calculated_columns') and profile.calculated_columns:
             df = transform_pipeline.apply_calculated_columns(df, profile.calculated_columns)
-        
+
         # 4. Per DESIGN §6: Apply type coercion if defined
         if hasattr(profile, 'type_coercion') and profile.type_coercion:
             df = transform_pipeline.apply_type_coercion(df, profile.type_coercion)
-        
+
         extracted_tables[table_id] = df
 
     if progress_callback:
@@ -275,7 +275,7 @@ async def _execute_profile_extraction(
         profile,
         context=context,
     )
-    
+
     # Combine all tables (including profile outputs) for final result
     all_tables = {**extracted_tables, **profile_outputs}
     combined = output_builder.combine_all_tables(all_tables, context)

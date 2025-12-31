@@ -297,7 +297,11 @@ class MappingSuggesterService:
 if __name__ == "__main__":
     from uuid import uuid4
 
-    from apps.pptx_generator.backend.models.drm import AggregationType, RequiredContext, RequiredMetric
+    from apps.pptx_generator.backend.models.drm import (
+        AggregationType,
+        RequiredContext,
+        RequiredMetric,
+    )
 
     # Create test DRM
     drm = DerivedRequirementsManifest(

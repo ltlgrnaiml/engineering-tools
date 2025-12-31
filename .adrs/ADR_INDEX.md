@@ -119,6 +119,7 @@ These ADRs define patterns that ALL tools (DAT, PPTX, SOV) MUST follow:
 | ID | Title | Extends |
 |----|-------|--------|
 | ADR-0047 | Knowledge Archive & RAG System | ADR-0043 |
+| ADR-0048 | Unified xAI Agent Wrapper Architecture | ADR-0047 |
 
 ## Orthogonality Matrix
 
@@ -146,7 +147,7 @@ Each ADR addresses a distinct concern (no overlaps):
 | CI/CD | ADR-0039 | - |
 | Deployment | ADR-0040 | - |
 | AI Workflow | ADR-0043 | ADR-0047 |
-| Knowledge/RAG | ADR-0047 | - |
+| Knowledge/RAG | ADR-0047, ADR-0048 | - |
 | Frontend Integration | ADR-0044 | - |
 
 ## ADR Numbering Refactor (2025-12-30)
@@ -213,6 +214,6 @@ See `.adrs/TODO_CODE_VALIDATION.md` for the validation checklist.
 
 ---
 
-*Last Updated: 2025-12-30*
+*Last Updated: 2025-12-31*
 *Maintainer: Mycahya Eggleston*
-*Total ADRs: 46 (29 core + 9 DAT + 4 PPTX + 3 SOV + 2 DevTools - 1 shared)*
+*Total ADRs: 47 (30 core + 9 DAT + 4 PPTX + 3 SOV + 2 DevTools - 1 shared)*

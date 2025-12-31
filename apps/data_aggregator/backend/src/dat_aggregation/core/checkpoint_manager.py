@@ -9,7 +9,7 @@ including Parse and Export stages.
 import hashlib
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -103,7 +103,7 @@ class CheckpointManager:
         Returns:
             CancellableOperation instance for tracking.
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         self._operation = CancellableOperation(
             operation_id=f"{self.run_id}_{self.stage_id}_{now.timestamp()}",
             job_id=self.run_id,
@@ -141,7 +141,7 @@ class CheckpointManager:
         Returns:
             Created Checkpoint instance.
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         progress_pct = None
         if items_total and items_total > 0:
             progress_pct = min((items_completed / items_total) * 100, 100.0)  # Cap at 100%
@@ -239,7 +239,7 @@ class CheckpointManager:
 
         if self._operation:
             self._operation.cancel_requested = True
-            self._operation.cancel_request_at = datetime.now(timezone.utc)
+            self._operation.cancel_request_at = datetime.now(UTC)
             self._operation.state = CancellableOperationState.CANCELLING
 
         logger.info(f"Cancellation requested for {self.run_id}/{self.stage_id}")
@@ -261,7 +261,7 @@ class CheckpointManager:
         Returns:
             CancellationResult with full details.
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # Collect preserved checkpoint IDs
         preserved_checkpoints = [cp.checkpoint_id for cp in self._registry.checkpoints]

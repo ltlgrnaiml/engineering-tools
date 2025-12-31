@@ -80,7 +80,15 @@
   "references": [
     "ADR-0004_Deterministic-Content-Addressed-IDs: Core ID generation uses timestamps for provenance",
     "ADR-0017_Cross-Cutting-Guardrails: Audit trail guardrails",
-    "shared/contracts/: All artifact contracts include timestamp fields"
+    "shared/contracts/: All artifact contracts include timestamp fields",
+    "ADR-0007",
+    "ADR-0016",
+    "ADR-0018",
+    "ADR-0032",
+    "ADR-0035",
+    "ADR-0036",
+    "ADR-0012",
+    "ADR-0025"
   ],
   "tags": [
     "audit-trail",

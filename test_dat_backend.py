@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """Test DAT backend API functionality."""
 
+
 import requests
-import json
-import time
-from pathlib import Path
+
 
 def test_backend():
     """Test the DAT backend functionality."""

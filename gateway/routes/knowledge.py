@@ -5,13 +5,13 @@ REST endpoints for knowledge archive.
 
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import PlainTextResponse
 
-from shared.contracts.knowledge.archive import Document, SyncStatus, SyncMode, DocumentType
-from gateway.services.knowledge.database import init_database
 from gateway.services.knowledge.archive_service import ArchiveService
+from gateway.services.knowledge.database import init_database
 from gateway.services.knowledge.sync_service import SyncService
+from shared.contracts.knowledge.archive import Document, DocumentType, SyncMode, SyncStatus
 
 router = APIRouter(prefix="/api/knowledge", tags=["knowledge"])
 
@@ -85,6 +85,7 @@ async def export_document_endpoint(doc_id: str, archive: ArchiveService = Depend
 
 from gateway.services.knowledge.search_service import SearchService
 
+
 def get_search(archive: ArchiveService = Depends(get_archive)) -> SearchService:
     return SearchService(archive.conn)
 
@@ -131,8 +132,8 @@ async def get_relationships(
     return archive.get_relationships(doc_id)
 
 
-from gateway.services.knowledge.sanitizer import Sanitizer
 from gateway.services.knowledge.context_builder import ContextBuilder
+from gateway.services.knowledge.sanitizer import Sanitizer
 
 
 @router.get("/rag/context")

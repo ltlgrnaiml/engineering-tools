@@ -14,7 +14,7 @@ Usage:
     df, result = await adapter.read_dataframe("data.csv")
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -76,7 +76,7 @@ class AdapterRegistry:
 
     def __init__(self) -> None:
         """Initialize an empty adapter registry."""
-        self._adapters: dict[str, "BaseFileAdapter"] = {}
+        self._adapters: dict[str, BaseFileAdapter] = {}
         self._extension_map: dict[str, str] = {}
         self._mime_map: dict[str, str] = {}
         self._registered_at: dict[str, datetime] = {}
@@ -111,7 +111,7 @@ class AdapterRegistry:
 
         # Register the adapter
         self._adapters[adapter_id] = adapter
-        self._registered_at[adapter_id] = datetime.now(timezone.utc)
+        self._registered_at[adapter_id] = datetime.now(UTC)
 
         # Map file extensions to this adapter
         for ext in meta.file_extensions:
@@ -262,7 +262,7 @@ class AdapterRegistry:
             adapters=entries,
             extension_map=dict(self._extension_map),
             mime_map=dict(self._mime_map),
-            last_updated=datetime.now(timezone.utc),
+            last_updated=datetime.now(UTC),
         )
 
     def __len__(self) -> int:

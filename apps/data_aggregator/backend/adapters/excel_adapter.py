@@ -20,9 +20,10 @@ For large Excel files, consider converting to CSV first.
 """
 
 import asyncio
-from datetime import datetime, timezone
+from collections.abc import AsyncIterator
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, AsyncIterator
+from typing import Any
 
 import polars as pl
 
@@ -153,7 +154,7 @@ class ExcelAdapter(BaseFileAdapter):
         Raises:
             AdapterError: If file cannot be probed.
         """
-        start_time = datetime.now(timezone.utc)
+        start_time = datetime.now(UTC)
         options = options or ReadOptions()
         errors: list[str] = []
         warnings: list[str] = []
@@ -258,7 +259,7 @@ class ExcelAdapter(BaseFileAdapter):
                     )
                 )
 
-            end_time = datetime.now(timezone.utc)
+            end_time = datetime.now(UTC)
             duration_ms = (end_time - start_time).total_seconds() * 1000
 
             return SchemaProbeResult(
@@ -312,7 +313,7 @@ class ExcelAdapter(BaseFileAdapter):
         Raises:
             AdapterError: If file cannot be read.
         """
-        start_time = datetime.now(timezone.utc)
+        start_time = datetime.now(UTC)
         options = options or ReadOptions()
         warnings: list[str] = []
 
@@ -378,7 +379,7 @@ class ExcelAdapter(BaseFileAdapter):
 
             df = await asyncio.to_thread(_read_excel)
 
-            end_time = datetime.now(timezone.utc)
+            end_time = datetime.now(UTC)
             duration_ms = (end_time - start_time).total_seconds() * 1000
 
             was_truncated = options.row_limit is not None and len(df) >= options.row_limit
@@ -451,7 +452,7 @@ class ExcelAdapter(BaseFileAdapter):
         Returns:
             FileValidationResult with validation status and issues.
         """
-        start_time = datetime.now(timezone.utc)
+        start_time = datetime.now(UTC)
         issues: list[ValidationIssue] = []
 
         try:
@@ -561,7 +562,7 @@ class ExcelAdapter(BaseFileAdapter):
         Returns:
             FileValidationResult with computed fields.
         """
-        end_time = datetime.now(timezone.utc)
+        end_time = datetime.now(UTC)
         duration_ms = (end_time - start_time).total_seconds() * 1000
 
         error_count = sum(

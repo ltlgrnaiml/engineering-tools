@@ -215,5 +215,9 @@
     "idempotency",
     "implementation",
     "specification"
+  ],
+  "implements_adr": [
+    "ADR-0005",
+    "ADR-0006"
   ]
 }

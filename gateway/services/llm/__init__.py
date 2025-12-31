@@ -6,13 +6,13 @@ Provides:
 - Phoenix tracing for all LLM calls
 """
 
-from gateway.services.llm.xai_langchain import (
-    get_xai_chat_model,
-    XAIChatModel,
-)
 from gateway.services.llm.rag_chain import (
-    create_rag_chain,
     RAGChain,
+    create_rag_chain,
+)
+from gateway.services.llm.xai_langchain import (
+    XAIChatModel,
+    get_xai_chat_model,
 )
 
 __all__ = [

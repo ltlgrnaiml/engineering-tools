@@ -7,7 +7,6 @@ import pytest
 
 from gateway.services.workflow_service import build_artifact_graph, scan_artifacts
 from shared.contracts.devtools.workflow import (
-    ArtifactStatus,
     ArtifactSummary,
     ArtifactType,
     GraphResponse,
@@ -278,6 +277,7 @@ class TestAIFullMode:
             artifact_type=ArtifactType.DISCUSSION,
             title="Test Feature",
             description="A test feature description",
+            use_llm=False,  # Test template fallback
         )
 
         assert content["title"] == "Test Feature"
@@ -293,6 +293,7 @@ class TestAIFullMode:
             artifact_type=ArtifactType.ADR,
             title="Architecture Decision",
             description="An important decision",
+            use_llm=False,  # Test template fallback
         )
 
         assert content["title"] == "Architecture Decision"
@@ -512,11 +513,7 @@ class TestDiscussionSchema:
     def test_discussion_schema_import(self) -> None:
         """Discussion schema should be importable."""
         from shared.contracts.devtools.discussion import (
-            DiscussionSchema,
             DiscussionStatus,
-            DiscussionRequirements,
-            FunctionalRequirement,
-            OpenQuestion,
         )
 
         # Verify imports work
@@ -547,9 +544,9 @@ class TestDiscussionSchema:
     def test_discussion_schema_with_requirements(self) -> None:
         """Create Discussion with requirements."""
         from shared.contracts.devtools.discussion import (
+            DiscussionRequirements,
             DiscussionSchema,
             DiscussionStatus,
-            DiscussionRequirements,
             FunctionalRequirement,
             NonFunctionalRequirement,
         )
@@ -581,10 +578,10 @@ class TestDiscussionSchema:
     def test_discussion_summary_for_prompt(self) -> None:
         """Test DiscussionSummaryForPrompt extraction."""
         from shared.contracts.devtools.discussion import (
+            DiscussionRequirements,
             DiscussionSchema,
             DiscussionStatus,
             DiscussionSummaryForPrompt,
-            DiscussionRequirements,
             FunctionalRequirement,
             OpenQuestion,
             QuestionStatus,
@@ -616,8 +613,9 @@ class TestDiscussionSchema:
 
     def test_discussion_id_validation(self) -> None:
         """Discussion ID must start with DISC-."""
-        from shared.contracts.devtools.discussion import DiscussionSchema, DiscussionStatus
         import pydantic
+
+        from shared.contracts.devtools.discussion import DiscussionSchema, DiscussionStatus
 
         with pytest.raises(pydantic.ValidationError):
             DiscussionSchema(

@@ -5,7 +5,7 @@ Per SPEC-0008: Use adapter.probe_schema(), not full reads.
 """
 
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -60,22 +60,22 @@ async def probe_table(
             status=status,
             column_count=len(result.columns) if result.columns else 0,
             row_estimate=result.row_count,
-            probed_at=datetime.now(timezone.utc),
+            probed_at=datetime.now(UTC),
         )
 
-    except asyncio.TimeoutError:
+    except TimeoutError:
         return TableAvailability(
             table_id=table_id,
             status=TableAvailabilityStatus.ERROR,
             error_message="Probe timeout exceeded",
-            probed_at=datetime.now(timezone.utc),
+            probed_at=datetime.now(UTC),
         )
 
     except FileNotFoundError:
         return TableAvailability(
             table_id=table_id,
             status=TableAvailabilityStatus.MISSING,
-            probed_at=datetime.now(timezone.utc),
+            probed_at=datetime.now(UTC),
         )
 
     except Exception as e:
@@ -83,7 +83,7 @@ async def probe_table(
             table_id=table_id,
             status=TableAvailabilityStatus.ERROR,
             error_message=str(e),
-            probed_at=datetime.now(timezone.utc),
+            probed_at=datetime.now(UTC),
         )
 
 

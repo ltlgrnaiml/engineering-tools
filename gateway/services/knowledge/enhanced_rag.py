@@ -10,12 +10,10 @@ Per user request: Levels 1+2 are default, with LLM re-ranking as UI toggle.
 
 import logging
 from dataclasses import dataclass, field
-from typing import Callable
 
 from gateway.services.knowledge.database import get_connection
-from gateway.services.knowledge.search_service import SearchService, SearchHit
-from gateway.services.knowledge.context_builder import ContextBuilder
 from gateway.services.knowledge.sanitizer import Sanitizer
+from gateway.services.knowledge.search_service import SearchHit, SearchService
 
 logger = logging.getLogger(__name__)
 
@@ -51,16 +49,16 @@ def enhance_query(query: str, artifact_type: str | None = None) -> str:
         Enhanced query with additional relevant terms.
     """
     parts = [query]
-    
+
     # Add artifact-specific terms
     if artifact_type:
         expansion = ARTIFACT_QUERY_EXPANSIONS.get(artifact_type.lower(), "")
         if expansion:
             parts.append(expansion)
-    
+
     # Add general project terms
     parts.append("engineering-tools platform workflow")
-    
+
     return " ".join(parts)
 
 
@@ -93,32 +91,33 @@ def rerank_with_llm(
     """
     if not candidates:
         return []
-    
+
     try:
-        from gateway.services.llm_service import is_available, generate_structured
         from pydantic import BaseModel
-        
+
+        from gateway.services.llm_service import generate_structured, is_available
+
         if not is_available():
             logger.warning("LLM not available for re-ranking, using original order")
             return [
                 RankedResult(hit=h, relevance_score=h.score, relevance_reason="Original score")
                 for h in candidates[:top_k]
             ]
-        
+
         # Build candidate list for LLM
         candidate_text = "\n".join([
             f"[{i}] {h.title}: {h.snippet[:200]}..."
             for i, h in enumerate(candidates)
         ])
-        
+
         class ScoredDoc(BaseModel):
             index: int
             score: float  # 0-10
             reason: str
-        
+
         class ReRankResponse(BaseModel):
             rankings: list[ScoredDoc]
-        
+
         prompt = f"""Rate each document's relevance to this query: "{query}"
 
 Documents:
@@ -136,12 +135,12 @@ Return the top {top_k} most relevant documents."""
             schema=ReRankResponse,
             system_prompt="You are a document relevance scorer for a software development project.",
         )
-        
+
         if response.success and response.data:
             rankings = response.data.get("rankings", [])
             # Sort by score descending
             rankings.sort(key=lambda x: x.get("score", 0), reverse=True)
-            
+
             results = []
             for r in rankings[:top_k]:
                 idx = r.get("index", 0)
@@ -152,10 +151,10 @@ Return the top {top_k} most relevant documents."""
                         relevance_reason=r.get("reason", ""),
                     ))
             return results
-        
+
     except Exception as e:
         logger.warning(f"LLM re-ranking failed: {e}, using original order")
-    
+
     # Fallback to original order
     return [
         RankedResult(hit=h, relevance_score=h.score, relevance_reason="Original score")
@@ -184,14 +183,14 @@ def expand_with_graph(
     """
     if conn is None:
         conn = get_connection()
-    
+
     expanded = set(doc_ids)
     frontier = set(doc_ids)
-    
+
     for _ in range(max_hops):
         if not frontier:
             break
-        
+
         # Find all documents referenced by or referencing frontier
         placeholders = ",".join("?" * len(frontier))
         rows = conn.execute(f"""
@@ -201,11 +200,11 @@ def expand_with_graph(
             SELECT DISTINCT source_id FROM relationships
             WHERE target_id IN ({placeholders})
         """, list(frontier) + list(frontier)).fetchall()
-        
+
         new_docs = {r[0] for r in rows} - expanded
         expanded.update(new_docs)
         frontier = new_docs
-    
+
     return list(expanded)
 
 
@@ -224,14 +223,14 @@ def get_related_documents(
     """
     if not doc_ids or conn is None:
         conn = get_connection()
-    
+
     placeholders = ",".join("?" * len(doc_ids))
     rows = conn.execute(f"""
         SELECT id, title, type, substr(content, 1, 500) as snippet
         FROM documents
         WHERE id IN ({placeholders}) AND archived_at IS NULL
     """, doc_ids).fetchall()
-    
+
     return [
         {"id": r["id"], "title": r["title"], "type": r["type"], "snippet": r["snippet"]}
         for r in rows
@@ -267,15 +266,15 @@ class EnhancedRAGResult:
 
 class EnhancedRAGBuilder:
     """Enhanced RAG context builder with multiple retrieval strategies."""
-    
+
     CHARS_PER_TOKEN = 4
-    
+
     def __init__(self, config: EnhancedRAGConfig | None = None):
         self.config = config or EnhancedRAGConfig()
         self._conn = None
         self._search = None
         self._sanitizer = None
-    
+
     def _get_services(self):
         """Lazy-load services."""
         if self._conn is None:
@@ -283,7 +282,7 @@ class EnhancedRAGBuilder:
             self._search = SearchService(self._conn)
             self._sanitizer = Sanitizer()
         return self._conn, self._search, self._sanitizer
-    
+
     def build_context(
         self,
         query: str,
@@ -302,26 +301,26 @@ class EnhancedRAGBuilder:
         """
         config = config_override or self.config
         conn, search, sanitizer = self._get_services()
-        
+
         # Level 1: Query Enhancement
         if config.use_query_enhancement:
             enhanced_query = enhance_query(query, artifact_type)
         else:
             enhanced_query = query
-        
+
         # Initial retrieval (hybrid search)
         candidates = search.hybrid_search(
             enhanced_query,
             query_vector=None,  # TODO: Add vector search
             top_k=config.max_candidates,
         )
-        
+
         if not candidates:
             return EnhancedRAGResult(
                 context="No relevant context found in knowledge archive.",
                 query_used=enhanced_query,
             )
-        
+
         # Level 2: LLM Re-ranking
         reranked = False
         if config.use_llm_reranking:
@@ -331,7 +330,7 @@ class EnhancedRAGBuilder:
                 reranked = True
         else:
             candidates = candidates[:config.top_k]
-        
+
         # Level 3: Graph Expansion
         graph_expanded = False
         doc_ids = [h.doc_id for h in candidates]
@@ -342,20 +341,20 @@ class EnhancedRAGBuilder:
                 new_ids = [d for d in expanded_ids if d not in doc_ids]
                 related = get_related_documents(new_ids, conn)
                 graph_expanded = True
-        
+
         # Build final context
         context_parts = ["## PROJECT CONTEXT (from Knowledge Archive)\n"]
         sources = []
         total_chars = 0
         max_chars = config.max_tokens * self.CHARS_PER_TOKEN
-        
+
         for hit in candidates:
             sanitized = sanitizer.sanitize_for_llm(hit.snippet)
             chunk = f"### {hit.title} [{hit.doc_type.upper()}]\n{sanitized}\n\n"
-            
+
             if total_chars + len(chunk) > max_chars:
                 break
-            
+
             context_parts.append(chunk)
             sources.append({
                 "doc_id": hit.doc_id,
@@ -364,7 +363,7 @@ class EnhancedRAGBuilder:
                 "score": hit.score,
             })
             total_chars += len(chunk)
-        
+
         # Add graph-expanded context if available
         if graph_expanded and related:
             context_parts.append("### Related Documents\n")
@@ -374,7 +373,7 @@ class EnhancedRAGBuilder:
                 snippet = f"- **{doc['title']}** ({doc['type']}): {doc['snippet'][:150]}...\n"
                 context_parts.append(snippet)
                 total_chars += len(snippet)
-        
+
         return EnhancedRAGResult(
             context="".join(context_parts),
             sources=sources,

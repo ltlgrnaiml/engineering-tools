@@ -3,27 +3,24 @@
 Per ADR-0030: All routes use versioned / prefix.
 Per API-003: Error responses MUST use standard error schema.
 """
-from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, HTTPException
 
 from shared.contracts.core.error_response import (
-    ErrorResponse,
     ErrorCategory,
     ErrorDetail,
-    NotFoundErrorResponse,
-    ValidationErrorResponse,
     create_error_response,
 )
-from ..core.analysis_manager import AnalysisManager
+
 from ..analysis.anova import ANOVAConfig, VarianceValidationError
+from ..core.analysis_manager import AnalysisManager
 from .schemas import (
-    CreateAnalysisRequest,
-    CreateAnalysisResponse,
-    RunAnalysisRequest,
     AnalysisResponse,
     ANOVAResultResponse,
     ANOVARowResponse,
+    CreateAnalysisRequest,
+    CreateAnalysisResponse,
     ExportRequest,
+    RunAnalysisRequest,
 )
 
 # Per ADR-0030: Tool-specific routes use / prefix
@@ -46,7 +43,7 @@ def _raise_error(
     details = []
     if field:
         details.append(ErrorDetail(field=field, message=message))
-    
+
     error = create_error_response(
         status_code=status_code,
         message=message,
@@ -95,7 +92,7 @@ async def list_analyses(
         Paginated list with next_cursor for continuation.
     """
     limit = min(limit, 100)  # Cap at 100
-    
+
     analyses = await manager.list_analyses(
         limit=limit,
         cursor=cursor,
@@ -116,7 +113,7 @@ async def get_analysis(analysis_id: str):
             message=f"Analysis not found: {analysis_id}",
             category=ErrorCategory.NOT_FOUND,
         )
-    
+
     results = None
     if analysis.get("results"):
         results = [
@@ -129,7 +126,7 @@ async def get_analysis(analysis_id: str):
             )
             for r in analysis["results"]
         ]
-    
+
     return AnalysisResponse(
         analysis_id=analysis["analysis_id"],
         name=analysis["name"],
@@ -151,7 +148,7 @@ async def run_analysis(analysis_id: str, request: RunAnalysisRequest):
             message=f"Analysis not found: {analysis_id}",
             category=ErrorCategory.NOT_FOUND,
         )
-    
+
     config = ANOVAConfig(
         factors=request.factors,
         response_columns=request.response_columns,
@@ -159,7 +156,7 @@ async def run_analysis(analysis_id: str, request: RunAnalysisRequest):
         anova_type=request.anova_type,
         seed=request.seed,  # Per ADR-0023: Deterministic computation
     )
-    
+
     try:
         results = await manager.run_analysis(analysis_id, config)
 

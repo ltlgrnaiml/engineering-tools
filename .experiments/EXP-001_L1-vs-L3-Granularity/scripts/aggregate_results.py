@@ -18,7 +18,7 @@ def collect_results_from_worktrees() -> list[dict]:
     """Collect all results JSON files from worktrees."""
     results = []
     base_path = Path("C:/Users/Mycahya/CascadeProjects")
-    
+
     worktrees = [
         "exp-l1-opus",
         "exp-l1-sonnet",
@@ -29,7 +29,7 @@ def collect_results_from_worktrees() -> list[dict]:
         "exp-l3-gemini-flash",
         "exp-l3-gpt51",
     ]
-    
+
     for worktree in worktrees:
         results_dir = base_path / worktree / ".experiments/EXP-001_L1-vs-L3-Granularity/results"
         if results_dir.exists():
@@ -43,7 +43,7 @@ def collect_results_from_worktrees() -> list[dict]:
                         print(f"✅ Loaded: {worktree} -> {result_file.name}")
                 except Exception as e:
                     print(f"❌ Failed to load {result_file}: {e}")
-    
+
     return results
 
 
@@ -51,7 +51,7 @@ def calculate_efficiency(result: dict) -> float:
     """Calculate efficiency score (completion_rate / cost)."""
     cost = result.get("model", {}).get("cost_multiplier", 1)
     completion = result.get("scores", {}).get("completion_rate", 0)
-    
+
     if cost == 0:
         return float("inf") if completion > 0 else 0
     return completion / cost
@@ -61,27 +61,27 @@ def generate_analysis(results: list[dict]) -> dict:
     """Generate comprehensive analysis from results."""
     if not results:
         return {"error": "No results found"}
-    
+
     # Add efficiency to each result
     for r in results:
         r["efficiency"] = calculate_efficiency(r)
-    
+
     # Sort by efficiency
     sorted_results = sorted(
         results,
         key=lambda x: x["efficiency"] if x["efficiency"] != float("inf") else 999999,
         reverse=True,
     )
-    
+
     # Group by granularity
     l1_results = [r for r in results if r.get("model", {}).get("granularity") == "L1"]
     l3_results = [r for r in results if r.get("model", {}).get("granularity") == "L3"]
-    
+
     # Find bests
     best_l1 = max(l1_results, key=lambda x: x.get("scores", {}).get("completion_rate", 0)) if l1_results else None
     best_l3 = max(l3_results, key=lambda x: x.get("scores", {}).get("completion_rate", 0)) if l3_results else None
     best_efficiency = sorted_results[0] if sorted_results else None
-    
+
     return {
         "total_experiments": len(results),
         "l1_experiments": len(l1_results),
@@ -119,44 +119,44 @@ def main():
     print("=" * 60)
     print("EXP-001 Results Aggregator")
     print("=" * 60)
-    
+
     # Collect from worktrees
     print("\nCollecting results from worktrees...")
     results = collect_results_from_worktrees()
-    
+
     if not results:
         print("\n❌ No results found!")
         print("   Make sure experiments have been run and save_results.py was executed.")
         return
-    
+
     # Generate analysis
     print(f"\n📊 Found {len(results)} experiment results")
     analysis = generate_analysis(results)
-    
+
     # Save aggregated results
     output_dir = Path(".experiments/EXP-001_L1-vs-L3-Granularity/results")
     output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     output_file = output_dir / "AGGREGATED_RESULTS.json"
     with open(output_file, "w") as f:
         json.dump(analysis, f, indent=2, default=str)
-    
+
     print(f"\n✅ Aggregated results saved to: {output_file}")
-    
+
     # Print summary
     print("\n" + "=" * 60)
     print("EXPERIMENT SUMMARY")
     print("=" * 60)
-    
+
     print("\n📊 Cost-Effectiveness Ranking:")
     print("-" * 60)
     print(f"{'Rank':<5} {'Model':<30} {'Gran':<4} {'Score':<8} {'Cost':<6} {'Eff':<8}")
     print("-" * 60)
-    
+
     for r in analysis["rankings"]:
         eff_str = f"{r['efficiency']:.1f}" if isinstance(r['efficiency'], (int, float)) else r['efficiency']
         print(f"{r['rank']:<5} {r['model'][:29]:<30} {r['granularity']:<4} {r['completion_rate']:<8} {r['cost']}x{'':<4} {eff_str:<8}")
-    
+
     print("\n" + "-" * 60)
     print(f"🏆 Best L1: {analysis['best_l1']['model']} ({analysis['best_l1']['completion_rate']}%)")
     print(f"🏆 Best L3: {analysis['best_l3']['model']} ({analysis['best_l3']['completion_rate']}%)")

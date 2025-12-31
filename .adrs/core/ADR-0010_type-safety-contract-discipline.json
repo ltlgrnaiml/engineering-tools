@@ -150,7 +150,9 @@
     "shared/contracts/: All Pydantic contracts for DAT, PPTX, SOV tools",
     "SPEC-0008_Contract-Discipline-Api-Spec",
     "SPEC-0009_Engineering-Docs-Tenets-Spec",
-    "SPEC-0010_Contract-Drift-Type-Coverage-Spec"
+    "SPEC-0010_Contract-Drift-Type-Coverage-Spec",
+    "ADR-0031",
+    "ADR-0035"
   ],
   "tags": [
     "type-safety",

@@ -5,8 +5,9 @@ which tables they want to include in the parse operation.
 """
 from dataclasses import dataclass, field
 
-from shared.utils.stage_id import compute_stage_id
 from shared.contracts.dat.table_status import TableAvailabilityStatus
+from shared.utils.stage_id import compute_stage_id
+
 from .table_availability import TableInfo
 
 

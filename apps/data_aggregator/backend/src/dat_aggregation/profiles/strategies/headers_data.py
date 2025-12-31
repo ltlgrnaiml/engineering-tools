@@ -25,7 +25,7 @@ class HeadersDataStrategy(ExtractionStrategy):
     
     Use cases: Statistics tables, measurement data with explicit headers.
     """
-    
+
     def extract(
         self,
         data: Any,
@@ -44,30 +44,30 @@ class HeadersDataStrategy(ExtractionStrategy):
         """
         # Navigate to path
         obj = self._get_at_path(data, config.path)
-        
+
         if obj is None:
             logger.warning(f"No data found at path: {config.path}")
             return pl.DataFrame()
-        
+
         if not isinstance(obj, dict):
             logger.warning(f"Expected dict at {config.path}, got {type(obj).__name__}")
             return pl.DataFrame()
-        
+
         # Get headers
         headers = self._get_headers(obj, config)
         if not headers:
             logger.warning(f"No headers found for {config.path}")
             return pl.DataFrame()
-        
+
         # Get data rows
         rows = self._get_data_rows(obj, config)
         if not rows:
             logger.debug(f"No data rows found for {config.path}")
-            return pl.DataFrame(schema={h: pl.Utf8 for h in headers})
-        
+            return pl.DataFrame(schema=dict.fromkeys(headers, pl.Utf8))
+
         # Build DataFrame
         return self._build_dataframe(headers, rows)
-    
+
     def validate_config(self, config: SelectConfig) -> list[str]:
         """Validate headers_data configuration."""
         errors = []
@@ -80,12 +80,12 @@ class HeadersDataStrategy(ExtractionStrategy):
         if not config.data_key:
             errors.append("headers_data strategy requires 'data_key'")
         return errors
-    
+
     def _get_at_path(self, data: Any, path: str) -> Any:
         """Navigate to JSONPath and return value."""
         if path == "$" or path == "":
             return data
-        
+
         try:
             expr = jsonpath_parse(path)
             matches = expr.find(data)
@@ -95,33 +95,33 @@ class HeadersDataStrategy(ExtractionStrategy):
         except Exception as e:
             logger.error(f"JSONPath error for '{path}': {e}")
             return None
-    
+
     def _get_headers(self, obj: dict, config: SelectConfig) -> list[str]:
         """Extract headers from object."""
         if config.headers_key and config.headers_key in obj:
             headers = obj[config.headers_key]
             if isinstance(headers, list):
                 return [str(h) for h in headers]
-        
+
         if config.infer_headers and config.data_key in obj:
             rows = obj[config.data_key]
             if rows and isinstance(rows[0], list):
                 return [f"col_{i}" for i in range(len(rows[0]))]
-        
+
         if config.default_headers:
             return config.default_headers
-        
+
         return []
-    
+
     def _get_data_rows(self, obj: dict, config: SelectConfig) -> list[list[Any]]:
         """Extract data rows from object."""
         if not config.data_key or config.data_key not in obj:
             return []
-        
+
         rows = obj[config.data_key]
         if not isinstance(rows, list):
             return []
-        
+
         # Ensure all rows are lists
         result = []
         for row in rows:
@@ -132,9 +132,9 @@ class HeadersDataStrategy(ExtractionStrategy):
                 result.append(list(row.values()))
             else:
                 result.append([row])
-        
+
         return result
-    
+
     def _build_dataframe(
         self,
         headers: list[str],
@@ -143,7 +143,7 @@ class HeadersDataStrategy(ExtractionStrategy):
         """Build DataFrame from headers and rows."""
         # Handle mismatched lengths
         num_cols = len(headers)
-        
+
         normalized_rows = []
         for row in rows:
             if len(row) < num_cols:
@@ -153,11 +153,11 @@ class HeadersDataStrategy(ExtractionStrategy):
                 # Truncate
                 row = row[:num_cols]
             normalized_rows.append(row)
-        
+
         # Build column-wise data
         columns = {
             headers[i]: [row[i] for row in normalized_rows]
             for i in range(num_cols)
         }
-        
+
         return pl.DataFrame(columns)

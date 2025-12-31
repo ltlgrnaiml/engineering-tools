@@ -7,7 +7,7 @@ frontend charting libraries (Chart.js, Recharts, ECharts, etc.).
 """
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -15,6 +15,8 @@ from uuid import uuid4
 from shared.contracts.core.rendering import (
     ChartSpec,
     ChartType,
+    DataSeries,
+    ImageSpec,
     OutputFormat,
     OutputTarget,
     RenderedOutput,
@@ -22,8 +24,6 @@ from shared.contracts.core.rendering import (
     RenderStyle,
     TableSpec,
     TextSpec,
-    ImageSpec,
-    DataSeries,
 )
 from shared.rendering.adapters.base import BaseOutputAdapter
 
@@ -104,7 +104,7 @@ class JSONAdapter(BaseOutputAdapter):
             data=chart_data,
             width_px=output_format.width_px,
             height_px=output_format.height_px,
-            created_at=datetime.now(timezone.utc).replace(microsecond=0),
+            created_at=datetime.now(UTC).replace(microsecond=0),
         )
 
     def _build_chart_data(
@@ -307,7 +307,7 @@ class JSONAdapter(BaseOutputAdapter):
             target=OutputTarget.WEB_JSON,
             file_path=str(file_path) if file_path else None,
             data=table_data,
-            created_at=datetime.now(timezone.utc).replace(microsecond=0),
+            created_at=datetime.now(UTC).replace(microsecond=0),
         )
 
     async def render_text(
@@ -335,7 +335,7 @@ class JSONAdapter(BaseOutputAdapter):
             output_id=output_id,
             target=OutputTarget.WEB_JSON,
             data=text_data,
-            created_at=datetime.now(timezone.utc).replace(microsecond=0),
+            created_at=datetime.now(UTC).replace(microsecond=0),
         )
 
     async def render_image(
@@ -364,5 +364,5 @@ class JSONAdapter(BaseOutputAdapter):
             output_id=output_id,
             target=OutputTarget.WEB_JSON,
             data=image_data,
-            created_at=datetime.now(timezone.utc).replace(microsecond=0),
+            created_at=datetime.now(UTC).replace(microsecond=0),
         )

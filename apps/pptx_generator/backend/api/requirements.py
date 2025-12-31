@@ -19,7 +19,6 @@ from apps.pptx_generator.backend.api.errors import (
     raise_not_found,
     raise_validation_error,
 )
-
 from apps.pptx_generator.backend.api.projects import projects_db
 from apps.pptx_generator.backend.models.drm import DerivedRequirementsManifest
 from apps.pptx_generator.backend.models.environment_profile import EnvironmentProfile
@@ -104,7 +103,11 @@ async def create_environment_profile(
         raise_not_found("Project", str(project_id))
 
     # Create environment profile
-    from apps.pptx_generator.backend.models.environment_profile import DataRoots, JobContext, SourceType
+    from apps.pptx_generator.backend.models.environment_profile import (
+        DataRoots,
+        JobContext,
+        SourceType,
+    )
 
     profile = EnvironmentProfile(
         project_id=project_id,

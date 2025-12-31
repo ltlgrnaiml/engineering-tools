@@ -5,7 +5,7 @@ Per ADR-0012: Profile-driven extraction using Tier-0 DATProfile contracts.
 """
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -116,7 +116,7 @@ class ProfileService:
         # Apply updates
         profile_dict = existing.model_dump(mode="json")
         profile_dict.update(updates)
-        profile_dict["modified_at"] = datetime.now(timezone.utc).isoformat()
+        profile_dict["modified_at"] = datetime.now(UTC).isoformat()
 
         profile_path = self._get_profile_path(profile_id)
         profile_path.write_text(json.dumps(profile_dict, default=str, indent=2))

@@ -9,15 +9,15 @@ Run with: python -m gateway.main
 """
 
 import os
+
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 
 from gateway.services.dataset_service import router as dataset_router
-from gateway.services.pipeline_service import router as pipeline_router
 from gateway.services.devtools_service import router as devtools_router
 from gateway.services.observability import init_phoenix
+from gateway.services.pipeline_service import router as pipeline_router
 
 __version__ = "0.1.0"
 
@@ -55,7 +55,7 @@ app.include_router(devtools_router, prefix="/api/devtools", tags=["devtools"])
 # Track which tools were successfully mounted
 _tool_status: dict[str, str] = {
     "dat": "coming_soon",
-    "sov": "coming_soon", 
+    "sov": "coming_soon",
     "pptx": "coming_soon",
 }
 
@@ -77,9 +77,9 @@ async def _get_storage_stats() -> dict:
         from shared.storage.artifact_store import ArtifactStore
         store = ArtifactStore()
         datasets = await store.list_datasets()
-        
+
         total_size = sum(ds.size_bytes or 0 for ds in datasets)
-        
+
         return {
             "datasets": len(datasets),
             "pipelines": 0,  # TODO: get from registry
@@ -103,10 +103,10 @@ async def health_check() -> dict:
         "sov": _check_tool_health("sov", "apps.sov_analyzer.backend.main"),
         "pptx": _check_tool_health("pptx", "apps.pptx_generator.backend.main"),
     }
-    
+
     # Get storage stats
     storage = await _get_storage_stats()
-    
+
     # Determine overall status
     tool_statuses = list(tools.values())
     if all(s == "available" for s in tool_statuses):
@@ -117,7 +117,7 @@ async def health_check() -> dict:
         status = "degraded"
     else:
         status = "degraded"
-    
+
     return {
         "status": status,
         "version": __version__,
@@ -143,16 +143,16 @@ except Exception as e:
 
 try:
     # Force fresh import of DAT app by clearing module cache
-    import sys
     import importlib
-    
+    import sys
+
     # Clear ALL cached modules that could affect DAT loading
     prefixes_to_clear = ['apps.data_aggregator', 'shared.contracts.dat']
-    modules_to_clear = [k for k in list(sys.modules.keys()) 
+    modules_to_clear = [k for k in list(sys.modules.keys())
                         if any(k.startswith(p) for p in prefixes_to_clear)]
     for mod in modules_to_clear:
         del sys.modules[mod]
-    
+
     from apps.data_aggregator.backend.main import app as dat_app
     app.mount("/api/dat", dat_app)
     logging.info(f"DAT mounted with fresh code, cleared {len(modules_to_clear)} modules")

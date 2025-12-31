@@ -32,7 +32,8 @@
       "New shape categories can be added by implementing renderer + registration"
     ],
     "implementation_specs": [
-      "SPEC-0023_PPTX-Renderer-Interface-Spec"
+      "SPEC-0023_PPTX-Renderer-Interface-Spec",
+      "SPEC-0038"
     ]
   },
   "consequences": [

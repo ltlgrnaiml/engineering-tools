@@ -371,5 +371,9 @@
     "devtools",
     "frontend-debugging",
     "specification"
+  ],
+  "implements_adr": [
+    "ADR-0010",
+    "ADR-0037"
   ]
 }

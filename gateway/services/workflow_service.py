@@ -6,9 +6,8 @@ Provides functions for discovering and relating workflow artifacts.
 
 import json
 import re
-from pathlib import Path
-
 from datetime import datetime
+from pathlib import Path
 
 from shared.contracts.devtools.workflow import (
     ArtifactStatus,
@@ -335,7 +334,7 @@ def _build_spec_to_plan_prompt(
     implements_adr = content.get("implements_adr", [])
 
     func_req_str = "\n".join(
-        f"- {r.get('id', 'F?')}: {r.get('description', '') if isinstance(r, dict) else str(r)}" 
+        f"- {r.get('id', 'F?')}: {r.get('description', '') if isinstance(r, dict) else str(r)}"
         for r in func_reqs
     ) if func_reqs else "None specified"
 
@@ -575,9 +574,7 @@ def scan_artifacts(
 
         # Determine file patterns based on artifact type
         # Plans can be both .json and .md, so scan both
-        if atype == ArtifactType.ADR:
-            patterns = ["*.json"]
-        elif atype == ArtifactType.SPEC:
+        if atype == ArtifactType.ADR or atype == ArtifactType.SPEC:
             patterns = ["*.json"]
         elif atype == ArtifactType.CONTRACT:
             patterns = ["*.py"]
@@ -764,8 +761,33 @@ def _parse_python_artifact(file_path: Path) -> ArtifactSummary | None:
 # =============================================================================
 
 
-def build_artifact_graph() -> GraphResponse:
+def _extract_short_id(full_id: str) -> str:
+    """Extract short ID prefix from full artifact ID.
+    
+    Examples:
+        ADR-0001_guided-workflow -> ADR-0001
+        DISC-001_DevTools-AI -> DISC-001
+        SPEC-0043_knowledge-archive -> SPEC-0043
+    """
+    patterns = [
+        r'^(ADR-\d{4})',
+        r'^(SPEC-\d{4})',
+        r'^(DISC-\d{3})',
+        r'^(PLAN-\d{3})',
+    ]
+    for pattern in patterns:
+        match = re.match(pattern, full_id)
+        if match:
+            return match.group(1)
+    return full_id  # Return as-is if no pattern matches
+
+
+def build_artifact_graph(use_rag_db: bool = True) -> GraphResponse:
     """Build the artifact relationship graph.
+
+    Args:
+        use_rag_db: If True, use RAG DB relationships table (preferred).
+                    If False, fall back to file parsing.
 
     Returns:
         GraphResponse with nodes and edges representing artifact relationships.
@@ -774,8 +796,17 @@ def build_artifact_graph() -> GraphResponse:
     edges: list[GraphEdge] = []
     artifacts = scan_artifacts()
 
-    # Create nodes for all artifacts
+    # Create nodes and build ID mappings
+    artifact_ids = set()
+    short_to_full: dict[str, str] = {}  # Map short IDs to full IDs
+
     for artifact in artifacts:
+        artifact_ids.add(artifact.id)
+        # Build short ID mapping (ADR-0001 -> ADR-0001_full-title)
+        short_id = _extract_short_id(artifact.id)
+        short_to_full[short_id] = artifact.id
+        short_to_full[artifact.id] = artifact.id  # Also map full to full
+
         nodes.append(
             GraphNode(
                 id=artifact.id,
@@ -786,12 +817,53 @@ def build_artifact_graph() -> GraphResponse:
             )
         )
 
-    # Build edges by scanning for references
-    artifact_ids = {a.id for a in artifacts}
+    # Build edges from RAG DB relationships table (preferred - already relational)
+    if use_rag_db:
+        try:
+            from gateway.services.knowledge.database import get_connection
+            conn = get_connection()
+            rows = conn.execute("""
+                SELECT DISTINCT source_id, target_id, relationship_type
+                FROM relationships
+            """).fetchall()
 
+            for row in rows:
+                source_id = row['source_id']
+                target_id = row['target_id']
+                rel_type = row['relationship_type']
+
+                # Resolve short IDs to full IDs
+                resolved_source = short_to_full.get(source_id)
+                resolved_target = short_to_full.get(target_id)
+
+                # Only include edges where both nodes can be resolved
+                if resolved_source and resolved_target:
+                    # Map relationship types
+                    if rel_type == 'implements':
+                        relationship = RelationshipType.IMPLEMENTS
+                    elif rel_type == 'creates':
+                        relationship = RelationshipType.CREATES
+                    else:
+                        relationship = RelationshipType.REFERENCES
+
+                    edges.append(
+                        GraphEdge(
+                            source=resolved_source,
+                            target=resolved_target,
+                            relationship=relationship,
+                        )
+                    )
+            conn.close()
+
+            # If we got edges from RAG DB, return early
+            if edges:
+                return GraphResponse(nodes=nodes, edges=edges)
+        except Exception:
+            pass  # Fall back to file parsing
+
+    # Fallback: Build edges by scanning files for references
     for artifact in artifacts:
         if artifact.type in (ArtifactType.ADR, ArtifactType.SPEC):
-            # Parse JSON artifacts for explicit references
             try:
                 with open(artifact.file_path, encoding="utf-8") as f:
                     data = json.load(f)
@@ -826,6 +898,19 @@ def build_artifact_graph() -> GraphResponse:
                 for ref in refs:
                     ref_id = ref.get("id") if isinstance(ref, dict) else ref
                     if ref_id in artifact_ids:
+                        edges.append(
+                            GraphEdge(
+                                source=artifact.id,
+                                target=ref_id,
+                                relationship=RelationshipType.REFERENCES,
+                            )
+                        )
+
+                # Check references array
+                refs = data.get("references", [])
+                for ref in refs:
+                    ref_id = ref.get("id") if isinstance(ref, dict) else ref
+                    if ref_id and ref_id in artifact_ids:
                         edges.append(
                             GraphEdge(
                                 source=artifact.id,
@@ -1019,7 +1104,7 @@ def _parse_markdown_to_dict(file_path: Path) -> dict:
             r"-\s*\[.\]\s*\*\*(FR-\d+)\*\*:\s*(.+)", content
         ):
             func_reqs.append({"id": match.group(1), "description": match.group(2).strip()})
-        
+
         nfunc_reqs = []
         for match in re.finditer(
             r"-\s*\[.\]\s*\*\*(NFR-\d+)\*\*:\s*(.+)", content
@@ -1087,10 +1172,10 @@ def _generate_rich_prompt(
     # Route to appropriate prompt builder
     if source_type == ArtifactType.DISCUSSION and target_type == ArtifactType.ADR:
         return _build_discussion_to_adr_prompt(artifact_id, title, content)
-    
+
     elif source_type == ArtifactType.ADR and target_type == ArtifactType.SPEC:
         return _build_adr_to_spec_prompt(artifact_id, title, content)
-    
+
     elif source_type == ArtifactType.SPEC and target_type == ArtifactType.PLAN:
         # Try to load referenced ADR for additional context
         adr_content = None
@@ -1101,10 +1186,10 @@ def _generate_rich_prompt(
             if adr:
                 adr_content = _load_artifact_content(adr.file_path)
         return _build_spec_to_plan_prompt(artifact_id, title, content, adr_content)
-    
+
     elif source_type == ArtifactType.SPEC and target_type == ArtifactType.CONTRACT:
         return _build_spec_to_contract_prompt(artifact_id, title, content)
-    
+
     else:
         # Fallback to simple template
         template_key = (source_type, target_type)
@@ -1205,9 +1290,9 @@ def generate_artifact_content(
         Dictionary with generated content.
     """
     from gateway.services.llm_service import (
-        is_available,
-        generate_structured,
         ARTIFACT_SCHEMAS,
+        generate_structured,
+        is_available,
     )
 
     # Try LLM generation if enabled and available
@@ -1223,14 +1308,14 @@ def generate_artifact_content(
                     artifact_type=artifact_type.value,
                     use_reranking=use_reranking,
                 )
-            
+
             prompt = _build_generation_prompt(artifact_type, title, description, rag_context)
-            
+
             system_prompt = f"""You are generating a {artifact_type.value} artifact for the Engineering Tools platform.
 This is a solo-dev, AI-assisted project following first-principles development.
 Use the PROJECT CONTEXT to reference existing ADRs, patterns, and conventions.
 Be specific to this project - avoid generic boilerplate."""
-            
+
             response = generate_structured(
                 prompt=prompt,
                 schema=schema,
@@ -1392,7 +1477,7 @@ def generate_full_workflow(
                 atype, title, description, use_reranking=use_reranking
             )
             artifact_id = f"{atype.value.upper()}-GEN-{workflow_id}"
-            
+
             # Write to file for persistence
             file_path = output_dir / f"{atype.value.upper()}.json"
             with open(file_path, "w", encoding="utf-8") as f:
@@ -1404,7 +1489,7 @@ def generate_full_workflow(
                     "generated_at": datetime.now().isoformat(),
                     "content": content,
                 }, f, indent=2)
-            
+
             artifact = ArtifactSummary(
                 id=artifact_id,
                 type=atype,

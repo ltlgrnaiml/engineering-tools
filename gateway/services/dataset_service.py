@@ -53,16 +53,16 @@ async def preview_dataset(
 ) -> DataSetPreview:
     """Preview first N rows of a DataSet."""
     store = get_store()
-    
+
     try:
         manifest = await store.get_manifest(dataset_id)
         df = await store.read_dataset(dataset_id)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail=f"DataSet not found: {dataset_id}")
-    
+
     # Get preview rows
     preview_df = df.head(rows)
-    
+
     return DataSetPreview(
         dataset_id=dataset_id,
         columns=preview_df.columns,
@@ -76,12 +76,12 @@ async def preview_dataset(
 async def get_dataset_lineage(dataset_id: str) -> dict:
     """Get DataSet lineage (parent and child relationships)."""
     store = get_store()
-    
+
     try:
         manifest = await store.get_manifest(dataset_id)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail=f"DataSet not found: {dataset_id}")
-    
+
     # Get parent manifests
     parents = []
     for parent_id in manifest.parent_dataset_ids:
@@ -98,7 +98,7 @@ async def get_dataset_lineage(dataset_id: str) -> dict:
             ))
         except FileNotFoundError:
             continue
-    
+
     # Find children (datasets that have this as parent)
     all_datasets = await store.list_datasets(limit=500)
     children = []
@@ -111,7 +111,7 @@ async def get_dataset_lineage(dataset_id: str) -> dict:
                 children.append(ds_ref)
         except FileNotFoundError:
             continue
-    
+
     return {
         "dataset_id": dataset_id,
         "name": manifest.name,

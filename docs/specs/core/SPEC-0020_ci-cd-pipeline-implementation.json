@@ -245,5 +245,8 @@
     "pre-commit",
     "automation",
     "specification"
+  ],
+  "implements_adr": [
+    "ADR-0019"
   ]
 }

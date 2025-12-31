@@ -1,14 +1,15 @@
 """Tests for Context Builder - PLAN-002 M3."""
 
-import pytest
 import sqlite3
 
-from shared.contracts.knowledge.archive import Document, DocumentType
-from gateway.services.knowledge.database import SCHEMA
+import pytest
+
 from gateway.services.knowledge.archive_service import ArchiveService
-from gateway.services.knowledge.search_service import SearchService
-from gateway.services.knowledge.sanitizer import Sanitizer
 from gateway.services.knowledge.context_builder import ContextBuilder, ContextResult
+from gateway.services.knowledge.database import SCHEMA
+from gateway.services.knowledge.sanitizer import Sanitizer
+from gateway.services.knowledge.search_service import SearchService
+from shared.contracts.knowledge.archive import Document, DocumentType
 
 
 @pytest.fixture
@@ -95,11 +96,11 @@ class TestContextBuilder:
     def test_context_caching(self, search, sample_docs):
         """Test that results are cached."""
         builder = ContextBuilder(search, Sanitizer(), cache_enabled=True)
-        
+
         # First call
         result1 = builder.build_context("Test")
         assert result1.cached is False
-        
+
         # Second call - should be cached
         result2 = builder.build_context("Test")
         assert result2.cached is True
@@ -115,13 +116,13 @@ class TestContextBuilder:
     def test_clear_cache(self, search, sample_docs):
         """Test cache clearing."""
         builder = ContextBuilder(search, Sanitizer(), cache_enabled=True)
-        
+
         # Build and cache
         builder.build_context("Test")
-        
+
         # Clear cache
         builder.clear_cache()
-        
+
         # Should not be cached after clear
         result = builder.build_context("Test")
         assert result.cached is False
@@ -129,7 +130,7 @@ class TestContextBuilder:
     def test_token_budget_respected(self, search, sample_docs):
         """Test that token budget is respected."""
         builder = ContextBuilder(search, Sanitizer())
-        
+
         # Very small budget
         result = builder.build_context("Test", max_tokens=50)
         assert result.token_count <= 50 or len(result.sources) <= 1
@@ -150,7 +151,7 @@ class TestContextBuilder:
         """Test ContextResult has correct structure."""
         builder = ContextBuilder(search, Sanitizer())
         result = builder.build_context("Test")
-        
+
         assert isinstance(result, ContextResult)
         assert hasattr(result, 'context')
         assert hasattr(result, 'sources')
@@ -169,10 +170,10 @@ class TestContextBuilder:
             file_hash='hash_sensitive'
         )
         archive.upsert_document(doc)
-        
+
         builder = ContextBuilder(search, Sanitizer())
         result = builder.build_context("Sensitive")
-        
+
         # If document found, sensitive data should be sanitized
         if 'Sensitive' in result.context:
             assert 'secret@company.com' not in result.context

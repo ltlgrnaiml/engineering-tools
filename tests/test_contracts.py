@@ -3,22 +3,21 @@
 Per ADR-0010: Contracts are the single source of truth.
 These tests verify contract creation and validation.
 """
-import pytest
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from shared.contracts.core.dataset import DataSetManifest, ColumnMeta, DataSetRef
+from shared.contracts.core.artifact_registry import (
+    ArtifactQuery,
+    ArtifactRecord,
+    ArtifactState,
+    ArtifactType,
+)
+from shared.contracts.core.dataset import ColumnMeta, DataSetManifest, DataSetRef
 from shared.contracts.core.pipeline import (
+    CreatePipelineRequest,
     Pipeline,
     PipelineStep,
-    PipelineStepType,
     PipelineStepState,
-    CreatePipelineRequest,
-)
-from shared.contracts.core.artifact_registry import (
-    ArtifactRecord,
-    ArtifactType,
-    ArtifactState,
-    ArtifactQuery,
+    PipelineStepType,
 )
 
 
@@ -41,7 +40,7 @@ class TestDataSetContracts:
 
     def test_dataset_manifest_creation(self):
         """Test creating a DataSetManifest."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         manifest = DataSetManifest(
             dataset_id="ds_test123456789",
             name="Test Dataset",
@@ -61,7 +60,7 @@ class TestDataSetContracts:
 
     def test_dataset_manifest_with_lineage(self):
         """Test DataSetManifest with parent lineage."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         manifest = DataSetManifest(
             dataset_id="ds_child123",
             name="Child Dataset",
@@ -77,7 +76,7 @@ class TestDataSetContracts:
 
     def test_dataset_ref_creation(self):
         """Test creating a DataSetRef."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         ref = DataSetRef(
             dataset_id="ds_ref123",
             name="Reference Dataset",
@@ -108,7 +107,7 @@ class TestPipelineContracts:
 
     def test_pipeline_creation(self):
         """Test creating a Pipeline."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         pipeline = Pipeline(
             pipeline_id="pipe_test123",
             name="Test Pipeline",
@@ -154,7 +153,7 @@ class TestArtifactRegistryContracts:
 
     def test_artifact_record_creation(self):
         """Test creating an ArtifactRecord."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         record = ArtifactRecord(
             artifact_id="art_test123",
             artifact_type=ArtifactType.DATASET,

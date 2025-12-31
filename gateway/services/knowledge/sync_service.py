@@ -3,15 +3,12 @@
 File watcher for automatic document sync.
 """
 
-import time
 from pathlib import Path
 from threading import Timer
-from typing import Callable
 
-from shared.contracts.knowledge.archive import SyncMode, SyncStatus, SyncConfig
-from gateway.services.knowledge.parsers import parse_document
 from gateway.services.knowledge.archive_service import ArchiveService
-
+from gateway.services.knowledge.parsers import parse_document
+from shared.contracts.knowledge.archive import SyncConfig, SyncStatus
 
 DEFAULT_WATCH_PATHS = [
     Path('.sessions'),
@@ -44,6 +41,7 @@ class SyncService:
                     try:
                         doc = parse_document(filepath)
                         if self.archive.upsert_document(doc):
+                            self.archive.save_relationships(doc)
                             count += 1
                     except Exception:
                         continue
@@ -55,6 +53,7 @@ class SyncService:
         if path.is_file():
             doc = parse_document(path)
             if self.archive.upsert_document(doc):
+                self.archive.save_relationships(doc)
                 count = 1
         elif path.is_dir():
             for filepath in path.rglob('*'):
@@ -62,9 +61,26 @@ class SyncService:
                     try:
                         doc = parse_document(filepath)
                         if self.archive.upsert_document(doc):
+                            self.archive.save_relationships(doc)
                             count += 1
                     except Exception:
                         continue
+        return count
+
+    def rebuild_relationships(self) -> int:
+        """Rebuild all relationships from existing documents.
+        
+        Use this to populate relationships for documents that were
+        synced before relationship extraction was added.
+        
+        Returns:
+            Number of documents processed.
+        """
+        docs = self.archive.list_documents()
+        count = 0
+        for doc in docs:
+            self.archive.save_relationships(doc)
+            count += 1
         return count
 
     def get_status(self) -> SyncStatus:
@@ -79,8 +95,8 @@ class SyncService:
     def start_watching(self) -> bool:
         """Start file watcher (requires watchdog)."""
         try:
-            from watchdog.observers import Observer
             from watchdog.events import FileSystemEventHandler
+            from watchdog.observers import Observer
 
             class Handler(FileSystemEventHandler):
                 def __init__(self, sync_svc: 'SyncService'):

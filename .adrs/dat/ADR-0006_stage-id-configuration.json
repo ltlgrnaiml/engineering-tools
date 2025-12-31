@@ -38,7 +38,9 @@
     ],
     "implementation_specs": [
       "SPEC-0014_Deterministic-Stage-Id-Spec",
-      "SPEC-0013_Artifact-Lifecycle-Preservation-Spec"
+      "SPEC-0013_Artifact-Lifecycle-Preservation-Spec",
+      "SPEC-0024",
+      "SPEC-0029"
     ]
   },
   "consequences": [
@@ -101,7 +103,8 @@
     "ADR-0004_Deterministic-Content-Addressed-IDs: Core ID generation pattern this extends",
     "ADR-0001_Guided-Workflow-FSM-Orchestration: Core FSM pattern using deterministic IDs",
     "ADR-0002_Artifact-Preservation-on-Unlock: Artifact preservation with ID-based reuse",
-    "ADR-0017_Cross-Cutting-Guardrails"
+    "ADR-0017_Cross-Cutting-Guardrails",
+    "ADR-0018"
   ],
   "tags": [
     "determinism",

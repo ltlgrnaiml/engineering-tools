@@ -4,7 +4,6 @@ Per ADR-0004: 8-stage pipeline with lockable artifacts.
 Per SPEC-0024: Dependencies and cascade targets defined.
 """
 
-from typing import FrozenSet
 
 from pydantic import BaseModel
 
@@ -46,7 +45,7 @@ class StageGraphConfig(BaseModel):
     stages: list[StageDefinition]
     gating_rules: list[GatingRule]
     cascade_rules: list[CascadeRule]
-    optional_stages: FrozenSet[DATStageType] = frozenset({
+    optional_stages: frozenset[DATStageType] = frozenset({
         DATStageType.CONTEXT,
         DATStageType.PREVIEW,
     })

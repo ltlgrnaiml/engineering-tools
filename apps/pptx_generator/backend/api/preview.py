@@ -3,26 +3,22 @@
 Per ADR-0032: All errors use ErrorResponse contract via errors.py helper.
 """
 
-import io
 import logging
-from pathlib import Path
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter
 from fastapi.responses import Response
 from pptx import Presentation
 
+from apps.pptx_generator.backend.api.data import data_files_db
 from apps.pptx_generator.backend.api.errors import (
+    raise_internal_error,
     raise_not_found,
     raise_validation_error,
-    raise_internal_error,
 )
-
-from apps.pptx_generator.backend.api.data import data_files_db
 from apps.pptx_generator.backend.api.projects import projects_db
 from apps.pptx_generator.backend.api.templates import templates_db
-from apps.pptx_generator.backend.services.presentation_generator import PresentationGeneratorService
 
 router = APIRouter()
 logger = logging.getLogger(__name__)

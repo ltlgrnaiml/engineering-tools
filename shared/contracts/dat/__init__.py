@@ -38,6 +38,23 @@ from shared.contracts.dat.adapter import (
     ValidationIssue,
     ValidationSeverity,
 )
+from shared.contracts.dat.cancellation import (
+    CancellableOperation,
+    CancellableOperationState,
+    CancellationAuditEntry,
+    CancellationAuditLog,
+    CancellationReason,
+    CancellationRequest,
+    CancellationResult,
+    CancellationState,
+    Checkpoint,
+    CheckpointRegistry,
+    CheckpointType,
+    CleanupRequest,
+    CleanupResult,
+    CleanupState,
+    CleanupTarget,
+)
 from shared.contracts.dat.jobs import (
     BackgroundJob,
     JobListResponse,
@@ -65,47 +82,30 @@ from shared.contracts.dat.profile import (
     UIConfig,
 )
 from shared.contracts.dat.stage import (
+    ContextStageConfig,
     DATStageConfig,
     DATStageResult,
     DATStageState,
     DATStageType,
     DiscoveryStageConfig,
+    ExportStageConfig,
+    ParseStageConfig,
+    PreviewStageConfig,
     SelectionStageConfig,
-    ContextStageConfig,
     TableAvailabilityStageConfig,
     TableSelectionStageConfig,
-    PreviewStageConfig,
-    ParseStageConfig,
-    ExportStageConfig,
-)
-from shared.contracts.dat.table_status import (
-    TableAvailability,
-    TableAvailabilityStatus,
-    TableStatusReport,
-    TableHealthCheck,
-)
-from shared.contracts.dat.cancellation import (
-    CancellationReason,
-    CancellationState,
-    CancellationRequest,
-    CancellationResult,
-    CleanupState,
-    CleanupTarget,
-    CleanupRequest,
-    CleanupResult,
-    Checkpoint,
-    CheckpointType,
-    CheckpointRegistry,
-    CancellableOperation,
-    CancellableOperationState,
-    CancellationAuditEntry,
-    CancellationAuditLog,
 )
 from shared.contracts.dat.stage_graph import (
     CascadeRule,
     GatingRule,
     StageDefinition,
     StageGraphConfig,
+)
+from shared.contracts.dat.table_status import (
+    TableAvailability,
+    TableAvailabilityStatus,
+    TableHealthCheck,
+    TableStatusReport,
 )
 
 __version__ = "1.0.0"

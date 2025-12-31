@@ -26,7 +26,7 @@ class ArrayOfObjectsStrategy(ExtractionStrategy):
     
     Use cases: List of measurements, record collections, event logs.
     """
-    
+
     def extract(
         self,
         data: Any,
@@ -46,18 +46,18 @@ class ArrayOfObjectsStrategy(ExtractionStrategy):
         # Navigate to path - handle [*] suffix
         path = config.path.rstrip("[*]") if config.path.endswith("[*]") else config.path
         arr = self._get_at_path(data, path)
-        
+
         if arr is None:
             logger.warning(f"No data found at path: {config.path}")
             return pl.DataFrame()
-        
+
         if not isinstance(arr, list):
             logger.warning(f"Expected list at {config.path}, got {type(arr).__name__}")
             return pl.DataFrame()
-        
+
         if not arr:
             return pl.DataFrame()
-        
+
         # Filter to specific fields if configured
         if config.fields:
             arr = [
@@ -65,22 +65,22 @@ class ArrayOfObjectsStrategy(ExtractionStrategy):
                 for obj in arr
                 if isinstance(obj, dict)
             ]
-        
+
         # Build DataFrame from list of dicts
         return pl.DataFrame(arr)
-    
+
     def validate_config(self, config: SelectConfig) -> list[str]:
         """Validate array_of_objects configuration."""
         errors = []
         if not config.path:
             errors.append("array_of_objects strategy requires 'path'")
         return errors
-    
+
     def _get_at_path(self, data: Any, path: str) -> Any:
         """Navigate to JSONPath and return value."""
         if path == "$" or path == "":
             return data
-        
+
         try:
             expr = jsonpath_parse(path)
             matches = expr.find(data)

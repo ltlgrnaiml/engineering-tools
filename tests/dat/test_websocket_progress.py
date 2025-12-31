@@ -1,13 +1,13 @@
 """Tests for DAT WebSocket progress tracking per SPEC-0027."""
 
+
 import pytest
-from datetime import datetime, timezone
 
 from apps.data_aggregator.backend.src.dat_aggregation.api.websocket import (
-    ProgressEventType,
-    ProgressUpdate,
-    ProgressTracker,
     ConnectionManager,
+    ProgressEventType,
+    ProgressTracker,
+    ProgressUpdate,
     progress_manager,
 )
 
@@ -23,7 +23,7 @@ class TestProgressUpdate:
             progress_pct=50.0,
             rows_processed=5000,
         )
-        
+
         assert update.stage_id == "test-stage-123"
         assert update.event_type == ProgressEventType.PROGRESS
         assert update.progress_pct == 50.0
@@ -36,9 +36,9 @@ class TestProgressUpdate:
             event_type=ProgressEventType.STARTED,
             message="Processing started",
         )
-        
+
         data = update.to_dict()
-        
+
         assert data["stage_id"] == "test-stage"
         assert data["event_type"] == "started"
         assert data["message"] == "Processing started"
@@ -50,9 +50,9 @@ class TestProgressUpdate:
             stage_id="test-stage",
             event_type=ProgressEventType.COMPLETED,
         )
-        
+
         json_str = update.to_json()
-        
+
         assert '"stage_id": "test-stage"' in json_str
         assert '"event_type": "completed"' in json_str
 
@@ -66,16 +66,16 @@ class TestProgressTracker:
             stage_id="parse-123",
             total_rows=10000,
         )
-        
+
         assert tracker.stage_id == "parse-123"
         assert tracker.total_rows == 10000
 
     def test_started_event(self):
         """Test started event creation."""
         tracker = ProgressTracker(stage_id="parse-123")
-        
+
         update = tracker.started("Beginning parse")
-        
+
         assert update.event_type == ProgressEventType.STARTED
         assert update.message == "Beginning parse"
 
@@ -85,9 +85,9 @@ class TestProgressTracker:
             stage_id="parse-123",
             total_rows=10000,
         )
-        
+
         update = tracker.update(rows=2500)
-        
+
         assert update.rows_processed == 2500
         assert update.progress_pct == 25.0
         assert update.event_type == ProgressEventType.PROGRESS
@@ -98,9 +98,9 @@ class TestProgressTracker:
             stage_id="parse-123",
             total_rows=10000,
         )
-        
+
         update = tracker.update(rows=5000, chunk_complete=True)
-        
+
         assert update.event_type == ProgressEventType.CHUNK_COMPLETE
         assert update.chunks_completed == 1
         assert update.progress_pct == 50.0
@@ -111,11 +111,11 @@ class TestProgressTracker:
             stage_id="parse-123",
             total_rows=10000,
         )
-        
+
         tracker.update(rows=2000)
         tracker.update(rows=3000)
         update = tracker.update(rows=5000)
-        
+
         assert update.rows_processed == 10000
         assert update.progress_pct == 100.0
 
@@ -126,9 +126,9 @@ class TestProgressTracker:
             total_rows=10000,
         )
         tracker.update(rows=10000)
-        
+
         update = tracker.completed("All rows processed")
-        
+
         assert update.event_type == ProgressEventType.COMPLETED
         assert update.progress_pct == 100.0
         assert update.message == "All rows processed"
@@ -140,27 +140,27 @@ class TestProgressTracker:
             total_rows=10000,
         )
         tracker.update(rows=5000)
-        
+
         update = tracker.cancelled()
-        
+
         assert update.event_type == ProgressEventType.CANCELLED
         assert update.progress_pct == 50.0
 
     def test_error_event(self):
         """Test error event creation."""
         tracker = ProgressTracker(stage_id="parse-123")
-        
+
         update = tracker.error("File not found")
-        
+
         assert update.event_type == ProgressEventType.ERROR
         assert update.message == "File not found"
 
     def test_current_file_tracking(self):
         """Test current file tracking."""
         tracker = ProgressTracker(stage_id="parse-123")
-        
+
         update = tracker.update(rows=100, current_file="data.csv")
-        
+
         assert update.current_file == "data.csv"
 
     def test_bytes_based_progress(self):
@@ -169,9 +169,9 @@ class TestProgressTracker:
             stage_id="parse-123",
             total_bytes=1000000,  # 1MB
         )
-        
+
         update = tracker.update(bytes_processed=500000)
-        
+
         assert update.progress_pct == 50.0
 
 
@@ -190,7 +190,7 @@ class TestConnectionManager:
             stage_id="parse-456",
             total_rows=10000,
         )
-        
+
         assert tracker.stage_id == "parse-456"
         assert tracker.total_rows == 10000
 
@@ -200,16 +200,16 @@ class TestConnectionManager:
             run_id="run-123",
             stage_id="parse-456",
         )
-        
+
         tracker = manager.get_tracker("run-123")
-        
+
         assert tracker is not None
         assert tracker.stage_id == "parse-456"
 
     def test_get_nonexistent_tracker(self, manager):
         """Test getting a non-existent tracker returns None."""
         tracker = manager.get_tracker("nonexistent")
-        
+
         assert tracker is None
 
     def test_remove_tracker(self, manager):
@@ -218,9 +218,9 @@ class TestConnectionManager:
             run_id="run-123",
             stage_id="parse-456",
         )
-        
+
         manager.remove_tracker("run-123")
-        
+
         assert manager.get_tracker("run-123") is None
 
     def test_connection_count_empty(self, manager):

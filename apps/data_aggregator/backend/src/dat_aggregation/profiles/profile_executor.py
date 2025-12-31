@@ -23,12 +23,11 @@ import polars as pl
 from shared.contracts.dat.profile import (
     DATProfile,
     TableConfig,
-    SelectConfig,
-    RepeatOverConfig,
 )
-from .strategies import get_strategy
+
 from .file_filter import filter_files
-from .transform_pipeline import TransformPipeline, ColumnTransform
+from .strategies import get_strategy
+from .transform_pipeline import ColumnTransform, TransformPipeline
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +51,7 @@ class ExtractionResult:
     image_contexts: dict[str, dict[str, Any]] = field(default_factory=dict)
     file_contexts: dict[str, dict[str, Any]] = field(default_factory=dict)
     validation_warnings: list[str] = field(default_factory=list)
-    
+
     def apply_run_context(self, table_ids: list[str] | None = None) -> dict[str, pl.DataFrame]:
         """Apply run-level context to specified tables.
         
@@ -64,7 +63,7 @@ class ExtractionResult:
         """
         result = {}
         target_tables = table_ids or list(self.tables.keys())
-        
+
         for table_id in target_tables:
             if table_id not in self.tables:
                 continue
@@ -73,9 +72,9 @@ class ExtractionResult:
                 if key not in df.columns:
                     df = df.with_columns(pl.lit(value).alias(key))
             result[table_id] = df
-        
+
         return result
-    
+
     def apply_image_context(self, table_ids: list[str] | None = None) -> dict[str, pl.DataFrame]:
         """Apply image-level context to specified tables.
         
@@ -87,12 +86,12 @@ class ExtractionResult:
         """
         result = {}
         target_tables = table_ids or list(self.tables.keys())
-        
+
         for table_id in target_tables:
             if table_id not in self.tables:
                 continue
             df = self.tables[table_id]
-            
+
             # For image-level tables, we need to match by image_id if present
             if "image_id" in df.columns and self.image_contexts:
                 # Join image context based on image_id
@@ -107,9 +106,9 @@ class ExtractionResult:
                                 .alias(key)
                             )
             result[table_id] = df
-        
+
         return result
-    
+
     def get_tables_with_context(
         self,
         table_ids: list[str] | None = None,
@@ -131,17 +130,17 @@ class ExtractionResult:
         """
         target_tables = table_ids or list(self.tables.keys())
         result = {tid: self.tables[tid].clone() for tid in target_tables if tid in self.tables}
-        
+
         if include_run_context:
             for table_id, df in result.items():
                 for key, value in self.run_context.items():
                     if key not in df.columns:
                         df = df.with_columns(pl.lit(value).alias(key))
                 result[table_id] = df
-        
+
         if include_image_context:
             result = self.apply_image_context(list(result.keys()))
-        
+
         return result
 
 
@@ -154,7 +153,7 @@ class ProfileExecutor:
     3. Applies context columns to extracted data
     4. Returns Dict[table_id, DataFrame]
     """
-    
+
     def __init__(self, jsonpath_engine: str = "jsonpath-ng"):
         """Initialize ProfileExecutor.
         
@@ -162,7 +161,7 @@ class ProfileExecutor:
             jsonpath_engine: JSONPath engine to use ('jsonpath-ng' or 'jmespath')
         """
         self.jsonpath_engine = jsonpath_engine
-    
+
     def _check_governance_limits(
         self,
         profile: DATProfile,
@@ -178,18 +177,18 @@ class ProfileExecutor:
             List of limit violation messages (empty if all OK)
         """
         violations: list[str] = []
-        
+
         if not profile.governance or not profile.governance.limits:
             return violations
-        
+
         limits = profile.governance.limits
-        
+
         # Check file count limit
         if len(files) > limits.max_files_per_run:
             violations.append(
                 f"File count {len(files)} exceeds limit {limits.max_files_per_run}"
             )
-        
+
         # Check individual file size limits
         for file_path in files:
             try:
@@ -201,7 +200,7 @@ class ProfileExecutor:
                     )
             except OSError:
                 pass
-        
+
         # Check total size limit
         total_size_gb = sum(
             f.stat().st_size for f in files if f.exists()
@@ -210,7 +209,7 @@ class ProfileExecutor:
             violations.append(
                 f"Total size {total_size_gb:.2f}GB exceeds limit {limits.max_total_size_gb}GB"
             )
-        
+
         # Check table count limit
         table_count = len(profile.get_all_tables())
         max_tables = limits.max_tables_per_level * len(profile.levels)
@@ -218,9 +217,9 @@ class ProfileExecutor:
             violations.append(
                 f"Table count {table_count} exceeds limit {max_tables}"
             )
-        
+
         return violations
-    
+
     def _check_access_control(
         self,
         profile: DATProfile,
@@ -239,10 +238,10 @@ class ProfileExecutor:
         """
         if not profile.governance or not profile.governance.access:
             return None  # No access control configured = allow all
-        
+
         access = profile.governance.access
         user_roles = user_roles or ["all"]
-        
+
         # Get allowed roles for this action
         if action == "read":
             allowed_roles = access.read
@@ -252,16 +251,16 @@ class ProfileExecutor:
             allowed_roles = access.delete
         else:
             return f"Unknown action: {action}"
-        
+
         # Check if user has any allowed role
         if "all" in allowed_roles:
             return None  # Anyone can access
-        
+
         if any(role in allowed_roles for role in user_roles):
             return None  # User has required role
-        
+
         return f"Action '{action}' requires one of {allowed_roles}, user has {user_roles}"
-    
+
     async def execute(
         self,
         profile: DATProfile,
@@ -296,13 +295,13 @@ class ProfileExecutor:
             for violation in limit_violations:
                 logger.error(f"Governance limit violation: {violation}")
             raise ValueError(f"Governance limits exceeded: {limit_violations}")
-        
+
         # Per DESIGN §10: Check access control
         access_denied = self._check_access_control(profile, "read")
         if access_denied:
             logger.error(f"Access denied: {access_denied}")
             raise PermissionError(f"Access denied: {access_denied}")
-        
+
         # Per DESIGN §10: Audit logging for extraction start
         if profile.governance and profile.governance.audit:
             if profile.governance.audit.log_access:
@@ -310,44 +309,44 @@ class ProfileExecutor:
                     f"AUDIT: Profile extraction started - "
                     f"profile_id={profile.profile_id}, files={len(files)}"
                 )
-        
+
         result = ExtractionResult()
         result.run_context = context.copy()
-        
+
         # Per DESIGN §2: Apply file filter predicates if defined
         filtered_files = filter_files(files, profile.datasource_filters)
         if len(filtered_files) < len(files):
             logger.info(
                 f"File filter applied: {len(files)} -> {len(filtered_files)} files"
             )
-        
+
         for file_path in filtered_files:
             # Load file content
             data = await self._load_file(file_path, profile)
             if data is None:
                 logger.warning(f"Could not load file: {file_path}")
                 continue
-            
+
             # Extract file-level context and store separately
             file_context = self._extract_file_context(profile, file_path, data)
             result.file_contexts[str(file_path)] = file_context
             result.run_context.update(file_context)  # Merge into run context
-            
+
             # Extract image-level contexts if this is image-level data
             image_contexts = self._extract_image_contexts(profile, data)
             result.image_contexts.update(image_contexts)
-            
+
             # Extract each table
             for level_name, table_config in profile.get_all_tables():
                 if selected_tables and table_config.id not in selected_tables:
                     continue
-                
+
                 try:
                     df = self.extract_table(table_config, data, result.run_context)
-                    
+
                     if df.is_empty():
                         continue
-                    
+
                     # Per DESIGN §6: Apply table-level column_transforms if defined
                     if table_config.column_transforms:
                         pipeline = TransformPipeline()
@@ -361,11 +360,11 @@ class ProfileExecutor:
                             for t in table_config.column_transforms
                         ]
                         df = pipeline.apply_column_transforms(df, transforms)
-                    
+
                     # Only apply context if legacy mode requested
                     if apply_context:
                         df = self._apply_context(df, result.run_context, level_name, profile)
-                    
+
                     # Accumulate results
                     if table_config.id in result.tables:
                         result.tables[table_config.id] = pl.concat([
@@ -373,12 +372,12 @@ class ProfileExecutor:
                         ], how="diagonal")
                     else:
                         result.tables[table_config.id] = df
-                        
+
                 except Exception as e:
                     logger.error(f"Error extracting table {table_config.id}: {e}")
                     result.validation_warnings.append(f"Table {table_config.id}: {e}")
                     continue
-        
+
         # Per DESIGN §10: Audit logging for extraction completion
         if profile.governance and profile.governance.audit:
             if profile.governance.audit.log_access:
@@ -388,9 +387,9 @@ class ProfileExecutor:
                     f"profile_id={profile.profile_id}, "
                     f"tables={len(result.tables)}, rows={total_rows}"
                 )
-        
+
         return result
-    
+
     def _extract_file_context(
         self,
         profile: DATProfile,
@@ -408,14 +407,14 @@ class ProfileExecutor:
             Dict of context key-value pairs
         """
         from .context_extractor import ContextExtractor
-        
+
         extractor = ContextExtractor()
         return extractor.extract(
             profile=profile,
             file_path=file_path,
             file_content=data if isinstance(data, dict) else None,
         )
-    
+
     def _extract_image_contexts(
         self,
         profile: DATProfile,
@@ -431,34 +430,34 @@ class ProfileExecutor:
             Dict mapping image_id to image context values
         """
         image_contexts: dict[str, dict[str, Any]] = {}
-        
+
         if not isinstance(data, dict):
             return image_contexts
-        
+
         # Find image_context configuration
         image_context_config = None
         for ctx in profile.contexts:
             if ctx.level == "image":
                 image_context_config = ctx
                 break
-        
+
         if not image_context_config:
             return image_contexts
-        
+
         # Extract from images array if present
         images = data.get("images", [])
         for image in images:
             image_id = image.get("image_id") or image.get("image_name")
             if not image_id:
                 continue
-            
+
             ctx = {}
             # Apply key_map to extract context values
             for target_col, source_path in image_context_config.key_map.items():
                 value = self._get_nested_value(image, source_path.lstrip("$."))
                 if value is not None:
                     ctx[target_col] = value
-            
+
             # Also extract from metadata if present
             metadata = image.get("metadata", {})
             for target_col, source_path in image_context_config.key_map.items():
@@ -466,12 +465,12 @@ class ProfileExecutor:
                     value = self._get_nested_value(metadata, source_path.lstrip("$."))
                     if value is not None:
                         ctx[target_col] = value
-            
+
             if ctx:
                 image_contexts[image_id] = ctx
-        
+
         return image_contexts
-    
+
     def _get_nested_value(self, data: dict, path: str) -> Any:
         """Get value from nested dict using dot-notation path."""
         parts = path.split(".")
@@ -482,7 +481,7 @@ class ProfileExecutor:
             else:
                 return None
         return current
-    
+
     def extract_table(
         self,
         table_config: TableConfig,
@@ -502,26 +501,26 @@ class ProfileExecutor:
         if not table_config.select:
             logger.warning(f"No select config for table {table_config.id}")
             return pl.DataFrame()
-        
+
         # table_config.select is now a Tier-0 SelectConfig directly
         select_config = table_config.select
-        
+
         # Get strategy (strategy is now a StrategyType enum)
         strategy_name = select_config.strategy.value if hasattr(select_config.strategy, 'value') else str(select_config.strategy)
-        
+
         # Handle repeat_over - it wraps the base strategy
         if select_config.repeat_over:
             strategy_name = "repeat_over"
-        
+
         try:
             strategy = get_strategy(strategy_name)
         except ValueError as e:
             logger.error(f"Strategy error for {table_config.id}: {e}")
             return pl.DataFrame()
-        
+
         # Execute extraction
         return strategy.extract(data, select_config, context)
-    
+
     def _apply_context(
         self,
         df: pl.DataFrame,
@@ -546,23 +545,23 @@ class ProfileExecutor:
             if ctx.level == level_name:
                 context_config = ctx
                 break
-        
+
         if not context_config:
             # No specific context config, add all context as columns
             for key, value in context.items():
                 if key not in df.columns:
                     df = df.with_columns(pl.lit(value).alias(key))
             return df
-        
+
         # Apply key_map if defined
         for target_col, source_path in context_config.key_map.items():
             if target_col not in df.columns:
                 value = context.get(target_col) or context.get(source_path.lstrip("$."))
                 if value is not None:
                     df = df.with_columns(pl.lit(value).alias(target_col))
-        
+
         return df
-    
+
     async def _load_file(
         self,
         file_path: Path,
@@ -580,7 +579,7 @@ class ProfileExecutor:
             Parsed file content (dict for JSON, DataFrame for tabular)
         """
         fmt = profile.datasource_format.lower()
-        
+
         if fmt == "json":
             return self._load_json(file_path)
         elif fmt == "csv":
@@ -603,7 +602,7 @@ class ProfileExecutor:
             else:
                 logger.warning(f"Unknown format '{fmt}', attempting JSON")
                 return self._load_json(file_path)
-    
+
     def _load_json(self, file_path: Path) -> dict | None:
         """Load JSON file."""
         try:
@@ -612,7 +611,7 @@ class ProfileExecutor:
         except (json.JSONDecodeError, OSError) as e:
             logger.error(f"Error loading JSON {file_path}: {e}")
             return None
-    
+
     def _load_csv(
         self, file_path: Path, options: dict[str, Any]
     ) -> dict[str, Any] | None:
@@ -625,7 +624,7 @@ class ProfileExecutor:
             delimiter = csv_opts.get("delimiter", ",")
             encoding = csv_opts.get("encoding", "utf-8")
             skip_rows = csv_opts.get("skip_rows", 0)
-            
+
             df = pl.read_csv(
                 file_path,
                 separator=delimiter,
@@ -637,7 +636,7 @@ class ProfileExecutor:
         except Exception as e:
             logger.error(f"Error loading CSV {file_path}: {e}")
             return None
-    
+
     def _load_excel(
         self, file_path: Path, options: dict[str, Any]
     ) -> dict[str, Any] | None:
@@ -648,7 +647,7 @@ class ProfileExecutor:
         try:
             excel_opts = options.get("excel", {})
             sheet_selection = excel_opts.get("sheet_selection", "first")
-            
+
             if sheet_selection == "all":
                 # Load all sheets
                 sheets_data = {}
@@ -663,7 +662,7 @@ class ProfileExecutor:
         except Exception as e:
             logger.error(f"Error loading Excel {file_path}: {e}")
             return None
-    
+
     def _load_parquet(self, file_path: Path) -> dict[str, Any] | None:
         """Load Parquet file as dict with records."""
         try:

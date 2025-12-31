@@ -1,7 +1,10 @@
 {
   "id": "SPEC-0023_frontend-iframe-integration",
   "title": "Frontend Iframe Integration Implementation",
-  "implements_adr": "ADR-0044",
+  "implements_adr": [
+    "ADR-0044",
+    "ADR-0022"
+  ],
   "tier0_contracts": [],
   "status": "accepted",
   "created": "2025-12-29",

@@ -1,9 +1,9 @@
 {
-  "adr_count": 45,
-  "spec_count": 39,
-  "contract_modules_checked": 34,
+  "adr_count": 47,
+  "spec_count": 41,
+  "contract_modules_checked": 42,
   "error_count": 0,
-  "warning_count": 9,
+  "warning_count": 6,
   "items": [
     {
       "source_type": "SPEC",
@@ -12,22 +12,6 @@
       "target_id": "shared.contracts",
       "severity": "warning",
       "message": "SPEC SPEC-0017 references potentially missing contract: shared.contracts"
-    },
-    {
-      "source_type": "SPEC",
-      "source_id": "SPEC-0034",
-      "target_type": "CONTRACT",
-      "target_id": "shared.contracts.devtools.workflow",
-      "severity": "warning",
-      "message": "SPEC SPEC-0034 references potentially missing contract: shared.contracts.devtools.workflow"
-    },
-    {
-      "source_type": "INDEX",
-      "source_id": "SPEC_INDEX.md",
-      "target_type": "SPEC",
-      "target_id": "SPEC-0040",
-      "severity": "warning",
-      "message": "SPEC_INDEX.md references SPEC not found as file: SPEC-0040"
     },
     {
       "source_type": "INDEX",
@@ -44,14 +28,6 @@
       "target_id": "SPEC-0042",
       "severity": "warning",
       "message": "SPEC_INDEX.md references SPEC not found as file: SPEC-0042"
-    },
-    {
-      "source_type": "INDEX",
-      "source_id": "SPEC_INDEX.md",
-      "target_type": "SPEC",
-      "target_id": "SPEC-0043",
-      "severity": "warning",
-      "message": "SPEC_INDEX.md references SPEC not found as file: SPEC-0043"
     },
     {
       "source_type": "INDEX",

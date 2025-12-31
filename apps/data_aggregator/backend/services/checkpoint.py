@@ -4,7 +4,7 @@ Per ADR-0014: Checkpoints are safe points where data integrity is guaranteed.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from shared.contracts.dat.cancellation import CheckpointType
 
@@ -17,7 +17,7 @@ class Checkpoint:
 
     checkpoint_type: CheckpointType
     artifact_id: str
-    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
     metadata: dict = field(default_factory=dict)
 
 

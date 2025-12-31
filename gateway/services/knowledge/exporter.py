@@ -4,6 +4,7 @@ Export documents back to file format.
 """
 
 from pathlib import Path
+
 from shared.contracts.knowledge.archive import Document
 
 

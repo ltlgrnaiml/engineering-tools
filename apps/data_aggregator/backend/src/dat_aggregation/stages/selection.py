@@ -50,12 +50,12 @@ async def discover_files(
         List of discovered file information
     """
     registry = create_default_registry()
-    
+
     # Get supported extensions from all registered adapters
     supported: set[str] = set()
     for meta in registry.list_adapters():
         supported.update(meta.file_extensions)
-    
+
     discovered: list[FileInfo] = []
 
     for source in source_paths:

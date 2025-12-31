@@ -5,11 +5,12 @@ Uses shared contracts from shared.contracts.dat.table_status.
 """
 from pathlib import Path
 
+from pydantic import BaseModel, Field
+
 from shared.contracts.dat.table_status import (
     TableAvailabilityStatus,
 )
 from shared.utils.stage_id import compute_stage_id
-from pydantic import BaseModel, Field
 
 
 class TableInfo(BaseModel):
@@ -67,7 +68,7 @@ async def execute_table_availability(
     for file_path in selected_files:
         try:
             adapter = registry.get_adapter_for_file(str(file_path))
-            
+
             # Get table names using async probe_schema
             if adapter.metadata.capabilities.supports_multiple_sheets:
                 probe_result = await adapter.probe_schema(str(file_path))

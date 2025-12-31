@@ -1,26 +1,22 @@
 """Unit tests for shared contracts."""
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-import pytest
-
+from shared.contracts.core.artifact_registry import (
+    ArtifactQuery,
+    ArtifactRecord,
+    ArtifactState,
+    ArtifactType,
+)
 from shared.contracts.core.dataset import (
-    DataSetManifest,
     ColumnMeta,
+    DataSetManifest,
     DataSetRef,
-    DataSetPreview,
 )
 from shared.contracts.core.pipeline import (
     Pipeline,
     PipelineStep,
-    PipelineStepType,
     PipelineStepState,
-    CreatePipelineRequest,
-)
-from shared.contracts.core.artifact_registry import (
-    ArtifactRecord,
-    ArtifactType,
-    ArtifactState,
-    ArtifactQuery,
+    PipelineStepType,
 )
 
 
@@ -32,7 +28,7 @@ class TestDataSetManifest:
         manifest = DataSetManifest(
             dataset_id="ds_test123",
             name="Test Dataset",
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
             created_by_tool="dat",
             columns=[
                 ColumnMeta(name="col1", dtype="str"),
@@ -49,7 +45,7 @@ class TestDataSetManifest:
         manifest = DataSetManifest(
             dataset_id="ds_child123",
             name="Child Dataset",
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
             created_by_tool="sov",
             columns=[ColumnMeta(name="result", dtype="float")],
             row_count=50,
@@ -63,7 +59,7 @@ class TestDataSetManifest:
         manifest = DataSetManifest(
             dataset_id="ds_agg123",
             name="Aggregated Dataset",
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
             created_by_tool="dat",
             columns=[ColumnMeta(name="mean_value", dtype="float")],
             row_count=10,
@@ -83,7 +79,7 @@ class TestDataSetRef:
             created_by_tool="dat",
             row_count=100,
             column_count=5,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
         assert ref.dataset_id == "ds_test123"
         assert ref.column_count == 5
@@ -110,7 +106,7 @@ class TestPipeline:
                     input_dataset_ids=["$step_0_output"],
                 ),
             ],
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
         assert pipeline.pipeline_id == "pipe_test123"
         assert len(pipeline.steps) == 2
@@ -137,8 +133,8 @@ class TestArtifactRecord:
             artifact_type=ArtifactType.DATASET,
             name="Test Dataset",
             relative_path="datasets/ds_test123",
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
             created_by_tool="dat",
             size_bytes=1024,
             row_count=100,

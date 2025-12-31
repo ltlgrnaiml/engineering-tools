@@ -109,39 +109,39 @@ def main():
     print("=" * 60)
     print("EXP-001 Automatic Results Recorder")
     print("=" * 60)
-    
+
     # Detect branch and model
     branch = get_git_branch()
     model_info = detect_model_from_branch(branch)
-    
+
     if not model_info:
         print(f"ERROR: Unknown branch '{branch}'")
         print("Expected branches: experiment/l1-* or experiment/l3-*")
         sys.exit(1)
-    
+
     print(f"\nDetected Branch: {branch}")
     print(f"Model: {model_info['model_name']}")
     print(f"Granularity: {model_info['granularity']}")
     print(f"Cost Multiplier: {model_info['cost_multiplier']}x")
-    
+
     # Collect metrics from AI
     print("\n" + "-" * 60)
     print("Please provide the following metrics:")
     print("-" * 60)
-    
+
     start_time = input("Start time (HH:MM or ISO format): ").strip()
     end_time = input("End time (HH:MM or ISO format, or press Enter for now): ").strip()
     if not end_time:
         end_time = datetime.now().isoformat()
-    
+
     total_messages = input("Total AI messages in Cascade: ").strip()
     errors_encountered = input("Number of errors encountered: ").strip()
-    
+
     # Run verification commands
     print("\n" + "-" * 60)
     print("Running verification commands...")
     print("-" * 60)
-    
+
     verifications = {
         "T-M1-01_contracts": run_verification(
             'python -c "from shared.contracts.devtools.workflow import ArtifactType, GraphNode"'
@@ -162,16 +162,16 @@ def main():
             'test -f tests/gateway/test_devtools_workflow.py && echo "EXISTS"'
         ),
     }
-    
+
     # Calculate scores
     tasks_passed = sum(1 for v in verifications.values() if v.get("passed", False))
     tasks_total = len(verifications)
-    
+
     print(f"\nVerification Results: {tasks_passed}/{tasks_total} tasks passed")
     for task_id, result in verifications.items():
         status = "✅" if result.get("passed") else "❌"
         print(f"  {status} {task_id}")
-    
+
     # Build results object
     results = {
         "experiment_id": "EXP-001",
@@ -191,22 +191,22 @@ def main():
         },
         "recorded_at": datetime.now().isoformat(),
     }
-    
+
     # Determine output path
     results_dir = Path(".experiments/EXP-001_L1-vs-L3-Granularity/results")
     results_dir.mkdir(parents=True, exist_ok=True)
-    
+
     model_short = model_info["model_id"].replace("-", "_").upper()
     output_file = results_dir / f"RESULTS_{model_short}.json"
-    
+
     # Save results
     with open(output_file, "w") as f:
         json.dump(results, f, indent=2)
-    
+
     print("\n" + "=" * 60)
     print(f"✅ Results saved to: {output_file}")
     print("=" * 60)
-    
+
     # Print summary for easy copy
     print("\n📊 Quick Summary:")
     print(f"   Model: {model_info['model_name']}")
@@ -214,12 +214,12 @@ def main():
     print(f"   Tasks Passed: {tasks_passed}/{tasks_total}")
     print(f"   Completion Rate: {results['scores']['completion_rate']}%")
     print(f"   Cost Multiplier: {model_info['cost_multiplier']}x")
-    
+
     if model_info["cost_multiplier"] > 0:
         efficiency = results["scores"]["completion_rate"] / model_info["cost_multiplier"]
         print(f"   Efficiency Score: {efficiency:.1f}")
     else:
-        print(f"   Efficiency Score: ∞ (free model)")
+        print("   Efficiency Score: ∞ (free model)")
 
 
 if __name__ == "__main__":

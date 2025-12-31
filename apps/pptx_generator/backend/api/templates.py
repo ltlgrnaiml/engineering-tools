@@ -14,27 +14,24 @@ from fastapi import APIRouter, File, UploadFile, status
 from pptx import Presentation
 
 from apps.pptx_generator.backend.api.errors import (
+    raise_internal_error,
     raise_not_found,
     raise_validation_error,
-    raise_internal_error,
 )
-
-from shared.contracts.pptx.template import (
-    TemplateValidationResult,
-    TemplateValidationError,
-)
-
 from apps.pptx_generator.backend.api.projects import projects_db
 from apps.pptx_generator.backend.core.config import settings
 from apps.pptx_generator.backend.core.shape_discovery import (
     discover_shapes,
-    ShapeDiscoveryResult,
 )
 from apps.pptx_generator.backend.models.project import ProjectStatus
 from apps.pptx_generator.backend.models.template import ShapeMap, Template
 from apps.pptx_generator.backend.services.drm_extractor import DRMExtractorService
 from apps.pptx_generator.backend.services.storage import StorageService
 from apps.pptx_generator.backend.services.template_parser import TemplateParserService
+from shared.contracts.pptx.template import (
+    TemplateValidationError,
+    TemplateValidationResult,
+)
 
 router = APIRouter()
 
@@ -101,7 +98,6 @@ async def upload_template(
     project.template_id = template.id
     project.status = ProjectStatus.TEMPLATE_UPLOADED
 
-    from datetime import datetime
 
     project.updated_at = datetime.utcnow()
 
@@ -143,7 +139,6 @@ async def parse_template(project_id: UUID) -> ShapeMap:
     project.shape_map_id = shape_map.id
     project.status = ProjectStatus.TEMPLATE_PARSED
 
-    from datetime import datetime
 
     project.updated_at = datetime.utcnow()
 

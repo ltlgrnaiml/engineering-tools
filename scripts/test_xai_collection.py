@@ -6,11 +6,13 @@ https://docs.x.ai/docs/guides/using-collections
 """
 
 import os
-import httpx
 from pathlib import Path
+
+import httpx
 
 # Load environment
 from dotenv import load_dotenv
+
 load_dotenv(Path(__file__).parent.parent / ".env")
 
 XAI_API_KEY = os.getenv("XAI_API_KEY")
@@ -56,7 +58,7 @@ def upload_file(collection_id: str, file_path: Path, metadata: dict = None):
         if metadata:
             import json
             data["metadata"] = json.dumps(metadata)
-        
+
         response = httpx.post(
             f"{BASE_URL}/collections/{collection_id}/documents",
             headers={"Authorization": f"Bearer {XAI_API_KEY}"},
@@ -64,7 +66,7 @@ def upload_file(collection_id: str, file_path: Path, metadata: dict = None):
             data=data,
             timeout=60,
         )
-    
+
     print(f"Upload File: {response.status_code}")
     print(response.text)
     return response
@@ -86,28 +88,28 @@ def main():
     print("=" * 60)
     print("xAI Collections API Test")
     print("=" * 60)
-    
+
     if not XAI_API_KEY:
         print("ERROR: XAI_API_KEY not set in .env")
         return
-    
+
     print(f"\nCollection ID: {COLLECTION_ID}")
     print(f"API Key: {XAI_API_KEY[:10]}...")
-    
+
     # Test 1: Get collection info
     print("\n--- Test 1: Get Collection Info ---")
     try:
         get_collection(COLLECTION_ID)
     except Exception as e:
         print(f"Error: {e}")
-    
+
     # Test 2: List documents
     print("\n--- Test 2: List Documents ---")
     try:
         list_documents(COLLECTION_ID)
     except Exception as e:
         print(f"Error: {e}")
-    
+
     # Test 3: Upload a sample ADR
     print("\n--- Test 3: Upload Sample Document ---")
     test_file = Path(__file__).parent.parent / ".adrs" / "core" / "ADR-0010_type-safety-contract-discipline.json"
@@ -125,7 +127,7 @@ def main():
             print(f"Error: {e}")
     else:
         print(f"Test file not found: {test_file}")
-    
+
     print("\n" + "=" * 60)
     print("Test Complete")
     print("=" * 60)

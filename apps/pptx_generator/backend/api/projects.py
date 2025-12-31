@@ -11,13 +11,12 @@ from apps.pptx_generator.backend.api.errors import (
     raise_not_found,
     raise_validation_error,
 )
-from apps.pptx_generator.backend.models.project import Project, ProjectCreate, ProjectStatus
 from apps.pptx_generator.backend.core.workflow_fsm import (
     WorkflowState,
-    WorkflowFSM,
     WorkflowStep,
     create_workflow_state,
 )
+from apps.pptx_generator.backend.models.project import Project, ProjectCreate, ProjectStatus
 
 router = APIRouter()
 

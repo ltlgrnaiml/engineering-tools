@@ -16,7 +16,7 @@ SOV consumes DataSets from DAT and produces DataSets for PPTX.
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 

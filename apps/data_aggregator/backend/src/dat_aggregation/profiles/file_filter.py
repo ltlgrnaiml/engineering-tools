@@ -46,7 +46,7 @@ class FileFilter:
     
     Supports composable predicates with AND/OR/NOT logic for file matching.
     """
-    
+
     def matches(self, file_path: Path, filter_config: dict[str, Any]) -> bool:
         """Check if file matches filter configuration.
         
@@ -59,9 +59,9 @@ class FileFilter:
         """
         if not filter_config:
             return True  # No filter = match all
-        
+
         filter_type = filter_config.get("type", "predicate")
-        
+
         if filter_type == "group":
             return self._evaluate_group(file_path, filter_config)
         elif filter_type == "predicate":
@@ -69,7 +69,7 @@ class FileFilter:
         else:
             logger.warning(f"Unknown filter type: {filter_type}")
             return True
-    
+
     def _evaluate_group(self, file_path: Path, group: dict[str, Any]) -> bool:
         """Evaluate a filter group (AND/OR/NOT).
         
@@ -82,10 +82,10 @@ class FileFilter:
         """
         op = group.get("op", "AND").upper()
         children = group.get("children", [])
-        
+
         if not children:
             return True
-        
+
         if op == "AND":
             return all(self.matches(file_path, child) for child in children)
         elif op == "OR":
@@ -98,7 +98,7 @@ class FileFilter:
         else:
             logger.warning(f"Unknown group op: {op}")
             return True
-    
+
     def _evaluate_predicate(
         self, file_path: Path, predicate: dict[str, Any]
     ) -> bool:
@@ -115,21 +115,21 @@ class FileFilter:
         op = predicate.get("op", "equals")
         value = predicate.get("value")
         case = predicate.get("case", "insensitive")
-        
+
         # Get field value
         field_value = self._get_field_value(file_path, field_name)
         if field_value is None:
             return False
-        
+
         # Apply case sensitivity for string comparisons
         if isinstance(field_value, str) and isinstance(value, str):
             if case == "insensitive":
                 field_value = field_value.lower()
                 value = value.lower()
-        
+
         # Evaluate operator
         return self._apply_operator(field_value, op, value, predicate)
-    
+
     def _get_field_value(self, file_path: Path, field_name: str) -> Any:
         """Get field value from file path.
         
@@ -161,7 +161,7 @@ class FileFilter:
         else:
             logger.warning(f"Unknown field: {field_name}")
             return None
-    
+
     def _apply_operator(
         self,
         field_value: Any,
@@ -229,6 +229,6 @@ def filter_files(
     """
     if not filter_config:
         return files
-    
+
     file_filter = FileFilter()
     return [f for f in files if file_filter.matches(f, filter_config)]

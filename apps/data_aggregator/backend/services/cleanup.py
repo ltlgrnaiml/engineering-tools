@@ -5,11 +5,11 @@ Per ADR-0014: Cleanup is user-initiated only, dry-run by default.
 
 import shutil
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal
 
-from shared.contracts.dat.cancellation import CleanupTarget, CleanupResult
+from shared.contracts.dat.cancellation import CleanupResult, CleanupTarget
 
 __version__ = "1.0.0"
 
@@ -113,5 +113,5 @@ async def cleanup(
         archived_count=archived_count,
         skipped_count=skipped_count,
         actions=[a.__dict__ for a in actions],
-        completed_at=datetime.now(timezone.utc),
+        completed_at=datetime.now(UTC),
     )

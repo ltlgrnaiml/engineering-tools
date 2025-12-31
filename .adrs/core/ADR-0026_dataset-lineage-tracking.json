@@ -62,7 +62,9 @@
       }
     },
     "implementation_specs": [
-      "SPEC-0028_DataSet-Lineage-Spec"
+      "SPEC-0028_DataSet-Lineage-Spec",
+      "SPEC-0007",
+      "SPEC-0008"
     ]
   },
   "consequences": [

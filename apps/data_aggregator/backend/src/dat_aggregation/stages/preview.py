@@ -10,8 +10,9 @@ from typing import Any
 import polars as pl
 
 from shared.utils.stage_id import compute_stage_id
-from .table_selection import TableSelectionResult, get_selected_file_table_map
+
 from .context import ContextConfig, apply_context_to_dataframe
+from .table_selection import TableSelectionResult, get_selected_file_table_map
 
 
 @dataclass

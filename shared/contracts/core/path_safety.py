@@ -6,10 +6,8 @@ Per ADR-0013: Cross-platform compatibility for Windows, macOS, Linux.
 This module defines path safety contracts and utilities.
 """
 
-import os
 import re
-from pathlib import Path, PurePosixPath, PureWindowsPath
-from typing import Literal
+from pathlib import Path
 
 from pydantic import BaseModel, Field, field_validator
 

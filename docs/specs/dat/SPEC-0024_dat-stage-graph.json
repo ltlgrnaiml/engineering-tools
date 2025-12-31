@@ -11,7 +11,8 @@
     "ADR-0004_optional-context-preview-stages",
     "ADR-0006_stage-id-configuration",
     "ADR-0008_table-availability",
-    "ADR-0015_parse-and-export-artifact-formats"
+    "ADR-0015_parse-and-export-artifact-formats",
+    "ADR-0023"
   ],
   "tier_0_contracts": [
     {

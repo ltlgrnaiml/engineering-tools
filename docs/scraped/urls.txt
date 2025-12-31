@@ -1,0 +1,77 @@
+# xAI Documentation URLs - Complete Set
+# From docs.x.ai navigation (Dec 2025)
+# Use with: python scripts/scrape_docs.py --urls-file docs/scraped/urls.txt
+
+# ==========================================
+# Getting Started
+# ==========================================
+https://docs.x.ai/docs/overview
+https://docs.x.ai/docs/introduction
+https://docs.x.ai/docs/tutorial
+https://docs.x.ai/docs/models
+https://docs.x.ai/docs/release-notes
+
+# ==========================================
+# Key Information
+# ==========================================
+https://docs.x.ai/docs/key-information/billing
+https://docs.x.ai/docs/key-information/consumption-and-rate-limits
+https://docs.x.ai/docs/key-information/regional-endpoints
+https://docs.x.ai/docs/key-information/collections
+https://docs.x.ai/docs/key-information/using-management-api
+https://docs.x.ai/docs/key-information/usage-explorer
+https://docs.x.ai/docs/key-information/migrating-to-new-models
+https://docs.x.ai/docs/key-information/debugging-errors
+
+# ==========================================
+# Guides - Chat
+# ==========================================
+https://docs.x.ai/docs/guides/chat
+https://docs.x.ai/docs/guides/chat-completions-legacy
+https://docs.x.ai/docs/guides/chat-with-reasoning
+
+# ==========================================
+# Guides - Tools (NEW)
+# ==========================================
+https://docs.x.ai/docs/guides/tools/overview
+https://docs.x.ai/docs/guides/tools/search-tools
+https://docs.x.ai/docs/guides/tools/code-execution-tool
+https://docs.x.ai/docs/guides/tools/collections-search-tool
+https://docs.x.ai/docs/guides/tools/remote-mcp-tools
+https://docs.x.ai/docs/guides/tools/advanced-usage
+
+# ==========================================
+# Guides - Files & Collections (NEW)
+# ==========================================
+https://docs.x.ai/docs/guides/files
+https://docs.x.ai/docs/guides/live-search
+https://docs.x.ai/docs/guides/using-collections
+
+# ==========================================
+# Guides - Media
+# ==========================================
+https://docs.x.ai/docs/guides/image-generations
+https://docs.x.ai/docs/guides/voice
+
+# ==========================================
+# Guides - Advanced
+# ==========================================
+https://docs.x.ai/docs/guides/streaming-response
+https://docs.x.ai/docs/guides/deferred-chat-completions
+https://docs.x.ai/docs/guides/asynchronous-requests
+https://docs.x.ai/docs/guides/function-calling
+https://docs.x.ai/docs/guides/structured-outputs
+https://docs.x.ai/docs/guides/fingerprint
+https://docs.x.ai/docs/guides/migration-from-other-providers
+
+# ==========================================
+# API Reference
+# ==========================================
+https://docs.x.ai/docs/api-reference
+
+# ==========================================
+# Cookbook Examples
+# ==========================================
+https://docs.x.ai/cookbook
+https://docs.x.ai/cookbook/examples/multi_turn_conversation
+https://docs.x.ai/cookbook/examples/sentiment_analysis_on_x

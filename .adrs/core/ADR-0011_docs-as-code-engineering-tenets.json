@@ -30,7 +30,10 @@
     ],
     "implementation_specs": [
       "SPEC-0009_Engineering-Docs-Tenets-Spec",
-      "SPEC-0005_Message-Catalog-Spec"
+      "SPEC-0005_Message-Catalog-Spec",
+      "SPEC-0025",
+      "SPEC-0030",
+      "SPEC-0031"
     ]
   },
   "consequences": [
@@ -80,7 +83,8 @@
   "references": [
     "ADR-0015_3-Tier-Document-Model: Defines the doc hierarchy this ADR enables",
     "ADR-0017_Cross-Cutting-Guardrails: Tier boundary enforcement guardrails",
-    "docs/: MkDocs documentation for all tools (DAT, PPTX, SOV)"
+    "docs/: MkDocs documentation for all tools (DAT, PPTX, SOV)",
+    "ADR-0041"
   ],
   "tags": [
     "docs-as-code",

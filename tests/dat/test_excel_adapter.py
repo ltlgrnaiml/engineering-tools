@@ -17,7 +17,6 @@ from shared.contracts.dat.adapter import (
     AdapterErrorCode,
     AdapterMetadata,
     BaseFileAdapter,
-    StreamOptions,
 )
 
 # Fixture directory

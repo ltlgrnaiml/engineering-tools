@@ -52,28 +52,67 @@
       "schema": {
         "documents": {
           "purpose": "Store sessions, plans, DISCs, ADRs with metadata",
-          "fields": ["id", "type", "title", "status", "created_at", "updated_at", "file_path", "content", "metadata JSON", "archived_at"]
+          "fields": [
+            "id",
+            "type",
+            "title",
+            "status",
+            "created_at",
+            "updated_at",
+            "file_path",
+            "content",
+            "metadata JSON",
+            "archived_at"
+          ]
         },
         "llm_calls": {
           "purpose": "Track LLM API usage and costs",
-          "fields": ["id", "session_id", "timestamp", "model", "prompt", "response", "tokens_in", "tokens_out", "cost", "success"]
+          "fields": [
+            "id",
+            "session_id",
+            "timestamp",
+            "model",
+            "prompt",
+            "response",
+            "tokens_in",
+            "tokens_out",
+            "cost",
+            "success"
+          ]
         },
         "chunks": {
           "purpose": "Text segments for RAG retrieval",
-          "fields": ["id", "doc_id", "chunk_index", "content"]
+          "fields": [
+            "id",
+            "doc_id",
+            "chunk_index",
+            "content"
+          ]
         },
         "embeddings": {
           "purpose": "Vector representations for semantic search",
-          "fields": ["chunk_id", "vector BLOB (768-dim or 384-dim)"]
+          "fields": [
+            "chunk_id",
+            "vector BLOB (768-dim or 384-dim)"
+          ]
         },
         "content_fts": {
           "purpose": "Full-text search index",
           "type": "FTS5 virtual table",
-          "indexed_fields": ["id", "type", "title", "content"]
+          "indexed_fields": [
+            "id",
+            "type",
+            "title",
+            "content"
+          ]
         },
         "relationships": {
           "purpose": "Cross-references between artifacts",
-          "fields": ["source_id", "target_id", "type (implements, references, supersedes)"]
+          "fields": [
+            "source_id",
+            "target_id",
+            "type (implements, references, supersedes)"
+          ]
         }
       },
       "embedding_model": {
@@ -90,7 +129,10 @@
           "use_case": "Resource-constrained environments"
         },
         "api_mode": {
-          "models": ["xAI embeddings", "OpenAI embeddings"],
+          "models": [
+            "xAI embeddings",
+            "OpenAI embeddings"
+          ],
           "use_case": "Cloud deployment, latest models"
         },
         "config": "KNOWLEDGE_EMBEDDING_MODE=local|api environment variable"
@@ -135,11 +177,31 @@
         "false_positive_threshold": "<5%",
         "reversibility": "Dev mode only (IS_DEV_MODE flag)",
         "pattern_categories": [
-          {"category": "API Keys", "pattern": "sk-..., AKIA...", "replacement": "[REDACTED_API_KEY]"},
-          {"category": "Secrets", "pattern": "password=...", "replacement": "[REDACTED_SECRET]"},
-          {"category": "Emails", "pattern": "user@domain.com", "replacement": "[EMAIL]"},
-          {"category": "IPs", "pattern": "192.168.x.x", "replacement": "[INTERNAL_IP]"},
-          {"category": "URLs", "pattern": "https://internal...", "replacement": "[INTERNAL_URL]"}
+          {
+            "category": "API Keys",
+            "pattern": "sk-..., AKIA...",
+            "replacement": "[REDACTED_API_KEY]"
+          },
+          {
+            "category": "Secrets",
+            "pattern": "password=...",
+            "replacement": "[REDACTED_SECRET]"
+          },
+          {
+            "category": "Emails",
+            "pattern": "user@domain.com",
+            "replacement": "[EMAIL]"
+          },
+          {
+            "category": "IPs",
+            "pattern": "192.168.x.x",
+            "replacement": "[INTERNAL_IP]"
+          },
+          {
+            "category": "URLs",
+            "pattern": "https://internal...",
+            "replacement": "[INTERNAL_URL]"
+          }
         ],
         "config_file": "config/pii_patterns.yaml"
       },
@@ -172,15 +234,54 @@
       "api_endpoints": {
         "base_path": "/api/knowledge",
         "endpoints": [
-          {"method": "GET", "path": "/search", "params": "q=...", "description": "Full-text search"},
-          {"method": "GET", "path": "/semantic", "params": "q=...", "description": "Semantic/vector search"},
-          {"method": "GET", "path": "/docs/{id}", "description": "Get document by ID"},
-          {"method": "GET", "path": "/docs/{id}/export", "description": "Export document to file"},
-          {"method": "POST", "path": "/sync", "description": "Force file sync"},
-          {"method": "POST", "path": "/sync/{type}", "description": "Sync specific artifact type"},
-          {"method": "GET", "path": "/sync/status", "description": "Watchdog health check"},
-          {"method": "GET", "path": "/stats", "description": "Usage statistics"},
-          {"method": "GET", "path": "/context", "params": "prompt=...", "description": "Build RAG context for prompt"}
+          {
+            "method": "GET",
+            "path": "/search",
+            "params": "q=...",
+            "description": "Full-text search"
+          },
+          {
+            "method": "GET",
+            "path": "/semantic",
+            "params": "q=...",
+            "description": "Semantic/vector search"
+          },
+          {
+            "method": "GET",
+            "path": "/docs/{id}",
+            "description": "Get document by ID"
+          },
+          {
+            "method": "GET",
+            "path": "/docs/{id}/export",
+            "description": "Export document to file"
+          },
+          {
+            "method": "POST",
+            "path": "/sync",
+            "description": "Force file sync"
+          },
+          {
+            "method": "POST",
+            "path": "/sync/{type}",
+            "description": "Sync specific artifact type"
+          },
+          {
+            "method": "GET",
+            "path": "/sync/status",
+            "description": "Watchdog health check"
+          },
+          {
+            "method": "GET",
+            "path": "/stats",
+            "description": "Usage statistics"
+          },
+          {
+            "method": "GET",
+            "path": "/context",
+            "params": "prompt=...",
+            "description": "Build RAG context for prompt"
+          }
         ]
       }
     }
@@ -243,29 +344,58 @@
     {
       "name": "PostgreSQL with pgvector",
       "description": "Use PostgreSQL with vector extension for embeddings",
-      "pros": ["Production-grade", "Scalable", "Full SQL support"],
-      "cons": ["Requires server setup", "Not portable", "Overkill for solo-dev"],
+      "pros": [
+        "Production-grade",
+        "Scalable",
+        "Full SQL support"
+      ],
+      "cons": [
+        "Requires server setup",
+        "Not portable",
+        "Overkill for solo-dev"
+      ],
       "rejected_reason": "SQLite meets all requirements with zero setup"
     },
     {
       "name": "Vector-only database (Pinecone, Weaviate)",
       "description": "Dedicated vector database for embeddings",
-      "pros": ["Optimized for vector search", "Managed service options"],
-      "cons": ["Cloud dependency", "Additional cost", "Separate from metadata"],
+      "pros": [
+        "Optimized for vector search",
+        "Managed service options"
+      ],
+      "cons": [
+        "Cloud dependency",
+        "Additional cost",
+        "Separate from metadata"
+      ],
       "rejected_reason": "Local-first requirement; SQLite handles both"
     },
     {
       "name": "Keyword search only (no embeddings)",
       "description": "FTS5 only, skip vector embeddings",
-      "pros": ["Simpler", "No ML dependencies", "Faster indexing"],
-      "cons": ["Miss semantic relationships", "Poor for conceptual queries"],
+      "pros": [
+        "Simpler",
+        "No ML dependencies",
+        "Faster indexing"
+      ],
+      "cons": [
+        "Miss semantic relationships",
+        "Poor for conceptual queries"
+      ],
       "rejected_reason": "Semantic search is core value proposition for RAG"
     },
     {
       "name": "Cloud embedding APIs only",
       "description": "Use OpenAI/xAI embeddings exclusively",
-      "pros": ["No local model loading", "Latest models"],
-      "cons": ["Per-query cost", "No offline support", "Latency"],
+      "pros": [
+        "No local model loading",
+        "Latest models"
+      ],
+      "cons": [
+        "Per-query cost",
+        "No offline support",
+        "Latency"
+      ],
       "rejected_reason": "Local-first requirement for offline operation"
     }
   ],
@@ -349,27 +479,46 @@
   "contracts_required": [
     {
       "path": "shared/contracts/knowledge/archive.py",
-      "models": ["Document", "DocumentType", "SyncStatus"],
+      "models": [
+        "Document",
+        "DocumentType",
+        "SyncStatus"
+      ],
       "status": "pending"
     },
     {
       "path": "shared/contracts/knowledge/search.py",
-      "models": ["SearchResult", "SearchQuery", "HybridSearchConfig"],
+      "models": [
+        "SearchResult",
+        "SearchQuery",
+        "HybridSearchConfig"
+      ],
       "status": "pending"
     },
     {
       "path": "shared/contracts/knowledge/rag.py",
-      "models": ["Chunk", "EmbeddingVector", "RAGContext"],
+      "models": [
+        "Chunk",
+        "EmbeddingVector",
+        "RAGContext"
+      ],
       "status": "pending"
     },
     {
       "path": "shared/contracts/sanitization/pii.py",
-      "models": ["SanitizeResult", "PatternConfig", "RedactionLog"],
+      "models": [
+        "SanitizeResult",
+        "PatternConfig",
+        "RedactionLog"
+      ],
       "status": "pending"
     },
     {
       "path": "shared/contracts/embedding/model.py",
-      "models": ["EmbeddingConfig", "EmbeddingResult"],
+      "models": [
+        "EmbeddingConfig",
+        "EmbeddingResult"
+      ],
       "status": "pending"
     }
   ],
@@ -416,5 +565,10 @@
       "title": "Knowledge Archive Implementation",
       "status": "pending"
     }
-  ]
+  ],
+  "decision_details": {
+    "implementation_specs": [
+      "SPEC-0043"
+    ]
+  }
 }

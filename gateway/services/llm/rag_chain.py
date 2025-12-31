@@ -14,12 +14,12 @@ Usage:
 """
 
 import logging
-from typing import Any
 from dataclasses import dataclass
+from typing import Any
 
-from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnablePassthrough, RunnableLambda
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnableLambda, RunnablePassthrough
 
 from gateway.services.llm.xai_langchain import get_xai_chat_model
 
@@ -64,7 +64,7 @@ class RAGChain:
         retriever: Function to retrieve context.
         sanitizer: Function to sanitize content.
     """
-    
+
     def __init__(
         self,
         model: str | None = None,
@@ -92,41 +92,41 @@ class RAGChain:
         self._chain = None
         self._last_context = ""
         self._last_sources: list[str] = []
-    
+
     def _get_retriever(self):
         """Get or create the retriever."""
         if self._retriever is not None:
             return self._retriever
-        
+
         # Try to use Knowledge Archive
         try:
             from gateway.services.knowledge import get_context_builder
             builder = get_context_builder()
-            
+
             def retrieve(query: str) -> str:
                 result = builder.build_context(query, max_tokens=2000)
                 self._last_context = result.context
                 self._last_sources = [c.doc_id for c in result.chunks]
                 return result.context
-            
+
             self._retriever = retrieve
             return self._retriever
         except ImportError:
             logger.warning("Knowledge Archive not available, using dummy retriever")
-            
+
             def dummy_retrieve(query: str) -> str:
                 self._last_context = f"[No context available for: {query}]"
                 self._last_sources = []
                 return self._last_context
-            
+
             self._retriever = dummy_retrieve
             return self._retriever
-    
+
     def _get_sanitizer(self):
         """Get or create the sanitizer."""
         if self._sanitizer is not None:
             return self._sanitizer
-        
+
         # Try to use Knowledge Archive sanitizer
         try:
             from gateway.services.knowledge.sanitizer import Sanitizer
@@ -137,17 +137,17 @@ class RAGChain:
             logger.warning("Sanitizer not available, using passthrough")
             self._sanitizer = lambda text: text
             return self._sanitizer
-    
+
     def _build_chain(self):
         """Build the LangChain pipeline."""
         if self._chain is not None:
             return self._chain
-        
+
         retriever = self._get_retriever()
         sanitizer = self._get_sanitizer()
-        
+
         prompt = ChatPromptTemplate.from_template(RAG_PROMPT_TEMPLATE)
-        
+
         # Build chain: retrieve -> sanitize -> prompt -> llm -> parse
         self._chain = (
             {
@@ -158,9 +158,9 @@ class RAGChain:
             | self.llm
             | StrOutputParser()
         )
-        
+
         return self._chain
-    
+
     def invoke(self, question: str) -> RAGResponse:
         """Invoke the RAG chain.
         
@@ -172,13 +172,13 @@ class RAGChain:
         """
         chain = self._build_chain()
         answer = chain.invoke({"question": question})
-        
+
         return RAGResponse(
             answer=answer,
             context=self._last_context,
             sources=self._last_sources,
         )
-    
+
     async def ainvoke(self, question: str) -> RAGResponse:
         """Async invoke the RAG chain.
         
@@ -190,7 +190,7 @@ class RAGChain:
         """
         chain = self._build_chain()
         answer = await chain.ainvoke({"question": question})
-        
+
         return RAGResponse(
             answer=answer,
             context=self._last_context,

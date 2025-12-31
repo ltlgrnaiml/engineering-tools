@@ -10,12 +10,9 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-from pptx.util import Inches
-
-from shared.contracts.core.rendering import ImageSpec
-
 from apps.pptx_generator.backend.core.shape_name_parser import ParsedShapeNameV2
 from apps.pptx_generator.backend.renderers.base import BaseRenderer, RenderContext
+from shared.contracts.core.rendering import ImageSpec
 
 logger = logging.getLogger(__name__)
 

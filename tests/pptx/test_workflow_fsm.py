@@ -8,16 +8,14 @@ from uuid import uuid4
 import pytest
 
 from apps.pptx_generator.backend.core.workflow_fsm import (
-    WorkflowFSM,
-    WorkflowState,
-    WorkflowStep,
-    StepStatus,
-    StepState,
-    WorkflowValidationError,
-    STEP_DEPENDENCIES,
     RESET_TRIGGERS,
-    create_workflow_state,
+    STEP_DEPENDENCIES,
+    StepStatus,
+    WorkflowFSM,
+    WorkflowStep,
+    WorkflowValidationError,
     check_generate_allowed,
+    create_workflow_state,
 )
 
 

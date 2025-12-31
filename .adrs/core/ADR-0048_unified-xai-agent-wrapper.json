@@ -1,0 +1,130 @@
+{
+  "schema_type": "adr",
+  "id": "ADR-0048_unified-xai-agent-wrapper",
+  "title": "Unified xAI Agent Wrapper Architecture",
+  "status": "proposed",
+  "date": "2025-12-31",
+  "deciders": "USER + Cascade (SESSION_023)",
+  "scope": "subsystem:gateway/services/llm",
+  "context": "The platform currently has two separate integration paths for xAI: (1) LangChain path via XAIChatModel using OpenAI-compatible API for chat, RAG, and client-side function calling with Phoenix tracing; (2) Native xAI SDK capabilities (web search, X search, code execution, MCP, Collections, citations) that are inaccessible through the OpenAI-compatible API. This fragmentation prevents users from leveraging xAI's full agentic capabilities while maintaining existing RAG and observability infrastructure. A unified interface is needed to expose all xAI features under a single API with consistent tracing.",
+  "decision_primary": "Implement a Thin Wrapper architecture via a unified XAIAgent class that delegates to either LangChain or native xAI SDK based on the operation. The wrapper auto-selects the appropriate backend by method (chat/RAG → LangChain, agentic tools → native SDK) with explicit backend= parameter override. All operations are traced in Phoenix using a custom @trace_xai decorator for native SDK calls.",
+  "decision_details": {
+    "approach": "Thin Wrapper - minimal abstraction layer that routes operations to the appropriate backend while providing unified response models and Phoenix observability",
+    "constraints": [
+      "C-1: Must add xai-sdk>=1.5.0 as new dependency for full functionality",
+      "C-2: Agentic tools require xAI native SDK - cannot use OpenAI-compatible API",
+      "C-3: Phoenix instrumentation for native SDK requires custom @trace_xai decorator",
+      "C-4: Hybrid knowledge strategy - Local Knowledge Archive for low-token keywords/snippets; xAI Collections for detailed context enrichment"
+    ],
+    "implementation_specs": [
+      {
+        "component": "XAIAgent",
+        "location": "gateway/services/llm/xai_agent.py",
+        "description": "Unified wrapper class exposing all xAI capabilities"
+      },
+      {
+        "component": "xai_native",
+        "location": "gateway/services/llm/xai_native.py",
+        "description": "Native xAI SDK integration for agentic tools"
+      },
+      {
+        "component": "tracing",
+        "location": "gateway/services/llm/tracing.py",
+        "description": "Custom @trace_xai decorator for Phoenix instrumentation"
+      }
+    ],
+    "backend_routing": {
+      "langchain_methods": ["chat()", "chat_with_rag()", "chat_with_tools()"],
+      "native_sdk_methods": ["search_web()", "search_x()", "execute_code()", "research()", "search_collection()", "connect_mcp()"],
+      "hybrid_methods": ["hybrid_query()"]
+    },
+    "response_models": [
+      "AgenticResponse - answer, citations, inline_citations, tool_calls, usage, cost_estimate",
+      "HybridResponse - answer, rag_sources, web_sources, x_sources",
+      "CollectionResponse - answer, collection_id, documents, citations, usage"
+    ]
+  },
+  "consequences": [
+    "POSITIVE: Full access to xAI's agentic capabilities (web search, X search, code execution, MCP, Collections)",
+    "POSITIVE: Unified Phoenix observability across all operations regardless of backend",
+    "POSITIVE: Hybrid queries combining local RAG with live web/X data enable powerful research workflows",
+    "POSITIVE: Existing LangChain integration remains unchanged - no breaking changes",
+    "NEGATIVE: Two underlying implementations to maintain (LangChain + native SDK)",
+    "NEGATIVE: Slight API inconsistency between LangChain-backed and native-backed operations",
+    "NEGATIVE: Additional dependency on xai-sdk package",
+    "RISK: xAI SDK API changes may require wrapper updates"
+  ],
+  "alternatives_considered": [
+    {
+      "name": "Option B: Full Abstraction",
+      "pros": "Consistent API for all operations; easier to swap implementations",
+      "cons": "More complex implementation; may lose access to advanced features; higher maintenance burden",
+      "rejected_reason": "Abstraction overhead not justified for solo-dev project. Direct SDK access preferred for full feature access and simpler debugging."
+    },
+    {
+      "name": "Option C: Native SDK Only",
+      "pros": "Single implementation; full feature access",
+      "cons": "Lose LangChain ecosystem (tools, chains, agents); breaking change to existing RAG integration; less flexibility for future provider swaps",
+      "rejected_reason": "Would require rewriting existing RAG chain and lose LangChain's mature tooling. The thin wrapper preserves both ecosystems."
+    }
+  ],
+  "guardrails": [
+    {
+      "id": "G-0048-01",
+      "rule": "All XAIAgent methods MUST be traced in Phoenix regardless of backend",
+      "enforcement": "Code review + unit tests verifying span creation",
+      "scope": "gateway/services/llm/"
+    },
+    {
+      "id": "G-0048-02",
+      "rule": "Backend auto-selection MUST be deterministic based on method name",
+      "enforcement": "Method-to-backend mapping defined in constants, tested",
+      "scope": "gateway/services/llm/xai_agent.py"
+    },
+    {
+      "id": "G-0048-03",
+      "rule": "Backend override via backend= parameter MUST be documented in ADR/SPEC and method docstrings",
+      "enforcement": "Documentation review + docstring validation",
+      "scope": "gateway/services/llm/"
+    },
+    {
+      "id": "G-0048-04",
+      "rule": "Response models MUST include cost_estimate for billing transparency",
+      "enforcement": "Contract validation + unit tests",
+      "scope": "shared/contracts/llm/"
+    },
+    {
+      "id": "G-0048-05",
+      "rule": "Hybrid knowledge strategy: Use local Knowledge Archive for keywords/snippets BEFORE calling xAI Collections",
+      "enforcement": "Code review + integration tests",
+      "scope": "gateway/services/llm/xai_agent.py"
+    }
+  ],
+  "references": [
+    {
+      "type": "discussion",
+      "id": "DISC-007",
+      "title": "Unified xAI Agent Wrapper"
+    },
+    {
+      "type": "adr",
+      "id": "ADR-0047",
+      "title": "Knowledge Archive RAG System"
+    },
+    {
+      "type": "external",
+      "url": "docs/scraped/xai/",
+      "title": "xAI Documentation (scraped)"
+    }
+  ],
+  "tags": [
+    "xai",
+    "langchain",
+    "llm",
+    "agentic",
+    "phoenix",
+    "observability",
+    "mcp",
+    "rag"
+  ]
+}

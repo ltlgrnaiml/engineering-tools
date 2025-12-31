@@ -38,7 +38,14 @@
       "DevTools API endpoints MUST be at /api/devtools/*"
     ],
     "implementation_specs": [
-      "SPEC-0030_DevTools-API-Spec"
+      "SPEC-0030_DevTools-API-Spec",
+      "SPEC-0009",
+      "SPEC-0010",
+      "SPEC-0011",
+      "SPEC-0037",
+      "SPEC-0039",
+      "SPEC-0033",
+      "SPEC-0034"
     ]
   },
   "consequences": [
@@ -96,7 +103,8 @@
   "references": [
     "gateway/services/devtools_service.py",
     "apps/homepage/frontend/src/pages/DevToolsPage.tsx",
-    "apps/homepage/frontend/src/pages/HomePage.tsx"
+    "apps/homepage/frontend/src/pages/HomePage.tsx",
+    "ADR-0025"
   ],
   "tags": [
     "devtools",

@@ -7,7 +7,6 @@ Implements ADR-0047 RAG layer requirements.
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any
 
 from pydantic import BaseModel, Field
 

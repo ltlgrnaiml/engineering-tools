@@ -11,25 +11,25 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_ROOT)
 
 from dotenv import load_dotenv
+
 load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
 
 
 def test_xai_via_phoenix():
     """Test xAI through Phoenix's client."""
-    import phoenix as px
     from phoenix.evals import OpenAIModel
-    
+
     print("🔬 Testing xAI connection through Phoenix...")
     print("="*60)
-    
+
     # Get xAI credentials
     api_key = os.getenv("XAI_API_KEY")
     if not api_key:
         print("❌ XAI_API_KEY not found")
         return False
-    
+
     print(f"✅ API Key: {api_key[:20]}...")
-    
+
     # Create OpenAI-compatible model pointing to xAI
     try:
         model = OpenAIModel(
@@ -37,17 +37,17 @@ def test_xai_via_phoenix():
             api_key=api_key,
             base_url="https://api.x.ai/v1",
         )
-        print(f"✅ Model configured: grok-3-fast @ api.x.ai")
+        print("✅ Model configured: grok-3-fast @ api.x.ai")
     except Exception as e:
         print(f"❌ Model config failed: {e}")
         return False
-    
+
     # Test with a simple prompt
     test_prompt = "What is 2+2? Answer with just the number."
-    
+
     print(f"\n📝 Test prompt: '{test_prompt}'")
     print("-"*40)
-    
+
     try:
         response = model(test_prompt)
         print(f"✅ Response: {response}")
@@ -62,17 +62,17 @@ def test_xai_via_phoenix():
 def test_xai_direct():
     """Test xAI directly via OpenAI SDK (fallback test)."""
     from openai import OpenAI
-    
+
     print("\n🔬 Testing xAI directly via OpenAI SDK...")
     print("="*60)
-    
+
     api_key = os.getenv("XAI_API_KEY")
-    
+
     client = OpenAI(
         api_key=api_key,
         base_url="https://api.x.ai/v1",
     )
-    
+
     try:
         response = client.chat.completions.create(
             model="grok-3-fast",
@@ -90,17 +90,17 @@ def test_xai_direct():
 def test_exp002_prompt():
     """Test with EXP-002 scenario prompt."""
     from openai import OpenAI
-    
+
     print("\n🔬 Testing EXP-002 Scenario Prompt...")
     print("="*60)
-    
+
     api_key = os.getenv("XAI_API_KEY")
-    
+
     client = OpenAI(
         api_key=api_key,
         base_url="https://api.x.ai/v1",
     )
-    
+
     # EXP-002 test prompt (shortened for quick test)
     prompt = """You are helping design a feature for DevTools Workflow Manager.
 
@@ -120,9 +120,9 @@ Constraints:
 Generate a brief DISCUSSION document outline (just section headers and 1-sentence summaries).
 Keep response under 200 words."""
 
-    print(f"📝 Sending EXP-002 test prompt...")
+    print("📝 Sending EXP-002 test prompt...")
     print("-"*40)
-    
+
     try:
         response = client.chat.completions.create(
             model="grok-3-fast",
@@ -131,7 +131,7 @@ Keep response under 200 words."""
         )
         result = response.choices[0].message.content
         tokens_used = response.usage.total_tokens if response.usage else "unknown"
-        
+
         print(f"✅ Response ({tokens_used} tokens):\n")
         print(result)
         print("-"*40)
@@ -145,17 +145,17 @@ Keep response under 200 words."""
 if __name__ == "__main__":
     print("🚀 Phoenix + xAI Integration Test")
     print("="*60)
-    
+
     # Test 1: Direct xAI
     direct_ok = test_xai_direct()
-    
+
     # Test 2: Phoenix wrapper (may have different behavior)
     # phoenix_ok = test_xai_via_phoenix()
-    
+
     # Test 3: EXP-002 prompt
     if direct_ok:
         exp002_ok = test_exp002_prompt()
-    
+
     print("\n" + "="*60)
     print("📊 Summary")
     print("="*60)

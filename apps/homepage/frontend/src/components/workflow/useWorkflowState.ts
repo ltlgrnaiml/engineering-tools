@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import type { WorkflowStage, WorkflowType } from './WorkflowStepper'
-import { getStartingStage } from './WorkflowStepper'
+import type { WorkflowStage, WorkflowType } from './workflowUtils'
+import { getStartingStage } from './workflowUtils'
 
 const STORAGE_KEY = 'workflow-manager-state'
 

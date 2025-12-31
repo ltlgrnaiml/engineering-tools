@@ -42,7 +42,7 @@ class TransformPipeline:
     Per ADR-0012: Profiles define how data is normalized and transformed
     after extraction and before output.
     """
-    
+
     def __init__(
         self,
         unit_mappings: dict[str, dict[str, Any]] | None = None,
@@ -55,7 +55,7 @@ class TransformPipeline:
         self.unit_mappings = {**DEFAULT_UNIT_MAPPINGS}
         if unit_mappings:
             self.unit_mappings.update(unit_mappings)
-    
+
     def apply_normalization(
         self,
         df: pl.DataFrame,
@@ -72,25 +72,25 @@ class TransformPipeline:
         """
         if df.is_empty():
             return df
-        
+
         # 1. Replace NaN values with null
         if profile.nan_values:
             df = self._replace_nan_values(df, profile.nan_values)
-        
+
         # 2. Numeric coercion
         if profile.numeric_coercion:
             df = self._coerce_numeric(df)
-        
+
         # 3. Apply row filters if defined at profile level
         if profile.row_filters:
             df = self.apply_row_filters(df, profile.row_filters)
-        
+
         # 4. Per DESIGN §6: Apply unit normalization based on units_policy
         if profile.units_policy and profile.units_policy != "preserve":
             df = self.normalize_units_by_policy(df, profile.units_policy)
-        
+
         return df
-    
+
     def apply_unit_normalization(
         self,
         df: pl.DataFrame,
@@ -112,31 +112,31 @@ class TransformPipeline:
         if column not in df.columns:
             logger.warning(f"Column {column} not found for unit normalization")
             return df
-        
+
         from_mapping = self.unit_mappings.get(from_unit)
         if not from_mapping:
             logger.warning(f"Unknown source unit: {from_unit}")
             return df
-        
+
         # Get target unit (canonical if not specified)
         canonical = from_mapping.get("canonical", from_unit)
         target_unit = to_unit or canonical
-        
+
         to_mapping = self.unit_mappings.get(target_unit)
         if not to_mapping:
             logger.warning(f"Unknown target unit: {target_unit}")
             return df
-        
+
         # Calculate conversion factor
         from_factor = from_mapping.get("factor", 1)
         to_factor = to_mapping.get("factor", 1)
         conversion_factor = from_factor / to_factor
-        
+
         # Apply conversion
         return df.with_columns(
             (pl.col(column) * conversion_factor).alias(column)
         )
-    
+
     def normalize_units_by_policy(
         self,
         df: pl.DataFrame,
@@ -155,10 +155,10 @@ class TransformPipeline:
         """
         if units_policy == "preserve":
             return df
-        
+
         if not column_units:
             return df
-        
+
         if units_policy == "normalize":
             # Normalize all columns to canonical units
             for col, unit in column_units.items():
@@ -167,9 +167,9 @@ class TransformPipeline:
         elif units_policy == "strip":
             # Just mark that units are stripped (no numeric change)
             pass
-        
+
         return df
-    
+
     def apply_column_renames(
         self,
         df: pl.DataFrame,
@@ -186,14 +186,14 @@ class TransformPipeline:
         """
         if not renames:
             return df
-        
+
         # Only rename columns that exist
         valid_renames = {k: v for k, v in renames.items() if k in df.columns}
         if valid_renames:
             df = df.rename(valid_renames)
-        
+
         return df
-    
+
     def apply_pii_masking(
         self,
         df: pl.DataFrame,
@@ -217,11 +217,11 @@ class TransformPipeline:
         columns_to_mask = set(pii_columns)
         if mask_in_preview:
             columns_to_mask.update(mask_in_preview)
-        
+
         for col in columns_to_mask:
             if col not in df.columns:
                 continue
-            
+
             try:
                 if preserve_length:
                     # Replace each character with mask_char
@@ -239,9 +239,9 @@ class TransformPipeline:
                 logger.debug(f"Masked PII column: {col}")
             except Exception as e:
                 logger.error(f"PII masking error for {col}: {e}")
-        
+
         return df
-    
+
     def apply_type_coercion(
         self,
         df: pl.DataFrame,
@@ -259,10 +259,10 @@ class TransformPipeline:
         for coercion in coercions:
             col = coercion.get("column")
             to_type = coercion.get("to_type")
-            
+
             if not col or col not in df.columns:
                 continue
-            
+
             try:
                 if to_type == "datetime":
                     fmt = coercion.get("format", "%Y-%m-%d %H:%M:%S")
@@ -292,9 +292,9 @@ class TransformPipeline:
                     logger.warning(f"Unknown type coercion target: {to_type}")
             except Exception as e:
                 logger.error(f"Type coercion error for {col} to {to_type}: {e}")
-        
+
         return df
-    
+
     def apply_column_transforms(
         self,
         df: pl.DataFrame,
@@ -313,14 +313,14 @@ class TransformPipeline:
             if transform.source not in df.columns:
                 logger.warning(f"Transform source column not found: {transform.source}")
                 continue
-            
+
             try:
                 df = self._apply_single_transform(df, transform)
             except Exception as e:
                 logger.error(f"Transform error for {transform.source}: {e}")
-        
+
         return df
-    
+
     def apply_row_filters(
         self,
         df: pl.DataFrame,
@@ -337,15 +337,15 @@ class TransformPipeline:
         """
         if df.is_empty():
             return df
-        
+
         for filter_def in filters:
             col = filter_def.get("column")
             if not col or col not in df.columns:
                 continue
-            
+
             op = filter_def.get("op", "equals")
             value = filter_def.get("value")
-            
+
             try:
                 if op == "equals":
                     df = df.filter(pl.col(col) == value)
@@ -386,9 +386,9 @@ class TransformPipeline:
                     logger.warning(f"Unknown filter op: {op}")
             except Exception as e:
                 logger.error(f"Row filter error for {col}: {e}")
-        
+
         return df
-    
+
     def apply_calculated_columns(
         self,
         df: pl.DataFrame,
@@ -406,15 +406,15 @@ class TransformPipeline:
         for calc in calculations:
             name = calc.get("name")
             expression = calc.get("expression")
-            
+
             if not name or not expression:
                 continue
-            
+
             try:
                 # Parse simple arithmetic expressions
                 # Format: "col1 + col2", "col1 * 100", etc.
                 df = self._evaluate_expression(df, name, expression)
-                
+
                 # Apply rounding if specified
                 round_to = calc.get("round_to")
                 if round_to is not None and name in df.columns:
@@ -423,9 +423,9 @@ class TransformPipeline:
                     )
             except Exception as e:
                 logger.error(f"Calculated column error for {name}: {e}")
-        
+
         return df
-    
+
     def _replace_nan_values(
         self,
         df: pl.DataFrame,
@@ -441,7 +441,7 @@ class TransformPipeline:
                     .alias(col)
                 )
         return df
-    
+
     def _coerce_numeric(self, df: pl.DataFrame) -> pl.DataFrame:
         """Attempt to coerce string columns to numeric."""
         for col in df.columns:
@@ -450,12 +450,12 @@ class TransformPipeline:
                 sample = df[col].head(10).drop_nulls()
                 if len(sample) == 0:
                     continue
-                
+
                 # Try to cast
                 try:
                     test_cast = sample.cast(pl.Float64, strict=False)
                     null_count = test_cast.null_count()
-                    
+
                     # If most values convert successfully, apply
                     if null_count < len(sample) * 0.5:
                         df = df.with_columns(
@@ -463,9 +463,9 @@ class TransformPipeline:
                         )
                 except Exception:
                     pass  # Keep as string
-        
+
         return df
-    
+
     def _apply_single_transform(
         self,
         df: pl.DataFrame,
@@ -473,41 +473,41 @@ class TransformPipeline:
     ) -> pl.DataFrame:
         """Apply a single column transform."""
         args = transform.args or {}
-        
+
         if transform.transform == "rename":
             return df.rename({transform.source: transform.target})
-        
+
         elif transform.transform == "unit_convert":
             factor = args.get("factor", 1)
             return df.with_columns(
                 (pl.col(transform.source) * factor).alias(transform.target)
             )
-        
+
         elif transform.transform == "uppercase":
             return df.with_columns(
                 pl.col(transform.source).str.to_uppercase().alias(transform.target)
             )
-        
+
         elif transform.transform == "lowercase":
             return df.with_columns(
                 pl.col(transform.source).str.to_lowercase().alias(transform.target)
             )
-        
+
         elif transform.transform == "strip":
             return df.with_columns(
                 pl.col(transform.source).str.strip_chars().alias(transform.target)
             )
-        
+
         elif transform.transform == "round":
             decimals = args.get("decimals", 2)
             return df.with_columns(
                 pl.col(transform.source).round(decimals).alias(transform.target)
             )
-        
+
         else:
             logger.warning(f"Unknown transform type: {transform.transform}")
             return df
-    
+
     def _evaluate_expression(
         self,
         df: pl.DataFrame,
@@ -518,23 +518,23 @@ class TransformPipeline:
         
         Supports: +, -, *, /, column references
         """
-        
+
         # Parse expression: "col1 + col2", "col1 * 100", etc.
         # This is a simple parser - extend as needed
-        
+
         # Check for binary operations
-        for op, pl_method in [("+", "__add__"), ("-", "__sub__"), 
+        for op, pl_method in [("+", "__add__"), ("-", "__sub__"),
                                ("*", "__mul__"), ("/", "__truediv__")]:
             if op in expression:
                 parts = expression.split(op)
                 if len(parts) == 2:
                     left = parts[0].strip()
                     right = parts[1].strip()
-                    
+
                     # Determine if operands are columns or literals
                     left_expr = self._get_operand_expr(left, df)
                     right_expr = self._get_operand_expr(right, df)
-                    
+
                     if left_expr is not None and right_expr is not None:
                         if op == "+":
                             result = left_expr + right_expr
@@ -546,24 +546,24 @@ class TransformPipeline:
                             result = left_expr / right_expr
                         else:
                             return df
-                        
+
                         return df.with_columns(result.alias(name))
-        
+
         return df
-    
+
     def _get_operand_expr(self, operand: str, df: pl.DataFrame) -> pl.Expr | None:
         """Get polars expression for operand (column or literal)."""
         # Check if it's a column reference
         if operand in df.columns:
             return pl.col(operand)
-        
+
         # Try to parse as number
         try:
             value = float(operand)
             return pl.lit(value)
         except ValueError:
             pass
-        
+
         return None
 
 
@@ -587,16 +587,16 @@ def apply_transforms(
         Transformed DataFrame
     """
     pipeline = TransformPipeline()
-    
+
     df = pipeline.apply_normalization(df, profile)
-    
+
     if renames:
         df = pipeline.apply_column_renames(df, renames)
-    
+
     if transforms:
         df = pipeline.apply_column_transforms(df, transforms)
-    
+
     if calculations:
         df = pipeline.apply_calculated_columns(df, calculations)
-    
+
     return df

@@ -9,11 +9,11 @@ about each discovered file.
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
-from shared.utils.stage_id import compute_stage_id
 from apps.data_aggregator.backend.adapters import create_default_registry
+from shared.utils.stage_id import compute_stage_id
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +54,7 @@ class DiscoveryResult:
     unsupported_files: int
     total_size_bytes: int
     completed: bool = True
-    scanned_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    scanned_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
 async def execute_discovery(
@@ -75,7 +75,7 @@ async def execute_discovery(
     """
     files: list[DiscoveredFile] = []
     registry = create_default_registry()
-    
+
     # Get supported extensions from all registered adapters
     supported_extensions: set[str] = set()
     for meta in registry.list_adapters():
@@ -134,7 +134,7 @@ async def execute_discovery(
         try:
             stat = file_path.stat()
             size = stat.st_size
-            modified = datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc)
+            modified = datetime.fromtimestamp(stat.st_mtime, tz=UTC)
         except OSError as e:
             files.append(DiscoveredFile(
                 path=str(file_path),

@@ -1,21 +1,20 @@
 """Data Aggregator Tool - FastAPI application entry point."""
 import logging
-from contextlib import asynccontextmanager
+import sys
 from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-import sys
-
 # Add project root to Python path
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from apps.data_aggregator.backend.src.dat_aggregation.api.routes import router
 from apps.data_aggregator.backend.routers.jobs import router as jobs_router
+from apps.data_aggregator.backend.src.dat_aggregation.api.routes import router
 
 # Configure logging
 logging.basicConfig(

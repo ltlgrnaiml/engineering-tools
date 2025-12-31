@@ -55,7 +55,8 @@
       "No Timestamps: Timestamps MUST NOT be included in ID inputs (breaks determinism)"
     ],
     "implementation_specs": [
-      "SPEC-0014_Deterministic-Id-Generation-Spec"
+      "SPEC-0014_Deterministic-Id-Generation-Spec",
+      "SPEC-0005"
     ],
     "shared_implementation": {
       "location": "shared/workflows/id_generator.py",
@@ -138,7 +139,9 @@
     "ADR-0001_Guided-Workflow-FSM-Orchestration: Core FSM pattern using deterministic IDs",
     "ADR-0002_Artifact-Preservation-on-Unlock: Artifact preservation with ID-based reuse",
     "ADR-0017_Cross-Cutting-Guardrails: Platform-wide guardrails",
-    "shared/workflows/id_generator.py: Shared implementation"
+    "shared/workflows/id_generator.py: Shared implementation",
+    "ADR-0030",
+    "ADR-0004"
   ],
   "tags": [
     "core",

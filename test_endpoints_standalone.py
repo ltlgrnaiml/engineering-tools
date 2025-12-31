@@ -2,9 +2,9 @@
 Standalone endpoint tests for all tools (DAT, SOV, PPTX)
 Run this with: python test_endpoints_standalone.py
 """
-import requests
-import json
 from datetime import datetime
+
+import requests
 
 BASE_URL = "http://localhost:8000"
 TIMEOUT = 5
@@ -174,40 +174,40 @@ if __name__ == "__main__":
     print(f"{Colors.BLUE}Engineering Tools - Comprehensive Endpoint Tests{Colors.END}")
     print(f"{Colors.BLUE}Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{Colors.END}")
     print(f"{Colors.BLUE}{'='*60}{Colors.END}")
-    
+
     print(f"\n{Colors.YELLOW}⚠ Make sure the gateway is running: .\\start.ps1{Colors.END}\n")
-    
+
     # Gateway Tests
     print_section("Gateway Tests")
     run_test("Gateway health endpoint", test_gateway_health)
     run_test("Gateway OpenAPI docs", test_gateway_docs)
-    
+
     # PPTX Tests
     print_section("PowerPoint Generator Tests")
     run_test("PPTX health endpoint", test_pptx_health)
     run_test("PPTX OpenAPI docs", test_pptx_docs)
     run_test("PPTX list projects", test_pptx_list_projects)
     run_test("PPTX create project", test_pptx_create_project)
-    
+
     # DAT Tests
     print_section("Data Aggregator Tests")
     run_test("DAT health endpoint", test_dat_health)
     run_test("DAT OpenAPI docs", test_dat_docs)
     run_test("DAT list runs", test_dat_list_runs)
     run_test("DAT create run", test_dat_create_run)
-    
+
     # SOV Tests
     print_section("SOV Analyzer Tests")
     run_test("SOV health endpoint", test_sov_health)
     run_test("SOV OpenAPI docs", test_sov_docs)
     run_test("SOV list analyses", test_sov_list_analyses)
-    
+
     # Cross-Tool Tests
     print_section("Cross-Tool Integration Tests")
     run_test("List all datasets", test_list_datasets)
     run_test("Filter datasets by tool", test_list_datasets_by_tool)
     run_test("List pipelines", test_list_pipelines)
-    
+
     # Summary
     print(f"\n{Colors.BLUE}{'='*60}{Colors.END}")
     print(f"{Colors.BLUE}Test Summary{Colors.END}")
@@ -215,14 +215,14 @@ if __name__ == "__main__":
     print(f"Total Tests: {results['total']}")
     print(f"{Colors.GREEN}Passed: {results['passed']}{Colors.END}")
     print(f"{Colors.RED}Failed: {results['failed']}{Colors.END}")
-    
+
     if results['failed'] > 0:
         print(f"\n{Colors.RED}Failed Tests:{Colors.END}")
         for error in results['errors']:
             print(f"  • {error['test']}")
             print(f"    {error['error']}")
-    
+
     print(f"\n{Colors.BLUE}Finished: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}{Colors.END}\n")
-    
+
     # Exit with error code if any tests failed
     exit(0 if results['failed'] == 0 else 1)

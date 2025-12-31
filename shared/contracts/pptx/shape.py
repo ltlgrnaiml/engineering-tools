@@ -16,24 +16,12 @@ from core/rendering.py for cross-tool compatibility.
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Literal
+from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 from shared.contracts.core.rendering import (
-    AxisConfig,
-    ChartSpec,
     ChartType,
-    ColorPalette,
-    DataSeries,
-    HeatmapData,
-    OutputTarget,
-    RenderResult,
-    RenderSpec,
-    RenderState,
-    RenderStyle,
-    TableData,
-    TableSpec,
 )
 
 __version__ = "0.2.0"

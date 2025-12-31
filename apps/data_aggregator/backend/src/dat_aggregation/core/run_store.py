@@ -3,7 +3,7 @@
 Stores run metadata, stage statuses, and artifact references.
 """
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from .state_machine import Stage, StageState, StageStatus
@@ -35,7 +35,7 @@ class RunStore:
         state = {
             "run_id": run_id,
             "name": name or f"Run {run_id[:8]}",
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
             "stages": {},
         }
         self._write_state(run_id, state)
@@ -68,11 +68,11 @@ class RunStore:
         Returns True if deleted, False if run not found.
         """
         import shutil
-        
+
         run_dir = self.dat_workspace / "runs" / run_id
         if not run_dir.exists():
             return False
-        
+
         shutil.rmtree(run_dir)
         return True
 

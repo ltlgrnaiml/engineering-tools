@@ -25,7 +25,7 @@ class FlatObjectStrategy(ExtractionStrategy):
     
     Use cases: Summary statistics, metadata extraction, configuration objects.
     """
-    
+
     def extract(
         self,
         data: Any,
@@ -44,37 +44,37 @@ class FlatObjectStrategy(ExtractionStrategy):
         """
         # Navigate to path using JSONPath
         obj = self._get_at_path(data, config.path)
-        
+
         if obj is None:
             logger.warning(f"No data found at path: {config.path}")
             return pl.DataFrame()
-        
+
         if not isinstance(obj, dict):
             logger.warning(f"Expected dict at {config.path}, got {type(obj).__name__}")
             return pl.DataFrame()
-        
+
         # Flatten if configured
         if config.flatten_nested:
             obj = self._flatten_dict(obj, config.flatten_separator)
         else:
             # Convert nested objects to JSON strings
             obj = self._stringify_nested(obj)
-        
+
         # Build single-row DataFrame
         return pl.DataFrame([obj])
-    
+
     def validate_config(self, config: SelectConfig) -> list[str]:
         """Validate flat_object configuration."""
         errors = []
         if not config.path:
             errors.append("flat_object strategy requires 'path'")
         return errors
-    
+
     def _get_at_path(self, data: Any, path: str) -> Any:
         """Navigate to JSONPath and return value."""
         if path == "$" or path == "":
             return data
-        
+
         try:
             expr = jsonpath_parse(path)
             matches = expr.find(data)
@@ -84,7 +84,7 @@ class FlatObjectStrategy(ExtractionStrategy):
         except Exception as e:
             logger.error(f"JSONPath error for '{path}': {e}")
             return None
-    
+
     def _flatten_dict(
         self,
         obj: dict,
@@ -115,11 +115,11 @@ class FlatObjectStrategy(ExtractionStrategy):
             else:
                 items.append((new_key, value))
         return dict(items)
-    
+
     def _stringify_nested(self, obj: dict) -> dict[str, Any]:
         """Convert nested objects/arrays to JSON strings."""
         import json
-        
+
         result = {}
         for key, value in obj.items():
             if isinstance(value, (dict, list)):

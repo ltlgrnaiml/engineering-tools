@@ -127,7 +127,7 @@ async def global_exception_handler(_request: Any, exc: Exception) -> JSONRespons
     Returns:
         JSONResponse: Error response with status code 500.
     """
-    from shared.contracts.core.error_response import create_error_response, ErrorCategory
+    from shared.contracts.core.error_response import ErrorCategory, create_error_response
 
     error = create_error_response(
         status_code=500,

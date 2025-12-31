@@ -199,7 +199,8 @@
     "Azure Container Apps: https://azure.microsoft.com/en-us/products/container-apps/",
     "12-Factor App - Config: https://12factor.net/config",
     "12-Factor App - Dev/Prod Parity: https://12factor.net/dev-prod-parity",
-    "infra/ (new directory)"
+    "infra/ (new directory)",
+    "ADR-0012"
   ],
   "tags": [
     "deployment",

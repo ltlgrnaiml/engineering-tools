@@ -7,7 +7,9 @@
   "date": "2025-12-29",
   "author": "Mycahya Eggleston",
   "implements_adr": [
-    "ADR-0011_Profile-Driven-Extraction-and-Adapters"
+    "ADR-0011_Profile-Driven-Extraction-and-Adapters",
+    "ADR-0012",
+    "ADR-0023"
   ],
   "tier_0_contracts": [
     {

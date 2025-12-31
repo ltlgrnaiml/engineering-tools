@@ -222,5 +222,8 @@
     "docstrings",
     "code-organization",
     "specification"
+  ],
+  "implements_adr": [
+    "ADR-0014"
   ]
 }

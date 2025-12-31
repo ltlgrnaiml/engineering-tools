@@ -10,7 +10,6 @@ Search Strategy: Hybrid (BM25 + Vectors) with Reciprocal Rank Fusion.
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any
 
 from pydantic import BaseModel, Field
 

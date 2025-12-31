@@ -6,7 +6,6 @@ Full-text search, vector search, and hybrid search.
 import sqlite3
 from dataclasses import dataclass
 
-from shared.contracts.knowledge.search import SearchResult, SearchQuery
 from gateway.services.knowledge.database import get_connection
 
 

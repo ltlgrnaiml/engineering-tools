@@ -6,10 +6,10 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Any
+    pass
 
 # Module-level parser instance for caching
-_default_parser: "ShapeNameParserV2 | None" = None
+_default_parser: ShapeNameParserV2 | None = None
 
 
 class ShapeNameError(Exception):

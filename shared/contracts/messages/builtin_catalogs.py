@@ -6,7 +6,7 @@ in catalogs, never hardcoded in backend logic.
 This module provides pre-defined catalogs for each tool with common messages.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from .catalog import (
     MessageCatalog,
@@ -25,7 +25,7 @@ def _create_core_catalog() -> MessageCatalog:
         name="Core Platform Messages",
         description="Common messages used across all tools",
         domain="platform",
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
     )
 
     messages = [
@@ -78,7 +78,7 @@ def _create_dat_catalog() -> MessageCatalog:
         name="Data Aggregator Messages",
         description="Messages for the Data Aggregator tool",
         domain="dat",
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
     )
 
     messages = [
@@ -146,7 +146,7 @@ def _create_sov_catalog() -> MessageCatalog:
         name="SOV Analyzer Messages",
         description="Messages for the SOV Analyzer tool",
         domain="sov",
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
     )
 
     messages = [
@@ -201,7 +201,7 @@ def _create_pptx_catalog() -> MessageCatalog:
         name="PowerPoint Generator Messages",
         description="Messages for the PowerPoint Generator tool",
         domain="pptx",
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
     )
 
     messages = [
@@ -274,7 +274,7 @@ def _create_gateway_catalog() -> MessageCatalog:
         name="Gateway Messages",
         description="Messages for the API Gateway",
         domain="gateway",
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
     )
 
     messages = [

@@ -21,7 +21,8 @@
       "SPEC-0013_Artifact-Lifecycle-Preservation-Spec",
       "SPEC-0004_Profile-Driven-Extraction",
       "SPEC-0012_Audit-Trail-Enforcement-Spec",
-      "SPEC-0016_Path-Safety-And-Normalization-Spec"
+      "SPEC-0016_Path-Safety-And-Normalization-Spec",
+      "SPEC-0024"
     ],
     "constraints": [
       "All parse-stage data tables must be saved as Parquet.",
@@ -102,7 +103,9 @@
     "ADR-0004_Deterministic-Stage-IDs: Deterministic artifact identification",
     "ADR-0008_Audit-Trail-Timestamps: Timestamp formats",
     "ADR-0011_Profile-Driven-Extraction-and-Adapters: Profile-based extraction",
-    "ADR-0013_Cancellation-Semantics-Parse-Export: Cancellation handling"
+    "ADR-0013_Cancellation-Semantics-Parse-Export: Cancellation handling",
+    "ADR-0010",
+    "ADR-0031"
   ],
   "tags": [
     "parquet",

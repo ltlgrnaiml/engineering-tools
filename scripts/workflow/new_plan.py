@@ -172,11 +172,11 @@ def main() -> None:
 
     print(f"✓ Created: {filepath.relative_to(PROJECT_ROOT)}")
     print(f"✓ Updated: {INDEX_PATH.relative_to(PROJECT_ROOT)}")
-    print(f"\nNext steps:")
+    print("\nNext steps:")
     print(f"  1. Open {filepath.name}")
-    print(f"  2. Define milestones with acceptance criteria")
-    print(f"  3. Break milestones into tasks with verification commands")
-    print(f"  4. Link source references (DISC, ADR, SPEC)")
+    print("  2. Define milestones with acceptance criteria")
+    print("  3. Break milestones into tasks with verification commands")
+    print("  4. Link source references (DISC, ADR, SPEC)")
 
 
 if __name__ == "__main__":

@@ -10,8 +10,8 @@ Usage:
     response = llm.invoke("Hello, how are you?")
 """
 
-import os
 import logging
+import os
 from typing import Any
 
 from langchain_openai import ChatOpenAI
@@ -35,7 +35,7 @@ class XAIChatModel(ChatOpenAI):
         temperature: Sampling temperature (0-2).
         max_tokens: Maximum tokens in response.
     """
-    
+
     def __init__(
         self,
         model: str = XAI_DEFAULT_MODEL,
@@ -94,7 +94,7 @@ def get_xai_chat_model(
             "XAI_API_KEY environment variable is required. "
             "Get your key at https://console.x.ai/"
         )
-    
+
     return XAIChatModel(
         model=model or XAI_DEFAULT_MODEL,
         temperature=temperature,

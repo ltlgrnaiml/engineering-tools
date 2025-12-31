@@ -3,10 +3,10 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { SidebarTabs } from './SidebarTabs'
 import { ArtifactList } from './ArtifactList'
-import type { ArtifactType } from './types'
+import type { ArtifactType, ArtifactSummary } from './types'
 
 interface WorkflowSidebarProps {
-  onArtifactSelect: (id: string, type: ArtifactType) => void
+  onArtifactSelect: (artifact: ArtifactSummary) => void
   selectedArtifactId?: string
 }
 

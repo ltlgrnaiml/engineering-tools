@@ -11,7 +11,8 @@
   "decision_details": {
     "approach": "Calendar versioning with patch counter; no stability phases",
     "implementation_specs": [
-      "SPEC-0008_Contract-Discipline-Api-Spec"
+      "SPEC-0008_Contract-Discipline-Api-Spec",
+      "SPEC-0006"
     ],
     "constraints": [
       "All Pydantic contracts MUST have a __version__ attribute at module level",
@@ -139,7 +140,20 @@
     "SPEC-0008_Contract-Discipline-Api-Spec",
     "tools/versioning/bump_contract_versions.py",
     "ci/steps/step_version_drift.ps1",
-    "Calendar Versioning: https://calver.org/"
+    "Calendar Versioning: https://calver.org/",
+    "ADR-0001",
+    "ADR-0005",
+    "ADR-0007",
+    "ADR-0010",
+    "ADR-0011",
+    "ADR-0013",
+    "ADR-0032",
+    "ADR-0004",
+    "ADR-0006",
+    "ADR-0008",
+    "ADR-0012",
+    "ADR-0014",
+    "ADR-0002"
   ],
   "tags": [
     "versioning",

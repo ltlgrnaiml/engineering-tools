@@ -1,14 +1,15 @@
 """Tests for RAG components - PLAN-002 M3b + M4."""
 
-import pytest
 import sqlite3
 
-from shared.contracts.knowledge.archive import Document, DocumentType
-from gateway.services.knowledge.database import SCHEMA
+import pytest
+
 from gateway.services.knowledge.archive_service import ArchiveService
-from gateway.services.knowledge.search_service import SearchService
-from gateway.services.knowledge.sanitizer import Sanitizer, SanitizationResult
 from gateway.services.knowledge.context_builder import ContextBuilder
+from gateway.services.knowledge.database import SCHEMA
+from gateway.services.knowledge.sanitizer import Sanitizer
+from gateway.services.knowledge.search_service import SearchService
+from shared.contracts.knowledge.archive import Document, DocumentType
 
 
 @pytest.fixture
@@ -117,11 +118,11 @@ class TestContextBuilder:
     def test_context_caching(self, search, sample_docs):
         """Test that results are cached."""
         builder = ContextBuilder(search, Sanitizer(), cache_enabled=True)
-        
+
         # First call
         result1 = builder.build_context("Test")
         assert result1.cached is False
-        
+
         # Second call - should be cached
         result2 = builder.build_context("Test")
         assert result2.cached is True

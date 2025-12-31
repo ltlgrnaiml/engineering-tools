@@ -1,6 +1,5 @@
 """Tests for Embedding Service - PLAN-002 M3."""
 
-import pytest
 
 from gateway.services.knowledge.embedding_service import EmbeddingService
 
@@ -39,12 +38,12 @@ class TestEmbeddingService:
     def test_vector_serialization(self):
         """Test vector to/from blob conversion."""
         service = EmbeddingService()
-        
+
         # Test vector_to_blob
         test_vector = [0.1, 0.2, 0.3, 0.4, 0.5]
         blob = service.vector_to_blob(test_vector)
         assert isinstance(blob, bytes)
-        
+
         # Test blob_to_vector
         recovered = service.blob_to_vector(blob)
         assert len(recovered) == len(test_vector)

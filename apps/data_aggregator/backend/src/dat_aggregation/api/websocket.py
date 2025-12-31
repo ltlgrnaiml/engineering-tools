@@ -11,10 +11,10 @@ from __future__ import annotations
 
 import asyncio
 import json
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Callable
 
 from fastapi import WebSocket, WebSocketDisconnect
 
@@ -56,7 +56,7 @@ class ProgressUpdate:
     current_file: str | None = None
     estimated_remaining_ms: int | None = None
     message: str | None = None
-    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def to_dict(self) -> dict:
         """Convert to JSON-serializable dictionary."""
@@ -91,7 +91,7 @@ class ProgressTracker:
     stage_id: str
     total_rows: int | None = None
     total_bytes: int | None = None
-    start_time: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    start_time: datetime = field(default_factory=lambda: datetime.now(UTC))
     _rows_processed: int = 0
     _bytes_processed: int = 0
     _chunks_completed: int = 0
@@ -130,7 +130,7 @@ class ProgressTracker:
             progress_pct = (self._bytes_processed / self.total_bytes) * 100
 
         # Estimate remaining time
-        elapsed = (datetime.now(timezone.utc) - self.start_time).total_seconds()
+        elapsed = (datetime.now(UTC) - self.start_time).total_seconds()
         estimated_remaining_ms = None
         if progress_pct > 0 and elapsed > 0:
             total_estimated = elapsed / (progress_pct / 100)
@@ -390,7 +390,7 @@ async def websocket_progress_endpoint(websocket: WebSocket, run_id: str) -> None
                 # Handle ping/pong
                 if data == "ping":
                     await websocket.send_text("pong")
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 # Send heartbeat
                 await websocket.send_text(json.dumps({"type": "heartbeat"}))
     except WebSocketDisconnect:

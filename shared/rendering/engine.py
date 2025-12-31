@@ -10,7 +10,7 @@ This module provides the core rendering engine that:
 """
 
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
@@ -24,7 +24,6 @@ from shared.contracts.core.rendering import (
     RenderSpec,
     RenderState,
     RenderStyle,
-    RenderedOutput,
 )
 
 if TYPE_CHECKING:
@@ -63,7 +62,7 @@ class RenderEngine:
         """
         self._default_style = default_style or RenderStyle()
         self._default_output_path = default_output_path or "workspace/renders"
-        self._adapters: dict[OutputTarget, "BaseOutputAdapter"] = {}
+        self._adapters: dict[OutputTarget, BaseOutputAdapter] = {}
 
     def register_adapter(
         self,
@@ -103,7 +102,7 @@ class RenderEngine:
             RenderResult with rendered output or error details.
         """
         render_id = str(uuid4())[:8]
-        started_at = datetime.now(timezone.utc).replace(microsecond=0)
+        started_at = datetime.now(UTC).replace(microsecond=0)
 
         result = RenderResult(
             spec_id=spec.spec_id,
@@ -119,7 +118,7 @@ class RenderEngine:
                 # Use fallback rendering if no adapter registered
                 result.state = RenderState.FAILED
                 result.error_message = f"No adapter registered for target: {target}"
-                result.completed_at = datetime.now(timezone.utc).replace(microsecond=0)
+                result.completed_at = datetime.now(UTC).replace(microsecond=0)
                 return result
 
             # Merge styles
@@ -146,7 +145,7 @@ class RenderEngine:
 
             result.outputs.append(output)
             result.state = RenderState.COMPLETED
-            result.completed_at = datetime.now(timezone.utc).replace(microsecond=0)
+            result.completed_at = datetime.now(UTC).replace(microsecond=0)
 
             if result.started_at and result.completed_at:
                 delta = result.completed_at - result.started_at
@@ -156,7 +155,7 @@ class RenderEngine:
             result.state = RenderState.FAILED
             result.error_message = str(e)
             result.error_details = {"exception_type": type(e).__name__}
-            result.completed_at = datetime.now(timezone.utc).replace(microsecond=0)
+            result.completed_at = datetime.now(UTC).replace(microsecond=0)
 
         return result
 
@@ -170,7 +169,7 @@ class RenderEngine:
             RenderResult with all requested outputs.
         """
         render_id = request.request_id or str(uuid4())[:8]
-        started_at = datetime.now(timezone.utc).replace(microsecond=0)
+        started_at = datetime.now(UTC).replace(microsecond=0)
 
         result = RenderResult(
             spec_id=request.spec.spec_id,
@@ -197,7 +196,7 @@ class RenderEngine:
                     )
 
             result.state = RenderState.COMPLETED
-            result.completed_at = datetime.now(timezone.utc).replace(microsecond=0)
+            result.completed_at = datetime.now(UTC).replace(microsecond=0)
 
             if result.started_at and result.completed_at:
                 delta = result.completed_at - result.started_at
@@ -206,7 +205,7 @@ class RenderEngine:
         except Exception as e:
             result.state = RenderState.FAILED
             result.error_message = str(e)
-            result.completed_at = datetime.now(timezone.utc).replace(microsecond=0)
+            result.completed_at = datetime.now(UTC).replace(microsecond=0)
 
         return result
 
@@ -225,7 +224,7 @@ class RenderEngine:
             BatchRenderResult with all results.
         """
         batch_id = str(uuid4())[:8]
-        started_at = datetime.now(timezone.utc).replace(microsecond=0)
+        started_at = datetime.now(UTC).replace(microsecond=0)
 
         batch_result = BatchRenderResult(
             request_id=batch_id,
@@ -281,15 +280,15 @@ class RenderEngine:
                         batch_result.failed_specs += 1
 
             batch_result.state = RenderState.COMPLETED
-            batch_result.completed_at = datetime.now(timezone.utc).replace(microsecond=0)
+            batch_result.completed_at = datetime.now(UTC).replace(microsecond=0)
 
             if batch_result.started_at and batch_result.completed_at:
                 delta = batch_result.completed_at - batch_result.started_at
                 batch_result.total_duration_ms = delta.total_seconds() * 1000
 
-        except Exception as e:
+        except Exception:
             batch_result.state = RenderState.FAILED
-            batch_result.completed_at = datetime.now(timezone.utc).replace(microsecond=0)
+            batch_result.completed_at = datetime.now(UTC).replace(microsecond=0)
 
         return batch_result
 

@@ -14,8 +14,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from pptx.shapes.base import BaseShape
-    from pptx.slide import Slide
+    pass
 
 __version__ = "0.1.0"
 

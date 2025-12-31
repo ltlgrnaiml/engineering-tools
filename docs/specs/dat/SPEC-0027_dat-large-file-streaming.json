@@ -283,5 +283,9 @@
     "large-files",
     "performance",
     "memory"
+  ],
+  "implements_adr": [
+    "ADR-0041",
+    "ADR-0025"
   ]
 }

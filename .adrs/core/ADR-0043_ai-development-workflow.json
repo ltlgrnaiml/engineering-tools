@@ -45,8 +45,18 @@
           "artifact_format": "markdown",
           "purpose": "Capture AI ↔ Human design conversation before any implementation",
           "trigger": "New feature, enhancement, or architectural exploration",
-          "required_sections": ["## Context", "## Requirements", "## Options Considered", "## Decision", "## Next Steps"],
-          "outputs": ["ADR reference (if architectural)", "SPEC reference (if behavioral)", "Plan reference (if implementation-ready)"],
+          "required_sections": [
+            "## Context",
+            "## Requirements",
+            "## Options Considered",
+            "## Decision",
+            "## Next Steps"
+          ],
+          "outputs": [
+            "ADR reference (if architectural)",
+            "SPEC reference (if behavioral)",
+            "Plan reference (if implementation-ready)"
+          ],
           "owner": "Human (with AI assistance)"
         },
         {
@@ -56,9 +66,25 @@
           "artifact_format": "json",
           "purpose": "Record WHY an architectural decision was made (immutable once active)",
           "trigger": "Architecture choice required from discussion",
-          "required_fields": ["id", "title", "status", "context", "decision", "consequences", "alternatives_considered"],
-          "status_values": ["draft", "active", "deprecated", "superseded"],
-          "outputs": ["SPEC reference (defines WHAT)", "Contract reference (if data structures needed)"],
+          "required_fields": [
+            "id",
+            "title",
+            "status",
+            "context",
+            "decision",
+            "consequences",
+            "alternatives_considered"
+          ],
+          "status_values": [
+            "draft",
+            "active",
+            "deprecated",
+            "superseded"
+          ],
+          "outputs": [
+            "SPEC reference (defines WHAT)",
+            "Contract reference (if data structures needed)"
+          ],
           "owner": "Human (final approval), AI (drafting)"
         },
         {
@@ -68,9 +94,24 @@
           "artifact_format": "json",
           "purpose": "Define WHAT to build (behavioral requirements, not implementation)",
           "trigger": "Feature scope finalized from ADR or Discussion",
-          "required_fields": ["id", "title", "status", "implements_adr", "requirements", "acceptance_criteria"],
-          "status_values": ["draft", "active", "deprecated", "superseded"],
-          "outputs": ["Contract reference (data shapes)", "Plan reference (implementation)"],
+          "required_fields": [
+            "id",
+            "title",
+            "status",
+            "implements_adr",
+            "requirements",
+            "acceptance_criteria"
+          ],
+          "status_values": [
+            "draft",
+            "active",
+            "deprecated",
+            "superseded"
+          ],
+          "outputs": [
+            "Contract reference (data shapes)",
+            "Plan reference (implementation)"
+          ],
           "owner": "AI (drafting), Human (approval)"
         },
         {
@@ -80,9 +121,15 @@
           "artifact_format": "python (Pydantic)",
           "purpose": "Define data shapes as Pydantic models (SSOT per ADR-0010)",
           "trigger": "Data structures needed for SPEC or Plan implementation",
-          "required_elements": ["__version__", "Pydantic BaseModel classes", "Google-style docstrings"],
+          "required_elements": [
+            "__version__",
+            "Pydantic BaseModel classes",
+            "Google-style docstrings"
+          ],
           "validation": "python -c \"from shared.contracts.{domain}.{module} import *\"",
-          "outputs": ["Importable models for Plan tasks"],
+          "outputs": [
+            "Importable models for Plan tasks"
+          ],
           "owner": "AI (implementation), Human (review)"
         },
         {
@@ -92,9 +139,22 @@
           "artifact_format": "json",
           "purpose": "Define milestones, tasks, acceptance criteria, and verification commands",
           "trigger": "Implementation begins (after SPEC active or for bug fixes/refactors)",
-          "required_fields": ["id", "title", "granularity", "milestones[]", "global_acceptance_criteria[]"],
-          "granularity_levels": ["L1", "L2", "L3"],
-          "outputs": ["Fragment executions (T5)", "Session logs"],
+          "required_fields": [
+            "id",
+            "title",
+            "granularity",
+            "milestones[]",
+            "global_acceptance_criteria[]"
+          ],
+          "granularity_levels": [
+            "L1",
+            "L2",
+            "L3"
+          ],
+          "outputs": [
+            "Fragment executions (T5)",
+            "Session logs"
+          ],
           "owner": "AI (generation), Human (approval)"
         },
         {
@@ -104,9 +164,24 @@
           "artifact_format": "markdown + inline evidence",
           "purpose": "One verifiable unit of work with captured evidence",
           "trigger": "Task execution within a Plan milestone",
-          "required_elements": ["task_id reference", "verification_command", "verification_output", "status"],
-          "lifecycle": ["pending", "in_progress", "verified", "failed", "blocked"],
-          "outputs": ["Code changes", "Test results", "Updated Plan status"],
+          "required_elements": [
+            "task_id reference",
+            "verification_command",
+            "verification_output",
+            "status"
+          ],
+          "lifecycle": [
+            "pending",
+            "in_progress",
+            "verified",
+            "failed",
+            "blocked"
+          ],
+          "outputs": [
+            "Code changes",
+            "Test results",
+            "Updated Plan status"
+          ],
           "owner": "AI (execution), Human (verification optional)"
         }
       ],
@@ -189,37 +264,93 @@
         "description": "Plans support three granularity levels matched to AI model capability and cost. Evidence from EXP-001 showed L3 reduced code variation from 39% to 19%.",
         "levels": {
           "L1_STANDARD": {
-            "target_models": ["Claude Opus", "Claude Sonnet 3.5+", "GPT-4o", "Gemini 1.5 Pro"],
+            "target_models": [
+              "Claude Opus",
+              "Claude Sonnet 3.5+",
+              "GPT-4o",
+              "Gemini 1.5 Pro"
+            ],
             "cost_tier": "$$$",
             "description": "Context + verification commands. Premium models infer implementation from context.",
             "task_schema": {
-              "required": ["id", "description", "verification_command", "status"],
-              "optional": ["context[]", "notes", "blocked_by"]
+              "required": [
+                "id",
+                "description",
+                "verification_command",
+                "status"
+              ],
+              "optional": [
+                "context[]",
+                "notes",
+                "blocked_by"
+              ]
             },
             "verification_on_failure": "log_and_continue",
             "when_to_use": "Standard work with capable model, tight timelines"
           },
           "L2_ENHANCED": {
-            "target_models": ["Claude Sonnet 3.5", "GPT-4o-mini", "Gemini 1.5 Flash", "Grok-2"],
+            "target_models": [
+              "Claude Sonnet 3.5",
+              "GPT-4o-mini",
+              "Gemini 1.5 Flash",
+              "Grok-2"
+            ],
             "cost_tier": "$$",
             "description": "L1 + explicit constraints, hints, references, and negative examples.",
             "task_schema": {
-              "required": ["id", "description", "verification_command", "status", "context[]"],
-              "optional": ["hints[]", "references[]", "negative_examples[]", "notes", "blocked_by"]
+              "required": [
+                "id",
+                "description",
+                "verification_command",
+                "status",
+                "context[]"
+              ],
+              "optional": [
+                "hints[]",
+                "references[]",
+                "negative_examples[]",
+                "notes",
+                "blocked_by"
+              ]
             },
             "verification_on_failure": "log_and_continue_with_caution",
             "when_to_use": "Large scope with mid-tier model, want guardrails"
           },
           "L3_PROCEDURAL": {
-            "target_models": ["Claude Haiku", "Gemini Flash 8B", "Grok-fast", "GPT-4o-mini (strict)"],
+            "target_models": [
+              "Claude Haiku",
+              "Gemini Flash 8B",
+              "Grok-fast",
+              "GPT-4o-mini (strict)"
+            ],
             "cost_tier": "$",
             "description": "L2 + step-by-step instructions with copy-paste code snippets and checkpoints.",
             "task_schema": {
-              "required": ["id", "description", "verification_command", "status", "context[]", "steps[]"],
-              "optional": ["hints[]", "references[]", "notes", "blocked_by"],
+              "required": [
+                "id",
+                "description",
+                "verification_command",
+                "status",
+                "context[]",
+                "steps[]"
+              ],
+              "optional": [
+                "hints[]",
+                "references[]",
+                "notes",
+                "blocked_by"
+              ],
               "steps_schema": {
-                "required": ["step_number", "instruction", "verification_hint"],
-                "optional": ["file_path", "code_snippet", "checkpoint"]
+                "required": [
+                  "step_number",
+                  "instruction",
+                  "verification_hint"
+                ],
+                "optional": [
+                  "file_path",
+                  "code_snippet",
+                  "checkpoint"
+                ]
               }
             },
             "verification_on_failure": "stop_and_escalate",
@@ -247,21 +378,50 @@
           "chunk_files": ".plans/L3/<PLAN-ID>/PLAN-XXX_L3_<milestone>.json"
         },
         "index_schema": {
-          "required": ["plan_id", "granularity", "total_chunks", "chunks[]", "current_chunk", "continuation_context"],
-          "chunks_item": ["chunk_id", "chunk_file", "name", "line_count", "status"]
+          "required": [
+            "plan_id",
+            "granularity",
+            "total_chunks",
+            "chunks[]",
+            "current_chunk",
+            "continuation_context"
+          ],
+          "chunks_item": [
+            "chunk_id",
+            "chunk_file",
+            "name",
+            "line_count",
+            "status"
+          ]
         },
         "chunk_schema": {
           "header": {
             "purpose": "Context for AI starting this chunk",
-            "fields": ["chunk_meta", "continuation_from", "session_instruction", "verification_strictness"]
+            "fields": [
+              "chunk_meta",
+              "continuation_from",
+              "session_instruction",
+              "verification_strictness"
+            ]
           },
           "body": {
             "purpose": "Executable tasks with steps",
-            "fields": ["milestone", "preflight", "tasks[]", "acceptance_criteria[]"]
+            "fields": [
+              "milestone",
+              "preflight",
+              "tasks[]",
+              "acceptance_criteria[]"
+            ]
           },
           "footer": {
             "purpose": "Handoff to next chunk",
-            "fields": ["handoff_to_next", "files_created", "files_modified", "patterns_to_maintain", "checkpoint_command"]
+            "fields": [
+              "handoff_to_next",
+              "files_created",
+              "files_modified",
+              "patterns_to_maintain",
+              "checkpoint_command"
+            ]
           }
         },
         "continuation_context": {
@@ -278,7 +438,14 @@
         },
         "execution_history": {
           "purpose": "Track which AI model executed each chunk (experiment!)",
-          "fields": ["chunk_id", "model_name", "started_at", "completed_at", "tasks_completed", "tasks_failed"]
+          "fields": [
+            "chunk_id",
+            "model_name",
+            "started_at",
+            "completed_at",
+            "tasks_completed",
+            "tasks_failed"
+          ]
         },
         "session_required": true
       },
@@ -340,31 +507,50 @@
       {
         "scenario": "New feature",
         "entry_tier": "T0 or T2 (Discussion or SPEC)",
-        "skip_tiers": ["T0 if scope is clear"],
+        "skip_tiers": [
+          "T0 if scope is clear"
+        ],
         "example": "New API endpoint with well-understood requirements"
       },
       {
         "scenario": "Simple enhancement",
         "entry_tier": "T2 (SPEC)",
-        "skip_tiers": ["T0", "T1"],
+        "skip_tiers": [
+          "T0",
+          "T1"
+        ],
         "example": "Add field to existing model, extend existing endpoint"
       },
       {
         "scenario": "New data structure only",
         "entry_tier": "T3 (Contract)",
-        "skip_tiers": ["T0", "T1", "T2"],
+        "skip_tiers": [
+          "T0",
+          "T1",
+          "T2"
+        ],
         "example": "New Pydantic model needed for existing feature"
       },
       {
         "scenario": "Bug fix",
         "entry_tier": "T4 (Plan)",
-        "skip_tiers": ["T0", "T1", "T2", "T3"],
+        "skip_tiers": [
+          "T0",
+          "T1",
+          "T2",
+          "T3"
+        ],
         "example": "Fix validation error, correct calculation logic"
       },
       {
         "scenario": "Refactor",
         "entry_tier": "T4 (Plan)",
-        "skip_tiers": ["T0", "T1", "T2", "T3"],
+        "skip_tiers": [
+          "T0",
+          "T1",
+          "T2",
+          "T3"
+        ],
         "example": "Rename module, extract function, improve performance"
       }
     ]
@@ -373,11 +559,19 @@
     "directory_structure": {
       ".discussions/": {
         "purpose": "Design conversation artifacts (T0)",
-        "files": ["INDEX.md", "AGENTS.md", ".templates/DISC_TEMPLATE.md"]
+        "files": [
+          "INDEX.md",
+          "AGENTS.md",
+          ".templates/DISC_TEMPLATE.md"
+        ]
       },
       ".plans/": {
         "purpose": "Implementation plan artifacts (T4)",
-        "files": ["INDEX.md", "AGENTS.md", ".templates/PLAN_TEMPLATE.json"]
+        "files": [
+          "INDEX.md",
+          "AGENTS.md",
+          ".templates/PLAN_TEMPLATE.json"
+        ]
       },
       ".plans/L3/": {
         "purpose": "Chunked L3 plans for budget models",
@@ -385,11 +579,15 @@
       },
       ".sessions/": {
         "purpose": "Execution session logs (T5 evidence)",
-        "files": ["SESSION_XXX_<summary>.md"]
+        "files": [
+          "SESSION_XXX_<summary>.md"
+        ]
       },
       ".questions/": {
         "purpose": "Escalation artifacts for blocked work",
-        "files": ["<CATEGORY>_<topic>.md"]
+        "files": [
+          "<CATEGORY>_<topic>.md"
+        ]
       }
     },
     "windsurf_specific_files": {
@@ -427,7 +625,17 @@
       "contracts": [
         {
           "path": "shared/contracts/plan_schema.py",
-          "models": ["PlanSchema", "Milestone", "Task", "TaskStep", "TaskEvidence", "AcceptanceCriterion", "GranularityLevel", "L3ChunkIndex", "ContinuationContext"],
+          "models": [
+            "PlanSchema",
+            "Milestone",
+            "Task",
+            "TaskStep",
+            "TaskEvidence",
+            "AcceptanceCriterion",
+            "GranularityLevel",
+            "L3ChunkIndex",
+            "ContinuationContext"
+          ],
           "status": "exists",
           "version": "2025.12.01"
         }
@@ -476,7 +684,11 @@
     },
     "tracking_artifacts": {
       "dependency_graph": ".discussions/DISC-DEPENDENCY-GRAPH.md",
-      "index_columns": ["Level", "Depends On", "Status"]
+      "index_columns": [
+        "Level",
+        "Depends On",
+        "Status"
+      ]
     }
   },
   "guardrails": [
@@ -560,7 +772,8 @@
       "title": "EXP-001: L1 vs L3 Granularity Experiment",
       "date": "2025-12",
       "finding": "L3 reduced code variation from 39% to 19%"
-    }
+    },
+    "ADR-0047"
   ],
   "resulting_specs": [
     {
@@ -586,5 +799,10 @@
     "shared/contracts/workflow/",
     "scripts/workflow/",
     "AGENTS.md"
-  ]
+  ],
+  "decision_details": {
+    "implementation_specs": [
+      "SPEC-0040"
+    ]
+  }
 }

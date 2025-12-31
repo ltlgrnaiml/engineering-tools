@@ -98,6 +98,8 @@ class RepeatOverConfig(BaseModel):
     In YAML profiles, this field is written as `as` per SPEC-0009.
     """
 
+    model_config = ConfigDict(populate_by_name=True)
+
     path: str = Field(..., description="JSONPath to array to iterate")
     as_var: str = Field(
         ...,

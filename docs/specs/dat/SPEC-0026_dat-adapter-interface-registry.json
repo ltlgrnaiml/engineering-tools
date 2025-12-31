@@ -284,5 +284,9 @@
     "csv",
     "excel",
     "json"
+  ],
+  "implements_adr": [
+    "ADR-0012",
+    "ADR-0024"
   ]
 }

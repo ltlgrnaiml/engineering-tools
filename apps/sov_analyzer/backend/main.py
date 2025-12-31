@@ -1,7 +1,7 @@
 """SOV Analyzer Tool - FastAPI application entry point."""
 import logging
-from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI

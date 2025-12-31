@@ -15,7 +15,6 @@ Configuration is loaded from YAML and validated against these Pydantic models.
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 

@@ -5,10 +5,9 @@ Build RAG context from search results with token budget management.
 
 import time
 from dataclasses import dataclass, field
-from functools import lru_cache
 
-from gateway.services.knowledge.search_service import SearchService, SearchHit
 from gateway.services.knowledge.sanitizer import Sanitizer
+from gateway.services.knowledge.search_service import SearchHit, SearchService
 
 
 @dataclass
@@ -117,7 +116,7 @@ class ContextBuilder:
         for hit in results:
             # Sanitize content (GUARDRAIL: ALL content sanitized before LLM)
             sanitized = self.sanitizer.sanitize_for_llm(hit.snippet)
-            
+
             # Format chunk with source
             chunk = f"### {hit.title}\n{sanitized}\n\n"
             chunk_tokens = self._estimate_tokens(chunk)

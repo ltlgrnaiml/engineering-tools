@@ -10,8 +10,6 @@ from apps.data_aggregator.backend.adapters import (
     AdapterNotFoundError,
     AdapterRegistry,
     CSVAdapter,
-    ExcelAdapter,
-    JSONAdapter,
     create_default_registry,
 )
 from shared.contracts.dat.adapter import AdapterMetadata

@@ -12,12 +12,11 @@ from pptx.dml.color import RGBColor
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.util import Inches, Pt
 
-from shared.contracts.core.rendering import TableSpec, TableData
-
 from apps.pptx_generator.backend.core.domain_config_service import get_domain_config
 from apps.pptx_generator.backend.core.shape_name_parser import ParsedShapeNameV2
 from apps.pptx_generator.backend.models.domain_config import TableDefaults
 from apps.pptx_generator.backend.renderers.base import BaseRenderer, RenderContext
+from shared.contracts.core.rendering import TableData, TableSpec
 
 logger = logging.getLogger(__name__)
 

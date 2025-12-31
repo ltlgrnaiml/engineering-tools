@@ -9,8 +9,7 @@ Per ADR-0027: Pipeline error handling with fail-fast semantics.
 """
 
 import logging
-from datetime import datetime, timezone
-from typing import Any
+from datetime import UTC, datetime
 
 import httpx
 from fastapi import APIRouter, BackgroundTasks, HTTPException
@@ -51,14 +50,14 @@ async def create_pipeline(
     background_tasks: BackgroundTasks,
 ) -> Pipeline:
     """Create a new multi-tool pipeline."""
-    now = datetime.now(timezone.utc)
-    
+    now = datetime.now(UTC)
+
     # Compute deterministic ID
     pipeline_id = compute_pipeline_id(
         name=request.name,
         steps=[s.model_dump() for s in request.steps],
     )
-    
+
     # Create pipeline
     pipeline = Pipeline(
         pipeline_id=pipeline_id,
@@ -68,14 +67,14 @@ async def create_pipeline(
         steps=request.steps,
         tags=request.tags,
     )
-    
+
     _pipelines[pipeline_id] = pipeline
-    
+
     # Auto-execute if requested
     if request.auto_execute:
         background_tasks.add_task(_execute_pipeline, pipeline_id)
         pipeline.state = "queued"
-    
+
     return pipeline
 
 
@@ -115,20 +114,20 @@ async def execute_pipeline(
     """Execute all pending steps in a pipeline."""
     if pipeline_id not in _pipelines:
         raise HTTPException(status_code=404, detail=f"Pipeline not found: {pipeline_id}")
-    
+
     pipeline = _pipelines[pipeline_id]
-    
+
     if pipeline.state in ("running", "completed"):
         raise HTTPException(
             status_code=400,
             detail=f"Pipeline is already {pipeline.state}",
         )
-    
+
     pipeline.state = "queued"
-    pipeline.updated_at = datetime.now(timezone.utc)
-    
+    pipeline.updated_at = datetime.now(UTC)
+
     background_tasks.add_task(_execute_pipeline, pipeline_id)
-    
+
     return pipeline
 
 
@@ -137,22 +136,22 @@ async def cancel_pipeline(pipeline_id: str) -> Pipeline:
     """Cancel a running pipeline (per ADR-0014: preserves completed artifacts)."""
     if pipeline_id not in _pipelines:
         raise HTTPException(status_code=404, detail=f"Pipeline not found: {pipeline_id}")
-    
+
     pipeline = _pipelines[pipeline_id]
-    
+
     if pipeline.state not in ("queued", "running"):
         raise HTTPException(
             status_code=400,
             detail=f"Cannot cancel pipeline in state: {pipeline.state}",
         )
-    
+
     pipeline.state = "cancelled"
-    pipeline.updated_at = datetime.now(timezone.utc)
-    
+    pipeline.updated_at = datetime.now(UTC)
+
     # Mark current step as cancelled
     if pipeline.current_step < len(pipeline.steps):
         pipeline.steps[pipeline.current_step].state = PipelineStepState.CANCELLED
-    
+
     return pipeline
 
 
@@ -167,47 +166,47 @@ async def _execute_pipeline(pipeline_id: str) -> None:
     pipeline = _pipelines.get(pipeline_id)
     if not pipeline:
         return
-    
+
     pipeline.state = "running"
-    pipeline.started_at = datetime.now(timezone.utc)
-    
+    pipeline.started_at = datetime.now(UTC)
+
     try:
         for i, step in enumerate(pipeline.steps):
             if pipeline.state == "cancelled":
                 break
-            
+
             pipeline.current_step = i
             step.state = PipelineStepState.RUNNING
-            step.started_at = datetime.now(timezone.utc)
+            step.started_at = datetime.now(UTC)
             pipeline.updated_at = step.started_at
-            
+
             # Resolve dynamic input references
             resolved_inputs = _resolve_step_inputs(pipeline, step)
-            
+
             try:
                 # Dispatch to appropriate tool
                 output_id = await _dispatch_step(step, resolved_inputs)
-                
+
                 step.output_dataset_id = output_id
                 step.state = PipelineStepState.COMPLETED
-                step.completed_at = datetime.now(timezone.utc)
+                step.completed_at = datetime.now(UTC)
                 step.progress_pct = 100.0
-                
+
             except Exception as e:
                 step.state = PipelineStepState.FAILED
                 step.error_message = str(e)
-                step.completed_at = datetime.now(timezone.utc)
+                step.completed_at = datetime.now(UTC)
                 pipeline.state = "failed"
                 break
-        
+
         if pipeline.state == "running":
             pipeline.state = "completed"
-            pipeline.completed_at = datetime.now(timezone.utc)
-            
-    except Exception as e:
+            pipeline.completed_at = datetime.now(UTC)
+
+    except Exception:
         pipeline.state = "failed"
-    
-    pipeline.updated_at = datetime.now(timezone.utc)
+
+    pipeline.updated_at = datetime.now(UTC)
 
 
 def _resolve_step_inputs(pipeline: Pipeline, step: PipelineStep) -> list[str]:

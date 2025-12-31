@@ -34,7 +34,7 @@ def _find_config_path() -> Path:
     """
     # Get the absolute path to the pptx_generator app directory
     app_root = Path(__file__).parent.parent.parent.resolve()
-    
+
     candidates = [
         app_root / "config" / "example_config_production.yaml",
         app_root / "config" / "custom_config.yaml",

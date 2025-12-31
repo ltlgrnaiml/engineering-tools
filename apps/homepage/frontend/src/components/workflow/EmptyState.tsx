@@ -1,7 +1,7 @@
 import { Plus, FileJson, FileText, MessageSquare, ListTodo, Code2, Sparkles, ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { ArtifactType } from './types'
-import type { WorkflowStage, WorkflowType } from './WorkflowStepper'
+import type { WorkflowStage, WorkflowType } from './workflowUtils'
 
 const EMPTY_STATE_CONTENT: Record<ArtifactType, { icon: React.ReactNode; title: string; description: string; cta: string }> = {
   discussion: {

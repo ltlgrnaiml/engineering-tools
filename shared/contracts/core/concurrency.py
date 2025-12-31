@@ -11,7 +11,6 @@ This module defines contracts for concurrency configuration and platform info.
 import os
 import platform
 import shutil
-import sys
 from enum import Enum
 from typing import Literal
 

@@ -2,12 +2,8 @@
 
 Tests for the gateway API endpoints including health, datasets, and pipelines.
 """
-import pytest
-from datetime import datetime, timezone
-from unittest.mock import AsyncMock, patch
-import tempfile
-from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 from gateway.main import app
@@ -141,7 +137,7 @@ class TestPipelineEndpoints:
             },
         )
         pipeline_id = create_response.json()["pipeline_id"]
-        
+
         # Get it
         response = client.get(f"/api/pipelines/{pipeline_id}")
         assert response.status_code == 200

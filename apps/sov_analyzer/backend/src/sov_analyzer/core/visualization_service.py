@@ -12,22 +12,19 @@ This module generates typed visualization specifications that can be:
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
+from shared.contracts.core.rendering import AxisConfig
 from shared.contracts.sov.visualization import (
     BoxPlotConfig,
     InteractionPlotConfig,
     MainEffectsPlotConfig,
-    NormalProbabilityPlotConfig,
-    OutputFormat,
-    PlotStyle,
     ResidualPlotConfig,
     VarianceBarConfig,
     VisualizationSpec,
     VisualizationType,
 )
-from shared.contracts.core.rendering import AxisConfig
 
 if TYPE_CHECKING:
     from ..analysis.anova import ANOVAResult
@@ -60,10 +57,10 @@ class VisualizationService:
         """
         # Extract factor rows (exclude Total which is always 100%)
         factor_rows = [r for r in result.rows if r.source not in ("Total",)]
-        
+
         # Build component list
         components = [r.source for r in factor_rows]
-        
+
         variance_bar = VarianceBarConfig(
             analysis_id=analysis_id,
             components=components,
@@ -73,9 +70,9 @@ class VisualizationService:
             sort_by_value=True,
             use_gradient=True,
         )
-        
+
         spec_id = f"variance_bar_{result.response_column}_{uuid.uuid4().hex[:8]}"
-        
+
         return VisualizationSpec(
             spec_id=spec_id,
             name=f"Variance Decomposition - {result.response_column}",
@@ -88,7 +85,7 @@ class VisualizationService:
             analysis_id=analysis_id,
             title=f"Variance Components: {result.response_column}",
             subtitle=f"Factors: {', '.join(result.factors)}",
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
             tags=["anova", "variance", result.response_column] + result.factors,
         )
 
@@ -119,9 +116,9 @@ class VisualizationService:
             x_axis=AxisConfig(label=factor, show_grid=False),
             y_axis=AxisConfig(label=result.response_column, show_grid=True),
         )
-        
+
         spec_id = f"boxplot_{factor}_{result.response_column}_{uuid.uuid4().hex[:8]}"
-        
+
         return VisualizationSpec(
             spec_id=spec_id,
             name=f"Box Plot: {factor} vs {result.response_column}",
@@ -130,7 +127,7 @@ class VisualizationService:
             box_plot=box_plot,
             dataset_id=dataset_id,
             title=f"{result.response_column} by {factor}",
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
             tags=["boxplot", factor, result.response_column],
         )
 
@@ -158,9 +155,9 @@ class VisualizationService:
             layout="horizontal" if len(result.factors) <= 3 else "grid",
             share_y_axis=True,
         )
-        
+
         spec_id = f"main_effects_{result.response_column}_{uuid.uuid4().hex[:8]}"
-        
+
         return VisualizationSpec(
             spec_id=spec_id,
             name=f"Main Effects - {result.response_column}",
@@ -169,7 +166,7 @@ class VisualizationService:
             main_effects_plot=main_effects,
             dataset_id=dataset_id,
             title=f"Main Effects Plot: {result.response_column}",
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
             tags=["main_effects"] + result.factors + [result.response_column],
         )
 
@@ -202,9 +199,9 @@ class VisualizationService:
             line_style="solid",
             marker_style="o",
         )
-        
+
         spec_id = f"interaction_{factor_a}_{factor_b}_{uuid.uuid4().hex[:8]}"
-        
+
         return VisualizationSpec(
             spec_id=spec_id,
             name=f"Interaction: {factor_a} × {factor_b}",
@@ -217,7 +214,7 @@ class VisualizationService:
             dataset_id=dataset_id,
             title=f"{factor_a} × {factor_b} Interaction",
             subtitle=f"Response: {result.response_column}",
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
             tags=["interaction", factor_a, factor_b, result.response_column],
         )
 
@@ -242,9 +239,9 @@ class VisualizationService:
             show_normal_curve=True,
             show_reference_line=True,
         )
-        
+
         spec_id = f"residual_{plot_type}_{uuid.uuid4().hex[:8]}"
-        
+
         return VisualizationSpec(
             spec_id=spec_id,
             name=f"Residual Plot ({plot_type})",
@@ -253,7 +250,7 @@ class VisualizationService:
             residual_plot=residual,
             analysis_id=analysis_id,
             title="Residual Diagnostics",
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
             tags=["residual", "diagnostics", plot_type],
         )
 
@@ -277,19 +274,19 @@ class VisualizationService:
             List of VisualizationSpec for all standard charts.
         """
         specs: list[VisualizationSpec] = []
-        
+
         for result in results:
             # Always generate variance bar chart
             specs.append(self.generate_variance_bar_chart(result, analysis_id))
-            
+
             # Generate box plots for each factor
             for factor in result.factors:
                 specs.append(self.generate_box_plot(result, factor, dataset_id))
-            
+
             # Generate main effects plot if multiple factors
             if len(result.factors) >= 1:
                 specs.append(self.generate_main_effects_plot(result, dataset_id))
-            
+
             # Generate interaction plots for 2+ factors
             if len(result.factors) >= 2:
                 for i, factor_a in enumerate(result.factors):
@@ -299,11 +296,11 @@ class VisualizationService:
                                 result, factor_a, factor_b, dataset_id
                             )
                         )
-            
+
             # Generate residual diagnostics
             specs.append(self.generate_residual_plot(analysis_id, "histogram"))
             specs.append(self.generate_residual_plot(analysis_id, "qq"))
-        
+
         return specs
 
     def get_visualization_summary(
@@ -322,7 +319,7 @@ class VisualizationService:
         for spec in specs:
             viz_type = spec.viz_type.value
             type_counts[viz_type] = type_counts.get(viz_type, 0) + 1
-        
+
         return {
             "total_count": len(specs),
             "by_type": type_counts,

@@ -18,10 +18,10 @@ from typing import Any
 import polars as pl
 
 from .profile_loader import (
-    DATProfile,
-    OutputConfig,
     AggregationConfig,
+    DATProfile,
     JoinOutputConfig,
+    OutputConfig,
 )
 
 
@@ -34,7 +34,7 @@ class ContextOptions:
     """
     include_run_context: bool = True
     include_image_context: bool = False
-    
+
     # Optional: specific context keys to include (empty = all)
     run_context_keys: list[str] | None = None
     image_context_keys: list[str] | None = None
@@ -48,7 +48,7 @@ class OutputBuilder:
     Per ADR-0012: Combines extracted tables according to profile
     output definitions, applies aggregations and joins.
     """
-    
+
     def build_outputs(
         self,
         extracted_tables: dict[str, pl.DataFrame],
@@ -80,52 +80,52 @@ class OutputBuilder:
         effective_image_contexts = image_contexts or {}
         options = context_options or ContextOptions()
         outputs: dict[str, pl.DataFrame] = {}
-        
+
         # Process default outputs
         for output_config in profile.default_outputs:
             if selected_outputs and output_config.id not in selected_outputs:
                 continue
-            
+
             df = self._build_output(
                 output_config, extracted_tables, effective_run_context,
                 effective_image_contexts, options
             )
             if not df.is_empty():
                 outputs[output_config.id] = df
-        
+
         # Process optional outputs
         for output_config in profile.optional_outputs:
             if selected_outputs and output_config.id not in selected_outputs:
                 continue
-            
+
             df = self._build_output(
                 output_config, extracted_tables, effective_run_context,
                 effective_image_contexts, options
             )
             if not df.is_empty():
                 outputs[output_config.id] = df
-        
+
         # Per DESIGN §8: Process aggregation outputs
         for agg_config in profile.aggregations:
             if selected_outputs and agg_config.id not in selected_outputs:
                 continue
-            
+
             df = self._build_aggregation(agg_config, extracted_tables)
             if not df.is_empty():
                 output_id = agg_config.output_table or agg_config.id
                 outputs[output_id] = df
-        
+
         # Per DESIGN §8: Process join outputs
         for join_config in profile.joins:
             if selected_outputs and join_config.id not in selected_outputs:
                 continue
-            
+
             df = self._build_join(join_config, extracted_tables)
             if not df.is_empty():
                 outputs[join_config.id] = df
-        
+
         return outputs
-    
+
     def _build_aggregation(
         self,
         config: AggregationConfig,
@@ -143,10 +143,10 @@ class OutputBuilder:
         if config.from_table not in tables:
             logger.warning(f"Table {config.from_table} not found for aggregation")
             return pl.DataFrame()
-        
+
         df = tables[config.from_table]
         return self.apply_aggregation(df, config.group_by, config.aggregations)
-    
+
     def _build_join(
         self,
         config: JoinOutputConfig,
@@ -164,18 +164,18 @@ class OutputBuilder:
         if config.left_table not in tables:
             logger.warning(f"Left table {config.left_table} not found for join")
             return pl.DataFrame()
-        
+
         if config.right_table not in tables:
             logger.warning(f"Right table {config.right_table} not found for join")
             return tables[config.left_table]
-        
+
         return self.apply_join(
             tables[config.left_table],
             tables[config.right_table],
             config.on,
             config.how,
         )
-    
+
     def _build_output(
         self,
         config: OutputConfig,
@@ -202,43 +202,43 @@ class OutputBuilder:
         options = options or ContextOptions()
         run_context = run_context or {}
         image_contexts = image_contexts or {}
-        
+
         dfs: list[pl.DataFrame] = []
-        
+
         for table_id in config.from_tables:
             if table_id in tables:
                 dfs.append(tables[table_id])
             else:
                 logger.debug(f"Table {table_id} not found for output {config.id}")
-        
+
         if not dfs:
             return pl.DataFrame()
-        
+
         # Concatenate tables diagonally (union of columns)
         combined = pl.concat(dfs, how="diagonal")
-        
+
         # Apply run-level context if user opted in
         if options.include_run_context:
             context_keys = options.run_context_keys or list(run_context.keys())
             for key in context_keys:
                 if key in run_context and key not in combined.columns:
                     combined = combined.with_columns(pl.lit(run_context[key]).alias(key))
-        
+
         # Apply image-level context if user opted in and table has image_id
         if options.include_image_context and "image_id" in combined.columns:
             combined = self._apply_image_context_to_df(
                 combined, image_contexts, options.image_context_keys
             )
-        
+
         # Legacy: Also apply context if output config says include_context=True
         # This maintains backward compatibility with existing profiles
         if config.include_context and run_context and not options.include_run_context:
             for key, value in run_context.items():
                 if key not in combined.columns:
                     combined = combined.with_columns(pl.lit(value).alias(key))
-        
+
         return combined
-    
+
     def _apply_image_context_to_df(
         self,
         df: pl.DataFrame,
@@ -257,19 +257,19 @@ class OutputBuilder:
         """
         if "image_id" not in df.columns or not image_contexts:
             return df
-        
+
         # Determine all context keys to add
         all_keys: set[str] = set()
         for ctx in image_contexts.values():
             all_keys.update(ctx.keys())
-        
+
         if context_keys:
             all_keys = all_keys.intersection(set(context_keys))
-        
+
         # Build a mapping DataFrame for joining
         if not all_keys:
             return df
-        
+
         # Create context records for joining
         context_records = []
         for image_id, ctx in image_contexts.items():
@@ -277,15 +277,15 @@ class OutputBuilder:
             for key in all_keys:
                 record[key] = ctx.get(key)
             context_records.append(record)
-        
+
         if not context_records:
             return df
-        
+
         context_df = pl.DataFrame(context_records)
-        
+
         # Left join to preserve all rows
         return df.join(context_df, on="image_id", how="left")
-    
+
     def apply_aggregation(
         self,
         df: pl.DataFrame,
@@ -304,29 +304,29 @@ class OutputBuilder:
         """
         if df.is_empty():
             return df
-        
+
         # Validate columns exist
         valid_group_by = [c for c in group_by if c in df.columns]
         if not valid_group_by:
             logger.warning("No valid group_by columns found")
             return df
-        
+
         # Build aggregation expressions
         agg_exprs = []
         for col, func in aggregations.items():
             if col not in df.columns:
                 continue
-            
+
             expr = self._get_agg_expr(col, func)
             if expr is not None:
                 agg_exprs.append(expr)
-        
+
         if not agg_exprs:
             logger.warning("No valid aggregations found")
             return df
-        
+
         return df.group_by(valid_group_by).agg(agg_exprs)
-    
+
     def apply_join(
         self,
         left_df: pl.DataFrame,
@@ -347,22 +347,22 @@ class OutputBuilder:
         """
         if left_df.is_empty():
             return left_df
-        
+
         if right_df.is_empty():
             return left_df
-        
+
         # Validate join columns
         valid_on = [c for c in on if c in left_df.columns and c in right_df.columns]
         if not valid_on:
             logger.warning("No valid join columns found")
             return left_df
-        
+
         return left_df.join(right_df, on=valid_on, how=how)  # type: ignore
-    
+
     def _get_agg_expr(self, col: str, func: str) -> pl.Expr | None:
         """Get polars aggregation expression."""
         func_lower = func.lower()
-        
+
         if func_lower == "mean":
             return pl.col(col).mean().alias(f"{col}_mean")
         elif func_lower == "sum":
@@ -382,7 +382,7 @@ class OutputBuilder:
         else:
             logger.warning(f"Unknown aggregation function: {func}")
             return None
-    
+
     def combine_all_tables(
         self,
         extracted_tables: dict[str, pl.DataFrame],
@@ -399,29 +399,29 @@ class OutputBuilder:
         """
         if not extracted_tables:
             return pl.DataFrame()
-        
+
         dfs: list[pl.DataFrame] = []
-        
+
         for table_id, df in extracted_tables.items():
             if df.is_empty():
                 continue
-            
+
             # Add table_id column
             df = df.with_columns(pl.lit(table_id).alias("__table_id__"))
-            
+
             # Add context columns if provided
             if context:
                 for key, value in context.items():
                     if key not in df.columns:
                         df = df.with_columns(pl.lit(value).alias(key))
-            
+
             dfs.append(df)
-        
+
         if not dfs:
             return pl.DataFrame()
-        
+
         return pl.concat(dfs, how="diagonal")
-    
+
     def generate_output_filename(
         self,
         profile: DATProfile,
@@ -440,11 +440,11 @@ class OutputBuilder:
         """
         import re
         from datetime import datetime
-        
+
         template = getattr(profile, 'file_naming_template', '{profile_id}_{timestamp}')
         timestamp_format = getattr(profile, 'file_naming_timestamp_format', '%Y%m%d_%H%M%S')
         sanitize = getattr(profile, 'file_naming_sanitize', True)
-        
+
         # Build substitution dict
         subs = {
             'profile_id': profile.profile_id,
@@ -453,12 +453,12 @@ class OutputBuilder:
             'output_id': output_id,
             **context,
         }
-        
+
         # Substitute template variables
         filename = template
         for key, value in subs.items():
             filename = filename.replace(f'{{{key}}}', str(value) if value else '')
-        
+
         # Sanitize filename if requested
         if sanitize:
             # Remove invalid characters
@@ -467,7 +467,7 @@ class OutputBuilder:
             filename = re.sub(r'_+', '_', filename)
             # Strip leading/trailing underscores
             filename = filename.strip('_')
-        
+
         return filename
 
 

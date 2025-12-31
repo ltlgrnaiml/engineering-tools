@@ -9,7 +9,7 @@ This module defines contracts for cancellation behavior including:
 - Audit trail for cancellation events
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any, Literal
 
@@ -382,12 +382,11 @@ class CancellationAuditLog(BaseModel):
         message: str = "",
     ) -> "CancellationAuditLog":
         """Add a new audit entry (returns new instance for immutability)."""
-        from datetime import timezone
 
         new_entry = CancellationAuditEntry(
             event_id=f"{self.job_id}_{len(self.entries)}",
             event_type=event_type,  # type: ignore
-            timestamp=datetime.now(timezone.utc).replace(microsecond=0),
+            timestamp=datetime.now(UTC).replace(microsecond=0),
             job_id=self.job_id,
             stage_id=stage_id,
             actor=actor,

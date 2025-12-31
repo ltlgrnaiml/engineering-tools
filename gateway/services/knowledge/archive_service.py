@@ -5,10 +5,9 @@ GUARDRAIL: No hard deletes - always use archived_at.
 """
 
 import sqlite3
-from datetime import datetime
 
-from shared.contracts.knowledge.archive import Document, DocumentType
 from gateway.services.knowledge.database import get_connection
+from shared.contracts.knowledge.archive import Document, DocumentType
 
 
 class ArchiveService:
@@ -101,19 +100,60 @@ class ArchiveService:
         for pattern, rel_type in patterns:
             matches = re.findall(pattern, doc.content)
             for match in matches:
-                target_id = f"{match.split('-')[0].lower()}_{match.replace('-', '_').lower()}"
-                relationships.append((doc.id, target_id, rel_type))
+                # Keep original ID format (e.g., ADR-0001, not adr_adr_0001)
+                if match != doc.id:  # Don't self-reference
+                    relationships.append((doc.id, match, rel_type))
 
-        return relationships
+        # Also check for explicit reference fields in JSON content
+        try:
+            import json
+            data = json.loads(doc.content)
+
+            # implements_adr (SPEC -> ADR)
+            for adr_id in data.get('implements_adr', []):
+                if adr_id != doc.id:
+                    relationships.append((doc.id, adr_id, 'implements'))
+
+            # resulting_specs (ADR -> SPEC)
+            for spec in data.get('resulting_specs', []):
+                spec_id = spec.get('id') if isinstance(spec, dict) else spec
+                if spec_id and spec_id != doc.id:
+                    relationships.append((doc.id, spec_id, 'creates'))
+
+            # source_references (Plan -> ADR/SPEC)
+            for ref in data.get('source_references', []):
+                ref_id = ref.get('id') if isinstance(ref, dict) else ref
+                if ref_id and ref_id != doc.id:
+                    relationships.append((doc.id, ref_id, 'references'))
+
+            # references array
+            for ref in data.get('references', []):
+                ref_id = ref.get('id') if isinstance(ref, dict) else ref
+                if ref_id and ref_id != doc.id:
+                    relationships.append((doc.id, ref_id, 'references'))
+
+        except (json.JSONDecodeError, TypeError):
+            pass  # Not JSON content, skip structured extraction
+
+        # Deduplicate
+        return list(set(relationships))
 
     def save_relationships(self, doc: Document):
-        """Save extracted relationships to database."""
+        """Save extracted relationships to database.
+        
+        Skips relationships where target document doesn't exist in archive
+        (FK constraint protection).
+        """
         rels = self.extract_relationships(doc)
         for source, target, rel_type in rels:
-            self.conn.execute("""
-                INSERT OR IGNORE INTO relationships (source_id, target_id, relationship_type)
-                VALUES (?, ?, ?)
-            """, (source, target, rel_type))
+            try:
+                self.conn.execute("""
+                    INSERT OR IGNORE INTO relationships (source_id, target_id, relationship_type)
+                    VALUES (?, ?, ?)
+                """, (source, target, rel_type))
+            except Exception:
+                # Skip if FK constraint fails (target doc not in archive)
+                pass
         self.conn.commit()
 
     def get_relationships(self, doc_id: str) -> list[dict]:

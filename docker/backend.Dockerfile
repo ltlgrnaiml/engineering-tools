@@ -30,7 +30,10 @@ RUN pip install --no-cache-dir \
     openpyxl \
     xlrd \
     tiktoken \
-    python-pptx
+    python-pptx \
+    matplotlib \
+    pillow \
+    pandas
 
 # Copy application code
 COPY . .

@@ -1,0 +1,1499 @@
+{
+  "total_audits": 186,
+  "by_status": {
+    "valid": 1,
+    "one_way": 173,
+    "questionable": 2,
+    "missing": 10
+  },
+  "audits": [
+    {
+      "source_id": "SPEC-0001",
+      "target_id": "ADR-0001",
+      "connection_type": "implements",
+      "status": "valid",
+      "reason": "Bi-directional, semantic similarity: 8.40%",
+      "fix_action": null
+    },
+    {
+      "source_id": "SPEC-0002",
+      "target_id": "ADR-0012",
+      "connection_type": "implements",
+      "status": "one_way",
+      "reason": "SPEC SPEC-0002 implements ADR-0012, but ADR doesn't list SPEC",
+      "fix_action": "Add SPEC-0002 to ADR-0012.decision_details.implementation_specs"
+    },
+    {
+      "source_id": "SPEC-0003",
+      "target_id": "ADR-0008",
+      "connection_type": "implements",
+      "status": "questionable",
+      "reason": "Low semantic similarity (0.00%) - verify connection is intentional",
+      "fix_action": null
+    },
+    {
+      "source_id": "SPEC-0004",
+      "target_id": "ADR-0002",
+      "connection_type": "implements",
+      "status": "one_way",
+      "reason": "SPEC SPEC-0004 implements ADR-0002, but ADR doesn't list SPEC",
+      "fix_action": "Add SPEC-0004 to ADR-0002.decision_details.implementation_specs"
+    },
+    {
+      "source_id": "SPEC-0005",
+      "target_id": "ADR-0005",
+      "connection_type": "implements",
+      "status": "one_way",
+      "reason": "SPEC SPEC-0005 implements ADR-0005, but ADR doesn't list SPEC",
+      "fix_action": "Add SPEC-0005 to ADR-0005.decision_details.implementation_specs"
+    },
+    {
+      "source_id": "SPEC-0005",
+      "target_id": "ADR-0008",
+      "connection_type": "implements",
+      "status": "one_way",
+      "reason": "SPEC SPEC-0005 implements ADR-0008, but ADR doesn't list SPEC",
+      "fix_action": "Add SPEC-0005 to ADR-0008.decision_details.implementation_specs"
+    },
+    {
+      "source_id": "SPEC-0006",
+      "target_id": "ADR-0017",
+      "connection_type": "implements",
+      "status": "one_way",
+      "reason": "SPEC SPEC-0006 implements ADR-0017, but ADR doesn't list SPEC",
+      "fix_action": "Add SPEC-0006 to ADR-0017.decision_details.implementation_specs"
+    },
+    {
+      "source_id": "SPEC-0007",
+      "target_id": "ADR-0025",
+      "connection_type": "implements",
+      "status": "one_way",
+      "reason": "SPEC SPEC-0007 implements ADR-0025, but ADR doesn't list SPEC",
+      "fix_action": "Add SPEC-0007 to ADR-0025.decision_details.implementation_specs"
+    },
+    {
+      "source_id": "SPEC-0008",
+      "target_id": "ADR-0026",
+      "connection_type": "implements",
+      "status": "one_way",
+      "reason": "SPEC SPEC-0008 implements ADR-0026, but ADR doesn't list SPEC",
+      "fix_action": "Add SPEC-0008 to ADR-0026.decision_details.implementation_specs"
+    },
+    {
+      "source_id": "SPEC-0009",
+      "target_id": "ADR-0028",
+      "connection_type": "implements",
+      "status": "one_way",
+      "reason": "SPEC SPEC-0009 implements ADR-0028, but ADR doesn't list SPEC",
+      "fix_action": "Add SPEC-0009 to ADR-0028.decision_details.implementation_specs"
+    },
+    {
+      "source_id": "SPEC-0010",
+      "target_id": "ADR-0028",
+      "connection_type": "implements",
+      "status": "one_way",
+      "reason": "SPEC SPEC-0010 implements ADR-0028, but ADR doesn't list SPEC",
+      "fix_action": "Add SPEC-0010 to ADR-0028.decision_details.implementation_specs"
+    },
+    {
+      "source_id": "SPEC-0011",
+      "target_id": "ADR-0028",
+      "connection_type": "implements",
+      "status": "one_way",
+      "reason": "SPEC SPEC-0011 implements ADR-0028, but ADR doesn't list SPEC",
+      "fix_action": "Add SPEC-0011 to ADR-0028.decision_details.implementation_specs"
+    },
+    {
+      "source_id": "SPEC-0022",
+      "target_id": "ADR-0001",
+      "connection_type": "implements",
+      "status": "questionable",
+      "reason": "Low semantic similarity (4.80%) - verify connection is intentional",
+      "fix_action": null
+    },
+    {
+      "source_id": "SPEC-0023",
+      "target_id": "ADR-0044",
+      "connection_type": "implements",
+      "status": "one_way",
+      "reason": "SPEC SPEC-0023 implements ADR-0044, but ADR doesn't list SPEC",
+      "fix_action": "Add SPEC-0023 to ADR-0044.decision_details.implementation_specs"
+    },
+    {
+      "source_id": "SPEC-0040",
+      "target_id": "ADR-0043",
+      "connection_type": "implements",
+      "status": "one_way",
+      "reason": "SPEC SPEC-0040 implements ADR-0043, but ADR doesn't list SPEC",
+      "fix_action": "Add SPEC-0040 to ADR-0043.decision_details.implementation_specs"
+    },
+    {
+      "source_id": "SPEC-0043",
+      "target_id": "ADR-0047",
+      "connection_type": "implements",
+      "status": "one_way",
+      "reason": "SPEC SPEC-0043 implements ADR-0047, but ADR doesn't list SPEC",
+      "fix_action": "Add SPEC-0043 to ADR-0047.decision_details.implementation_specs"
+    },
+    {
+      "source_id": "SPEC-0024",
+      "target_id": "ADR-0003",
+      "connection_type": "implements",
+      "status": "one_way",
+      "reason": "SPEC SPEC-0024 implements ADR-0003, but ADR doesn't list SPEC",
+      "fix_action": "Add SPEC-0024 to ADR-0003.decision_details.implementation_specs"
+    },
+    {
+      "source_id": "SPEC-0024",
+      "target_id": "ADR-0004",
+      "connection_type": "implements",
+      "status": "one_way",
+      "reason": "SPEC SPEC-0024 implements ADR-0004, but ADR doesn't list SPEC",
+      "fix_action": "Add SPEC-0024 to ADR-0004.decision_details.implementation_specs"
+    },
+    {
+      "source_id": "SPEC-0024",
+      "target_id": "ADR-0006",
+      "connection_type": "implements",
+      "status": "one_way",
+      "reason": "SPEC SPEC-0024 implements ADR-0006, but ADR doesn't list SPEC",
+      "fix_action": "Add SPEC-0024 to ADR-0006.decision_details.implementation_specs"
+    },
+    {
+      "source_id": "SPEC-0024",
+      "target_id": "ADR-0008",
+      "connection_type": "implements",
+      "status": "one_way",
+      "reason": "SPEC SPEC-0024 implements ADR-0008, but ADR doesn't list SPEC",
+      "fix_action": "Add SPEC-0024 to ADR-0008.decision_details.implementation_specs"
+    },
+    {
+      "source_id": "SPEC-0024",
+      "target_id": "ADR-0015",
+      "connection_type": "implements",
+      "status": "one_way",
+      "reason": "SPEC SPEC-0024 implements ADR-0015, but ADR doesn't list SPEC",
+      "fix_action": "Add SPEC-0024 to ADR-0015.decision_details.implementation_specs"
+    },
+    {
+      "source_id": "SPEC-0025",
+      "target_id": "ADR-0011",
+      "connection_type": "implements",
+      "status": "one_way",
+      "reason": "SPEC SPEC-0025 implements ADR-0011, but ADR doesn't list SPEC",
+      "fix_action": "Add SPEC-0025 to ADR-0011.decision_details.implementation_specs"
+    },
+    {
+      "source_id": "SPEC-0029",
+      "target_id": "ADR-0006",
+      "connection_type": "implements",
+      "status": "one_way",
+      "reason": "SPEC SPEC-0029 implements ADR-0006, but ADR doesn't list SPEC",
+      "fix_action": "Add SPEC-0029 to ADR-0006.decision_details.implementation_specs"
+    },
+    {
+      "source_id": "SPEC-0030",
+      "target_id": "ADR-0011",
+      "connection_type": "implements",
+      "status": "one_way",
+      "reason": "SPEC SPEC-0030 implements ADR-0011, but ADR doesn't list SPEC",
+      "fix_action": "Add SPEC-0030 to ADR-0011.decision_details.implementation_specs"
+    },
+    {
+      "source_id": "SPEC-0031",
+      "target_id": "ADR-0011",
+      "connection_type": "implements",
+      "status": "one_way",
+      "reason": "SPEC SPEC-0031 implements ADR-0011, but ADR doesn't list SPEC",
+      "fix_action": "Add SPEC-0031 to ADR-0011.decision_details.implementation_specs"
+    },
+    {
+      "source_id": "SPEC-0032",
+      "target_id": "ADR-0014",
+      "connection_type": "implements",
+      "status": "one_way",
+      "reason": "SPEC SPEC-0032 implements ADR-0014, but ADR doesn't list SPEC",
+      "fix_action": "Add SPEC-0032 to ADR-0014.decision_details.implementation_specs"
+    },
+    {
+      "source_id": "SPEC-0035",
+      "target_id": "ADR-0018",
+      "connection_type": "implements",
+      "status": "one_way",
+      "reason": "SPEC SPEC-0035 implements ADR-0018, but ADR doesn't list SPEC",
+      "fix_action": "Add SPEC-0035 to ADR-0018.decision_details.implementation_specs"
+    },
+    {
+      "source_id": "SPEC-0036",
+      "target_id": "ADR-0018",
+      "connection_type": "implements",
+      "status": "one_way",
+      "reason": "SPEC SPEC-0036 implements ADR-0018, but ADR doesn't list SPEC",
+      "fix_action": "Add SPEC-0036 to ADR-0018.decision_details.implementation_specs"
+    },
+    {
+      "source_id": "SPEC-0036",
+      "target_id": "ADR-0021",
+      "connection_type": "implements",
+      "status": "one_way",
+      "reason": "SPEC SPEC-0036 implements ADR-0021, but ADR doesn't list SPEC",
+      "fix_action": "Add SPEC-0036 to ADR-0021.decision_details.implementation_specs"
+    },
+    {
+      "source_id": "SPEC-0037",
+      "target_id": "ADR-0021",
+      "connection_type": "implements",
+      "status": "one_way",
+      "reason": "SPEC SPEC-0037 implements ADR-0021, but ADR doesn't list SPEC",
+      "fix_action": "Add SPEC-0037 to ADR-0021.decision_details.implementation_specs"
+    },
+    {
+      "source_id": "SPEC-0037",
+      "target_id": "ADR-0028",
+      "connection_type": "implements",
+      "status": "one_way",
+      "reason": "SPEC SPEC-0037 implements ADR-0028, but ADR doesn't list SPEC",
+      "fix_action": "Add SPEC-0037 to ADR-0028.decision_details.implementation_specs"
+    },
+    {
+      "source_id": "SPEC-0038",
+      "target_id": "ADR-0022",
+      "connection_type": "implements",
+      "status": "one_way",
+      "reason": "SPEC SPEC-0038 implements ADR-0022, but ADR doesn't list SPEC",
+      "fix_action": "Add SPEC-0038 to ADR-0022.decision_details.implementation_specs"
+    },
+    {
+      "source_id": "SPEC-0039",
+      "target_id": "ADR-0024",
+      "connection_type": "implements",
+      "status": "one_way",
+      "reason": "SPEC SPEC-0039 implements ADR-0024, but ADR doesn't list SPEC",
+      "fix_action": "Add SPEC-0039 to ADR-0024.decision_details.implementation_specs"
+    },
+    {
+      "source_id": "SPEC-0039",
+      "target_id": "ADR-0028",
+      "connection_type": "implements",
+      "status": "one_way",
+      "reason": "SPEC SPEC-0039 implements ADR-0028, but ADR doesn't list SPEC",
+      "fix_action": "Add SPEC-0039 to ADR-0028.decision_details.implementation_specs"
+    },
+    {
+      "source_id": "SPEC-0033",
+      "target_id": "ADR-0028",
+      "connection_type": "implements",
+      "status": "one_way",
+      "reason": "SPEC SPEC-0033 implements ADR-0028, but ADR doesn't list SPEC",
+      "fix_action": "Add SPEC-0033 to ADR-0028.decision_details.implementation_specs"
+    },
+    {
+      "source_id": "SPEC-0034",
+      "target_id": "ADR-0045",
+      "connection_type": "implements",
+      "status": "one_way",
+      "reason": "SPEC SPEC-0034 implements ADR-0045, but ADR doesn't list SPEC",
+      "fix_action": "Add SPEC-0034 to ADR-0045.decision_details.implementation_specs"
+    },
+    {
+      "source_id": "SPEC-0034",
+      "target_id": "ADR-0028",
+      "connection_type": "implements",
+      "status": "one_way",
+      "reason": "SPEC SPEC-0034 implements ADR-0028, but ADR doesn't list SPEC",
+      "fix_action": "Add SPEC-0034 to ADR-0028.decision_details.implementation_specs"
+    },
+    {
+      "source_id": "ADR-0001",
+      "target_id": "SPEC-0028",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0001 claims SPEC-0028, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0001 to SPEC-0028.implements_adr"
+    },
+    {
+      "source_id": "ADR-0005",
+      "target_id": "SPEC-0014",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0005 claims SPEC-0014, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0005 to SPEC-0014.implements_adr"
+    },
+    {
+      "source_id": "ADR-0007",
+      "target_id": "SPEC-0008",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0007 claims SPEC-0008, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0007 to SPEC-0008.implements_adr"
+    },
+    {
+      "source_id": "ADR-0007",
+      "target_id": "SPEC-0009",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0007 claims SPEC-0009, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0007 to SPEC-0009.implements_adr"
+    },
+    {
+      "source_id": "ADR-0009",
+      "target_id": "SPEC-0012",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0009 claims SPEC-0012, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0009 to SPEC-0012.implements_adr"
+    },
+    {
+      "source_id": "ADR-0010",
+      "target_id": "SPEC-0008",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0010 claims SPEC-0008, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0010 to SPEC-0008.implements_adr"
+    },
+    {
+      "source_id": "ADR-0010",
+      "target_id": "SPEC-0009",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0010 claims SPEC-0009, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0010 to SPEC-0009.implements_adr"
+    },
+    {
+      "source_id": "ADR-0010",
+      "target_id": "SPEC-0010",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0010 claims SPEC-0010, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0010 to SPEC-0010.implements_adr"
+    },
+    {
+      "source_id": "ADR-0010",
+      "target_id": "SPEC-0018",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0010 claims SPEC-0018, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0010 to SPEC-0018.implements_adr"
+    },
+    {
+      "source_id": "ADR-0011",
+      "target_id": "SPEC-0009",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0011 claims SPEC-0009, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0011 to SPEC-0009.implements_adr"
+    },
+    {
+      "source_id": "ADR-0011",
+      "target_id": "SPEC-0005",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0011 claims SPEC-0005, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0011 to SPEC-0005.implements_adr"
+    },
+    {
+      "source_id": "ADR-0013",
+      "target_id": "SPEC-0011",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0013 claims SPEC-0011, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0013 to SPEC-0011.implements_adr"
+    },
+    {
+      "source_id": "ADR-0013",
+      "target_id": "SPEC-0019",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0013 claims SPEC-0019, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0013 to SPEC-0019.implements_adr"
+    },
+    {
+      "source_id": "ADR-0016",
+      "target_id": "SPEC-0009",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0016 claims SPEC-0009, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0016 to SPEC-0009.implements_adr"
+    },
+    {
+      "source_id": "ADR-0017",
+      "target_id": "SPEC-0008",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0017 claims SPEC-0008, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0017 to SPEC-0008.implements_adr"
+    },
+    {
+      "source_id": "ADR-0018",
+      "target_id": "SPEC-0009",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0018 claims SPEC-0009, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0018 to SPEC-0009.implements_adr"
+    },
+    {
+      "source_id": "ADR-0018",
+      "target_id": "SPEC-0016",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0018 claims SPEC-0016, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0018 to SPEC-0016.implements_adr"
+    },
+    {
+      "source_id": "ADR-0026",
+      "target_id": "SPEC-0028",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0026 claims SPEC-0028, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0026 to SPEC-0028.implements_adr"
+    },
+    {
+      "source_id": "ADR-0027",
+      "target_id": "SPEC-0029",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0027 claims SPEC-0029, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0027 to SPEC-0029.implements_adr"
+    },
+    {
+      "source_id": "ADR-0029",
+      "target_id": "SPEC-0031",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0029 claims SPEC-0031, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0029 to SPEC-0031.implements_adr"
+    },
+    {
+      "source_id": "ADR-0029",
+      "target_id": "SPEC-0032",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0029 claims SPEC-0032, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0029 to SPEC-0032.implements_adr"
+    },
+    {
+      "source_id": "ADR-0029",
+      "target_id": "SPEC-0033",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0029 claims SPEC-0033, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0029 to SPEC-0033.implements_adr"
+    },
+    {
+      "source_id": "ADR-0030",
+      "target_id": "SPEC-0008",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0030 claims SPEC-0008, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0030 to SPEC-0008.implements_adr"
+    },
+    {
+      "source_id": "ADR-0032",
+      "target_id": "SPEC-0035",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0032 claims SPEC-0035, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0032 to SPEC-0035.implements_adr"
+    },
+    {
+      "source_id": "ADR-0033",
+      "target_id": "SPEC-0036",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0033 claims SPEC-0036, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0033 to SPEC-0036.implements_adr"
+    },
+    {
+      "source_id": "ADR-0037",
+      "target_id": "SPEC-0018",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0037 claims SPEC-0018, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0037 to SPEC-0018.implements_adr"
+    },
+    {
+      "source_id": "ADR-0003",
+      "target_id": "SPEC-0001",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0003 claims SPEC-0001, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0003 to SPEC-0001.implements_adr"
+    },
+    {
+      "source_id": "ADR-0003",
+      "target_id": "SPEC-0013",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0003 claims SPEC-0013, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0003 to SPEC-0013.implements_adr"
+    },
+    {
+      "source_id": "ADR-0004",
+      "target_id": "SPEC-0002",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0004 claims SPEC-0002, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0004 to SPEC-0002.implements_adr"
+    },
+    {
+      "source_id": "ADR-0004",
+      "target_id": "SPEC-0003",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0004 claims SPEC-0003, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0004 to SPEC-0003.implements_adr"
+    },
+    {
+      "source_id": "ADR-0006",
+      "target_id": "SPEC-0014",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0006 claims SPEC-0014, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0006 to SPEC-0014.implements_adr"
+    },
+    {
+      "source_id": "ADR-0006",
+      "target_id": "SPEC-0013",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0006 claims SPEC-0013, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0006 to SPEC-0013.implements_adr"
+    },
+    {
+      "source_id": "ADR-0008",
+      "target_id": "SPEC-0006",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0008 claims SPEC-0006, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0008 to SPEC-0006.implements_adr"
+    },
+    {
+      "source_id": "ADR-0012",
+      "target_id": "SPEC-0025",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0012 claims SPEC-0025, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0012 to SPEC-0025.implements_adr"
+    },
+    {
+      "source_id": "ADR-0012",
+      "target_id": "SPEC-0026",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0012 claims SPEC-0026, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0012 to SPEC-0026.implements_adr"
+    },
+    {
+      "source_id": "ADR-0012",
+      "target_id": "SPEC-0028",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0012 claims SPEC-0028, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0012 to SPEC-0028.implements_adr"
+    },
+    {
+      "source_id": "ADR-0012",
+      "target_id": "SPEC-0030",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0012 claims SPEC-0030, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0012 to SPEC-0030.implements_adr"
+    },
+    {
+      "source_id": "ADR-0012",
+      "target_id": "SPEC-0031",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0012 claims SPEC-0031, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0012 to SPEC-0031.implements_adr"
+    },
+    {
+      "source_id": "ADR-0014",
+      "target_id": "SPEC-0015",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0014 claims SPEC-0015, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0014 to SPEC-0015.implements_adr"
+    },
+    {
+      "source_id": "ADR-0014",
+      "target_id": "SPEC-0013",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0014 claims SPEC-0013, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0014 to SPEC-0013.implements_adr"
+    },
+    {
+      "source_id": "ADR-0014",
+      "target_id": "SPEC-0012",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0014 claims SPEC-0012, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0014 to SPEC-0012.implements_adr"
+    },
+    {
+      "source_id": "ADR-0015",
+      "target_id": "SPEC-0013",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0015 claims SPEC-0013, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0015 to SPEC-0013.implements_adr"
+    },
+    {
+      "source_id": "ADR-0015",
+      "target_id": "SPEC-0004",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0015 claims SPEC-0004, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0015 to SPEC-0004.implements_adr"
+    },
+    {
+      "source_id": "ADR-0015",
+      "target_id": "SPEC-0012",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0015 claims SPEC-0012, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0015 to SPEC-0012.implements_adr"
+    },
+    {
+      "source_id": "ADR-0015",
+      "target_id": "SPEC-0016",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0015 claims SPEC-0016, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0015 to SPEC-0016.implements_adr"
+    },
+    {
+      "source_id": "ADR-0041",
+      "target_id": "SPEC-0027",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0041 claims SPEC-0027, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0041 to SPEC-0027.implements_adr"
+    },
+    {
+      "source_id": "ADR-0042",
+      "target_id": "SPEC-0029",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0042 claims SPEC-0029, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0042 to SPEC-0029.implements_adr"
+    },
+    {
+      "source_id": "ADR-0019",
+      "target_id": "SPEC-0019",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0019 claims SPEC-0019, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0019 to SPEC-0019.implements_adr"
+    },
+    {
+      "source_id": "ADR-0019",
+      "target_id": "SPEC-0020",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0019 claims SPEC-0020, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0019 to SPEC-0020.implements_adr"
+    },
+    {
+      "source_id": "ADR-0020",
+      "target_id": "SPEC-0021",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0020 claims SPEC-0021, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0020 to SPEC-0021.implements_adr"
+    },
+    {
+      "source_id": "ADR-0021",
+      "target_id": "SPEC-0022",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0021 claims SPEC-0022, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0021 to SPEC-0022.implements_adr"
+    },
+    {
+      "source_id": "ADR-0022",
+      "target_id": "SPEC-0023",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0022 claims SPEC-0023, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0022 to SPEC-0023.implements_adr"
+    },
+    {
+      "source_id": "ADR-0023",
+      "target_id": "SPEC-0024",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0023 claims SPEC-0024, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0023 to SPEC-0024.implements_adr"
+    },
+    {
+      "source_id": "ADR-0023",
+      "target_id": "SPEC-0025",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0023 claims SPEC-0025, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0023 to SPEC-0025.implements_adr"
+    },
+    {
+      "source_id": "ADR-0024",
+      "target_id": "SPEC-0026",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0024 claims SPEC-0026, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0024 to SPEC-0026.implements_adr"
+    },
+    {
+      "source_id": "ADR-0025",
+      "target_id": "SPEC-0027",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0025 claims SPEC-0027, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0025 to SPEC-0027.implements_adr"
+    },
+    {
+      "source_id": "ADR-0028",
+      "target_id": "SPEC-0030",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0028 claims SPEC-0030, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0028 to SPEC-0030.implements_adr"
+    },
+    {
+      "source_id": "ADR-0002",
+      "target_id": "SPEC-0013",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0002 claims SPEC-0013, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0002 to SPEC-0013.implements_adr"
+    },
+    {
+      "source_id": "ADR-0002",
+      "target_id": "SPEC-0012",
+      "connection_type": "implemented_by",
+      "status": "one_way",
+      "reason": "ADR ADR-0002 claims SPEC-0012, but SPEC doesn't reference ADR",
+      "fix_action": "Add ADR-0002 to SPEC-0012.implements_adr"
+    },
+    {
+      "source_id": "ADR-0001",
+      "target_id": "ADR-0017",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0001 references ADR-0017, but ADR-0017 doesn't reference back",
+      "fix_action": "Add ADR-0001 to ADR-0017.references"
+    },
+    {
+      "source_id": "ADR-0005",
+      "target_id": "ADR-0001",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0005 references ADR-0001, but ADR-0001 doesn't reference back",
+      "fix_action": "Add ADR-0005 to ADR-0001.references"
+    },
+    {
+      "source_id": "ADR-0005",
+      "target_id": "ADR-0002",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0005 references ADR-0002, but ADR-0002 doesn't reference back",
+      "fix_action": "Add ADR-0005 to ADR-0002.references"
+    },
+    {
+      "source_id": "ADR-0005",
+      "target_id": "ADR-0017",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0005 references ADR-0017, but ADR-0017 doesn't reference back",
+      "fix_action": "Add ADR-0005 to ADR-0017.references"
+    },
+    {
+      "source_id": "ADR-0007",
+      "target_id": "ADR-0009",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0007 references ADR-0009, but ADR-0009 doesn't reference back",
+      "fix_action": "Add ADR-0007 to ADR-0009.references"
+    },
+    {
+      "source_id": "ADR-0007",
+      "target_id": "ADR-0017",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0007 references ADR-0017, but ADR-0017 doesn't reference back",
+      "fix_action": "Add ADR-0007 to ADR-0017.references"
+    },
+    {
+      "source_id": "ADR-0007",
+      "target_id": "ADR-0029",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0007 references ADR-0029, but ADR-0029 doesn't reference back",
+      "fix_action": "Add ADR-0007 to ADR-0029.references"
+    },
+    {
+      "source_id": "ADR-0009",
+      "target_id": "ADR-0004",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0009 references ADR-0004, but ADR-0004 doesn't reference back",
+      "fix_action": "Add ADR-0009 to ADR-0004.references"
+    },
+    {
+      "source_id": "ADR-0010",
+      "target_id": "ADR-0015",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0010 references ADR-0015, but ADR-0015 doesn't reference back",
+      "fix_action": "Add ADR-0010 to ADR-0015.references"
+    },
+    {
+      "source_id": "ADR-0010",
+      "target_id": "ADR-0017",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0010 references ADR-0017, but ADR-0017 doesn't reference back",
+      "fix_action": "Add ADR-0010 to ADR-0017.references"
+    },
+    {
+      "source_id": "ADR-0011",
+      "target_id": "ADR-0017",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0011 references ADR-0017, but ADR-0017 doesn't reference back",
+      "fix_action": "Add ADR-0011 to ADR-0017.references"
+    },
+    {
+      "source_id": "ADR-0013",
+      "target_id": "ADR-0017",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0013 references ADR-0017, but ADR-0017 doesn't reference back",
+      "fix_action": "Add ADR-0013 to ADR-0017.references"
+    },
+    {
+      "source_id": "ADR-0013",
+      "target_id": "ADR-0004",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0013 references ADR-0004, but ADR-0004 doesn't reference back",
+      "fix_action": "Add ADR-0013 to ADR-0004.references"
+    },
+    {
+      "source_id": "ADR-0016",
+      "target_id": "ADR-0009",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0016 references ADR-0009, but ADR-0009 doesn't reference back",
+      "fix_action": "Add ADR-0016 to ADR-0009.references"
+    },
+    {
+      "source_id": "ADR-0018",
+      "target_id": "ADR-0002",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0018 references ADR-0002, but ADR-0002 doesn't reference back",
+      "fix_action": "Add ADR-0018 to ADR-0002.references"
+    },
+    {
+      "source_id": "ADR-0018",
+      "target_id": "ADR-0004",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0018 references ADR-0004, but ADR-0004 doesn't reference back",
+      "fix_action": "Add ADR-0018 to ADR-0004.references"
+    },
+    {
+      "source_id": "ADR-0018",
+      "target_id": "ADR-0006",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0018 references ADR-0006, but ADR-0006 doesn't reference back",
+      "fix_action": "Add ADR-0018 to ADR-0006.references"
+    },
+    {
+      "source_id": "ADR-0018",
+      "target_id": "ADR-0009",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0018 references ADR-0009, but ADR-0009 doesn't reference back",
+      "fix_action": "Add ADR-0018 to ADR-0009.references"
+    },
+    {
+      "source_id": "ADR-0018",
+      "target_id": "ADR-0014",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0018 references ADR-0014, but ADR-0014 doesn't reference back",
+      "fix_action": "Add ADR-0018 to ADR-0014.references"
+    },
+    {
+      "source_id": "ADR-0018",
+      "target_id": "ADR-0016",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0018 references ADR-0016, but ADR-0016 doesn't reference back",
+      "fix_action": "Add ADR-0018 to ADR-0016.references"
+    },
+    {
+      "source_id": "ADR-0026",
+      "target_id": "ADR-0004",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0026 references ADR-0004, but ADR-0004 doesn't reference back",
+      "fix_action": "Add ADR-0026 to ADR-0004.references"
+    },
+    {
+      "source_id": "ADR-0026",
+      "target_id": "ADR-0001",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0026 references ADR-0001, but ADR-0001 doesn't reference back",
+      "fix_action": "Add ADR-0026 to ADR-0001.references"
+    },
+    {
+      "source_id": "ADR-0027",
+      "target_id": "ADR-0001",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0027 references ADR-0001, but ADR-0001 doesn't reference back",
+      "fix_action": "Add ADR-0027 to ADR-0001.references"
+    },
+    {
+      "source_id": "ADR-0027",
+      "target_id": "ADR-0002",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0027 references ADR-0002, but ADR-0002 doesn't reference back",
+      "fix_action": "Add ADR-0027 to ADR-0002.references"
+    },
+    {
+      "source_id": "ADR-0027",
+      "target_id": "ADR-0004",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0027 references ADR-0004, but ADR-0004 doesn't reference back",
+      "fix_action": "Add ADR-0027 to ADR-0004.references"
+    },
+    {
+      "source_id": "ADR-0027",
+      "target_id": "ADR-0025",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0027 references ADR-0025, but ADR-0025 doesn't reference back",
+      "fix_action": "Add ADR-0027 to ADR-0025.references"
+    },
+    {
+      "source_id": "ADR-0030",
+      "target_id": "ADR-0005",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0030 references ADR-0005, but ADR-0005 doesn't reference back",
+      "fix_action": "Add ADR-0030 to ADR-0005.references"
+    },
+    {
+      "source_id": "ADR-0031",
+      "target_id": "ADR-0015",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0031 references ADR-0015, but ADR-0015 doesn't reference back",
+      "fix_action": "Add ADR-0031 to ADR-0015.references"
+    },
+    {
+      "source_id": "ADR-0031",
+      "target_id": "ADR-0016",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0031 references ADR-0016, but ADR-0016 doesn't reference back",
+      "fix_action": "Add ADR-0031 to ADR-0016.references"
+    },
+    {
+      "source_id": "ADR-0031",
+      "target_id": "ADR-0010",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0031 references ADR-0010, but ADR-0010 doesn't reference back",
+      "fix_action": "Add ADR-0031 to ADR-0010.references"
+    },
+    {
+      "source_id": "ADR-0032",
+      "target_id": "ADR-0009",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0032 references ADR-0009, but ADR-0009 doesn't reference back",
+      "fix_action": "Add ADR-0032 to ADR-0009.references"
+    },
+    {
+      "source_id": "ADR-0032",
+      "target_id": "ADR-0017",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0032 references ADR-0017, but ADR-0017 doesn't reference back",
+      "fix_action": "Add ADR-0032 to ADR-0017.references"
+    },
+    {
+      "source_id": "ADR-0033",
+      "target_id": "ADR-0045",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0033 references ADR-0045, but ADR-0045 doesn't reference back",
+      "fix_action": "Add ADR-0033 to ADR-0045.references"
+    },
+    {
+      "source_id": "ADR-0035",
+      "target_id": "ADR-0010",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0035 references ADR-0010, but ADR-0010 doesn't reference back",
+      "fix_action": "Add ADR-0035 to ADR-0010.references"
+    },
+    {
+      "source_id": "ADR-0035",
+      "target_id": "ADR-0009",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0035 references ADR-0009, but ADR-0009 doesn't reference back",
+      "fix_action": "Add ADR-0035 to ADR-0009.references"
+    },
+    {
+      "source_id": "ADR-0036",
+      "target_id": "ADR-0009",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0036 references ADR-0009, but ADR-0009 doesn't reference back",
+      "fix_action": "Add ADR-0036 to ADR-0009.references"
+    },
+    {
+      "source_id": "ADR-0036",
+      "target_id": "ADR-0001",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0036 references ADR-0001, but ADR-0001 doesn't reference back",
+      "fix_action": "Add ADR-0036 to ADR-0001.references"
+    },
+    {
+      "source_id": "ADR-0037",
+      "target_id": "ADR-0004",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0037 references ADR-0004, but ADR-0004 doesn't reference back",
+      "fix_action": "Add ADR-0037 to ADR-0004.references"
+    },
+    {
+      "source_id": "ADR-0037",
+      "target_id": "ADR-0008",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0037 references ADR-0008, but ADR-0008 doesn't reference back",
+      "fix_action": "Add ADR-0037 to ADR-0008.references"
+    },
+    {
+      "source_id": "ADR-0037",
+      "target_id": "ADR-0027",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0037 references ADR-0027, but ADR-0027 doesn't reference back",
+      "fix_action": "Add ADR-0037 to ADR-0027.references"
+    },
+    {
+      "source_id": "ADR-0047",
+      "target_id": "ADR-0043",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0047 references ADR-0043, but ADR-0043 doesn't reference back",
+      "fix_action": "Add ADR-0047 to ADR-0043.references"
+    },
+    {
+      "source_id": "ADR-0047",
+      "target_id": "ADR-0002",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0047 references ADR-0002, but ADR-0002 doesn't reference back",
+      "fix_action": "Add ADR-0047 to ADR-0002.references"
+    },
+    {
+      "source_id": "ADR-0003",
+      "target_id": "ADR-0001",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0003 references ADR-0001, but ADR-0001 doesn't reference back",
+      "fix_action": "Add ADR-0003 to ADR-0001.references"
+    },
+    {
+      "source_id": "ADR-0003",
+      "target_id": "ADR-0002",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0003 references ADR-0002, but ADR-0002 doesn't reference back",
+      "fix_action": "Add ADR-0003 to ADR-0002.references"
+    },
+    {
+      "source_id": "ADR-0004",
+      "target_id": "ADR-0005",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0004 references ADR-0005, but ADR-0005 doesn't reference back",
+      "fix_action": "Add ADR-0004 to ADR-0005.references"
+    },
+    {
+      "source_id": "ADR-0004",
+      "target_id": "ADR-0017",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0004 references ADR-0017, but ADR-0017 doesn't reference back",
+      "fix_action": "Add ADR-0004 to ADR-0017.references"
+    },
+    {
+      "source_id": "ADR-0006",
+      "target_id": "ADR-0004",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0006 references ADR-0004, but ADR-0004 doesn't reference back",
+      "fix_action": "Add ADR-0006 to ADR-0004.references"
+    },
+    {
+      "source_id": "ADR-0006",
+      "target_id": "ADR-0001",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0006 references ADR-0001, but ADR-0001 doesn't reference back",
+      "fix_action": "Add ADR-0006 to ADR-0001.references"
+    },
+    {
+      "source_id": "ADR-0006",
+      "target_id": "ADR-0002",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0006 references ADR-0002, but ADR-0002 doesn't reference back",
+      "fix_action": "Add ADR-0006 to ADR-0002.references"
+    },
+    {
+      "source_id": "ADR-0006",
+      "target_id": "ADR-0017",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0006 references ADR-0017, but ADR-0017 doesn't reference back",
+      "fix_action": "Add ADR-0006 to ADR-0017.references"
+    },
+    {
+      "source_id": "ADR-0008",
+      "target_id": "ADR-0001",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0008 references ADR-0001, but ADR-0001 doesn't reference back",
+      "fix_action": "Add ADR-0008 to ADR-0001.references"
+    },
+    {
+      "source_id": "ADR-0008",
+      "target_id": "ADR-0004",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0008 references ADR-0004, but ADR-0004 doesn't reference back",
+      "fix_action": "Add ADR-0008 to ADR-0004.references"
+    },
+    {
+      "source_id": "ADR-0008",
+      "target_id": "ADR-0017",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0008 references ADR-0017, but ADR-0017 doesn't reference back",
+      "fix_action": "Add ADR-0008 to ADR-0017.references"
+    },
+    {
+      "source_id": "ADR-0012",
+      "target_id": "ADR-0001",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0012 references ADR-0001, but ADR-0001 doesn't reference back",
+      "fix_action": "Add ADR-0012 to ADR-0001.references"
+    },
+    {
+      "source_id": "ADR-0012",
+      "target_id": "ADR-0003",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0012 references ADR-0003, but ADR-0003 doesn't reference back",
+      "fix_action": "Add ADR-0012 to ADR-0003.references"
+    },
+    {
+      "source_id": "ADR-0012",
+      "target_id": "ADR-0009",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0012 references ADR-0009, but ADR-0009 doesn't reference back",
+      "fix_action": "Add ADR-0012 to ADR-0009.references"
+    },
+    {
+      "source_id": "ADR-0012",
+      "target_id": "ADR-0017",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0012 references ADR-0017, but ADR-0017 doesn't reference back",
+      "fix_action": "Add ADR-0012 to ADR-0017.references"
+    },
+    {
+      "source_id": "ADR-0012",
+      "target_id": "ADR-0040",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0012 references ADR-0040, but ADR-0040 doesn't reference back",
+      "fix_action": "Add ADR-0012 to ADR-0040.references"
+    },
+    {
+      "source_id": "ADR-0014",
+      "target_id": "ADR-0001",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0014 references ADR-0001, but ADR-0001 doesn't reference back",
+      "fix_action": "Add ADR-0014 to ADR-0001.references"
+    },
+    {
+      "source_id": "ADR-0014",
+      "target_id": "ADR-0002",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0014 references ADR-0002, but ADR-0002 doesn't reference back",
+      "fix_action": "Add ADR-0014 to ADR-0002.references"
+    },
+    {
+      "source_id": "ADR-0014",
+      "target_id": "ADR-0004",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0014 references ADR-0004, but ADR-0004 doesn't reference back",
+      "fix_action": "Add ADR-0014 to ADR-0004.references"
+    },
+    {
+      "source_id": "ADR-0014",
+      "target_id": "ADR-0017",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0014 references ADR-0017, but ADR-0017 doesn't reference back",
+      "fix_action": "Add ADR-0014 to ADR-0017.references"
+    },
+    {
+      "source_id": "ADR-0015",
+      "target_id": "ADR-0001",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0015 references ADR-0001, but ADR-0001 doesn't reference back",
+      "fix_action": "Add ADR-0015 to ADR-0001.references"
+    },
+    {
+      "source_id": "ADR-0015",
+      "target_id": "ADR-0002",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0015 references ADR-0002, but ADR-0002 doesn't reference back",
+      "fix_action": "Add ADR-0015 to ADR-0002.references"
+    },
+    {
+      "source_id": "ADR-0015",
+      "target_id": "ADR-0004",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0015 references ADR-0004, but ADR-0004 doesn't reference back",
+      "fix_action": "Add ADR-0015 to ADR-0004.references"
+    },
+    {
+      "source_id": "ADR-0015",
+      "target_id": "ADR-0008",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0015 references ADR-0008, but ADR-0008 doesn't reference back",
+      "fix_action": "Add ADR-0015 to ADR-0008.references"
+    },
+    {
+      "source_id": "ADR-0015",
+      "target_id": "ADR-0013",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0015 references ADR-0013, but ADR-0013 doesn't reference back",
+      "fix_action": "Add ADR-0015 to ADR-0013.references"
+    },
+    {
+      "source_id": "ADR-0041",
+      "target_id": "ADR-0011",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0041 references ADR-0011, but ADR-0011 doesn't reference back",
+      "fix_action": "Add ADR-0041 to ADR-0011.references"
+    },
+    {
+      "source_id": "ADR-0041",
+      "target_id": "ADR-0013",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0041 references ADR-0013, but ADR-0013 doesn't reference back",
+      "fix_action": "Add ADR-0041 to ADR-0013.references"
+    },
+    {
+      "source_id": "ADR-0041",
+      "target_id": "ADR-0012",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0041 references ADR-0012, but ADR-0012 doesn't reference back",
+      "fix_action": "Add ADR-0041 to ADR-0012.references"
+    },
+    {
+      "source_id": "ADR-0042",
+      "target_id": "ADR-0003",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0042 references ADR-0003, but ADR-0003 doesn't reference back",
+      "fix_action": "Add ADR-0042 to ADR-0003.references"
+    },
+    {
+      "source_id": "ADR-0042",
+      "target_id": "ADR-0004",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0042 references ADR-0004, but ADR-0004 doesn't reference back",
+      "fix_action": "Add ADR-0042 to ADR-0004.references"
+    },
+    {
+      "source_id": "ADR-0020",
+      "target_id": "ADR-0001",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0020 references ADR-0001, but ADR-0001 doesn't reference back",
+      "fix_action": "Add ADR-0020 to ADR-0001.references"
+    },
+    {
+      "source_id": "ADR-0023",
+      "target_id": "ADR-0012",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0023 references ADR-0012, but ADR-0012 doesn't reference back",
+      "fix_action": "Add ADR-0023 to ADR-0012.references"
+    },
+    {
+      "source_id": "ADR-0024",
+      "target_id": "ADR-0025",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0024 references ADR-0025, but ADR-0025 doesn't reference back",
+      "fix_action": "Add ADR-0024 to ADR-0025.references"
+    },
+    {
+      "source_id": "ADR-0025",
+      "target_id": "ADR-0009",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0025 references ADR-0009, but ADR-0009 doesn't reference back",
+      "fix_action": "Add ADR-0025 to ADR-0009.references"
+    },
+    {
+      "source_id": "ADR-0025",
+      "target_id": "ADR-0028",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0025 references ADR-0028, but ADR-0028 doesn't reference back",
+      "fix_action": "Add ADR-0025 to ADR-0028.references"
+    },
+    {
+      "source_id": "ADR-0045",
+      "target_id": "ADR-0027",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0045 references ADR-0027, but ADR-0027 doesn't reference back",
+      "fix_action": "Add ADR-0045 to ADR-0027.references"
+    },
+    {
+      "source_id": "ADR-0045",
+      "target_id": "ADR-0041",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0045 references ADR-0041, but ADR-0041 doesn't reference back",
+      "fix_action": "Add ADR-0045 to ADR-0041.references"
+    },
+    {
+      "source_id": "ADR-0002",
+      "target_id": "ADR-0017",
+      "connection_type": "references",
+      "status": "one_way",
+      "reason": "ADR ADR-0002 references ADR-0017, but ADR-0017 doesn't reference back",
+      "fix_action": "Add ADR-0002 to ADR-0017.references"
+    },
+    {
+      "source_id": "SPEC-0007",
+      "target_id": "ADR-0026",
+      "connection_type": "potential_implements",
+      "status": "missing",
+      "reason": "High semantic similarity (16.48%) suggests SPEC-0007 may implement ADR-0026",
+      "fix_action": "Review: Should SPEC-0007 implement ADR-0026?"
+    },
+    {
+      "source_id": "SPEC-0029",
+      "target_id": "ADR-0008",
+      "connection_type": "potential_implements",
+      "status": "missing",
+      "reason": "High semantic similarity (17.65%) suggests SPEC-0029 may implement ADR-0008",
+      "fix_action": "Review: Should SPEC-0029 implement ADR-0008?"
+    },
+    {
+      "source_id": "ADR-0031",
+      "target_id": "(none)",
+      "connection_type": "orphan",
+      "status": "missing",
+      "reason": "ADR ADR-0031 has no implementing SPECs - may need SPEC or is policy-only",
+      "fix_action": null
+    },
+    {
+      "source_id": "ADR-0034",
+      "target_id": "(none)",
+      "connection_type": "orphan",
+      "status": "missing",
+      "reason": "ADR ADR-0034 has no implementing SPECs - may need SPEC or is policy-only",
+      "fix_action": null
+    },
+    {
+      "source_id": "ADR-0035",
+      "target_id": "(none)",
+      "connection_type": "orphan",
+      "status": "missing",
+      "reason": "ADR ADR-0035 has no implementing SPECs - may need SPEC or is policy-only",
+      "fix_action": null
+    },
+    {
+      "source_id": "ADR-0036",
+      "target_id": "(none)",
+      "connection_type": "orphan",
+      "status": "missing",
+      "reason": "ADR ADR-0036 has no implementing SPECs - may need SPEC or is policy-only",
+      "fix_action": null
+    },
+    {
+      "source_id": "ADR-0038",
+      "target_id": "(none)",
+      "connection_type": "orphan",
+      "status": "missing",
+      "reason": "ADR ADR-0038 has no implementing SPECs - may need SPEC or is policy-only",
+      "fix_action": null
+    },
+    {
+      "source_id": "ADR-0039",
+      "target_id": "(none)",
+      "connection_type": "orphan",
+      "status": "missing",
+      "reason": "ADR ADR-0039 has no implementing SPECs - may need SPEC or is policy-only",
+      "fix_action": null
+    },
+    {
+      "source_id": "ADR-0040",
+      "target_id": "(none)",
+      "connection_type": "orphan",
+      "status": "missing",
+      "reason": "ADR ADR-0040 has no implementing SPECs - may need SPEC or is policy-only",
+      "fix_action": null
+    },
+    {
+      "source_id": "ADR-0048",
+      "target_id": "(none)",
+      "connection_type": "orphan",
+      "status": "missing",
+      "reason": "ADR ADR-0048 has no implementing SPECs - may need SPEC or is policy-only",
+      "fix_action": null
+    }
+  ]
+}

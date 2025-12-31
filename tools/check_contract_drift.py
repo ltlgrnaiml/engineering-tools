@@ -17,7 +17,6 @@ Exit codes:
 """
 
 import argparse
-import importlib
 import json
 import sys
 from dataclasses import dataclass

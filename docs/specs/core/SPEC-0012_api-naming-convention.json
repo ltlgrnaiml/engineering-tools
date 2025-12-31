@@ -207,5 +207,11 @@
     "simplified",
     "solo-dev",
     "url-patterns"
+  ],
+  "implements_adr": [
+    "ADR-0009",
+    "ADR-0014",
+    "ADR-0015",
+    "ADR-0002"
   ]
 }

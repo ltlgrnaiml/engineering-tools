@@ -6,13 +6,13 @@ Tests for the shape naming convention and discovery logic.
 import pytest
 
 from apps.pptx_generator.backend.core.shape_discovery import (
-    parse_shape_name_adr0018,
-    is_valid_shape_name,
-    is_default_shape_name,
+    VALID_CATEGORIES,
     InvalidCategoryError,
     InvalidIdentifierError,
     ParsedShapeName,
-    VALID_CATEGORIES,
+    is_default_shape_name,
+    is_valid_shape_name,
+    parse_shape_name_adr0018,
 )
 
 
@@ -176,7 +176,7 @@ class TestAdr0018Compliance:
     def test_all_valid_categories_accepted(self):
         """ADR-0019: Valid categories are text, chart, table, image, metric, dimension."""
         expected = {"text", "chart", "table", "image", "metric", "dimension"}
-        assert VALID_CATEGORIES == expected
+        assert expected == VALID_CATEGORIES
 
     def test_identifier_alphanumeric_only(self):
         """ADR-0019: Identifier must be alphanumeric."""

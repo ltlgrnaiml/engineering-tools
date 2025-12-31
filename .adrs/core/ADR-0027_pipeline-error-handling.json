@@ -89,7 +89,9 @@
     "ADR-0004_Deterministic-Content-Addressed-IDs: Step output identification",
     "ADR-0025_DataSet-Lineage-Tracking: Step outputs as DataSets",
     "shared/contracts/core/pipeline.py: Pipeline state schema",
-    "gateway/services/pipeline_service.py: Pipeline execution service"
+    "gateway/services/pipeline_service.py: Pipeline execution service",
+    "ADR-0037",
+    "ADR-0045"
   ],
   "tags": [
     "pipeline",

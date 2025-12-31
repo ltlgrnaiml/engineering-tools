@@ -4,7 +4,7 @@ Per ADR-0028: DevTools Page Architecture.
 Tests for DevTools state management and API contracts.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -44,7 +44,7 @@ class TestDevToolsState:
 
     def test_enabled_state(self) -> None:
         """Enabled state should track how it was enabled."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         state = DevToolsState(
             enabled=True,
             enabled_via="url_param",
@@ -248,7 +248,7 @@ class TestConfigManagement:
 
     def test_config_file_info(self) -> None:
         """Config file info should include metadata."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         info = ConfigFileInfo(
             file_type=ConfigFileType.DOMAIN_CONFIG,
             file_path="apps/pptx_generator/config/domain_config.yaml",

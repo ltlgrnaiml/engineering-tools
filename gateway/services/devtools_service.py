@@ -13,24 +13,24 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field, ValidationError
 
 from gateway.services.workflow_service import (
-    build_artifact_graph,
-    scan_artifacts,
     _get_file_format,
-    create_workflow,
-    get_workflow_status,
     advance_workflow,
-    generate_prompt,
+    build_artifact_graph,
+    create_workflow,
     generate_artifact_content,
     generate_full_workflow,
+    generate_prompt,
+    get_workflow_status,
+    scan_artifacts,
 )
 from shared.contracts.adr_schema import (
     ADRCreateRequest as SchemaADRCreateRequest,
+)
+from shared.contracts.adr_schema import (
     ADRFieldValidationRequest,
     ADRFieldValidationResponse,
     ADRSchema,
 )
-from shared.contracts.spec_schema import SPECSchema
-from shared.contracts.plan_schema import PlanSchema
 from shared.contracts.devtools.workflow import (
     ArtifactListResponse,
     ArtifactResponse,
@@ -39,13 +39,15 @@ from shared.contracts.devtools.workflow import (
     ArtifactType,
     CreateArtifactRequest,
     CreateWorkflowRequest,
-    GraphResponse,
     GenerationRequest,
     GenerationResponse,
+    GraphResponse,
     PromptResponse,
     UpdateArtifactRequest,
     WorkflowResponse,
 )
+from shared.contracts.plan_schema import PlanSchema
+from shared.contracts.spec_schema import SPECSchema
 
 router = APIRouter()
 
@@ -56,10 +58,10 @@ def get_knowledge_context(prompt: str, max_tokens: int = 4000) -> dict | None:
     PLAN-002 M4: Integration with Knowledge Archive.
     """
     try:
-        from gateway.services.knowledge.database import init_database
-        from gateway.services.knowledge.search_service import SearchService
         from gateway.services.knowledge.context_builder import ContextBuilder
+        from gateway.services.knowledge.database import init_database
         from gateway.services.knowledge.sanitizer import Sanitizer
+        from gateway.services.knowledge.search_service import SearchService
 
         conn = init_database()
         search = SearchService(conn)
@@ -217,14 +219,14 @@ async def get_schema(schema_type: str) -> dict[str, Any]:
             status_code=404,
             detail=f"Unknown schema type: {schema_type}. Available: {list(SCHEMA_REGISTRY.keys())}"
         )
-    
+
     model_class = SCHEMA_REGISTRY[schema_type]
     schema = model_class.model_json_schema()
-    
+
     # Add metadata for frontend consumption
     schema["$schema_type"] = schema_type
     schema["$generated_from"] = model_class.__module__
-    
+
     return schema
 
 
@@ -244,9 +246,9 @@ async def list_adrs() -> list[ADRSummary]:
         # Determine folder (relative to .adrs/)
         relative_path = filepath.relative_to(ADRS_DIR)
         folder = str(relative_path.parent) if relative_path.parent != Path(".") else "root"
-        
+
         try:
-            with open(filepath, "r", encoding="utf-8") as f:
+            with open(filepath, encoding="utf-8") as f:
                 data = json.load(f)
             adrs.append(
                 ADRSummary(
@@ -289,7 +291,7 @@ async def get_adr(folder: str, filename: str) -> ADRContent:
         raise HTTPException(400, "Invalid folder/filename path")
 
     try:
-        with open(filepath, "r", encoding="utf-8") as f:
+        with open(filepath, encoding="utf-8") as f:
             raw_json = f.read()
         content = json.loads(raw_json)
         return ADRContent(filename=filename, content=content, raw_json=raw_json)
@@ -340,7 +342,7 @@ async def create_adr(request: SchemaADRCreateRequest) -> ADRContent:
     except ValidationError as e:
         errors = [f"{'.'.join(str(loc) for loc in err['loc'])}: {err['msg']}" for err in e.errors()]
         raise HTTPException(400, f"Invalid ADR data: {'; '.join(errors)}")
-    
+
     # Generate filename from ID
     adr_id = request.adr_data.get("id", "ADR-0000_Untitled")
     filename = f"{adr_id}.json"
@@ -359,7 +361,7 @@ async def create_adr(request: SchemaADRCreateRequest) -> ADRContent:
 
     # Use validated data
     content = adr_instance.model_dump(mode='json')
-    
+
     # Add creation provenance if not present
     if not content.get("provenance"):
         content["provenance"] = []
@@ -388,7 +390,7 @@ async def validate_adr(folder: str, filename: str) -> ValidationResult:
     warnings: list[str] = []
 
     try:
-        with open(filepath, "r", encoding="utf-8") as f:
+        with open(filepath, encoding="utf-8") as f:
             content = json.load(f)
     except json.JSONDecodeError as e:
         return ValidationResult(valid=False, errors=[f"Invalid JSON: {e}"], warnings=[])
@@ -447,7 +449,7 @@ async def validate_field(request: ADRFieldValidationRequest) -> ADRFieldValidati
         }
         # Update with the field being validated
         test_data[request.field_name] = request.field_value
-        
+
         # Try to validate
         ADRSchema(**test_data)
         return ADRFieldValidationResponse(valid=True, error=None)
@@ -562,7 +564,7 @@ async def create_artifact(request: CreateArtifactRequest) -> ArtifactResponse:
 
     # Determine file path based on artifact type
     base_dir = Path(ARTIFACT_DIRECTORIES.get(request.type, "."))
-    
+
     # Generate artifact ID and filename
     if request.type == ArtifactType.ADR:
         # Find next ADR number
@@ -672,13 +674,13 @@ async def update_artifact(
                         content = json.loads(request.content)
                     except json.JSONDecodeError:
                         raise HTTPException(status_code=400, detail="Invalid JSON content for ADR/SPEC")
-                
+
                 # Update status and title if provided
                 if request.status:
                     content["status"] = request.status.value
                 if request.title:
                     content["title"] = request.title
-                
+
                 with open(file_path, "w", encoding="utf-8") as f:
                     json.dump(content, f, indent=2)
             else:
@@ -934,8 +936,8 @@ async def get_llm_health(refresh: bool = False) -> LLMHealthResponse:
         LLMHealthResponse with status and availability.
     """
     from gateway.services.llm_service import (
-        check_health,
         LLMStatus,
+        check_health,
         get_available_models,
         get_current_model,
     )
@@ -994,7 +996,7 @@ async def set_llm_model(request: SetModelRequest) -> SetModelResponse:
     Returns:
         SetModelResponse with success status.
     """
-    from gateway.services.llm_service import set_current_model, get_model_info
+    from gateway.services.llm_service import get_model_info, set_current_model
 
     success = set_current_model(request.model_id)
     model_info = get_model_info(request.model_id)

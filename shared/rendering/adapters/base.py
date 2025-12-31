@@ -12,6 +12,7 @@ from typing import Any
 from shared.contracts.core.rendering import (
     ChartSpec,
     ChartType,
+    ImageSpec,
     OutputFormat,
     OutputTarget,
     RenderedOutput,
@@ -19,7 +20,6 @@ from shared.contracts.core.rendering import (
     RenderStyle,
     TableSpec,
     TextSpec,
-    ImageSpec,
 )
 
 __version__ = "0.1.0"

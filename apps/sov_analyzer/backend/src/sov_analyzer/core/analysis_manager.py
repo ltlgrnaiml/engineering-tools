@@ -2,22 +2,21 @@
 
 Per ADR-0024: Input via DataSetRef; output with lineage tracking.
 """
-import uuid
 import json
+import uuid
 from dataclasses import asdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
 
 import polars as pl
 
-from shared.contracts.core.dataset import DataSetManifest, DataSetRef, ColumnMeta
+from shared.contracts.core.dataset import ColumnMeta, DataSetManifest, DataSetRef
 from shared.storage.artifact_store import ArtifactStore
 from shared.utils.stage_id import compute_dataset_id
+
 from ..analysis.anova import (
     ANOVAConfig,
     ANOVAResult,
-    VarianceValidationError,
     run_anova_analysis,
 )
 from .visualization_service import VisualizationService
@@ -25,7 +24,7 @@ from .visualization_service import VisualizationService
 
 class AnalysisManager:
     """Manages SOV analysis runs."""
-    
+
     def __init__(self, workspace_path: Path | None = None):
         if workspace_path is None:
             workspace_path = Path.cwd() / "workspace"
@@ -34,13 +33,13 @@ class AnalysisManager:
         self.sov_workspace.mkdir(parents=True, exist_ok=True)
         self.store = ArtifactStore(workspace_path)
         self.viz_service = VisualizationService()
-    
+
     def _analysis_dir(self, analysis_id: str) -> Path:
         """Get directory for an analysis."""
         path = self.sov_workspace / "analyses" / analysis_id
         path.mkdir(parents=True, exist_ok=True)
         return path
-    
+
     async def create_analysis(
         self,
         name: str | None = None,
@@ -68,7 +67,7 @@ class AnalysisManager:
         metadata = {
             "analysis_id": analysis_id,
             "name": name or f"SOV Analysis {analysis_id[:8]}",
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
             "dataset_id": input_dataset_id,
             "parent_dataset_ids": [input_dataset_id] if input_dataset_id else [],
             "status": "created",
@@ -79,7 +78,7 @@ class AnalysisManager:
             json.dump(metadata, f, indent=2)
 
         return metadata
-    
+
     async def get_analysis(self, analysis_id: str) -> dict | None:
         """Get analysis by ID."""
         metadata_path = self._analysis_dir(analysis_id) / "metadata.json"
@@ -87,7 +86,7 @@ class AnalysisManager:
             return None
         with open(metadata_path) as f:
             return json.load(f)
-    
+
     async def list_analyses(
         self,
         limit: int = 50,
@@ -109,7 +108,7 @@ class AnalysisManager:
         analyses_dir = self.sov_workspace / "analyses"
         if not analyses_dir.exists():
             return []
-        
+
         # Load all analyses
         all_analyses = []
         for analysis_dir in analyses_dir.iterdir():
@@ -117,14 +116,14 @@ class AnalysisManager:
                 metadata = await self.get_analysis(analysis_dir.name)
                 if metadata:
                     all_analyses.append(metadata)
-        
+
         # Sort
         reverse = sort_order == "desc"
         if sort_by == "name":
             all_analyses.sort(key=lambda x: x.get("name", ""), reverse=reverse)
         else:  # default: created_at
             all_analyses.sort(key=lambda x: x.get("created_at", ""), reverse=reverse)
-        
+
         # Apply cursor
         if cursor:
             cursor_idx = next(
@@ -133,9 +132,9 @@ class AnalysisManager:
             )
             if cursor_idx >= 0:
                 all_analyses = all_analyses[cursor_idx + 1:]
-        
+
         return all_analyses[:limit]
-    
+
     async def run_analysis(
         self,
         analysis_id: str,
@@ -157,7 +156,7 @@ class AnalysisManager:
         metadata = await self.get_analysis(analysis_id)
         if not metadata:
             raise ValueError(f"Analysis not found: {analysis_id}")
-        
+
         # Load data if not provided
         input_column_meta = None
         if data is None:
@@ -171,10 +170,10 @@ class AnalysisManager:
                 metadata["input_column_meta"] = [
                     col.model_dump() for col in manifest.columns
                 ]
-        
+
         # Run ANOVA
         results = await run_anova_analysis(data, config)
-        
+
         # Save results
         analysis_dir = self._analysis_dir(analysis_id)
         results_data = [
@@ -187,10 +186,10 @@ class AnalysisManager:
             }
             for r in results
         ]
-        
+
         with open(analysis_dir / "results.json", "w") as f:
             json.dump(results_data, f, indent=2)
-        
+
         # Generate visualization specs per ADR-0025
         viz_specs = self.viz_service.generate_all_visualizations(
             results=results,
@@ -198,18 +197,18 @@ class AnalysisManager:
             dataset_id=metadata.get("dataset_id"),
         )
         viz_specs_data = [spec.model_dump(mode="json") for spec in viz_specs]
-        
+
         # Update metadata
         metadata["status"] = "completed"
         metadata["results"] = results_data
         metadata["visualization_specs"] = viz_specs_data
-        metadata["completed_at"] = datetime.now(timezone.utc).isoformat()
-        
+        metadata["completed_at"] = datetime.now(UTC).isoformat()
+
         with open(analysis_dir / "metadata.json", "w") as f:
             json.dump(metadata, f, indent=2)
-        
+
         return results
-    
+
     async def export_as_dataset(
         self,
         analysis_id: str,
@@ -224,13 +223,11 @@ class AnalysisManager:
         Returns:
             DataSet manifest dict
         """
-        from shared.contracts.core.dataset import DataSetManifest, ColumnMeta
-        from shared.utils.stage_id import compute_dataset_id
-        
+
         metadata = await self.get_analysis(analysis_id)
         if not metadata or not metadata.get("results"):
             raise ValueError("Analysis not found or not completed")
-        
+
         # Convert results to DataFrame
         rows = []
         for result in metadata["results"]:
@@ -246,37 +243,37 @@ class AnalysisManager:
                     "variance_pct": row["variance_pct"],
                     "significant": row["significant"],
                 })
-        
+
         data = pl.DataFrame(rows)
-        
+
         # Compute dataset ID
         dataset_id = compute_dataset_id(
             run_id=analysis_id,
             columns=data.columns,
             row_count=len(data),
         )
-        
+
         # Create manifest with lineage per ADR-0024
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         parent_ids = metadata.get("parent_dataset_ids", [])
         if not parent_ids and metadata.get("dataset_id"):
             parent_ids = [metadata.get("dataset_id")]
 
         # Get visualization specs from metadata (generated during run_analysis)
         viz_specs = metadata.get("visualization_specs", [])
-        
+
         # Build column metadata with SOV annotations per ADR-0024
         input_column_meta = metadata.get("input_column_meta", [])
         input_meta_map = {c["name"]: c for c in input_column_meta} if input_column_meta else {}
-        
+
         result_factors = metadata["results"][0]["factors"] if metadata["results"] else []
         result_responses = [r["response_column"] for r in metadata["results"]] if metadata["results"] else []
-        
+
         columns = []
         for col in data.columns:
             # Start with input metadata if available
             base_meta = input_meta_map.get(col, {})
-            
+
             # Determine SOV-specific annotations
             description = base_meta.get("description")
             if col in result_factors:
@@ -285,7 +282,7 @@ class AnalysisManager:
                 description = f"ANOVA response: {col}"
             elif col in ("source", "sum_squares", "df", "mean_square", "f_statistic", "p_value", "variance_pct", "significant"):
                 description = f"ANOVA result field: {col}"
-            
+
             columns.append(ColumnMeta(
                 name=col,
                 dtype=str(data[col].dtype),
@@ -294,7 +291,7 @@ class AnalysisManager:
                 source_tool="sov",
                 unit=base_meta.get("unit"),
             ))
-        
+
         manifest = DataSetManifest(
             dataset_id=dataset_id,
             name=name or f"SOV Results - {analysis_id[:8]}",
@@ -308,8 +305,8 @@ class AnalysisManager:
             response_columns=[r["response_column"] for r in metadata["results"]],
             visualization_specs=viz_specs,  # Per ADR-0025: Include viz contracts
         )
-        
+
         # Write to shared storage
         await self.store.write_dataset(dataset_id, data, manifest)
-        
+
         return manifest.model_dump()

@@ -195,5 +195,9 @@
     "openapi",
     "changelog",
     "specification"
+  ],
+  "implements_adr": [
+    "ADR-0018",
+    "ADR-0015"
   ]
 }

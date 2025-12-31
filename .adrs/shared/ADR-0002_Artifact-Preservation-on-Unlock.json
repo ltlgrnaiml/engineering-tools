@@ -39,7 +39,8 @@
     ],
     "implementation_specs": [
       "SPEC-0013_Artifact-Lifecycle-Preservation-Spec",
-      "SPEC-0012_Audit-Trail-Enforcement-Spec"
+      "SPEC-0012_Audit-Trail-Enforcement-Spec",
+      "SPEC-0004"
     ]
   },
   "consequences": [
@@ -105,7 +106,15 @@
   "references": [
     "ADR-0001_Guided-Workflow-FSM-Orchestration: Core FSM pattern this supports",
     "ADR-0004_Deterministic-Stage-IDs: Deterministic ID generation for artifact reuse",
-    "ADR-0017_Cross-Cutting-Guardrails: Platform-wide guardrails"
+    "ADR-0017_Cross-Cutting-Guardrails: Platform-wide guardrails",
+    "ADR-0005",
+    "ADR-0018",
+    "ADR-0027",
+    "ADR-0047",
+    "ADR-0003",
+    "ADR-0006",
+    "ADR-0014",
+    "ADR-0015"
   ],
   "tags": [
     "artifact-preservation",

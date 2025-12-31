@@ -5,8 +5,8 @@ TODO: Migrate to Langfuse for production team features.
 """
 
 from gateway.services.observability.phoenix_tracer import (
-    init_phoenix,
     get_tracer,
+    init_phoenix,
     shutdown_phoenix,
 )
 

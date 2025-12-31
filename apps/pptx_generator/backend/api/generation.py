@@ -13,32 +13,32 @@ from uuid import UUID, uuid4
 from fastapi import APIRouter, status
 from fastapi.responses import FileResponse
 
+from apps.pptx_generator.backend.api.data import asset_mappings_db, data_files_db
 from apps.pptx_generator.backend.api.errors import (
+    raise_internal_error,
     raise_not_found,
     raise_validation_error,
-    raise_internal_error,
 )
-from shared.contracts.pptx.template import (
-    RenderResult,
-    RenderStageState,
-    SlideRenderResult,
-)
-
-from apps.pptx_generator.backend.api.data import asset_mappings_db, data_files_db
 from apps.pptx_generator.backend.api.projects import projects_db, workflow_states_db
 from apps.pptx_generator.backend.api.requirements import mapping_manifests_db
 from apps.pptx_generator.backend.api.templates import templates_db
 from apps.pptx_generator.backend.core.workflow_fsm import (
-    WorkflowFSM,
-    WorkflowState,
     check_generate_allowed,
 )
 from apps.pptx_generator.backend.models.drm import MappingSourceType
-from apps.pptx_generator.backend.models.generation import GenerationRequest, GenerationResponse, GenerationStatus
+from apps.pptx_generator.backend.models.generation import (
+    GenerationRequest,
+    GenerationResponse,
+    GenerationStatus,
+)
 from apps.pptx_generator.backend.models.project import ProjectStatus
 from apps.pptx_generator.backend.services.data_processor import DataProcessorService
 from apps.pptx_generator.backend.services.presentation_generator import PresentationGeneratorService
 from apps.pptx_generator.backend.services.storage import StorageService
+from shared.contracts.pptx.template import (
+    RenderResult,
+    RenderStageState,
+)
 
 logger = logging.getLogger(__name__)
 

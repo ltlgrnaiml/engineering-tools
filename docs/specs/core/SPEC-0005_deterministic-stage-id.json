@@ -8,12 +8,19 @@
   "updated_date": "2024-12-27",
   "implements_adr": [
     "ADR-0005",
-    "ADR-0008"
+    "ADR-0008",
+    "ADR-0011"
   ],
   "tier_0_contracts": [
     {
       "module": "shared.contracts.core.id_generator",
-      "classes": ["IDConfig", "IDAlgorithm", "compute_deterministic_id", "compute_content_hash", "verify_id_determinism"]
+      "classes": [
+        "IDConfig",
+        "IDAlgorithm",
+        "compute_deterministic_id",
+        "compute_content_hash",
+        "verify_id_determinism"
+      ]
     }
   ],
   "overview": {

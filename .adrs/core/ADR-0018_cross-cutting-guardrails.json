@@ -34,7 +34,9 @@
     "implementation_specs": [
       "SPEC-0009_Engineering-Docs-Tenets-Spec",
       "SPEC-0016_Path-Safety-Normalization",
-      "docs/_schema/adr_schema.json"
+      "docs/_schema/adr_schema.json",
+      "SPEC-0035",
+      "SPEC-0036"
     ],
     "tier_0_contracts": [
       "shared/contracts/core/path_safety.py: RelativePath, WorkspacePath, PathValidationError, normalize_path(), is_safe_relative_path()",

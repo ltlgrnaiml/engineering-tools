@@ -13,7 +13,6 @@ from apps.data_aggregator.backend.services.job_service import (
 from shared.contracts.dat.jobs import (
     BackgroundJob,
     JobProgress,
-    JobResult,
     JobStatus,
     JobSubmission,
     JobType,

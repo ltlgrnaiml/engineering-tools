@@ -170,10 +170,10 @@ def main() -> None:
 
     print(f"✓ Created: {filepath.relative_to(PROJECT_ROOT)}")
     print(f"✓ Updated: {INDEX_PATH.relative_to(PROJECT_ROOT)}")
-    print(f"\nNext steps:")
+    print("\nNext steps:")
     print(f"  1. Open {filepath.name}")
-    print(f"  2. Fill in Context and Requirements sections")
-    print(f"  3. Update session ID in metadata")
+    print("  2. Fill in Context and Requirements sections")
+    print("  3. Update session ID in metadata")
 
 
 if __name__ == "__main__":

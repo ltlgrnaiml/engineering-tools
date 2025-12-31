@@ -1,8 +1,8 @@
 """Pytest configuration and shared fixtures."""
 import asyncio
 import tempfile
+from collections.abc import AsyncGenerator, Generator
 from pathlib import Path
-from typing import AsyncGenerator, Generator
 
 import pytest
 import pytest_asyncio
@@ -48,7 +48,7 @@ async def registry_db(temp_workspace: Path) -> AsyncGenerator[RegistryDB, None]:
 def sample_dataframe():
     """Create a sample polars DataFrame for testing."""
     import polars as pl
-    
+
     return pl.DataFrame({
         "wafer_id": ["W001", "W001", "W002", "W002"],
         "site": [1, 2, 1, 2],

@@ -277,5 +277,9 @@
     "uv",
     "automation",
     "specification"
+  ],
+  "implements_adr": [
+    "ADR-0013",
+    "ADR-0019"
   ]
 }

@@ -6,9 +6,8 @@ Per ADR-0018#audit-trail: All lifecycle events must be logged.
 This module defines the core audit trail contracts used by all tools.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -53,7 +52,7 @@ class AuditTimestamp(BaseModel):
         if isinstance(v, str):
             v = datetime.fromisoformat(v.replace("Z", "+00:00"))
         if v.tzinfo is None:
-            v = v.replace(tzinfo=timezone.utc)
+            v = v.replace(tzinfo=UTC)
         return v.replace(microsecond=0)
 
     def to_iso8601(self) -> str:
@@ -78,7 +77,7 @@ class AuditTrail(BaseModel):
         """Add a new event to the audit trail (immutable - returns new instance)."""
         new_event = AuditTimestamp(
             event=event,
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             actor=actor,
             details=details,
         )
@@ -131,17 +130,17 @@ class TimestampMixin(BaseModel):
         if isinstance(v, str):
             v = datetime.fromisoformat(v.replace("Z", "+00:00"))
         if v.tzinfo is None:
-            v = v.replace(tzinfo=timezone.utc)
+            v = v.replace(tzinfo=UTC)
         return v.replace(microsecond=0)
 
 
 def now_utc() -> datetime:
     """Return current UTC datetime without microseconds (per ADR-0009)."""
-    return datetime.now(timezone.utc).replace(microsecond=0)
+    return datetime.now(UTC).replace(microsecond=0)
 
 
 def to_iso8601(dt: datetime) -> str:
     """Convert datetime to ISO-8601 UTC string without microseconds."""
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
+        dt = dt.replace(tzinfo=UTC)
     return dt.strftime("%Y-%m-%dT%H:%M:%SZ")

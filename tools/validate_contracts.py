@@ -26,10 +26,9 @@ import importlib
 import json
 import sys
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any
 
 # Add project root to path
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -58,32 +57,32 @@ class ValidationIssue:
 @dataclass
 class ValidationReport:
     """Complete validation report."""
-    started_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    started_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     completed_at: datetime | None = None
     issues: list[ValidationIssue] = field(default_factory=list)
     categories_checked: list[str] = field(default_factory=list)
-    
+
     @property
     def error_count(self) -> int:
         return sum(1 for i in self.issues if i.severity in [ValidationSeverity.ERROR, ValidationSeverity.CRITICAL])
-    
+
     @property
     def warning_count(self) -> int:
         return sum(1 for i in self.issues if i.severity == ValidationSeverity.WARNING)
-    
+
     @property
     def is_valid(self) -> bool:
         return self.error_count == 0
-    
+
     def add_issue(self, issue: ValidationIssue) -> None:
         self.issues.append(issue)
-    
+
     def add_error(self, category: str, message: str, **kwargs) -> None:
         self.add_issue(ValidationIssue(category=category, severity=ValidationSeverity.ERROR, message=message, **kwargs))
-    
+
     def add_warning(self, category: str, message: str, **kwargs) -> None:
         self.add_issue(ValidationIssue(category=category, severity=ValidationSeverity.WARNING, message=message, **kwargs))
-    
+
     def add_info(self, category: str, message: str, **kwargs) -> None:
         self.add_issue(ValidationIssue(category=category, severity=ValidationSeverity.INFO, message=message, **kwargs))
 
@@ -137,7 +136,7 @@ def validate_contract_imports(report: ValidationReport) -> int:
     """
     report.categories_checked.append("contract_imports")
     valid_count = 0
-    
+
     for category, modules in CONTRACT_MODULES.items():
         for module_name in modules:
             try:
@@ -155,7 +154,7 @@ def validate_contract_imports(report: ValidationReport) -> int:
                     f"Error loading {module_name}: {e}",
                     file_path=module_name.replace(".", "/") + ".py",
                 )
-    
+
     return valid_count
 
 
@@ -165,7 +164,7 @@ def validate_contract_versioning(report: ValidationReport) -> None:
     Per ADR-0017: Hybrid Semver Contract Versioning.
     """
     report.categories_checked.append("contract_versioning")
-    
+
     for category, modules in CONTRACT_MODULES.items():
         for module_name in modules:
             try:
@@ -178,7 +177,7 @@ def validate_contract_versioning(report: ValidationReport) -> None:
                         suggestion="Add __version__ = '0.1.0' to module",
                     )
                 else:
-                    version = getattr(module, "__version__")
+                    version = module.__version__
                     # Validate semver format
                     import re
                     if not re.match(r"^\d+\.\d+\.\d+", version):
@@ -197,16 +196,16 @@ def validate_pydantic_models(report: ValidationReport) -> dict[str, list[str]]:
     Returns dict of {module: [model_names]}.
     """
     from pydantic import BaseModel
-    
+
     report.categories_checked.append("pydantic_models")
     all_models: dict[str, list[str]] = {}
-    
+
     for category, modules in CONTRACT_MODULES.items():
         for module_name in modules:
             try:
                 module = importlib.import_module(module_name)
                 models = []
-                
+
                 for name in dir(module):
                     obj = getattr(module, name)
                     if (
@@ -216,7 +215,7 @@ def validate_pydantic_models(report: ValidationReport) -> dict[str, list[str]]:
                         and obj.__module__ == module_name
                     ):
                         models.append(name)
-                        
+
                         # Validate model can generate JSON schema
                         try:
                             obj.model_json_schema()
@@ -226,13 +225,13 @@ def validate_pydantic_models(report: ValidationReport) -> dict[str, list[str]]:
                                 f"Model {name} cannot generate JSON schema: {e}",
                                 file_path=module_name.replace(".", "/") + ".py",
                             )
-                
+
                 if models:
                     all_models[module_name] = models
-                    
+
             except ImportError:
                 pass  # Already reported
-    
+
     return all_models
 
 
@@ -242,15 +241,15 @@ def validate_message_catalog(report: ValidationReport) -> None:
     Per ADR-0018#message-catalogs: All user messages from catalog.
     """
     report.categories_checked.append("message_catalog")
-    
+
     try:
         from shared.contracts.messages.catalog import (
-            MessageDefinition,
             MessageCatalog,
-            MessageSeverity,
             MessageCategory,
+            MessageDefinition,
+            MessageSeverity,
         )
-        
+
         # Validate enums have expected values
         expected_severities = {"debug", "info", "success", "warning", "error", "critical"}
         actual_severities = {s.value for s in MessageSeverity}
@@ -259,7 +258,7 @@ def validate_message_catalog(report: ValidationReport) -> None:
                 "message_catalog",
                 f"MessageSeverity values mismatch: expected {expected_severities}, got {actual_severities}",
             )
-        
+
         # Validate MessageDefinition can be created
         try:
             msg = MessageDefinition(
@@ -278,7 +277,7 @@ def validate_message_catalog(report: ValidationReport) -> None:
                 "message_catalog",
                 f"MessageDefinition validation failed: {e}",
             )
-            
+
     except ImportError as e:
         report.add_error(
             "message_catalog",
@@ -293,22 +292,22 @@ def validate_adr_files(report: ValidationReport) -> int:
     Returns count of valid ADRs.
     """
     report.categories_checked.append("adr_files")
-    
+
     adr_dir = PROJECT_ROOT / ".adrs"
     if not adr_dir.exists():
         report.add_error("adr_files", f"ADR directory not found: {adr_dir}")
         return 0
-    
+
     required_fields = ["id", "title", "status"]
     recommended_fields = ["decision_primary"]
-    
+
     valid_count = 0
-    
+
     for adr_file in adr_dir.rglob("*.json"):
         try:
             with open(adr_file, encoding="utf-8") as f:
                 adr = json.load(f)
-            
+
             # Check required fields
             missing = [field for field in required_fields if field not in adr]
             if missing:
@@ -319,12 +318,12 @@ def validate_adr_files(report: ValidationReport) -> int:
                 )
             else:
                 valid_count += 1
-            
+
             # Check recommended fields
             missing_recommended = [field for field in recommended_fields if field not in adr]
             # Also check for constraints in decision_details (per ADR schema)
             has_constraints = (
-                "decision_details" in adr and 
+                "decision_details" in adr and
                 isinstance(adr.get("decision_details"), dict) and
                 adr["decision_details"].get("constraints")
             )
@@ -334,7 +333,7 @@ def validate_adr_files(report: ValidationReport) -> int:
                     f"ADR missing recommended fields: {missing_recommended}",
                     file_path=str(adr_file.relative_to(PROJECT_ROOT)),
                 )
-            
+
             # Validate status
             if adr.get("status") not in ["draft", "proposed", "accepted", "deprecated", "superseded"]:
                 report.add_warning(
@@ -342,7 +341,7 @@ def validate_adr_files(report: ValidationReport) -> int:
                     f"ADR has non-standard status: {adr.get('status')}",
                     file_path=str(adr_file.relative_to(PROJECT_ROOT)),
                 )
-                
+
         except json.JSONDecodeError as e:
             report.add_error(
                 "adr_files",
@@ -355,7 +354,7 @@ def validate_adr_files(report: ValidationReport) -> int:
                 f"Error reading ADR: {e}",
                 file_path=str(adr_file.relative_to(PROJECT_ROOT)),
             )
-    
+
     return valid_count
 
 
@@ -365,21 +364,21 @@ def validate_spec_files(report: ValidationReport) -> int:
     Returns count of valid SPECs.
     """
     report.categories_checked.append("spec_files")
-    
+
     spec_dir = PROJECT_ROOT / "docs" / "specs"
     if not spec_dir.exists():
         report.add_warning("spec_files", f"SPEC directory not found: {spec_dir}")
         return 0
-    
+
     required_fields = ["id", "title"]
-    
+
     valid_count = 0
-    
+
     for spec_file in spec_dir.rglob("*.json"):
         try:
             with open(spec_file, encoding="utf-8") as f:
                 spec = json.load(f)
-            
+
             # Check required fields
             missing = [field for field in required_fields if field not in spec]
             if missing:
@@ -390,7 +389,7 @@ def validate_spec_files(report: ValidationReport) -> int:
                 )
             else:
                 valid_count += 1
-            
+
             # Check ADR reference (accepts 'implements_adr' or 'implements')
             has_adr_ref = "implements_adr" in spec or "implements" in spec
             if not has_adr_ref:
@@ -399,7 +398,7 @@ def validate_spec_files(report: ValidationReport) -> int:
                     "SPEC missing ADR reference ('implements_adr' or 'implements')",
                     file_path=str(spec_file.relative_to(PROJECT_ROOT)),
                 )
-                
+
         except json.JSONDecodeError as e:
             report.add_error(
                 "spec_files",
@@ -412,7 +411,7 @@ def validate_spec_files(report: ValidationReport) -> int:
                 f"Error reading SPEC: {e}",
                 file_path=str(spec_file.relative_to(PROJECT_ROOT)),
             )
-    
+
     return valid_count
 
 
@@ -422,19 +421,19 @@ def generate_schemas(report: ValidationReport, output_dir: Path) -> int:
     Returns count of schemas generated.
     """
     from pydantic import BaseModel
-    
+
     report.categories_checked.append("schema_generation")
     generated_count = 0
-    
+
     for category, modules in CONTRACT_MODULES.items():
         category_dir = output_dir / category
         category_dir.mkdir(parents=True, exist_ok=True)
-        
+
         for module_name in modules:
             try:
                 module = importlib.import_module(module_name)
                 module_short = module_name.split(".")[-1]
-                
+
                 for name in dir(module):
                     obj = getattr(module, name)
                     if (
@@ -445,39 +444,39 @@ def generate_schemas(report: ValidationReport, output_dir: Path) -> int:
                     ):
                         try:
                             schema = obj.model_json_schema()
-                            
+
                             # Add metadata
                             schema["$comment"] = {
-                                "generated_at": datetime.now(timezone.utc).isoformat(),
+                                "generated_at": datetime.now(UTC).isoformat(),
                                 "source_module": module_name,
                                 "model_name": name,
                             }
-                            
+
                             schema_path = category_dir / f"{module_short}_{name}.json"
                             with open(schema_path, "w", encoding="utf-8") as f:
                                 json.dump(schema, f, indent=2)
-                            
+
                             generated_count += 1
-                            
+
                         except Exception as e:
                             report.add_error(
                                 "schema_generation",
                                 f"Failed to generate schema for {name}: {e}",
                             )
-                            
+
             except ImportError:
                 pass  # Already reported
-    
+
     # Generate index
     index = {
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
         "schema_count": generated_count,
         "categories": list(CONTRACT_MODULES.keys()),
     }
-    
+
     with open(output_dir / "index.json", "w", encoding="utf-8") as f:
         json.dump(index, f, indent=2)
-    
+
     return generated_count
 
 
@@ -487,8 +486,8 @@ def generate_schemas(report: ValidationReport, output_dir: Path) -> int:
 
 def print_report(report: ValidationReport) -> None:
     """Print validation report to console."""
-    report.completed_at = datetime.now(timezone.utc)
-    
+    report.completed_at = datetime.now(UTC)
+
     print("\n" + "=" * 60)
     print("  CONTRACT VALIDATION REPORT")
     print("=" * 60)
@@ -496,12 +495,12 @@ def print_report(report: ValidationReport) -> None:
     print(f"  Completed: {report.completed_at.isoformat()}")
     print(f"  Categories: {', '.join(report.categories_checked)}")
     print("=" * 60)
-    
+
     # Group issues by category
     by_category: dict[str, list[ValidationIssue]] = {}
     for issue in report.issues:
         by_category.setdefault(issue.category, []).append(issue)
-    
+
     for category, issues in by_category.items():
         print(f"\n[{category}]")
         for issue in issues:
@@ -511,13 +510,13 @@ def print_report(report: ValidationReport) -> None:
                 ValidationSeverity.ERROR: "✗",
                 ValidationSeverity.CRITICAL: "‼",
             }[issue.severity]
-            
+
             print(f"  {icon} [{issue.severity.value.upper()}] {issue.message}")
             if issue.file_path:
                 print(f"    File: {issue.file_path}")
             if issue.suggestion:
                 print(f"    Fix: {issue.suggestion}")
-    
+
     # Summary
     print("\n" + "-" * 60)
     print(f"  Errors: {report.error_count}  |  Warnings: {report.warning_count}")
@@ -530,8 +529,8 @@ def print_report(report: ValidationReport) -> None:
 
 def save_report(report: ValidationReport, output_path: Path) -> None:
     """Save validation report as JSON."""
-    report.completed_at = datetime.now(timezone.utc)
-    
+    report.completed_at = datetime.now(UTC)
+
     data = {
         "started_at": report.started_at.isoformat(),
         "completed_at": report.completed_at.isoformat(),
@@ -550,7 +549,7 @@ def save_report(report: ValidationReport, output_path: Path) -> None:
             for i in report.issues
         ],
     }
-    
+
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
 
@@ -592,56 +591,56 @@ def main() -> int:
     )
 
     args = parser.parse_args()
-    
+
     report = ValidationReport()
-    
+
     print("=" * 60)
     print("  Engineering Tools Contract Validation")
     print("=" * 60)
-    
+
     # Step 1: Validate imports
     print("\n[1/6] Validating contract imports...")
     valid_modules = validate_contract_imports(report)
     print(f"      {valid_modules} modules validated")
-    
+
     # Step 2: Validate versioning
     print("[2/6] Validating contract versioning...")
     validate_contract_versioning(report)
-    
+
     # Step 3: Validate Pydantic models
     print("[3/6] Validating Pydantic models...")
     all_models = validate_pydantic_models(report)
     total_models = sum(len(m) for m in all_models.values())
     print(f"      {total_models} models validated")
-    
+
     # Step 4: Validate message catalog
     print("[4/6] Validating message catalog...")
     validate_message_catalog(report)
-    
+
     # Step 5: Validate ADR files
     print("[5/6] Validating ADR files...")
     valid_adrs = validate_adr_files(report)
     print(f"      {valid_adrs} ADRs validated")
-    
+
     # Step 6: Validate SPEC files
     print("[6/6] Validating SPEC files...")
     valid_specs = validate_spec_files(report)
     print(f"      {valid_specs} SPECs validated")
-    
+
     # Optional: Generate schemas
     if args.output_schemas or args.full:
         print("\n[EXTRA] Generating JSON schemas...")
         schema_count = generate_schemas(report, args.schema_dir)
         print(f"        {schema_count} schemas generated to {args.schema_dir}")
-    
+
     # Print report
     print_report(report)
-    
+
     # Save report if requested
     if args.report_file:
         save_report(report, args.report_file)
         print(f"Report saved to: {args.report_file}")
-    
+
     # Determine exit code
     if args.fail_on_warning and report.warning_count > 0:
         return 1

@@ -111,7 +111,8 @@
   "references": [
     "apps/pptx_generator/backend/renderers/",
     "shared/contracts/sov/visualization.py",
-    "shared/contracts/pptx/shape.py"
+    "shared/contracts/pptx/shape.py",
+    "ADR-0007"
   ],
   "tags": [
     "rendering",

@@ -24,6 +24,45 @@ def _extract_markdown_title(content: str, filepath: Path) -> str:
     return filepath.stem.replace('_', ' ').replace('-', ' ').title()
 
 
+def _extract_artifact_id(filepath: Path, content: str, doc_type: DocumentType) -> str:
+    """Extract canonical artifact ID from file.
+    
+    Per SPEC-0043-AR02: IDs should match artifact naming conventions
+    (ADR-XXXX, SPEC-XXXX, DISC-XXX, PLAN-XXX, SESSION_XXX).
+    
+    Priority:
+    1. JSON 'id' field (for ADR/SPEC)
+    2. Filename pattern match (DISC-001, PLAN-001, etc.)
+    3. Fallback to hashed ID
+    """
+    # Try JSON id field first
+    if filepath.suffix == '.json':
+        try:
+            data = json.loads(content)
+            if 'id' in data:
+                return data['id']
+        except json.JSONDecodeError:
+            pass
+
+    # Try filename pattern for known types
+    filename = filepath.stem
+    patterns = [
+        r'^(ADR-\d{4})',      # ADR-0001
+        r'^(SPEC-\d{4})',     # SPEC-0001
+        r'^(DISC-\d{3})',     # DISC-001
+        r'^(PLAN-\d{3})',     # PLAN-001
+        r'^(SESSION[-_]\d{3})',  # SESSION_001 or SESSION-001
+    ]
+
+    for pattern in patterns:
+        match = re.match(pattern, filename, re.IGNORECASE)
+        if match:
+            return match.group(1).upper().replace('_', '-')
+
+    # Fallback: use document type + hash (for sessions, contracts, etc.)
+    return f"{doc_type.value}_{_compute_hash(str(filepath))}"
+
+
 def _detect_document_type(filepath: Path) -> DocumentType:
     """Detect document type from path."""
     path_str = str(filepath).lower()
@@ -47,7 +86,7 @@ def parse_markdown_document(filepath: Path) -> Document:
     content = filepath.read_text(encoding='utf-8')
     title = _extract_markdown_title(content, filepath)
     doc_type = _detect_document_type(filepath)
-    doc_id = f"{doc_type.value}_{_compute_hash(str(filepath))}"
+    doc_id = _extract_artifact_id(filepath, content, doc_type)
 
     return Document(
         id=doc_id,
@@ -65,7 +104,7 @@ def parse_json_document(filepath: Path) -> Document:
     data = json.loads(content)
     title = data.get('title', data.get('name', filepath.stem))
     doc_type = _detect_document_type(filepath)
-    doc_id = f"{doc_type.value}_{_compute_hash(str(filepath))}"
+    doc_id = _extract_artifact_id(filepath, content, doc_type)
 
     return Document(
         id=doc_id,

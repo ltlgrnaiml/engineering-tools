@@ -178,9 +178,17 @@ class PlanBuilderService:
 if __name__ == "__main__":
     from uuid import uuid4
 
-    from apps.pptx_generator.backend.models.drm import AggregationType, RequiredContext, RequiredMetric
+    from apps.pptx_generator.backend.models.drm import (
+        AggregationType,
+        RequiredContext,
+        RequiredMetric,
+    )
     from apps.pptx_generator.backend.models.environment_profile import DataRoots, JobContext
-    from apps.pptx_generator.backend.models.mapping_manifest import ContextMapping, MappingSourceType, MetricMapping
+    from apps.pptx_generator.backend.models.mapping_manifest import (
+        ContextMapping,
+        MappingSourceType,
+        MetricMapping,
+    )
 
     # Create test data
     drm = DerivedRequirementsManifest(

@@ -15,15 +15,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from apps.pptx_generator.backend.core.shape_name_parser import ParsedShapeNameV2
+from apps.pptx_generator.backend.renderers.base import BaseRenderer, RenderContext
 from shared.contracts.core.rendering import (
     ChartSpec,
     ChartType,
     DataSeries,
     HeatmapData,
 )
-
-from apps.pptx_generator.backend.core.shape_name_parser import ParsedShapeNameV2
-from apps.pptx_generator.backend.renderers.base import BaseRenderer, RenderContext
 
 logger = logging.getLogger(__name__)
 

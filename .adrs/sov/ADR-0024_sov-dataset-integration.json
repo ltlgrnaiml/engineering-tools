@@ -32,7 +32,8 @@
       "Visualization contracts MUST be included in output manifest"
     ],
     "implementation_specs": [
-      "SPEC-0026_SOV-DataSet-IO-Spec"
+      "SPEC-0026_SOV-DataSet-IO-Spec",
+      "SPEC-0039"
     ]
   },
   "consequences": [

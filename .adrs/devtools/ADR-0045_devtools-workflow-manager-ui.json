@@ -213,8 +213,13 @@
           }
         },
         "phased_delivery": {
-          "phase_1": ["manual", "ai_lite"],
-          "phase_2": ["ai_full"]
+          "phase_1": [
+            "manual",
+            "ai_lite"
+          ],
+          "phase_2": [
+            "ai_full"
+          ]
         }
       },
       "tiered_plan_granularity": {
@@ -397,7 +402,8 @@
     "DISC-001_DevTools-AI-Workflow-Integration",
     "ADR-0027_DevTools-Page-Architecture",
     "ADR-0041_AI-Development-Workflow",
-    "https://github.com/vasturiano/react-force-graph"
+    "https://github.com/vasturiano/react-force-graph",
+    "ADR-0033"
   ],
   "tags": [
     "devtools",
@@ -419,5 +425,10 @@
       "title": "DevTools Workflow Manager",
       "status": "draft"
     }
-  ]
+  ],
+  "decision_details": {
+    "implementation_specs": [
+      "SPEC-0034"
+    ]
+  }
 }

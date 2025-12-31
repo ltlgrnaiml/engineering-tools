@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { List, Network } from 'lucide-react'
 import {
   WorkflowSidebar,
   ArtifactGraph,
@@ -13,8 +14,8 @@ import {
 } from '@/components/workflow'
 import { useWorkflowState } from '@/components/workflow/useWorkflowState'
 import type { ArtifactType, FileFormat, ArtifactSummary } from '@/components/workflow/types'
-import type { WorkflowType } from '@/components/workflow/WorkflowStepper'
-import { isStageInWorkflow, artifactTypeToStage } from '@/components/workflow/WorkflowStepper'
+import type { WorkflowType } from '@/components/workflow/workflowUtils'
+import { isStageInWorkflow, artifactTypeToStage } from '@/components/workflow/workflowUtils'
 
 const API_BASE = 'http://localhost:8000/api/devtools'
 
@@ -48,12 +49,27 @@ export function WorkflowManagerPage() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
-  const handleArtifactSelect = useCallback((id: string, type: ArtifactType) => {
-    const artifact = allArtifacts.find(a => a.id === id)
-    if (artifact) {
-      setSelectedArtifact({ id, type, filePath: artifact.file_path, fileFormat: artifact.file_format || 'unknown' })
-      setEditorOpen(false)
-    }
+  const handleArtifactSelect = useCallback((artifact: ArtifactSummary) => {
+    setSelectedArtifact({
+      id: artifact.id,
+      type: artifact.type,
+      filePath: artifact.file_path,
+      fileFormat: artifact.file_format || 'unknown'
+    })
+    setEditorOpen(false)
+  }, [])
+
+  // Graph nodes don't have file_format, so we need a separate handler
+  const handleGraphNodeClick = useCallback((nodeId: string, type: ArtifactType) => {
+    // Find the artifact in allArtifacts for file_format, fallback to 'unknown'
+    const artifact = allArtifacts.find(a => a.id === nodeId)
+    setSelectedArtifact({
+      id: nodeId,
+      type,
+      filePath: artifact?.file_path || '',
+      fileFormat: artifact?.file_format || 'unknown'
+    })
+    setEditorOpen(false)
   }, [allArtifacts])
 
   const handleNewWorkflow = useCallback((type: string) => {
@@ -106,17 +122,28 @@ export function WorkflowManagerPage() {
       />
 
       {/* View Toggle */}
-      <div className="flex items-center gap-2 px-4 py-2 border-b border-zinc-800">
+      <div className="flex items-center gap-1 px-4 py-2 border-b border-zinc-800">
+        <span className="text-xs text-zinc-500 mr-2">View:</span>
         <button
           onClick={() => setView('list')}
-          className={`px-3 py-1 rounded ${view === 'list' ? 'bg-zinc-700' : 'hover:bg-zinc-800'}`}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-sm transition-colors ${
+            view === 'list' 
+              ? 'bg-blue-600 text-white' 
+              : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white'
+          }`}
         >
+          <List size={14} />
           List
         </button>
         <button
           onClick={() => setView('graph')}
-          className={`px-3 py-1 rounded ${view === 'graph' ? 'bg-zinc-700' : 'hover:bg-zinc-800'}`}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-sm transition-colors ${
+            view === 'graph' 
+              ? 'bg-blue-600 text-white' 
+              : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white'
+          }`}
         >
+          <Network size={14} />
           Graph
         </button>
       </div>
@@ -133,7 +160,7 @@ export function WorkflowManagerPage() {
         <div className="flex-1 flex">
           {view === 'graph' ? (
             <ArtifactGraph
-              onNodeClick={handleArtifactSelect}
+              onNodeClick={handleGraphNodeClick}
               selectedNodeId={selectedArtifact?.id}
               className="flex-1"
             />
@@ -205,9 +232,14 @@ export function WorkflowManagerPage() {
           fetch(`${API_BASE}/artifacts`)
             .then(res => res.json())
             .then(data => {
-              setAllArtifacts(data.items || [])
+              const items: ArtifactSummary[] = data.items || []
+              setAllArtifacts(items)
               if (artifacts.length > 0) {
-                handleArtifactSelect(artifacts[0].id, artifacts[0].type)
+                // Find full artifact in refreshed list
+                const fullArtifact = items.find(a => a.id === artifacts[0].id)
+                if (fullArtifact) {
+                  handleArtifactSelect(fullArtifact)
+                }
               }
             })
         }}

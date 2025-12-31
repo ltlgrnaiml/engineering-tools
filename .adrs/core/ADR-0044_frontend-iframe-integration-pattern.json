@@ -72,5 +72,10 @@
       "curl http://localhost:5173 - standalone DAT frontend should respond",
       "./start.ps1 - should start all 5 frontend services"
     ]
+  },
+  "decision_details": {
+    "implementation_specs": [
+      "SPEC-0023"
+    ]
   }
 }

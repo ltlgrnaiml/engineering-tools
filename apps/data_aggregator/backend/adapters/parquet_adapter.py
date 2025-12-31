@@ -18,9 +18,10 @@ Features:
 """
 
 import asyncio
-from datetime import datetime, timezone
+from collections.abc import AsyncIterator
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, AsyncIterator
+from typing import Any
 
 import polars as pl
 
@@ -156,7 +157,7 @@ class ParquetAdapter(BaseFileAdapter):
         Raises:
             AdapterError: If file cannot be probed.
         """
-        start_time = datetime.now(timezone.utc)
+        start_time = datetime.now(UTC)
         options = options or ReadOptions()
         errors: list[str] = []
         warnings: list[str] = []
@@ -198,7 +199,7 @@ class ParquetAdapter(BaseFileAdapter):
                     )
                 )
 
-            end_time = datetime.now(timezone.utc)
+            end_time = datetime.now(UTC)
             duration_ms = (end_time - start_time).total_seconds() * 1000
 
             return SchemaProbeResult(
@@ -248,7 +249,7 @@ class ParquetAdapter(BaseFileAdapter):
         Raises:
             AdapterError: If file cannot be read.
         """
-        start_time = datetime.now(timezone.utc)
+        start_time = datetime.now(UTC)
         options = options or ReadOptions()
         warnings: list[str] = []
 
@@ -292,7 +293,7 @@ class ParquetAdapter(BaseFileAdapter):
 
             df = await asyncio.to_thread(_read_parquet)
 
-            end_time = datetime.now(timezone.utc)
+            end_time = datetime.now(UTC)
             duration_ms = (end_time - start_time).total_seconds() * 1000
 
             was_truncated = (
@@ -375,7 +376,7 @@ class ParquetAdapter(BaseFileAdapter):
             chunk_index = 0
 
             while total_rows_so_far < total_rows:
-                start_time = datetime.now(timezone.utc)
+                start_time = datetime.now(UTC)
 
                 def _read_chunk(offset: int, limit: int) -> pl.DataFrame:
                     return lf.slice(offset, limit).collect()
@@ -384,7 +385,7 @@ class ParquetAdapter(BaseFileAdapter):
                     _read_chunk, total_rows_so_far, chunk_size
                 )
 
-                end_time = datetime.now(timezone.utc)
+                end_time = datetime.now(UTC)
                 duration_ms = (end_time - start_time).total_seconds() * 1000
 
                 rows_in_chunk = len(chunk_df)
@@ -431,7 +432,7 @@ class ParquetAdapter(BaseFileAdapter):
         Returns:
             FileValidationResult with validation status and issues.
         """
-        start_time = datetime.now(timezone.utc)
+        start_time = datetime.now(UTC)
         issues: list[ValidationIssue] = []
 
         try:
@@ -521,7 +522,7 @@ class ParquetAdapter(BaseFileAdapter):
         Returns:
             FileValidationResult with computed fields.
         """
-        end_time = datetime.now(timezone.utc)
+        end_time = datetime.now(UTC)
         duration_ms = (end_time - start_time).total_seconds() * 1000
 
         error_count = sum(

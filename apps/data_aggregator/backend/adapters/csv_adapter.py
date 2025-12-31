@@ -19,9 +19,10 @@ Features:
 """
 
 import asyncio
-from datetime import datetime, timezone
+from collections.abc import AsyncIterator
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, AsyncIterator
+from typing import Any
 
 import polars as pl
 
@@ -91,10 +92,10 @@ def _detect_delimiter(file_path: Path, encoding: str = "utf-8") -> str:
         Detected delimiter character.
     """
     delimiters = [",", "\t", ";", "|"]
-    counts: dict[str, int] = {d: 0 for d in delimiters}
+    counts: dict[str, int] = dict.fromkeys(delimiters, 0)
 
     try:
-        with open(file_path, "r", encoding=encoding, errors="replace") as f:
+        with open(file_path, encoding=encoding, errors="replace") as f:
             # Read first few lines to detect delimiter
             for _ in range(10):
                 line = f.readline()
@@ -143,7 +144,7 @@ def _detect_encoding(file_path: Path) -> str:
 
     # Try UTF-8 first
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             f.read(8192)
         return "utf-8"
     except UnicodeDecodeError:
@@ -223,7 +224,7 @@ class CSVAdapter(BaseFileAdapter):
         Raises:
             AdapterError: If file cannot be probed.
         """
-        start_time = datetime.now(timezone.utc)
+        start_time = datetime.now(UTC)
         options = options or ReadOptions()
         errors: list[str] = []
         warnings: list[str] = []
@@ -317,7 +318,7 @@ class CSVAdapter(BaseFileAdapter):
             # Detect if has header
             has_header = True  # Polars assumes header by default
 
-            end_time = datetime.now(timezone.utc)
+            end_time = datetime.now(UTC)
             duration_ms = (end_time - start_time).total_seconds() * 1000
 
             return SchemaProbeResult(
@@ -369,7 +370,7 @@ class CSVAdapter(BaseFileAdapter):
         Raises:
             AdapterError: If file cannot be read.
         """
-        start_time = datetime.now(timezone.utc)
+        start_time = datetime.now(UTC)
         options = options or ReadOptions()
         warnings: list[str] = []
 
@@ -428,7 +429,7 @@ class CSVAdapter(BaseFileAdapter):
 
             df = await asyncio.to_thread(_read_csv)
 
-            end_time = datetime.now(timezone.utc)
+            end_time = datetime.now(UTC)
             duration_ms = (end_time - start_time).total_seconds() * 1000
 
             was_truncated = options.row_limit is not None and len(df) >= options.row_limit
@@ -539,7 +540,7 @@ class CSVAdapter(BaseFileAdapter):
             chunk_index = 0
 
             while total_rows_so_far < total_rows:
-                start_time = datetime.now(timezone.utc)
+                start_time = datetime.now(UTC)
 
                 def _read_chunk(offset: int, limit: int) -> pl.DataFrame:
                     return lf.slice(offset, limit).collect()
@@ -548,7 +549,7 @@ class CSVAdapter(BaseFileAdapter):
                     _read_chunk, total_rows_so_far, chunk_size
                 )
 
-                end_time = datetime.now(timezone.utc)
+                end_time = datetime.now(UTC)
                 duration_ms = (end_time - start_time).total_seconds() * 1000
 
                 rows_in_chunk = len(chunk_df)
@@ -601,7 +602,7 @@ class CSVAdapter(BaseFileAdapter):
         Returns:
             FileValidationResult with validation status and issues.
         """
-        start_time = datetime.now(timezone.utc)
+        start_time = datetime.now(UTC)
         issues: list[ValidationIssue] = []
 
         try:
@@ -657,7 +658,7 @@ class CSVAdapter(BaseFileAdapter):
             def _validate_content() -> list[ValidationIssue]:
                 content_issues: list[ValidationIssue] = []
                 try:
-                    with open(path, "r", encoding=encoding, errors="strict") as f:
+                    with open(path, encoding=encoding, errors="strict") as f:
                         lines = []
                         for i, line in enumerate(f):
                             if i >= 5:
@@ -714,7 +715,7 @@ class CSVAdapter(BaseFileAdapter):
         Returns:
             FileValidationResult with computed fields.
         """
-        end_time = datetime.now(timezone.utc)
+        end_time = datetime.now(UTC)
         duration_ms = (end_time - start_time).total_seconds() * 1000
 
         error_count = sum(

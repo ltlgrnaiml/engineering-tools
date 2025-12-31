@@ -7,7 +7,8 @@
   "date": "2025-12-27",
   "author": "Mycahya Eggleston",
   "implements_adr": [
-    "ADR-0001_Hybrid-FSM-Stage-Orchestration"
+    "ADR-0001_Hybrid-FSM-Stage-Orchestration",
+    "ADR-0003"
   ],
   "tier_0_contracts": [
     {

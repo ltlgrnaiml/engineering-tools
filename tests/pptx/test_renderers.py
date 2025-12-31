@@ -3,9 +3,10 @@
 Tests renderer functionality per ADR-0022 and ADR-0029.
 """
 
-import pytest
+from unittest.mock import MagicMock
+
 import pandas as pd
-from unittest.mock import MagicMock, patch
+import pytest
 
 from apps.pptx_generator.backend.core.shape_name_parser import ParsedShapeNameV2
 from apps.pptx_generator.backend.renderers.base import BaseRenderer, RenderContext

@@ -20,7 +20,11 @@ from apps.pptx_generator.backend.models.environment_profile import (
     JobContext,
     SourceType,
 )
-from apps.pptx_generator.backend.models.generation import GenerationRequest, GenerationResponse, GenerationStatus
+from apps.pptx_generator.backend.models.generation import (
+    GenerationRequest,
+    GenerationResponse,
+    GenerationStatus,
+)
 from apps.pptx_generator.backend.models.mapping_manifest import (
     ContextMapping,
     CoverageReport,

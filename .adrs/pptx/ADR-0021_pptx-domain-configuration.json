@@ -32,7 +32,9 @@
       "Job contexts MUST define required dimensions for report filtering"
     ],
     "implementation_specs": [
-      "SPEC-0022_PPTX-Domain-Config-Schema-Spec"
+      "SPEC-0022_PPTX-Domain-Config-Schema-Spec",
+      "SPEC-0036",
+      "SPEC-0037"
     ]
   },
   "consequences": [

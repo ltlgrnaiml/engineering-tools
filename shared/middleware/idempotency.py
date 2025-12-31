@@ -9,8 +9,9 @@ caches responses, and replays cached responses for duplicate requests.
 
 import hashlib
 import json
-from datetime import datetime, timedelta, timezone
-from typing import Any, Callable
+from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
@@ -18,8 +19,8 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from shared.contracts.core.idempotency import (
     IdempotencyCheck,
-    IdempotencyConflict,
     IdempotencyConfig,
+    IdempotencyConflict,
     IdempotencyRecord,
     IdempotencyStatus,
 )
@@ -69,7 +70,7 @@ def check_idempotency(
     record = _idempotency_store[idempotency_key]
 
     # Check if expired
-    if datetime.now(timezone.utc) > record.expires_at:
+    if datetime.now(UTC) > record.expires_at:
         del _idempotency_store[idempotency_key]
         return IdempotencyCheck(is_replay=False, record=None, conflict=None)
 
@@ -110,7 +111,7 @@ def store_idempotency_record(
     Returns:
         Stored IdempotencyRecord.
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     record = IdempotencyRecord(
         idempotency_key=idempotency_key,
         status=IdempotencyStatus.COMPLETED,
@@ -271,7 +272,7 @@ def get_idempotency_record(idempotency_key: str) -> IdempotencyRecord | None:
         return None
 
     record = _idempotency_store[idempotency_key]
-    if datetime.now(timezone.utc) > record.expires_at:
+    if datetime.now(UTC) > record.expires_at:
         del _idempotency_store[idempotency_key]
         return None
 

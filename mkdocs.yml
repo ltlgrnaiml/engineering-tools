@@ -69,6 +69,7 @@ validation:
 exclude_docs: |
   _archive/
   AGENTS.md
+  scraped/
 
 # Navigation structure
 nav:

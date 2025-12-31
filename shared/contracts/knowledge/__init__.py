@@ -13,18 +13,18 @@ from .archive import (
     SyncMode,
     SyncStatus,
 )
+from .rag import (
+    Chunk,
+    ChunkingStrategy,
+    ContextRequest,
+    RAGContext,
+)
 from .search import (
     HybridSearchConfig,
     Relationship,
     RelationshipType,
     SearchQuery,
     SearchResult,
-)
-from .rag import (
-    Chunk,
-    ChunkingStrategy,
-    ContextRequest,
-    RAGContext,
 )
 
 __all__ = [

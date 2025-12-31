@@ -140,7 +140,8 @@
   "references": [
     "ADR-0011_Profile-Driven-Extraction-and-Adapters: Adapter pattern this extends",
     "ADR-0013_Cancellation-Semantics-Parse-Export: Checkpoint preservation on cancel",
-    "ADR-0012_Cross-Platform-Concurrency: Spawn-safe concurrency for streaming"
+    "ADR-0012_Cross-Platform-Concurrency: Spawn-safe concurrency for streaming",
+    "ADR-0045"
   ],
   "tags": [
     "dat",

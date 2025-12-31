@@ -18,7 +18,6 @@ from shared.contracts.dat.adapter import (
     InferredDataType,
     ReadOptions,
     StreamOptions,
-    ValidationSeverity,
 )
 
 # Fixture directory

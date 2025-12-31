@@ -2,7 +2,7 @@
 
 import pytest
 
-from gateway.services.knowledge.sanitizer import Sanitizer, SanitizationResult
+from gateway.services.knowledge.sanitizer import Sanitizer
 
 
 class TestSanitizer:

@@ -5,14 +5,11 @@ from pathlib import Path
 from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE
 
-from apps.pptx_generator.backend.core.shape_name_parser import ValidationError, parse_shape_name
 from apps.pptx_generator.backend.core.shape_discovery import (
     ShapeDiscoveryResult,
     discover_shapes,
-    is_valid_shape_name,
-    parse_shape_name_adr0018,
-    ShapeNamingError,
 )
+from apps.pptx_generator.backend.core.shape_name_parser import ValidationError, parse_shape_name
 from apps.pptx_generator.backend.models.drm import DerivedRequirementsManifest
 from apps.pptx_generator.backend.models.template import ShapeInfo, ShapeMap
 from apps.pptx_generator.backend.services.drm_extractor import DRMExtractorService

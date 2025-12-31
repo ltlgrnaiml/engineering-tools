@@ -17,6 +17,7 @@ Per ADR-0020: Generate button MUST be disabled until Step 6 passes.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import UTC
 from enum import Enum
 from typing import Any
 from uuid import UUID
@@ -183,11 +184,11 @@ class WorkflowFSM:
                 f"{[b.value for b in blocking]}"
             )
 
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         step_state = self.state.steps[step]
         step_state.status = StepStatus.COMPLETED
-        step_state.completed_at = datetime.now(timezone.utc).isoformat()
+        step_state.completed_at = datetime.now(UTC).isoformat()
         step_state.artifact_id = artifact_id
         step_state.error_message = None
         step_state.validation_errors = []

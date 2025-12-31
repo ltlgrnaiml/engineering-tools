@@ -6,11 +6,11 @@ This package exports all core platform contracts used across tools.
 """
 
 from shared.contracts.core.artifact_registry import (
-    ArtifactRecord,
-    ArtifactType,
     ArtifactQuery,
+    ArtifactRecord,
     ArtifactState,
     ArtifactStats,
+    ArtifactType,
 )
 from shared.contracts.core.audit import (
     AuditTimestamp,
@@ -21,65 +21,85 @@ from shared.contracts.core.audit import (
     to_iso8601,
 )
 from shared.contracts.core.concurrency import (
+    BatchResult,
     ConcurrencyConfig,
     ConcurrencyTier,
     OSType,
     PlatformInfo,
     ShellType,
     TaskResult,
-    BatchResult,
     get_platform_info,
 )
 from shared.contracts.core.dataset import (
     ColumnMeta,
     DataSetManifest,
-    DataSetRef,
     DataSetPreview,
+    DataSetRef,
+)
+from shared.contracts.core.frontend_logging import (
+    DebugPanelConfig,
+    FrontendAPICall,
+    FrontendDebugExport,
+    FrontendLogCategory,
+    FrontendLogEntry,
+    FrontendLogLevel,
+    FrontendStateTransition,
 )
 from shared.contracts.core.id_generator import (
+    AggregateStageInputs,
+    ArtifactIDRequest,
+    ArtifactIDResult,
+    ContextStageInputs,
+    ExportStageInputs,
     IDAlgorithm,
     IDConfig,
     IDGenerationRequest,
     IDGenerationResult,
-    StageIDInputs,
-    UploadStageInputs,
-    ContextStageInputs,
-    PreviewStageInputs,
-    ParseStageInputs,
-    AggregateStageInputs,
-    TransformStageInputs,
-    ValidateStageInputs,
-    ExportStageInputs,
-    ArtifactIDRequest,
-    ArtifactIDResult,
     IDValidationRequest,
     IDValidationResult,
-    compute_deterministic_id,
+    ParseStageInputs,
+    PreviewStageInputs,
+    StageIDInputs,
+    TransformStageInputs,
+    UploadStageInputs,
+    ValidateStageInputs,
     compute_content_hash,
+    compute_deterministic_id,
     verify_id_determinism,
 )
+from shared.contracts.core.logging import (
+    ArtifactLog,
+    FSMTransitionLog,
+    LogEvent,
+    LogLevel,
+    RequestContext,
+    StateSnapshot,
+    TraceQuery,
+    TraceResult,
+)
 from shared.contracts.core.path_safety import (
+    PathSafetyConfig,
     PathValidationError,
     RelativePath,
     WorkspacePath,
-    PathSafetyConfig,
-    normalize_path,
     is_safe_relative_path,
     make_relative,
+    normalize_path,
 )
 from shared.contracts.core.pipeline import (
+    CreatePipelineRequest,
     Pipeline,
+    PipelineRef,
     PipelineStep,
     PipelineStepState,
     PipelineStepType,
-    PipelineRef,
-    CreatePipelineRequest,
 )
 from shared.contracts.core.rendering import (
     ChartSpec,
     ChartType,
     ColorPalette,
     DataSeries,
+    ImageSpec,
     OutputFormat,
     OutputTarget,
     RenderRequest,
@@ -89,26 +109,6 @@ from shared.contracts.core.rendering import (
     RenderStyle,
     TableSpec,
     TextSpec,
-    ImageSpec,
-)
-from shared.contracts.core.logging import (
-    LogLevel,
-    RequestContext,
-    LogEvent,
-    StateSnapshot,
-    FSMTransitionLog,
-    ArtifactLog,
-    TraceQuery,
-    TraceResult,
-)
-from shared.contracts.core.frontend_logging import (
-    FrontendLogLevel,
-    FrontendLogCategory,
-    FrontendLogEntry,
-    FrontendAPICall,
-    FrontendStateTransition,
-    FrontendDebugExport,
-    DebugPanelConfig,
 )
 
 __version__ = "0.1.0"

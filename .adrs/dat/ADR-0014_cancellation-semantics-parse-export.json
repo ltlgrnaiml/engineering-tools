@@ -30,7 +30,8 @@
     "implementation_specs": [
       "SPEC-0015_Cancellation-Cleanup-Spec",
       "SPEC-0013_Artifact-Lifecycle-Preservation-Spec",
-      "SPEC-0012_Audit-Trail-Enforcement-Spec"
+      "SPEC-0012_Audit-Trail-Enforcement-Spec",
+      "SPEC-0032"
     ],
     "constraints": [
       "Cancel operation must never delete completed artifacts by default.",
@@ -109,7 +110,8 @@
     "ADR-0001_Guided-Workflow-FSM-Orchestration: Core FSM pattern",
     "ADR-0002_Artifact-Preservation-on-Unlock: Artifact preservation on cancellation",
     "ADR-0004_Deterministic-Stage-IDs: Deterministic artifact identification",
-    "ADR-0017_Cross-Cutting-Guardrails"
+    "ADR-0017_Cross-Cutting-Guardrails",
+    "ADR-0018"
   ],
   "tags": [
     "cancellation",

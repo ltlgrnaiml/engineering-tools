@@ -1,12 +1,13 @@
 """Tests for Search Service - PLAN-002 M2."""
 
-import pytest
 import sqlite3
 
-from shared.contracts.knowledge.archive import Document, DocumentType
-from gateway.services.knowledge.database import SCHEMA
+import pytest
+
 from gateway.services.knowledge.archive_service import ArchiveService
+from gateway.services.knowledge.database import SCHEMA
 from gateway.services.knowledge.search_service import SearchService
+from shared.contracts.knowledge.archive import Document, DocumentType
 
 
 @pytest.fixture
@@ -85,8 +86,8 @@ def test_relationship_extraction(archive):
     )
     rels = archive.extract_relationships(doc)
     assert len(rels) == 2
-    assert any('adr' in r[1] for r in rels)
-    assert any('spec' in r[1] for r in rels)
+    assert any('ADR' in r[1] for r in rels)
+    assert any('SPEC' in r[1] for r in rels)
 
 
 def test_search_service_import():

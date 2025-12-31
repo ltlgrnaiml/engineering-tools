@@ -19,9 +19,10 @@ Features:
 
 import asyncio
 import json
-from datetime import datetime, timezone
+from collections.abc import AsyncIterator
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, AsyncIterator
+from typing import Any
 
 import polars as pl
 
@@ -97,7 +98,7 @@ def _is_jsonl_file(file_path: Path) -> bool:
     # For .json files, peek at content
     if ext == ".json":
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 first_char = ""
                 for char in f.read(100):
                     if not char.isspace():
@@ -197,7 +198,7 @@ class JSONAdapter(BaseFileAdapter):
         Raises:
             AdapterError: If file cannot be probed.
         """
-        start_time = datetime.now(timezone.utc)
+        start_time = datetime.now(UTC)
         options = options or ReadOptions()
         errors: list[str] = []
         warnings: list[str] = []
@@ -281,7 +282,7 @@ class JSONAdapter(BaseFileAdapter):
                 row_count_estimate = len(df)
                 row_count_exact = not is_jsonl  # Exact for regular JSON
 
-            end_time = datetime.now(timezone.utc)
+            end_time = datetime.now(UTC)
             duration_ms = (end_time - start_time).total_seconds() * 1000
 
             return SchemaProbeResult(
@@ -331,7 +332,7 @@ class JSONAdapter(BaseFileAdapter):
         Raises:
             AdapterError: If file cannot be read.
         """
-        start_time = datetime.now(timezone.utc)
+        start_time = datetime.now(UTC)
         options = options or ReadOptions()
         warnings: list[str] = []
 
@@ -385,7 +386,7 @@ class JSONAdapter(BaseFileAdapter):
 
             df = await asyncio.to_thread(_read_json)
 
-            end_time = datetime.now(timezone.utc)
+            end_time = datetime.now(UTC)
             duration_ms = (end_time - start_time).total_seconds() * 1000
 
             was_truncated = options.row_limit is not None and len(df) >= options.row_limit
@@ -460,7 +461,7 @@ class JSONAdapter(BaseFileAdapter):
 
             if not is_jsonl:
                 # Regular JSON - read all as single chunk
-                start_time = datetime.now(timezone.utc)
+                start_time = datetime.now(UTC)
 
                 def _read_all() -> pl.DataFrame:
                     df = pl.read_json(path)
@@ -473,7 +474,7 @@ class JSONAdapter(BaseFileAdapter):
 
                 df = await asyncio.to_thread(_read_all)
 
-                end_time = datetime.now(timezone.utc)
+                end_time = datetime.now(UTC)
                 duration_ms = (end_time - start_time).total_seconds() * 1000
 
                 chunk_meta = StreamChunk(
@@ -508,7 +509,7 @@ class JSONAdapter(BaseFileAdapter):
             chunk_index = 0
 
             while total_rows_so_far < total_rows:
-                start_time = datetime.now(timezone.utc)
+                start_time = datetime.now(UTC)
 
                 def _read_chunk(offset: int, limit: int) -> pl.DataFrame:
                     return lf.slice(offset, limit).collect()
@@ -517,7 +518,7 @@ class JSONAdapter(BaseFileAdapter):
                     _read_chunk, total_rows_so_far, chunk_size
                 )
 
-                end_time = datetime.now(timezone.utc)
+                end_time = datetime.now(UTC)
                 duration_ms = (end_time - start_time).total_seconds() * 1000
 
                 rows_in_chunk = len(chunk_df)
@@ -564,7 +565,7 @@ class JSONAdapter(BaseFileAdapter):
         Returns:
             FileValidationResult with validation status and issues.
         """
-        start_time = datetime.now(timezone.utc)
+        start_time = datetime.now(UTC)
         issues: list[ValidationIssue] = []
 
         try:
@@ -603,7 +604,7 @@ class JSONAdapter(BaseFileAdapter):
                 try:
                     if is_jsonl:
                         # Validate first few lines
-                        with open(path, "r", encoding="utf-8") as f:
+                        with open(path, encoding="utf-8") as f:
                             for i, line in enumerate(f):
                                 if i >= 5:
                                     break
@@ -612,7 +613,7 @@ class JSONAdapter(BaseFileAdapter):
                                     json.loads(line)
                     else:
                         # Validate entire JSON structure
-                        with open(path, "r", encoding="utf-8") as f:
+                        with open(path, encoding="utf-8") as f:
                             data = json.load(f)
 
                         # Check if it's tabular (array of objects)
@@ -691,7 +692,7 @@ class JSONAdapter(BaseFileAdapter):
         Returns:
             FileValidationResult with computed fields.
         """
-        end_time = datetime.now(timezone.utc)
+        end_time = datetime.now(UTC)
         duration_ms = (end_time - start_time).total_seconds() * 1000
 
         error_count = sum(

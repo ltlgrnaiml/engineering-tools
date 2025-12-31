@@ -4,13 +4,13 @@ Per SPEC-0009: Six extraction strategies for table definitions.
 Each strategy transforms nested JSON/data structures into flat DataFrames.
 """
 
+from .array_of_objects import ArrayOfObjectsStrategy
 from .base import ExtractionStrategy, SelectConfig
 from .flat_object import FlatObjectStrategy
 from .headers_data import HeadersDataStrategy
-from .array_of_objects import ArrayOfObjectsStrategy
+from .join import JoinStrategy
 from .repeat_over import RepeatOverStrategy
 from .unpivot import UnpivotStrategy
-from .join import JoinStrategy
 
 __all__ = [
     "ExtractionStrategy",
