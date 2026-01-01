@@ -1,7 +1,7 @@
 import { useRef, useCallback, useState, useEffect, useMemo } from 'react'
 import ForceGraph2D from 'react-force-graph-2d'
 import ForceGraph3D from 'react-force-graph-3d'
-import { Layers, Box } from 'lucide-react'
+import { Layers, Box, Settings, X, RotateCcw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useArtifactGraph } from '@/hooks/useWorkflowApi'
 import type { ArtifactType, GraphNode, GraphEdge } from './types'
@@ -50,8 +50,34 @@ export function ArtifactGraph({ onNodeClick, selectedNodeId, className }: Artifa
   const containerRef = useRef<HTMLDivElement>(null)  // Inner absolute container (for cursor)
   const initialZoomDone = useRef(false)
   const { data: graphData, loading } = useArtifactGraph()
-  const [dimensions, setDimensions] = useState({ width: 800, height: 600 })
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
   const [is3D, setIs3D] = useState(true) // Default to 3D for better visualization
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  
+  // Graph settings with defaults
+  const [settings, setSettings] = useState({
+    focusDistance: 400,      // Camera distance on node focus (100-800)
+    chargeStrength: -100,    // Node repulsion (-300 to -30)
+    linkDistance: 60,        // Target link length (20-150)
+    centerStrength: 0.1,     // Pull to center (0-1)
+    linkCurvature: 0.15,     // Link curve amount (0-0.5)
+    showParticles: true,     // Animated particles on links
+    particleSpeed: 0.005,    // Particle animation speed
+    shortLabels: false,      // Use short labels in tooltips
+    dagMode: null as string | null, // Hierarchical layout mode
+  })
+  
+  const defaultSettings = {
+    focusDistance: 400,
+    chargeStrength: -100,
+    linkDistance: 60,
+    centerStrength: 0.1,
+    linkCurvature: 0.15,
+    showParticles: true,
+    particleSpeed: 0.005,
+    shortLabels: false,
+    dagMode: null as string | null,
+  }
 
   // Reset zoom flag when switching modes
   useEffect(() => {
@@ -87,11 +113,18 @@ export function ArtifactGraph({ onNodeClick, selectedNodeId, className }: Artifa
       }
     }
 
-    updateDimensions()
+    // CRITICAL: Delay initial measurement to allow flex layout to settle
+    // Without this delay, we measure before the container has its final size
+    // Using 100ms for more reliability across different render timings
+    const initialTimeout = setTimeout(updateDimensions, 100)
+    
     const resizeObserver = new ResizeObserver(updateDimensions)
     resizeObserver.observe(outer)
 
-    return () => resizeObserver.disconnect()
+    return () => {
+      clearTimeout(initialTimeout)
+      resizeObserver.disconnect()
+    }
   }, [])
 
   // Build adjacency map for highlighting
@@ -120,8 +153,7 @@ export function ArtifactGraph({ onNodeClick, selectedNodeId, className }: Artifa
     if (node && node.x !== undefined && node.y !== undefined) {
       if (is3D) {
         // 3D: Use cameraPosition for orbital camera movement
-        // Distance 400 = gentler zoom (was 200)
-        const distance = 400
+        const distance = settings.focusDistance
         const distRatio = 1 + distance / Math.hypot(node.x, node.y, node.z || 0)
         graphRef.current.cameraPosition(
           { x: node.x * distRatio, y: node.y * distRatio, z: (node.z || 0) * distRatio },
@@ -134,7 +166,7 @@ export function ArtifactGraph({ onNodeClick, selectedNodeId, className }: Artifa
         graphRef.current.zoom(1.5, 500)
       }
     }
-  }, [selectedNodeId, graphData, is3D])
+  }, [selectedNodeId, graphData, is3D, settings.focusDistance])
 
   const handleNodeClick = useCallback((node: ExtendedGraphNode) => {
     onNodeClick?.(node.id, node.type)
@@ -142,8 +174,8 @@ export function ArtifactGraph({ onNodeClick, selectedNodeId, className }: Artifa
     // Focus camera on clicked node - API differs between 2D and 3D
     if (graphRef.current && node.x !== undefined && node.y !== undefined) {
       if (is3D) {
-        // 3D: Use cameraPosition (distance 400 = gentler zoom)
-        const distance = 400
+        // 3D: Use cameraPosition with user-configurable distance
+        const distance = settings.focusDistance
         const distRatio = 1 + distance / Math.hypot(node.x, node.y, node.z || 0)
         graphRef.current.cameraPosition(
           { x: node.x * distRatio, y: node.y * distRatio, z: (node.z || 0) * distRatio },
@@ -156,7 +188,7 @@ export function ArtifactGraph({ onNodeClick, selectedNodeId, className }: Artifa
         graphRef.current.zoom(1.5, 500)
       }
     }
-  }, [onNodeClick, is3D])
+  }, [onNodeClick, is3D, settings.focusDistance])
 
   // NO setState on hover - it causes re-renders that destabilize the simulation
   // The built-in nodeLabel prop handles tooltips without React re-renders
@@ -224,21 +256,32 @@ export function ArtifactGraph({ onNodeClick, selectedNodeId, className }: Artifa
   }, [is3D])
 
   // Early return AFTER all hooks are defined (React hooks rule)
-  if (loading || !graphData) {
+  // Wait for valid dimensions before rendering graph to prevent clipping
+  if (loading || !graphData || dimensions.width === 0 || dimensions.height === 0) {
     return (
-      <div className={cn('w-full h-full bg-zinc-950 flex items-center justify-center', className)}>
-        <div className="text-zinc-500">Loading graph...</div>
+      <div 
+        ref={outerRef}
+        className={cn('w-full h-full bg-zinc-950 flex items-center justify-center', className)}
+        style={{ minHeight: 0, minWidth: 0 }}
+      >
+        <div className="text-zinc-500">
+          {loading ? 'Loading graph...' : dimensions.width === 0 ? 'Measuring...' : 'Loading...'}
+        </div>
       </div>
     )
   }
 
-  // Shared graph props - explicit width/height for proper sizing in flex containers
+  // Shared graph props - explicit dimensions required for proper sizing in flex layouts
+  // ForceGraph defaults to window size without these, causing clipping
   const graphProps = {
     ref: graphRef,
-    width: dimensions.width || undefined,   // Pass undefined if 0 to trigger auto-size
-    height: dimensions.height || undefined,
+    width: dimensions.width,
+    height: dimensions.height,
     graphData: { nodes: graphData.nodes, links: graphData.edges },
-    nodeLabel: (node: ExtendedGraphNode) => `<div style="background:#1f2937;padding:4px 8px;border-radius:4px;font-size:12px"><b>${TYPE_LABELS[node.type]}</b>: ${node.id}<br/><span style="color:#9ca3af">${node.status}</span></div>`,
+    nodeLabel: (node: ExtendedGraphNode) => {
+      const label = settings.shortLabels ? node.id.split('/').pop() || node.id : node.id
+      return `<div style="background:#1f2937;padding:4px 8px;border-radius:4px;font-size:12px"><b>${TYPE_LABELS[node.type]}</b>: ${label}<br/><span style="color:#9ca3af">${node.status}</span></div>`
+    },
     nodeColor,
     onNodeClick: handleNodeClick,
     onNodeHover: handleNodeHover,
@@ -246,19 +289,28 @@ export function ArtifactGraph({ onNodeClick, selectedNodeId, className }: Artifa
     onNodeDragEnd: handleNodeDragEnd,          // Enhancement 1
     linkColor,
     linkWidth,
-    linkCurvature: 0.15,                       // Enhancement 5: Curved links
+    linkCurvature: settings.linkCurvature,
     linkDirectionalArrowLength: 6,
     linkDirectionalArrowRelPos: 1,
-    linkDirectionalParticles: (link: ExtendedGraphEdge) => isLinkHighlighted(link) ? 2 : 0,
+    linkDirectionalParticles: (link: ExtendedGraphEdge) => 
+      settings.showParticles && isLinkHighlighted(link) ? 2 : 0,
     linkDirectionalParticleWidth: 2,
-    linkDirectionalParticleSpeed: 0.005,
+    linkDirectionalParticleSpeed: settings.particleSpeed,
     backgroundColor: '#09090b',
-    enableNodeDrag: true,                      // Allow node dragging
-    // Stabilization settings to prevent jiggling
+    enableNodeDrag: true,
+    // Force simulation settings - user configurable
+    d3Force: (d3: any) => {
+      d3.force('charge')?.strength(settings.chargeStrength)
+      d3.force('link')?.distance(settings.linkDistance)
+      d3.force('center')?.strength(settings.centerStrength)
+    },
+    dagMode: settings.dagMode,
+    dagLevelDistance: 50,
+    // Stabilization settings
     cooldownTicks: 100,
     cooldownTime: 3000,
     d3AlphaMin: 0.05,
-    d3AlphaDecay: 0.05,                        // Faster simulation cooldown
+    d3AlphaDecay: 0.05,
     d3VelocityDecay: 0.4,
     warmupTicks: 100,
     onEngineStop: () => {
@@ -270,29 +322,35 @@ export function ArtifactGraph({ onNodeClick, selectedNodeId, className }: Artifa
   }
 
   return (
-    // SIMPLIFIED: Single container with explicit sizing
-    // The key insight from debugging: we need the container to have explicit dimensions
-    // AND pass those to ForceGraph. The double-div was over-engineering.
+    // Flex-based sizing with explicit dimensions passed to ForceGraph
     <div 
       ref={outerRef}
       className={cn('bg-zinc-950 relative', className)} 
       style={{ 
         width: '100%',
         height: '100%',
-        minHeight: 0,  // Allow flex shrink
-        minWidth: 0,   // Allow flex shrink
+        minHeight: 0,
+        minWidth: 0,
+        overflow: 'hidden',
       }}
     >
-      <div 
-        ref={containerRef} 
-        style={{ 
-          width: '100%',
-          height: '100%',
-          position: 'relative',
-        }}
-      >
-      {/* 2D/3D Toggle Buttons */}
+      {/* Top Controls Bar */}
       <div className="absolute top-4 right-4 z-20 flex gap-2">
+        {/* Settings Toggle */}
+        <button
+          onClick={() => setSettingsOpen(!settingsOpen)}
+          className={cn(
+            'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all',
+            settingsOpen
+              ? 'bg-purple-600 text-white shadow-lg'
+              : 'bg-zinc-800/90 text-zinc-400 hover:bg-zinc-700 hover:text-white'
+          )}
+          title="Graph Settings"
+        >
+          <Settings size={16} />
+        </button>
+        
+        {/* 2D/3D Toggle */}
         <button
           onClick={() => setIs3D(false)}
           className={cn(
@@ -321,7 +379,166 @@ export function ArtifactGraph({ onNodeClick, selectedNodeId, className }: Artifa
         </button>
       </div>
 
-      {/* Render 2D or 3D Graph - key forces remount on mode switch */}
+      {/* Settings Panel */}
+      {settingsOpen && (
+        <div className="absolute top-16 right-4 z-20 w-72 bg-zinc-900/95 backdrop-blur-sm rounded-xl border border-zinc-700 shadow-2xl overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-700">
+            <span className="text-sm font-semibold text-white">Graph Settings</span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setSettings(defaultSettings)}
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors"
+                title="Reset to defaults"
+              >
+                <RotateCcw size={14} />
+              </button>
+              <button
+                onClick={() => setSettingsOpen(false)}
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          </div>
+          
+          {/* Settings Content */}
+          <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
+            {/* Focus Zoom */}
+            <div>
+              <label className="flex items-center justify-between text-xs text-zinc-400 mb-1.5">
+                <span>Focus Distance</span>
+                <span className="text-zinc-500">{settings.focusDistance}</span>
+              </label>
+              <input
+                type="range"
+                min="100"
+                max="800"
+                step="50"
+                value={settings.focusDistance}
+                onChange={(e) => setSettings(s => ({ ...s, focusDistance: Number(e.target.value) }))}
+                className="w-full h-1.5 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+              />
+              <div className="flex justify-between text-[10px] text-zinc-600 mt-0.5">
+                <span>Close</span>
+                <span>Far</span>
+              </div>
+            </div>
+
+            {/* Node Repulsion */}
+            <div>
+              <label className="flex items-center justify-between text-xs text-zinc-400 mb-1.5">
+                <span>Node Spread</span>
+                <span className="text-zinc-500">{Math.abs(settings.chargeStrength)}</span>
+              </label>
+              <input
+                type="range"
+                min="-300"
+                max="-30"
+                step="10"
+                value={settings.chargeStrength}
+                onChange={(e) => setSettings(s => ({ ...s, chargeStrength: Number(e.target.value) }))}
+                className="w-full h-1.5 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-green-500"
+              />
+              <div className="flex justify-between text-[10px] text-zinc-600 mt-0.5">
+                <span>Tight</span>
+                <span>Spread</span>
+              </div>
+            </div>
+
+            {/* Link Distance */}
+            <div>
+              <label className="flex items-center justify-between text-xs text-zinc-400 mb-1.5">
+                <span>Link Length</span>
+                <span className="text-zinc-500">{settings.linkDistance}</span>
+              </label>
+              <input
+                type="range"
+                min="20"
+                max="150"
+                step="10"
+                value={settings.linkDistance}
+                onChange={(e) => setSettings(s => ({ ...s, linkDistance: Number(e.target.value) }))}
+                className="w-full h-1.5 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-yellow-500"
+              />
+            </div>
+
+            {/* Link Curvature */}
+            <div>
+              <label className="flex items-center justify-between text-xs text-zinc-400 mb-1.5">
+                <span>Link Curvature</span>
+                <span className="text-zinc-500">{settings.linkCurvature.toFixed(2)}</span>
+              </label>
+              <input
+                type="range"
+                min="0"
+                max="0.5"
+                step="0.05"
+                value={settings.linkCurvature}
+                onChange={(e) => setSettings(s => ({ ...s, linkCurvature: Number(e.target.value) }))}
+                className="w-full h-1.5 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
+              />
+              <div className="flex justify-between text-[10px] text-zinc-600 mt-0.5">
+                <span>Straight</span>
+                <span>Curved</span>
+              </div>
+            </div>
+
+            {/* Toggles Section */}
+            <div className="space-y-2 pt-2 border-t border-zinc-700">
+              {/* Short Labels */}
+              <label className="flex items-center justify-between cursor-pointer group">
+                <span className="text-xs text-zinc-400 group-hover:text-zinc-300">Short Labels</span>
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={settings.shortLabels}
+                    onChange={(e) => setSettings(s => ({ ...s, shortLabels: e.target.checked }))}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-zinc-700 rounded-full peer peer-checked:bg-blue-600 transition-colors"></div>
+                  <div className="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-4"></div>
+                </div>
+              </label>
+
+              {/* Show Particles */}
+              <label className="flex items-center justify-between cursor-pointer group">
+                <span className="text-xs text-zinc-400 group-hover:text-zinc-300">Link Particles</span>
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={settings.showParticles}
+                    onChange={(e) => setSettings(s => ({ ...s, showParticles: e.target.checked }))}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-zinc-700 rounded-full peer peer-checked:bg-blue-600 transition-colors"></div>
+                  <div className="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-4"></div>
+                </div>
+              </label>
+            </div>
+
+            {/* DAG Mode */}
+            <div className="pt-2 border-t border-zinc-700">
+              <label className="text-xs text-zinc-400 mb-1.5 block">Layout Mode</label>
+              <select
+                value={settings.dagMode || ''}
+                onChange={(e) => setSettings(s => ({ ...s, dagMode: e.target.value || null }))}
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="">Force-Directed (default)</option>
+                <option value="td">Top-Down Hierarchy</option>
+                <option value="bu">Bottom-Up Hierarchy</option>
+                <option value="lr">Left-Right Hierarchy</option>
+                <option value="rl">Right-Left Hierarchy</option>
+                <option value="radialout">Radial Outward</option>
+                <option value="radialin">Radial Inward</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Render 2D or 3D Graph */}
       {is3D ? (
         <ForceGraph3D
           key="3d-graph"
@@ -335,6 +552,7 @@ export function ArtifactGraph({ onNodeClick, selectedNodeId, className }: Artifa
         />
       ) : (
         <ForceGraph2D
+          key="2d-graph"
           {...graphProps}
           nodeCanvasObject={(node: ExtendedGraphNode, ctx: CanvasRenderingContext2D, globalScale: number) => {
             const baseColor = TYPE_COLORS[node.type] || '#6B7280'
@@ -394,7 +612,6 @@ export function ArtifactGraph({ onNodeClick, selectedNodeId, className }: Artifa
           {is3D ? 'Drag to rotate' : 'Drag to pan'} • Scroll to zoom<br/>
           Press <kbd className="px-1 py-0.5 bg-zinc-800 rounded text-zinc-400">2</kbd> or <kbd className="px-1 py-0.5 bg-zinc-800 rounded text-zinc-400">3</kbd> to toggle
         </div>
-      </div>
       </div>
     </div>
   )
