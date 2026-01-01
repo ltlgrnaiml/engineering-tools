@@ -863,64 +863,115 @@ def build_artifact_graph(use_rag_db: bool = True) -> GraphResponse:
 
     # Fallback: Build edges by scanning files for references
     for artifact in artifacts:
-        if artifact.type in (ArtifactType.ADR, ArtifactType.SPEC):
-            try:
+        try:
+            # Handle JSON artifacts (ADR, SPEC, PLAN)
+            if artifact.type in (ArtifactType.ADR, ArtifactType.SPEC, ArtifactType.PLAN):
                 with open(artifact.file_path, encoding="utf-8") as f:
                     data = json.load(f)
 
-                # Check implements_adr field (SPEC -> ADR)
+                # Helper to resolve reference ID to full node ID
+                # Per ADR-0016: Short IDs (ADR-0001, SPEC-0024) are globally unique
+                def resolve_ref(ref_id: str) -> str | None:
+                    """Resolve a reference ID to its full node ID."""
+                    if not ref_id:
+                        return None
+                    # Try exact match first
+                    if ref_id in short_to_full:
+                        return short_to_full[ref_id]
+                    # Extract short ID and try again
+                    short = _extract_short_id(ref_id)
+                    return short_to_full.get(short)
+
+                # SPEC -> ADR: implements_adr field
                 implements = data.get("implements_adr", [])
                 for adr_id in implements:
-                    if adr_id in artifact_ids:
+                    resolved = resolve_ref(adr_id)
+                    if resolved:
                         edges.append(
                             GraphEdge(
                                 source=artifact.id,
-                                target=adr_id,
+                                target=resolved,
                                 relationship=RelationshipType.IMPLEMENTS,
                             )
                         )
 
-                # Check resulting_specs field (ADR -> SPEC)
+                # ADR -> SPEC: resulting_specs field
                 specs = data.get("resulting_specs", [])
                 for spec in specs:
                     spec_id = spec.get("id") if isinstance(spec, dict) else spec
-                    if spec_id in artifact_ids:
+                    resolved = resolve_ref(spec_id)
+                    if resolved:
                         edges.append(
                             GraphEdge(
                                 source=artifact.id,
-                                target=spec_id,
+                                target=resolved,
                                 relationship=RelationshipType.CREATES,
                             )
                         )
 
-                # Check source_references in plans
+                # ADR -> DISC: source_discussion field (DISC creates ADR)
+                source_disc = data.get("source_discussion")
+                resolved_disc = resolve_ref(source_disc)
+                if resolved_disc:
+                    edges.append(
+                        GraphEdge(
+                            source=resolved_disc,
+                            target=artifact.id,
+                            relationship=RelationshipType.CREATES,
+                        )
+                    )
+
+                # PLAN -> ADR/SPEC: source_references field
                 refs = data.get("source_references", [])
                 for ref in refs:
                     ref_id = ref.get("id") if isinstance(ref, dict) else ref
-                    if ref_id in artifact_ids:
+                    resolved = resolve_ref(ref_id)
+                    if resolved:
                         edges.append(
                             GraphEdge(
                                 source=artifact.id,
-                                target=ref_id,
+                                target=resolved,
                                 relationship=RelationshipType.REFERENCES,
                             )
                         )
 
-                # Check references array
+                # Generic references array
                 refs = data.get("references", [])
                 for ref in refs:
                     ref_id = ref.get("id") if isinstance(ref, dict) else ref
-                    if ref_id and ref_id in artifact_ids:
+                    resolved = resolve_ref(ref_id)
+                    if resolved:
                         edges.append(
                             GraphEdge(
                                 source=artifact.id,
-                                target=ref_id,
+                                target=resolved,
                                 relationship=RelationshipType.REFERENCES,
                             )
                         )
 
-            except Exception:
-                pass
+            # Handle markdown artifacts (DISC)
+            elif artifact.type == ArtifactType.DISCUSSION:
+                with open(artifact.file_path, encoding="utf-8") as f:
+                    content = f.read()
+
+                # Extract resulting artifacts table
+                # Format: | ADR | ADR-0045 | Title | Status |
+                for match in re.finditer(
+                    r"\|\s*(ADR|SPEC|PLAN)\s*\|\s*([A-Z]+-\d+[^|]*)\|",
+                    content
+                ):
+                    artifact_id = match.group(2).strip()
+                    if artifact_id in artifact_ids:
+                        edges.append(
+                            GraphEdge(
+                                source=artifact.id,
+                                target=artifact_id,
+                                relationship=RelationshipType.CREATES,
+                            )
+                        )
+
+        except Exception:
+            pass
 
     return GraphResponse(nodes=nodes, edges=edges)
 

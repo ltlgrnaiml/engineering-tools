@@ -5,12 +5,14 @@ WORKDIR /app
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     curl \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy dependency files first (for caching)
 COPY pyproject.toml uv.lock* ./
 
 # Install Python dependencies directly with pip
+# Core dependencies
 RUN pip install --no-cache-dir \
     uvicorn[standard] \
     fastapi \
@@ -20,20 +22,44 @@ RUN pip install --no-cache-dir \
     python-dotenv \
     python-multipart \
     aiofiles \
+    aiosqlite \
+    polars \
+    pyarrow \
+    beautifulsoup4 \
+    pyyaml \
+    psutil \
+    jsonpath-ng
+
+# AI/LLM dependencies
+RUN pip install --no-cache-dir \
     openai \
     langchain \
     langchain-openai \
-    arize-phoenix \
-    openinference-instrumentation-langchain \
-    openinference-instrumentation-openai \
-    polars \
-    openpyxl \
-    xlrd \
+    langgraph \
     tiktoken \
+    sentence-transformers
+
+# Observability
+RUN pip install --no-cache-dir \
+    arize-phoenix \
+    arize-phoenix-otel \
+    openinference-instrumentation-langchain \
+    openinference-instrumentation-openai
+
+# PPTX Generator dependencies
+RUN pip install --no-cache-dir \
     python-pptx \
     matplotlib \
     pillow \
-    pandas
+    pandas \
+    openpyxl \
+    xlrd
+
+# SOV Analyzer dependencies
+RUN pip install --no-cache-dir \
+    scipy \
+    statsmodels \
+    numpy
 
 # Copy application code
 COPY . .

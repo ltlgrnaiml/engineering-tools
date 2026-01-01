@@ -14,6 +14,7 @@
 | DISC-007 | Unified-xAI-Agent-Wrapper | `active` | L2 | DISC-003, DISC-006 | - |
 | DISC-008 | Open-Questions-Workflow-UX | `active` | L1 | DISC-001 | - |
 | DISC-009 | Orphan-ADRs-Policy-Document-Strategy | `active` | L0 | None | - |
+| DISC-010 | Centralized-UI-UX-Design-System | `draft` | L1 | DISC-001 | - |
 
 > **Dependency Graph**: See `DISC-DEPENDENCY-GRAPH.md` for visual representation and execution order.
 
@@ -33,8 +34,9 @@
 
 ## Statistics
 
-- **Total Discussions**: 9
+- **Total Discussions**: 10
 - **Active**: 8
+- **Draft**: 1
 - **Resolved**: 1
 - **Abandoned**: 0
 

@@ -5,6 +5,7 @@ export { ArtifactList } from './ArtifactList'
 
 // Graph
 export { ArtifactGraph } from './ArtifactGraph'
+export { ArtifactGraph3D } from './ArtifactGraph3D'
 export { GraphToolbar } from './GraphToolbar'
 
 // Readers

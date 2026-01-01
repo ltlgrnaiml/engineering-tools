@@ -9,7 +9,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - .:/app:cached  # :cached improves read performance on Windows/WSL2
+      - .:/app  # Native WSL filesystem - no :cached needed
       - /app/.venv
       - /app/__pycache__
       - /app/.pytest_cache
@@ -51,8 +51,8 @@ services:
     ports:
       - "8001:8001"
     volumes:
-      - ./docs:/app/docs:ro,cached
-      - ./mkdocs.yml:/app/mkdocs.yml:ro,cached
+      - ./docs:/app/docs:ro
+      - ./mkdocs.yml:/app/mkdocs.yml:ro
     command: mkdocs serve --dev-addr 0.0.0.0:8001
 
   # =============================================================================
@@ -65,7 +65,7 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./apps/homepage/frontend:/app:cached
+      - ./apps/homepage/frontend:/app
       - /app/node_modules
     command: npm run dev -- --host 0.0.0.0 --port 3000
 
@@ -79,7 +79,7 @@ services:
     ports:
       - "5173:5173"
     volumes:
-      - ./apps/data_aggregator/frontend:/app:cached
+      - ./apps/data_aggregator/frontend:/app
       - /app/node_modules
     command: npm run dev -- --host 0.0.0.0 --port 5173
 
@@ -93,7 +93,7 @@ services:
     ports:
       - "5174:5174"
     volumes:
-      - ./apps/sov_analyzer/frontend:/app:cached
+      - ./apps/sov_analyzer/frontend:/app
       - /app/node_modules
     command: npm run dev -- --host 0.0.0.0 --port 5174
 
@@ -107,7 +107,7 @@ services:
     ports:
       - "5175:5175"
     volumes:
-      - ./apps/pptx_generator/frontend:/app:cached
+      - ./apps/pptx_generator/frontend:/app
       - /app/node_modules
     command: npm run dev -- --host 0.0.0.0 --port 5175
 
